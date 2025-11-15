@@ -48,7 +48,6 @@ export default function DashboardPage() {
   const quickServices = [
     { icon: <Search />, text: 'ค้นหาทนายความ', color: 'bg-gray-100', href: '/lawyers' },
     { icon: <MessageSquare />, text: 'นัดหมายปรึกษาทนาย', color: 'bg-green-100', href: '/lawyers' },
-    { icon: <FileUp />, text: 'ส่งเอกสารให้ตรวจสอบ', color: 'bg-blue-100', href: '#' },
     { icon: <User />, text: 'จัดการข้อมูลส่วนบุคคล', color: 'bg-purple-100', href: '/account' },
   ];
 
