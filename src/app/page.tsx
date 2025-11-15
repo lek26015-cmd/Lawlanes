@@ -70,6 +70,33 @@ export default function Home() {
     { name: 'KHON KAEN UNIVERSITY SCIENCE PARK' },
     { name: 'Krungthai Bank' },
   ];
+  
+  const adBanners = [
+    {
+      title: "โปรโมตสำนักงานกฎหมายของคุณที่นี่",
+      description: "เข้าถึงลูกค้ากลุ่มเป้าหมายได้โดยตรง โปรโมตบริการของคุณบน Lawlane เพื่อเพิ่มการมองเห็นและสร้างความน่าเชื่อถือ",
+      buttonText: "ติดต่อลงโฆษณา",
+      icon: <Award className="mx-auto h-12 w-12 text-primary mb-3" />,
+      href: "#",
+      gradient: "from-gray-100 to-blue-50"
+    },
+    {
+      title: "บริการด้านสัญญาครบวงจร",
+      description: "ทีมงานของเราเชี่ยวชาญการร่างและตรวจสอบสัญญาทุกประเภทสำหรับธุรกิจ SME เพื่อความรัดกุมและปลอดภัย",
+      buttonText: "ดูรายละเอียดบริการ",
+      icon: <FileText className="mx-auto h-12 w-12 text-green-600 mb-3" />,
+      href: "/services/contracts",
+      gradient: "from-green-50 to-blue-50"
+    },
+    {
+      title: "ปรึกษาด่วนกับ AI",
+      description: "ไม่แน่ใจเรื่องข้อกฎหมาย? ลองใช้ AI Legal Advisor ของเราเพื่อรับการประเมินเบื้องต้นได้ทันที 24 ชั่วโมง",
+      buttonText: "ลองใช้ AI เลย",
+      icon: <Sparkles className="mx-auto h-12 w-12 text-purple-600 mb-3" />,
+      href: "#",
+      gradient: "from-purple-50 to-blue-50"
+    }
+  ];
 
   useEffect(() => {
     async function fetchData() {
@@ -391,22 +418,35 @@ export default function Home() {
 
         <section className="w-full py-12 md:py-16 lg:py-20 bg-gray-50">
             <div className="container mx-auto px-4 md:px-6">
-                <Card className="bg-gradient-to-br from-gray-100 to-blue-50 text-foreground p-8 rounded-2xl shadow-lg text-center border-t-4 border-primary">
-                    <CardHeader className="p-0">
-                        <Award className="mx-auto h-12 w-12 text-primary mb-3" />
-                        <CardTitle className="text-2xl font-bold">โฆษณาสำนักกฎหมายของคุณที่นี่</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-0 mt-4">
-                        <p className="text-muted-foreground mb-6 max-w-lg mx-auto">
-                            เข้าถึงลูกค้ากลุ่มเป้าหมายได้โดยตรง โปรโมตบริการของคุณบน Lawlane เพื่อเพิ่มการมองเห็นและสร้างความน่าเชื่อถือ
-                        </p>
-                    </CardContent>
-                    <CardFooter className="p-0 mt-6 justify-center">
-                         <Button asChild size="lg">
-                            <Link href="#">ติดต่อลงโฆษณา</Link>
-                        </Button>
-                    </CardFooter>
-                </Card>
+                <Carousel
+                  opts={{ align: "start", loop: true }}
+                  className="w-full"
+                >
+                  <CarouselContent>
+                    {adBanners.map((banner, index) => (
+                      <CarouselItem key={index}>
+                        <Card className={`bg-gradient-to-br ${banner.gradient} text-foreground p-8 rounded-2xl shadow-lg text-center border-t-4 border-primary`}>
+                          <CardHeader className="p-0">
+                            {banner.icon}
+                            <CardTitle className="text-2xl font-bold">{banner.title}</CardTitle>
+                          </CardHeader>
+                          <CardContent className="p-0 mt-4">
+                            <p className="text-muted-foreground mb-6 max-w-lg mx-auto">
+                              {banner.description}
+                            </p>
+                          </CardContent>
+                          <CardFooter className="p-0 mt-6 justify-center">
+                            <Button asChild size="lg">
+                              <Link href={banner.href}>{banner.buttonText}</Link>
+                            </Button>
+                          </CardFooter>
+                        </Card>
+                      </CarouselItem>
+                    ))}
+                  </CarouselContent>
+                  <CarouselPrevious className="hidden sm:flex" />
+                  <CarouselNext className="hidden sm:flex" />
+                </Carousel>
             </div>
         </section>
         
