@@ -6,13 +6,12 @@ import { useParams, useSearchParams, notFound, useRouter } from 'next/navigation
 import Link from 'next/link';
 import { getLawyerById } from '@/lib/data';
 import type { LawyerProfile } from '@/lib/types';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Scale } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { StarIcon } from '@/components/icons/star-icon';
 import { Label } from '@/components/ui/label';
 
 
@@ -113,7 +112,7 @@ function ReviewPageContent() {
                         <div className="flex items-center justify-center gap-3">
                             {[1, 2, 3, 4, 5].map((star) => (
                                 <button key={star} onClick={() => setRating(star)} className="focus:outline-none">
-                                    <StarIcon className={`w-10 h-10 cursor-pointer transition-all duration-150 ease-in-out ${rating >= star ? 'text-yellow-400 fill-yellow-400 scale-110' : 'text-gray-300 hover:text-yellow-300 hover:scale-105'}`} />
+                                    <Scale className={`w-10 h-10 cursor-pointer transition-all duration-150 ease-in-out ${rating >= star ? 'text-primary fill-primary/20 scale-110' : 'text-gray-300 hover:text-primary/50 hover:scale-105'}`} />
                                 </button>
                             ))}
                         </div>
@@ -149,3 +148,5 @@ export default function ReviewPage() {
         </Suspense>
     )
 }
+
+    

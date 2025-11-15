@@ -1,3 +1,4 @@
+
 'use client';
 
 import {
@@ -18,7 +19,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Button } from '@/components/ui/button';
-import { StarIcon } from '@/components/icons/star-icon';
+import { Scale } from 'lucide-react';
 
 export default function LawyerFilterSidebar() {
   const specialties = ['คดีฉ้อโกง SMEs', 'คดีแพ่งและพาณิชย์', 'การผิดสัญญา'];
@@ -54,7 +55,7 @@ export default function LawyerFilterSidebar() {
                 <RadioGroupItem value={String(rating)} id={`rating-${rating}`} />
                 <Label htmlFor={`rating-${rating}`} className="flex items-center gap-1 font-normal">
                   {[...Array(5)].map((_, i) => (
-                    <StarIcon key={i} className={`w-4 h-4 ${i < rating ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground'}`} />
+                    <Scale key={i} className={`w-4 h-4 ${i < rating ? 'text-primary fill-primary/20' : 'text-muted-foreground'}`} />
                   ))}
                   ขึ้นไป
                 </Label>
@@ -89,3 +90,5 @@ export default function LawyerFilterSidebar() {
     </Card>
   );
 }
+
+    

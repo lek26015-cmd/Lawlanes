@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, Suspense, useRef } from 'react';
@@ -28,9 +29,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, FileText, Check, Upload } from 'lucide-react';
+import { AlertTriangle, FileText, Check, Upload, Scale } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { StarIcon } from '@/components/icons/star-icon';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 
@@ -159,7 +159,7 @@ function ChatPageContent() {
                                     <div className="flex items-center justify-center gap-3">
                                         {[1, 2, 3, 4, 5].map((star) => (
                                             <button key={star} onClick={() => setRating(star)} className="focus:outline-none">
-                                                <StarIcon className={`w-8 h-8 cursor-pointer transition-all duration-150 ease-in-out ${rating >= star ? 'text-yellow-400 fill-yellow-400 scale-110' : 'text-gray-300 hover:text-yellow-300 hover:scale-105'}`} />
+                                                <Scale className={`w-8 h-8 cursor-pointer transition-all duration-150 ease-in-out ${rating >= star ? 'text-primary fill-primary/20 scale-110' : 'text-gray-300 hover:text-primary/50 hover:scale-105'}`} />
                                             </button>
                                         ))}
                                     </div>
@@ -266,3 +266,5 @@ export default function ChatPage() {
         </Suspense>
     )
 }
+
+    

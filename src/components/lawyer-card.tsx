@@ -1,10 +1,10 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { LawyerProfile } from '@/lib/types';
 import { Mail, Scale, Phone } from 'lucide-react';
-import { StarIcon } from '@/components/icons/star-icon';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -37,7 +37,7 @@ export default function LawyerCard({ lawyer }: LawyerCardProps) {
         </div>
         <div className="flex items-center gap-1">
           {[...Array(5)].map((_, i) => (
-            <StarIcon key={i} className={`w-4 h-4 ${i < Math.floor(rating) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} />
+            <Scale key={i} className={`w-4 h-4 ${i < Math.floor(rating) ? 'text-primary fill-primary/20' : 'text-gray-300'}`} />
           ))}
         </div>
         <p className="text-xs text-muted-foreground">({reviewCount} รีวิว)</p>
@@ -67,3 +67,5 @@ export default function LawyerCard({ lawyer }: LawyerCardProps) {
     </div>
   );
 }
+
+    

@@ -1,11 +1,11 @@
+
 import { getLawyerById } from '@/lib/data';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
-import { StarIcon } from '@/components/icons/star-icon';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Mail, Phone, Trophy, BookCopy } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, Trophy, BookCopy, Scale } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
@@ -78,7 +78,7 @@ export default async function LawyerProfilePage({ params }: { params: { id: stri
                             <div className="flex items-center gap-2 mt-2 justify-center md:justify-start">
                                 <div className="flex items-center gap-1">
                                 {[...Array(5)].map((_, i) => (
-                                    <StarIcon key={i} className={`w-5 h-5 ${i < Math.floor(rating) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} />
+                                    <Scale key={i} className={`w-5 h-5 ${i < Math.floor(rating) ? 'text-primary fill-primary/20' : 'text-gray-300'}`} />
                                 ))}
                                 </div>
                                 <span className="text-muted-foreground">({reviewCount} รีวิว)</span>
@@ -174,7 +174,7 @@ export default async function LawyerProfilePage({ params }: { params: { id: stri
                                                 </div>
                                                 <div className="flex items-center gap-1 my-1">
                                                     {[...Array(5)].map((_, i) => (
-                                                        <StarIcon key={i} className={`w-4 h-4 ${i < review.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} />
+                                                        <Scale key={i} className={`w-4 h-4 ${i < review.rating ? 'text-primary fill-primary/20' : 'text-gray-300'}`} />
                                                     ))}
                                                 </div>
                                                 <p className="text-sm text-muted-foreground">{review.comment}</p>
@@ -194,3 +194,5 @@ export default async function LawyerProfilePage({ params }: { params: { id: stri
     </div>
   );
 }
+
+    
