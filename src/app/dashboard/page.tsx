@@ -6,9 +6,9 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Calendar, Briefcase, FileText, Loader2, Search, MessageSquare, Building, FileUp, HelpCircle, CheckCircle, User } from 'lucide-react';
+import { Calendar, Briefcase, FileText, Loader2, Search, MessageSquare, Building, FileUp, HelpCircle, CheckCircle, User, Ticket } from 'lucide-react';
 import { getDashboardData } from '@/lib/data';
-import type { Case, UpcomingAppointment, Document } from '@/lib/types';
+import type { Case, UpcomingAppointment, Document, ReportedTicket } from '@/lib/types';
 import { format } from 'date-fns';
 import { th } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
@@ -16,14 +16,16 @@ import { Badge } from '@/components/ui/badge';
 export default function DashboardPage() {
   const [cases, setCases] = useState<Case[]>([]);
   const [appointments, setAppointments] = useState<UpcomingAppointment[]>([]);
+  const [tickets, setTickets] = useState<ReportedTicket[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function fetchData() {
       setIsLoading(true);
-      const { cases, appointments } = await getDashboardData();
+      const { cases, appointments, tickets } = await getDashboardData();
       setCases(cases);
       setAppointments(appointments);
+      setTickets(tickets);
       setIsLoading(false);
     }
     fetchData();
@@ -117,6 +119,35 @@ export default function DashboardPage() {
                                     </div>
                                 </Link>
                                 ))}
+                            </div>
+                        </CardContent>
+                        </Card>
+                    )}
+
+                    {/* Reported Tickets */}
+                    {tickets.length > 0 && (
+                        <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 font-bold">
+                            <Ticket className="w-5 h-5 text-destructive" />
+                            ตั๋วปัญหาที่รายงาน
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-3">
+                            {tickets.map((ticket) => (
+                                <div key={ticket.id} className="flex items-center justify-between p-4 rounded-lg bg-yellow-50 border border-yellow-200">
+                                <div>
+                                    <p className="font-semibold text-yellow-900">
+                                    {ticket.caseTitle} <span className="font-mono text-xs text-yellow-700">({ticket.caseId})</span>
+                                    </p>
+                                    <p className="text-sm text-yellow-800">
+                                    ประเภทปัญหา: {ticket.problemType} | ส่งเมื่อ: {format(ticket.reportedAt, 'dd MMM yyyy', { locale: th })}
+                                    </p>
+                                </div>
+                                <Badge variant="outline" className="border-yellow-600 text-yellow-700 bg-transparent">กำลังตรวจสอบ</Badge>
+                                </div>
+                            ))}
                             </div>
                         </CardContent>
                         </Card>

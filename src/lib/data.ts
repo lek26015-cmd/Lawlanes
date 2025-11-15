@@ -1,7 +1,7 @@
 
 import type { LawyerProfile } from '@/lib/types';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import type { Article, Case, UpcomingAppointment, Document } from '@/lib/types';
+import type { Article, Case, UpcomingAppointment, Document, ReportedTicket } from '@/lib/types';
 
 
 const getImageUrl = (id: string) => PlaceHolderImages.find(img => img.id === id)?.imageUrl ?? '';
@@ -221,12 +221,24 @@ const mockAppointments: UpcomingAppointment[] = [
   }
 ];
 
-export async function getDashboardData(): Promise<{ cases: Case[], appointments: UpcomingAppointment[] }> {
+const mockTickets: ReportedTicket[] = [
+  {
+    id: 'TICKET-5891A',
+    caseId: 'case-001',
+    caseTitle: 'ตรวจสอบสัญญาเช่าคอนโด',
+    problemType: 'ทนายตอบช้า',
+    status: 'pending',
+    reportedAt: new Date(new Date().setDate(new Date().getDate() - 1)),
+  }
+];
+
+export async function getDashboardData(): Promise<{ cases: Case[], appointments: UpcomingAppointment[], tickets: ReportedTicket[] }> {
   return new Promise(resolve => {
     setTimeout(() => {
       resolve({
         cases: mockCases,
         appointments: mockAppointments,
+        tickets: mockTickets,
       });
     }, 500);
   });

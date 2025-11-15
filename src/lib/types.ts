@@ -63,3 +63,12 @@ export interface Document {
     status: string;
     isCompleted: boolean;
 }
+
+export interface ReportedTicket {
+  id: string;
+  caseId: string;
+  caseTitle: string;
+  problemType: string;
+  status: 'pending' | 'resolved';
+  reportedAt: Date;
+}
