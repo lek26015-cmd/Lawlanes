@@ -76,7 +76,7 @@ export default function Header() {
       "w-full rounded-full border focus:ring-primary pl-4 pr-12 h-12 transition-colors",
       useTransparentHeader 
         ? "bg-background/20 border-foreground/30 text-foreground placeholder:text-foreground/70 focus:bg-background/80"
-        : "bg-background/20 border-transparent text-background placeholder:text-background/70 focus:bg-background/30"
+        : "bg-background/20 border-foreground/30 text-background placeholder:text-background/70 focus:bg-background/30"
   )
 
 
@@ -114,14 +114,11 @@ export default function Header() {
         </div>
 
         <nav className="hidden items-center gap-4 text-sm font-medium md:flex whitespace-nowrap">
-          <Link href="/" className={pathname === '/' ? activeNavLinkClasses : navLinkClasses}>
-            หน้าแรก
-          </Link>
-          <Link href="/#features" className={navLinkClasses}>
-            บริการ
-          </Link>
           <Link href="/articles" className={pathname.startsWith('/articles') ? activeNavLinkClasses : navLinkClasses}>
             บทความ
+          </Link>
+          <Link href="/for-lawyers" className={pathname.startsWith('/for-lawyers') ? activeNavLinkClasses : navLinkClasses}>
+            สำหรับทนายความ
           </Link>
         </nav>
 

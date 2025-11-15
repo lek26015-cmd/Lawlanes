@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { CheckCircle, MessageSquare, Users, Sparkles, Scale, ArrowRight, Newspaper, Loader2 } from 'lucide-react';
+import { CheckCircle, MessageSquare, Users, Sparkles, Scale, ArrowRight, Newspaper, Loader2, Briefcase, UserCheck } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { getApprovedLawyers, getAllArticles } from '@/lib/data';
@@ -174,6 +174,29 @@ export default function Home() {
                       ดูทนายทั้งหมด <ArrowRight className="ml-2 h-4 w-4" />
                   </Button>
               </Link>
+            </div>
+          </div>
+        </section>
+
+        <section className="w-full py-12 md:py-24 lg:py-32 bg-foreground text-background">
+          <div className="container mx-auto px-4 md:px-6">
+            <div className="text-center">
+                <div className="inline-block bg-background text-foreground p-3 rounded-full mb-4">
+                    <Briefcase className="h-8 w-8" />
+                </div>
+              <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">
+                คุณเป็นทนายความใช่ไหม?
+              </h2>
+              <p className="max-w-3xl mx-auto mt-4 text-background/80 md:text-xl">
+                เข้าร่วมเครือข่ายทนายความคุณภาพของเราเพื่อเข้าถึงลูกค้ากลุ่มใหม่ๆ และใช้เครื่องมือที่ทันสมัยในการจัดการเคสของคุณ
+              </p>
+              <div className="mt-8">
+                <Link href="/for-lawyers">
+                    <Button size="lg" variant="secondary" className="text-lg">
+                        <UserCheck className="mr-2 h-5 w-5" /> เข้าร่วมกับ Lawlane
+                    </Button>
+                </Link>
+              </div>
             </div>
           </div>
         </section>
