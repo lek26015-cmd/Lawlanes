@@ -40,42 +40,56 @@
           "description": "The time the message was sent."
         }
       },
-      "required": ["text", "senderId", "timestamp"]
+      "required": [
+        "text",
+        "senderId",
+        "timestamp"
+      ]
     },
     "Chat": {
-        "title": "Chat",
-        "description": "Represents a chat conversation between users.",
-        "type": "object",
-        "properties": {
-            "participants": {
-                "type": "array",
-                "items": {
-                    "type": "string"
-                },
-                "description": "An array of user IDs participating in the chat."
-            },
-            "lastMessage": {
-                "$ref": "#/entities/ChatMessage"
-            }
+      "title": "Chat",
+      "description": "Represents a chat conversation between users.",
+      "type": "object",
+      "properties": {
+        "participants": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "An array of user IDs participating in the chat."
         },
-        "required": ["participants"]
+        "lastMessage": {
+          "$ref": "#/entities/ChatMessage"
+        }
+      },
+      "required": [
+        "participants"
+      ]
     }
   },
   "auth": {
-    "providers": ["anonymous"]
+    "providers": [
+      "anonymous"
+    ]
   },
   "firestore": {
     "/users/{userId}": {
-      "schema": { "$ref": "#/entities/UserProfile" },
+      "schema": {
+        "$ref": "#/entities/UserProfile"
+      },
       "description": "Stores public profiles for all users."
     },
     "/chats/{chatId}/messages/{messageId}": {
-      "schema": { "$ref": "#/entities/ChatMessage" },
+      "schema": {
+        "$ref": "#/entities/ChatMessage"
+      },
       "description": "Stores all messages for a given chat."
     },
     "/chats/{chatId}": {
-        "schema": { "$ref": "#/entities/Chat" },
-        "description": "Stores chat sessions."
+      "schema": {
+        "$ref": "#/entities/Chat"
+      },
+      "description": "Stores chat sessions."
     }
   }
 }
