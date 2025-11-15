@@ -6,7 +6,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getLawyerById } from '@/lib/data';
 import type { LawyerProfile } from '@/lib/types';
-import { ArrowLeft, CreditCard, Calendar, User, CheckCircle, QrCode, MessageSquare } from 'lucide-react';
+import { ArrowLeft, CreditCard, Calendar, User, CheckCircle, QrCode, MessageSquare, Pencil } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,12 +18,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import QRCode from 'qrcode.react';
 import generatePayload from 'promptpay-qr';
 import { useChat } from '@/context/chat-context';
+import { Textarea } from '@/components/ui/textarea';
 
 function PaymentPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { toast } = useToast();
-  const { openLawyerChat } = useChat();
+  const { openLawyerChat, setInitialChatMessage } = useChat();
 
   const paymentType = searchParams.get('type') || 'appointment';
   const lawyerId = searchParams.get('lawyerId');
@@ -35,6 +36,7 @@ function PaymentPageContent() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [promptPayPayload, setPromptPayPayload] = useState('');
+  const [initialMessage, setInitialMessage] = useState('');
 
   const appointmentFee = 3000;
   const chatTicketFee = 500;
@@ -64,6 +66,15 @@ function PaymentPageContent() {
 
   const handlePayment = (e?: React.FormEvent) => {
     e?.preventDefault();
+    if(paymentType === 'chat' && !initialMessage.trim()){
+        toast({
+            variant: "destructive",
+            title: "ข้อมูลไม่ครบถ้วน",
+            description: "กรุณาพิมพ์คำถามแรกที่จะส่งถึงทนายความ",
+        });
+        return;
+    }
+
     setIsProcessing(true);
     setTimeout(() => {
       setIsProcessing(false);
@@ -74,6 +85,7 @@ function PaymentPageContent() {
       });
       
       if (paymentType === 'chat' && lawyer) {
+        setInitialChatMessage(initialMessage);
         openLawyerChat(lawyer);
         router.push(`/lawyers/${lawyerId}`);
       } else {
@@ -141,7 +153,7 @@ function PaymentPageContent() {
                             <p className="text-lg font-bold">{lawyer.name}</p>
                         </div>
                     </div>
-                     <div className="space-y-2 text-sm">
+                     <div className="space-y-4 text-sm">
                         {paymentType === 'appointment' ? (
                             <>
                                 <div className="flex items-center gap-2">
@@ -154,10 +166,26 @@ function PaymentPageContent() {
                                 </div>
                             </>
                         ) : (
-                             <div className="flex items-start gap-2">
-                                <MessageSquare className="w-4 h-4 text-muted-foreground mt-1" />
-                                <span><span className="font-semibold">บริการ:</span> เปิด Ticket เพื่อเริ่มต้นการสนทนาส่วนตัว</span>
-                            </div>
+                             <>
+                                <div className="flex items-start gap-2">
+                                    <MessageSquare className="w-4 h-4 text-muted-foreground mt-1" />
+                                    <span><span className="font-semibold">บริการ:</span> เปิด Ticket เพื่อเริ่มต้นการสนทนาส่วนตัว</span>
+                                </div>
+                                <div className="flex items-start gap-2">
+                                     <Pencil className="w-4 h-4 text-muted-foreground mt-1" />
+                                     <div className="w-full">
+                                        <Label htmlFor="initial-message" className="font-semibold">คำถามแรกถึงทนายความ</Label>
+                                        <Textarea 
+                                            id="initial-message"
+                                            placeholder="อธิบายปัญหาของคุณโดยย่อ..."
+                                            value={initialMessage}
+                                            onChange={(e) => setInitialMessage(e.target.value)}
+                                            className="mt-1 bg-white"
+                                            rows={4}
+                                        />
+                                     </div>
+                                </div>
+                             </>
                         )}
                      </div>
                 </CardContent>

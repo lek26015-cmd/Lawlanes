@@ -1,3 +1,4 @@
+
 'use client';
 import { useState, useEffect, useRef, useMemo } from 'react';
 import {
@@ -24,7 +25,9 @@ import { v4 as uuidv4 } from 'uuid';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useFirebase } from '@/firebase';
-import { errorEmitter, FirestorePermissionError } from '@/firebase';
+import { FirestorePermissionError } from '@/firebase/errors';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { useChat } from '@/context/chat-context';
 
 interface LawyerChatBoxProps {
   firestore: Firestore;
@@ -44,6 +47,7 @@ export function LawyerChatBox({
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const { initialChatMessage, setInitialChatMessage } = useChat();
 
   const chatQuery = useMemo(() => {
     if (!firestore || !currentUser || !lawyer) return null;
@@ -117,6 +121,33 @@ export function LawyerChatBox({
 
   }, [chatQuery, currentUser.uid, lawyer.userId, firestore]);
   
+  // Effect to handle sending the initial message
+  useEffect(() => {
+    if (initialChatMessage && chatId && !isLoading) {
+      const messageData = {
+        text: initialChatMessage,
+        senderId: currentUser.uid,
+        timestamp: serverTimestamp(),
+        id: uuidv4(),
+      };
+      
+      const messagesColRef = collection(firestore, 'chats', chatId, 'messages');
+
+      addDoc(messagesColRef, messageData)
+        .catch(serverError => {
+          const permissionError = new FirestorePermissionError({
+            path: messagesColRef.path,
+            operation: 'create',
+            requestResourceData: messageData,
+          });
+          errorEmitter.emit('permission-error', permissionError);
+        });
+
+      // Clear the initial message from context so it's not sent again
+      setInitialChatMessage('');
+    }
+  }, [chatId, isLoading, initialChatMessage, currentUser.uid, firestore, setInitialChatMessage]);
+
   useEffect(() => {
     if (!chatId) {
         setMessages([]);
@@ -207,7 +238,7 @@ export function LawyerChatBox({
               <div className="flex justify-center items-center h-full">
                 <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
               </div>
-            ) : messages.length === 0 ? (
+            ) : messages.length === 0 && !initialChatMessage ? (
                 <div className="flex justify-center items-center h-full">
                     <p className="text-muted-foreground text-sm text-center px-4">
                         เริ่มต้นการสนทนากับคุณ {lawyer.name.split(' ')[1]}

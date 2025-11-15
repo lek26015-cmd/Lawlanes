@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useContext, useState, ReactNode } from 'react';
@@ -12,6 +13,8 @@ interface ChatContextType {
   closeLawyerChat: () => void;
   initialPrompt: string;
   setInitialPrompt: (prompt: string) => void;
+  initialChatMessage: string;
+  setInitialChatMessage: (message: string) => void;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -21,6 +24,8 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   const [isLawyerChatOpen, setIsLawyerChatOpen] = useState(false);
   const [activeLawyer, setActiveLawyer] = useState<LawyerProfile | null>(null);
   const [initialPrompt, setInitialPrompt] = useState('');
+  const [initialChatMessage, setInitialChatMessage] = useState('');
+
 
   const openLawyerChat = (lawyer: LawyerProfile) => {
     setActiveLawyer(lawyer);
@@ -30,6 +35,7 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
   const closeLawyerChat = () => {
     setIsLawyerChatOpen(false);
     setActiveLawyer(null);
+    setInitialChatMessage(''); // Clear message when chat is closed
   };
 
   return (
@@ -43,6 +49,8 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
         closeLawyerChat,
         initialPrompt,
         setInitialPrompt,
+        initialChatMessage,
+        setInitialChatMessage,
       }}
     >
       {children}
