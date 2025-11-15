@@ -2,7 +2,7 @@
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -26,6 +26,7 @@ import {
   CarouselPrevious,
 } from "@/components/ui/carousel";
 import { Separator } from '@/components/ui/separator';
+import Autoplay from "embla-carousel-autoplay";
 
 
 export default function Home() {
@@ -97,6 +98,10 @@ export default function Home() {
       gradient: "from-purple-50 to-blue-50"
     }
   ];
+
+  const carouselPlugin = React.useRef(
+    Autoplay({ delay: 5000, stopOnInteraction: true })
+  );
 
   useEffect(() => {
     async function fetchData() {
@@ -419,8 +424,11 @@ export default function Home() {
         <section className="w-full py-12 md:py-16 lg:py-20 bg-gray-50">
             <div className="container mx-auto px-4 md:px-6">
                 <Carousel
+                  plugins={[carouselPlugin.current]}
                   opts={{ align: "start", loop: true }}
                   className="w-full"
+                  onMouseEnter={carouselPlugin.current.stop}
+                  onMouseLeave={carouselPlugin.current.reset}
                 >
                   <CarouselContent>
                     {adBanners.map((banner, index) => (
