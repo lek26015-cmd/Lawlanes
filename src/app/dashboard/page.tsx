@@ -44,10 +44,11 @@ export default function DashboardPage() {
   }
 
   const quickServices = [
-    { icon: <Search />, text: 'ค้นหาทนายความ', color: 'bg-gray-100' },
-    { icon: <MessageSquare />, text: 'นัดหมายปรึกษาทนาย', color: 'bg-green-100' },
-    { icon: <FileUp />, text: 'ส่งเอกสารให้ตรวจสอบ', color: 'bg-blue-100' },
-    { icon: <Building />, text: 'จดทะเบียนธุรกิจ', color: 'bg-yellow-100' },
+    { icon: <Search />, text: 'ค้นหาทนายความ', color: 'bg-gray-100', href: '/lawyers' },
+    { icon: <MessageSquare />, text: 'นัดหมายปรึกษาทนาย', color: 'bg-green-100', href: '/lawyers' },
+    { icon: <FileUp />, text: 'ส่งเอกสารให้ตรวจสอบ', color: 'bg-blue-100', href: '#' },
+    { icon: <Building />, text: 'จดทะเบียนธุรกิจ', color: 'bg-yellow-100', href: '#' },
+    { icon: <User />, text: 'จัดการข้อมูลส่วนบุคคล', color: 'bg-purple-100', href: '/account' },
   ];
 
   return (
@@ -109,7 +110,7 @@ export default function DashboardPage() {
                                 <Link href={`/chat/${caseItem.id}?lawyerId=${caseItem.lawyer.id}`} key={caseItem.id}>
                                     <div className={`flex items-center justify-between p-4 rounded-lg bg-card ${caseColors[caseItem.color!]}`}>
                                     <div>
-                                        <p className="font-semibold">{caseItem.title}</p>
+                                        <p className="font-semibold">{caseItem.title} <span className="font-mono text-xs text-muted-foreground">({caseItem.id})</span></p>
                                         <p className="text-sm text-muted-foreground">{caseItem.lastMessage}</p>
                                     </div>
                                     <Button size="sm" className={`${caseButtonColors[caseItem.color!]}`}>ดูรายละเอียด</Button>
@@ -136,7 +137,7 @@ export default function DashboardPage() {
                                 <Link href={`/chat/${caseItem.id}?lawyerId=${caseItem.lawyer.id}&status=closed`} key={caseItem.id}>
                                     <div className={`flex items-center justify-between p-4 rounded-lg bg-gray-50 ${caseColors.gray}`}>
                                     <div>
-                                        <p className="font-semibold">{caseItem.title}</p>
+                                        <p className="font-semibold">{caseItem.title} <span className="font-mono text-xs text-muted-foreground">({caseItem.id})</span></p>
                                         <p className="text-sm text-muted-foreground">{caseItem.lastMessage}</p>
                                     </div>
                                     <Badge variant="outline">ดูประวัติ</Badge>
@@ -172,10 +173,12 @@ export default function DashboardPage() {
                             <CardTitle className="font-bold">บริการด่วน</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-2">
-                           {[...quickServices, { icon: <User />, text: 'จัดการข้อมูลส่วนบุคคล', color: 'bg-purple-100' }].map((service, index) => (
-                             <Button key={index} variant="ghost" className={`w-full justify-start h-12 text-base ${service.color}`}>
-                                {service.icon} {service.text}
-                             </Button>
+                           {quickServices.map((service, index) => (
+                            <Link href={service.href} key={index} passHref>
+                                <Button variant="ghost" className={`w-full justify-start h-12 text-base ${service.color}`}>
+                                    {service.icon} {service.text}
+                                </Button>
+                             </Link>
                            ))}
                         </CardContent>
                     </Card>

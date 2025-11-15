@@ -29,7 +29,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, FileText, Check, Upload, Scale } from 'lucide-react';
+import { AlertTriangle, FileText, Check, Upload, Scale, Ticket } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -186,6 +186,10 @@ function ChatPageContent() {
                         <Card>
                             <CardHeader>
                                 <CardTitle>สถานะ Escrow</CardTitle>
+                                <CardDescription className="flex items-center gap-2 pt-1">
+                                    <Ticket className="w-4 h-4 text-muted-foreground" />
+                                    <span className="text-sm">Ticket ID: {chatId}</span>
+                                </CardDescription>
                             </CardHeader>
                             <CardContent className="text-center">
                                 <p className="text-muted-foreground">เงินของคุณถูกพักไว้ที่ Lawlane</p>
@@ -269,5 +273,3 @@ export default function ChatPage() {
         </Suspense>
     )
 }
-
-    
