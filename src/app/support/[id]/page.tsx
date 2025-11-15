@@ -113,10 +113,6 @@ function SupportPageContent() {
                                     </TooltipContent>
                                 </Tooltip>
                             </TooltipProvider>
-
-                            <Button variant="outline">
-                                <LifeBuoy className="mr-2 h-4 w-4" /> สร้างหน้าต่อไป
-                            </Button>
                         </CardContent>
                     </Card>
 
