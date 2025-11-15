@@ -57,6 +57,18 @@ function CloseCasePageContent() {
     }
 
   };
+  
+  const handleCancelCase = () => {
+    // In a real app, this would update the case status and refund the client.
+    toast({
+        title: 'ยกเลิกเคสสำเร็จ',
+        description: `เคส ${caseId} ถูกยกเลิกแล้ว ระบบจะดำเนินการคืนเงินให้ลูกค้าต่อไป (จำลอง)`,
+        variant: 'default',
+        className: 'bg-yellow-100 border-yellow-500 text-yellow-800'
+    });
+    router.push('/lawyer-dashboard');
+  };
+
 
   return (
     <div className="bg-gray-100/50 min-h-screen">
@@ -134,11 +146,14 @@ function CloseCasePageContent() {
             </CardContent>
           </Card>
 
-          <CardFooter className="p-0">
-             <Button size="lg" className="w-full" onClick={handleSubmit}>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+             <Button variant="outline" className="border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive" size="lg" onClick={handleCancelCase}>
+                ยกเลิกเคส (ไม่รับค่าบริการ)
+            </Button>
+            <Button size="lg" onClick={handleSubmit}>
                 ยืนยันและส่งสรุปเพื่อปิดเคส
             </Button>
-          </CardFooter>
+          </div>
         </div>
       </div>
     </div>
