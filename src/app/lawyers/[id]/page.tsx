@@ -186,7 +186,7 @@ export default function LawyerProfilePage() {
 
                     <Card className="mt-6">
                         <CardHeader>
-                            <CardTitle>รีวิวจากผู้ใช้บริการ ({mockReviews.length})</CardHeader>
+                            <CardTitle>รีวิวจากผู้ใช้บริการ ({mockReviews.length})</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-6">
