@@ -34,19 +34,26 @@ export default function Home() {
     {
       icon: <MessageSquare className="h-8 w-8 text-foreground" />,
       title: 'AI Legal Advisor',
-      description: 'รับการประเมินปัญหาทางกฎหมายเบื้องต้นได้ทันที',
+      description: 'Get a preliminary legal assessment of your issue instantly.',
     },
     {
       icon: <Users className="h-8 w-8 text-foreground" />,
       title: 'Expert Lawyer Marketplace',
-      description: 'เชื่อมต่อกับทนายความผู้เชี่ยวชาญที่ผ่านการคัดเลือก',
+      description: 'Connect with a curated network of vetted, specialized lawyers.',
     },
     {
       icon: <CheckCircle className="h-8 w-8 text-foreground" />,
       title: 'Streamlined Case Hand-off',
-      description: 'ให้ AI ช่วยแนะนำและส่งต่อเคสของคุณไปยังทนายที่เหมาะสม',
+      description: 'Our AI analyzes your case to recommend and seamlessly connect you with the right legal expert.',
     },
   ]);
+
+  const stats = [
+      { value: '10x', label: 'Faster initial assessment' },
+      { value: '50+', label: 'Vetted SME Lawyers' },
+      { value: '24/7', label: 'AI Availability' },
+      { value: '100%', label: 'Secure Platform' },
+  ]
   
   const [recommendedLawyers, setRecommendedLawyers] = useState<LawyerProfile[]>([]);
   const [articles, setArticles] = useState<Article[]>([]);
@@ -295,28 +302,38 @@ export default function Home() {
             </div>
         </section>
 
-        <section id="features" className="w-full py-12 md:py-24 lg:py-20 bg-background text-foreground">
+        <section id="features" className="w-full py-12 md:py-24 lg:py-32 bg-background">
           <div className="container mx-auto px-4 md:px-6">
-            <div className="flex flex-col items-center justify-center space-y-4 text-center">
-              <div className="space-y-2">
-                <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">How Lawlane Works</h2>
-                <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                  A simple, three-step process to get legal clarity for your business.
-                </p>
-              </div>
-            </div>
-            <div className="mx-auto grid max-w-5xl items-start gap-8 sm:grid-cols-2 md:gap-12 lg:grid-cols-3 lg:max-w-none mt-12">
-              {features.map((feature, index) => (
-                <Card key={index} className="h-full bg-card hover:shadow-lg transition-shadow duration-300 border-gray-200 rounded-2xl">
-                  <CardHeader className="flex flex-col items-center text-center">
-                    {React.cloneElement(feature.icon, { className: "h-8 w-8 text-foreground" })}
-                    <CardTitle className="mt-4 text-lg font-semibold text-foreground">{feature.title}</CardTitle>
-                  </CardHeader>
-                  <CardContent className="text-center">
-                    <p className="text-muted-foreground text-sm">{feature.description}</p>
-                  </CardContent>
-                </Card>
-              ))}
+            <div className="grid lg:grid-cols-2 gap-12 items-center">
+                <div className="space-y-8">
+                    <div>
+                        <p className="text-sm font-semibold text-primary uppercase">How Lawlane Works</p>
+                        <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground font-headline mt-2">
+                            A Simple Process to <br /> Get Legal Clarity
+                        </h2>
+                    </div>
+                    <div className="grid grid-cols-2 gap-4">
+                        {stats.map((stat, index) => (
+                            <Card key={index} className="p-4 bg-gray-100 border-none text-center">
+                                <p className="text-4xl font-bold text-primary">{stat.value}</p>
+                                <p className="text-sm text-muted-foreground">{stat.label}</p>
+                            </Card>
+                        ))}
+                    </div>
+                </div>
+                <div className="space-y-8">
+                  {features.map((feature, index) => (
+                    <div key={index} className="flex items-start gap-4">
+                        <div className="flex-shrink-0 w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
+                            <CheckCircle className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-semibold">{feature.title}</h3>
+                            <p className="text-muted-foreground mt-1">{feature.description}</p>
+                        </div>
+                    </div>
+                  ))}
+                </div>
             </div>
           </div>
         </section>
@@ -325,16 +342,16 @@ export default function Home() {
           <div className="container mx-auto px-4 md:px-6">
             
             <div className="max-w-4xl mx-auto">
-                 <Card className="bg-foreground text-background rounded-2xl overflow-hidden">
-                    <div className="flex flex-col items-center p-8 md:p-12 gap-8 text-center">
+                 <Card className="bg-foreground text-background rounded-2xl overflow-hidden shadow-2xl">
+                    <div className="flex flex-col items-center p-12 md:p-16 gap-6 text-center">
                         <div className="flex flex-col items-center gap-4 text-center">
-                            <ShieldCheck className="w-24 h-24 text-green-400 flex-shrink-0" />
+                            <ShieldCheck className="w-20 h-20 text-green-400 flex-shrink-0" />
                             <div>
                                 <h3 className="font-bold text-4xl md:text-5xl">ตรวจสอบสถานะทนายความ</h3>
                                 <p className="text-background/80 mt-2 text-xl">สร้างความมั่นใจก่อนเริ่มจ้างงาน ด้วยการตรวจสอบข้อมูลใบอนุญาตว่าความ</p>
                             </div>
                         </div>
-                        <div className="w-full max-w-lg">
+                        <div className="w-full max-w-lg mt-4">
                            <form 
                              className="flex flex-col sm:flex-row items-center gap-2 w-full"
                              onSubmit={handleVerify}
