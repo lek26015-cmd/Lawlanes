@@ -4,7 +4,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { CheckCircle, MessageSquare, Users, Sparkles, Scale, ArrowRight, Newspaper, Loader2, Briefcase, UserCheck, ShieldCheck, ShieldAlert } from 'lucide-react';
 import Image from 'next/image';
@@ -132,6 +132,13 @@ export default function Home() {
                           <p className="text-muted-foreground">เลขที่ใบอนุญาต: 12345/2550 (ข้อมูลจำลอง)</p>
                           <p className="text-primary font-semibold mt-1">{verifiedLawyer.specialty.join(', ')}</p>
                       </CardContent>
+                      <CardFooter className="justify-center">
+                          <Button asChild>
+                              <Link href={`/lawyers/${verifiedLawyer.id}`}>
+                                  ดูโปรไฟล์
+                              </Link>
+                          </Button>
+                      </CardFooter>
                   </Card>
               );
           case 'not_found':
