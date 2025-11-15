@@ -11,7 +11,7 @@ import { useState, useEffect } from 'react';
 
 export default function Header() {
   const pathname = usePathname();
-  const isAuthPage = pathname === '/login' || pathname === '/signup';
+  const isAuthPage = pathname === '/signup';
   const isHomePage = pathname === '/';
   const [isScrolled, setIsScrolled] = useState(false);
 
