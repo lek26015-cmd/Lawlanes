@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, Suspense, useRef } from 'react';
-import { useParams, useSearchParams } from 'next/navigation';
+import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { getLawyerById } from '@/lib/data';
 import type { LawyerProfile } from '@/lib/types';
 import { useFirebase } from '@/firebase';
@@ -26,25 +26,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, FileText, Check, Sparkles, Upload, Star, MessageSquare, ThumbsUp } from 'lucide-react';
-import { Separator } from '@/components/ui/separator';
+import { AlertTriangle, FileText, Check, Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { Textarea } from '@/components/ui/textarea';
-import { StarIcon } from '@/components/icons/star-icon';
-import { Label } from '@/components/ui/label';
 
 function ChatPageContent() {
     const params = useParams();
+    const router = useRouter();
     const searchParams = useSearchParams();
     const chatId = params.id as string;
     const lawyerId = searchParams.get('lawyerId');
@@ -55,9 +43,6 @@ function ChatPageContent() {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { toast } = useToast();
     const [escrowStatus, setEscrowStatus] = useState<'initial' | 'confirmed'>('initial');
-    const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
-    const [rating, setRating] = useState(0);
-    const [reviewText, setReviewText] = useState("");
     const [isChatDisabled, setIsChatDisabled] = useState(false);
 
     const { auth, firestore } = useFirebase();
@@ -112,29 +97,11 @@ function ChatPageContent() {
         setIsChatDisabled(true); // Disable chat on case completion
         toast({
             title: "ดำเนินการสำเร็จ",
-            description: "เงินได้ถูกโอนไปยังทนายความเรียบร้อยแล้ว",
+            description: "เคสเสร็จสมบูรณ์แล้ว กำลังนำคุณไปยังหน้าให้คะแนน...",
         });
-        // Automatically open the review dialog
-        setIsReviewDialogOpen(true);
-    };
-
-    const handleSubmitReview = () => {
-        if (rating === 0) {
-            toast({
-                variant: "destructive",
-                title: "กรุณาให้คะแนน",
-                description: "โปรดเลือกดาวเพื่อให้คะแนนความพึงพอใจ",
-            });
-            return;
-        }
-        console.log({ rating, reviewText });
-        setIsReviewDialogOpen(false);
-        setRating(0);
-        setReviewText("");
-        toast({
-            title: "ส่งรีวิวสำเร็จ",
-            description: "ขอบคุณสำหรับความคิดเห็นของคุณ!",
-        });
+        
+        // Navigate to the review page
+        router.push(`/review/${chatId}?lawyerId=${lawyerId}`);
     };
 
 
@@ -235,42 +202,6 @@ function ChatPageContent() {
                     </Card>
                 </div>
             </div>
-
-            <Dialog open={isReviewDialogOpen} onOpenChange={setIsReviewDialogOpen}>
-                <DialogContent className="sm:max-w-[425px]">
-                    <DialogHeader>
-                        <DialogTitle>ให้คะแนนทนายความ</DialogTitle>
-                        <DialogDescription>
-                            โปรดให้คะแนนความพึงพอใจและแสดงความคิดเห็นเพื่อการพัฒนา
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="py-4 space-y-4">
-                        <div className="space-y-2">
-                            <Label>คะแนนความพึงพอใจ</Label>
-                            <div className="flex items-center gap-2">
-                                {[1, 2, 3, 4, 5].map((star) => (
-                                    <button key={star} onClick={() => setRating(star)}>
-                                        <StarIcon className={`w-8 h-8 cursor-pointer transition-colors ${rating >= star ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300 hover:text-yellow-300'}`} />
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                            <div className="space-y-2">
-                            <Label htmlFor="review-text">ความคิดเห็นเพิ่มเติม (ถ้ามี)</Label>
-                            <Textarea 
-                                id="review-text"
-                                placeholder="เล่าประสบการณ์ของคุณ..."
-                                value={reviewText}
-                                onChange={(e) => setReviewText(e.target.value)}
-                            />
-                        </div>
-                    </div>
-                    <DialogFooter>
-                        <Button type="button" onClick={handleSubmitReview}>ส่งรีวิว</Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-
         </div>
     )
 }
