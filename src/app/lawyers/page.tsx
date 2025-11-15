@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -5,10 +6,13 @@ import { useSearchParams } from 'next/navigation';
 import { getApprovedLawyers } from '@/lib/data';
 import LawyerCard from '@/components/lawyer-card';
 import type { LawyerProfile } from '@/lib/types';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Award } from 'lucide-react';
 import React from 'react';
 import { Progress } from '@/components/ui/progress';
 import LawyerFilterSidebar from '@/components/lawyer-filter';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 function LawyersPageContent() {
   const searchParams = useSearchParams();
@@ -86,8 +90,18 @@ function LawyersPageContent() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-        <div className="col-span-1">
+        <div className="col-span-1 space-y-6">
           <LawyerFilterSidebar />
+          <Card className="bg-gradient-to-br from-gray-900 to-blue-900 text-white p-6 rounded-lg text-center shadow-lg">
+            <CardContent className="p-0">
+                <Award className="mx-auto h-10 w-10 text-yellow-400 mb-3" />
+                <h3 className="font-bold text-lg">สำนักงานกฎหมายแนะนำ</h3>
+                <p className="text-sm text-gray-300 mt-1 mb-4">บริการครบวงจรสำหรับธุรกิจ SME โดยทีมทนายมืออาชีพ</p>
+                <Button asChild variant="secondary">
+                    <Link href="#">ดูรายละเอียด</Link>
+                </Button>
+            </CardContent>
+          </Card>
         </div>
         
         <div className="md:col-span-3">
