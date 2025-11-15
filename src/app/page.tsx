@@ -1,19 +1,21 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { CheckCircle, MessageSquare, Users, Sparkles, Scale, ArrowRight, Newspaper } from 'lucide-react';
+import { CheckCircle, MessageSquare, Users, Sparkles, Scale, ArrowRight, Newspaper, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { getApprovedLawyers } from '@/lib/data';
 import LawyerCard from '@/components/lawyer-card';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import type { LawyerProfile } from '@/lib/types';
-import ChatModal from '@/components/chat/chat-modal';
+import { findLawyerSpecialties } from '@/ai/flows/find-lawyers-flow';
 
 export default function Home() {
+  const router = useRouter();
   const [features] = useState([
     {
       icon: <MessageSquare className="h-8 w-8 text-primary" />,
@@ -57,8 +59,7 @@ export default function Home() {
     }
   ]);
   
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const [initialPrompt, setInitialPrompt] = useState('');
+  const [isFindingLawyers, setIsFindingLawyers] = useState(false);
   const [analysisText, setAnalysisText] = useState('');
 
   useEffect(() => {
@@ -69,10 +70,20 @@ export default function Home() {
     fetchLawyers();
   }, []);
 
-  const handleAnalysis = () => {
-    if (analysisText.trim()) {
-      setInitialPrompt(analysisText);
-      setIsChatOpen(true);
+  const handleAnalysis = async () => {
+    if (!analysisText.trim()) return;
+
+    setIsFindingLawyers(true);
+    try {
+      const result = await findLawyerSpecialties({ problem: analysisText });
+      const specialtiesQuery = result.specialties.join(',');
+      router.push(`/lawyers?specialties=${specialtiesQuery}`);
+    } catch (error) {
+      console.error('Error finding lawyer specialties:', error);
+      // Fallback to a generic search or show an error
+      router.push('/lawyers');
+    } finally {
+      setIsFindingLawyers(false);
     }
   };
 
@@ -134,8 +145,15 @@ export default function Home() {
                             rows={4}
                             className="bg-background/70"
                           />
-                          <Button size="lg" className="w-full" onClick={handleAnalysis}>
-                            วิเคราะห์และแนะนำทนาย
+                          <Button size="lg" className="w-full" onClick={handleAnalysis} disabled={isFindingLawyers}>
+                            {isFindingLawyers ? (
+                                <>
+                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                กำลังวิเคราะห์...
+                                </>
+                            ) : (
+                                'วิเคราะห์และแนะนำทนาย'
+                            )}
                           </Button>
                       </div>
                   </Card>
@@ -248,12 +266,6 @@ export default function Home() {
           </div>
         </section>
       </div>
-      <ChatModal 
-        isOpen={isChatOpen} 
-        onOpenChange={setIsChatOpen} 
-        initialPrompt={initialPrompt}
-        clearInitialPrompt={() => setInitialPrompt('')}
-      />
     </>
   );
 }
