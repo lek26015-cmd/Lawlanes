@@ -167,12 +167,12 @@ export default function Home() {
             </div>
         </section>
 
-        <section id="features" className="w-full py-12 md:py-24 lg:py-20 bg-secondary/20">
+        <section id="features" className="w-full py-12 md:py-24 lg:py-20 bg-primary">
           <div className="container mx-auto px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <div className="space-y-2">
-                <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">How Lawlane Works</h2>
-                <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
+                <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline text-primary-foreground">How Lawlane Works</h2>
+                <p className="max-w-[900px] text-primary-foreground/80 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
                   A simple, three-step process to get legal clarity for your business.
                 </p>
               </div>
