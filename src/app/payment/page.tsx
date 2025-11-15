@@ -141,7 +141,7 @@ function PaymentPageContent() {
       <CardContent className="grid md:grid-cols-2 gap-8">
         <div className="space-y-4">
             <h3 className="font-semibold text-lg">สรุปรายการ</h3>
-            <Card className="bg-secondary/50">
+            <Card className="bg-secondary/50 rounded-lg overflow-hidden">
                 <CardContent className="pt-6">
                     <div className="flex items-center gap-4 mb-4">
                         <Avatar className="h-16 w-16">
