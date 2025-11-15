@@ -45,6 +45,7 @@ export interface Case {
   lastMessage: string;
   lastMessageTimestamp: string;
   status: 'active' | 'closed';
+  hasNewMessage?: boolean;
 }
 
 export interface UpcomingAppointment {

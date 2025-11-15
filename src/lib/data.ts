@@ -188,6 +188,7 @@ const mockCases: Case[] = [
     lastMessage: 'ผมได้ส่งร่างเอกสารให้ตรวจสอบแล้วนะครับ',
     lastMessageTimestamp: '2 ชั่วโมงที่แล้ว',
     status: 'active',
+    hasNewMessage: true,
   },
   {
     id: 'case-002',
@@ -200,6 +201,7 @@ const mockCases: Case[] = [
     lastMessage: 'คุณ: ขอบคุณสำหรับคำแนะนำครับ',
     lastMessageTimestamp: 'เมื่อวาน',
     status: 'active',
+    hasNewMessage: false,
   },
 ];
 

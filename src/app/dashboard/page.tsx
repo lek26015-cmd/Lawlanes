@@ -67,7 +67,12 @@ export default function DashboardPage() {
                             <AvatarFallback>{caseItem.lawyer.name.charAt(0)}</AvatarFallback>
                           </Avatar>
                           <div className="flex-grow overflow-hidden">
-                            <p className="font-semibold truncate">{caseItem.title}</p>
+                            <div className="flex items-center gap-2">
+                                <p className="font-semibold truncate">{caseItem.title}</p>
+                                {caseItem.hasNewMessage && (
+                                    <span className="w-2.5 h-2.5 bg-red-500 rounded-full flex-shrink-0" aria-label="New message"></span>
+                                )}
+                            </div>
                             <p className="text-sm text-muted-foreground truncate">
                               {caseItem.lastMessage}
                             </p>
