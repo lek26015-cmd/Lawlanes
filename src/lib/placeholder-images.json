@@ -1,3 +1,34 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "lawyer-1",
+      "description": "Portrait of a male lawyer in a suit",
+      "imageUrl": "https://images.unsplash.com/photo-1658250646172-227c363047af?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxtYWxlJTIwbGF3eWVyfGVufDB8fHx8MTc2MzE5ODA0OXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "male lawyer"
+    },
+    {
+      "id": "lawyer-2",
+      "description": "Portrait of a female lawyer in an office",
+      "imageUrl": "https://images.unsplash.com/photo-1758518731462-d091b0b4ed0d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxmZW1hbGUlMjBsYXd5ZXJ8ZW58MHx8fHwxNzYzMTk4MDQ5fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "female lawyer"
+    },
+    {
+      "id": "lawyer-3",
+      "description": "Portrait of a senior male lawyer",
+      "imageUrl": "https://images.unsplash.com/photo-1736939561648-bafddedd9f5e?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8c2VuaW9yJTIwbGF3eWVyfGVufDB8fHx8MTc2MzE5ODA0OXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "senior lawyer"
+    },
+    {
+      "id": "lawyer-4",
+      "description": "Portrait of a lawyer smiling",
+      "imageUrl": "https://images.unsplash.com/photo-1736939681295-bb2e6759dddc?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxzbWlsaW5nJTIwbGF3eWVyfGVufDB8fHx8MTc2MzE5ODA0OXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "smiling lawyer"
+    },
+    {
+      "id": "lawyer-5",
+      "description": "Portrait of a female lawyer with books",
+      "imageUrl": "https://images.unsplash.com/photo-1659869764315-dc3d188141fe?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxsYXd5ZXIlMjBib29rc3xlbnwwfHx8fDE3NjMxOTgwNDl8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "lawyer books"
+    }
+  ]
 }
