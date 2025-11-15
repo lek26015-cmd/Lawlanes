@@ -5,7 +5,11 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
-import { HelpCircle } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { HelpCircle, Ticket } from "lucide-react"
 
 export default function HelpPage() {
 
@@ -40,29 +44,51 @@ export default function HelpPage() {
   return (
     <div className="bg-white">
       <div className="container mx-auto px-4 md:px-6 py-12 md:py-20">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-12">
+        <div className="max-w-4xl mx-auto space-y-12">
+          <div className="text-center">
             <HelpCircle className="mx-auto h-12 w-12 text-foreground mb-4" />
             <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl font-headline text-foreground">
-              ศูนย์ช่วยเหลือ (FAQ)
+              ศูนย์ช่วยเหลือ
             </h1>
             <p className="max-w-2xl mx-auto mt-4 text-muted-foreground md:text-xl">
-              คำถามที่พบบ่อยเกี่ยวกับการใช้งาน Lawlane
+              เราพร้อมให้ความช่วยเหลือและตอบทุกข้อสงสัยของคุณ
             </p>
           </div>
 
-          <Accordion type="single" collapsible className="w-full">
-            {faqs.map((faq, index) => (
-               <AccordionItem key={index} value={`item-${index + 1}`}>
-                <AccordionTrigger className="text-lg font-semibold text-left hover:no-underline">
-                  {faq.question}
-                </AccordionTrigger>
-                <AccordionContent className="text-base text-muted-foreground">
-                  {faq.answer}
-                </AccordionContent>
-              </AccordionItem>
-            ))}
-          </Accordion>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Ticket className="w-6 h-6" />
+                รายงานปัญหา
+              </CardTitle>
+              <CardDescription>หากคุณพบปัญหากับเคสใดๆ โปรดกรอกหมายเลขเคสเพื่อส่งเรื่องให้เจ้าหน้าที่ตรวจสอบ</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col sm:flex-row items-end gap-4">
+                <div className="w-full sm:flex-grow space-y-2">
+                  <Label htmlFor="ticket-id">หมายเลขเคส / Ticket ID</Label>
+                  <Input id="ticket-id" placeholder="เช่น case-001" />
+                </div>
+                <Button className="w-full sm:w-auto">ส่งเรื่อง</Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          <div>
+             <h2 className="text-3xl font-bold text-center mb-8 font-headline">คำถามที่พบบ่อย (FAQ)</h2>
+            <Accordion type="single" collapsible className="w-full">
+              {faqs.map((faq, index) => (
+                 <AccordionItem key={index} value={`item-${index + 1}`}>
+                  <AccordionTrigger className="text-lg font-semibold text-left hover:no-underline">
+                    {faq.question}
+                  </AccordionTrigger>
+                  <AccordionContent className="text-base text-muted-foreground">
+                    {faq.answer}
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          </div>
         </div>
       </div>
     </div>
