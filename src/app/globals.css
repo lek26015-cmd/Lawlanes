@@ -10,8 +10,8 @@
     --card-foreground: 203 100% 16%;
     --popover: 0 0% 100%;
     --popover-foreground: 203 100% 16%;
-    --primary: 0 0% 100%;
-    --primary-foreground: 203 100% 16%;
+    --primary: 203 100% 17%; /* Deep Navy Blue */
+    --primary-foreground: 0 0% 100%;
     --secondary: 210 40% 96.1%;
     --secondary-foreground: 203 100% 16%;
     --muted: 210 40% 96.1%;
