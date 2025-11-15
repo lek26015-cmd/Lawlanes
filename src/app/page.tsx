@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -19,17 +19,17 @@ export default function Home() {
   const router = useRouter();
   const [features] = useState([
     {
-      icon: <MessageSquare className="h-8 w-8 text-primary-foreground" />,
+      icon: <MessageSquare className="h-8 w-8 text-primary" />,
       title: 'AI Legal Advisor',
       description: 'รับการประเมินปัญหาทางกฎหมายเบื้องต้นได้ทันที',
     },
     {
-      icon: <Users className="h-8 w-8 text-primary-foreground" />,
+      icon: <Users className="h-8 w-8 text-primary" />,
       title: 'Expert Lawyer Marketplace',
       description: 'เชื่อมต่อกับทนายความผู้เชี่ยวชาญที่ผ่านการคัดเลือก',
     },
     {
-      icon: <CheckCircle className="h-8 w-8 text-primary-foreground" />,
+      icon: <CheckCircle className="h-8 w-8 text-primary" />,
       title: 'Streamlined Case Hand-off',
       description: 'ให้ AI ช่วยแนะนำและส่งต่อเคสของคุณไปยังทนายที่เหมาะสม',
     },
@@ -181,7 +181,7 @@ export default function Home() {
               {features.map((feature, index) => (
                 <Card key={index} className="h-full bg-card/80 backdrop-blur-sm hover:shadow-lg transition-shadow duration-300 border-border/50 text-foreground">
                   <CardHeader className="flex flex-col items-center text-center">
-                    {feature.icon}
+                    {React.cloneElement(feature.icon, { className: "h-8 w-8 text-primary-foreground" })}
                     <CardTitle className="mt-4 text-lg font-semibold">{feature.title}</CardTitle>
                   </CardHeader>
                   <CardContent className="text-center">
@@ -278,5 +278,7 @@ export default function Home() {
     </>
   );
 }
+
+    
 
     
