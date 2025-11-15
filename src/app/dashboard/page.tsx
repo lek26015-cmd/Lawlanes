@@ -6,16 +6,16 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Calendar, Briefcase, FileText, Loader2, Search, MessageSquare, Building, FileUp, HelpCircle } from 'lucide-react';
+import { Calendar, Briefcase, FileText, Loader2, Search, MessageSquare, Building, FileUp, HelpCircle, CheckCircle, User } from 'lucide-react';
 import { getDashboardData } from '@/lib/data';
 import type { Case, UpcomingAppointment, Document } from '@/lib/types';
 import { format } from 'date-fns';
 import { th } from 'date-fns/locale';
+import { Badge } from '@/components/ui/badge';
 
 export default function DashboardPage() {
   const [cases, setCases] = useState<Case[]>([]);
   const [appointments, setAppointments] = useState<UpcomingAppointment[]>([]);
-  const [documents, setDocuments] = useState<Document[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -24,15 +24,18 @@ export default function DashboardPage() {
       const { cases, appointments, documents } = await getDashboardData();
       setCases(cases);
       setAppointments(appointments);
-      setDocuments(documents);
       setIsLoading(false);
     }
     fetchData();
   }, []);
   
+  const activeCases = cases.filter(c => c.status === 'active');
+  const closedCases = cases.filter(c => c.status === 'closed');
+
   const caseColors: { [key: string]: string } = {
     blue: 'border-l-4 border-blue-500',
     yellow: 'border-l-4 border-yellow-500',
+    gray: 'border-l-4 border-gray-400',
   };
   
   const caseButtonColors: { [key:string]: string } = {
@@ -45,6 +48,7 @@ export default function DashboardPage() {
     { icon: <MessageSquare />, text: 'นัดหมายปรึกษาทนาย', color: 'bg-green-100' },
     { icon: <FileUp />, text: 'ส่งเอกสารให้ตรวจสอบ', color: 'bg-blue-100' },
     { icon: <Building />, text: 'จดทะเบียนธุรกิจ', color: 'bg-yellow-100' },
+    { icon: <User />, text: 'จัดการข้อมูลส่วนบุคคล', color: 'bg-purple-100' },
   ];
 
   return (
@@ -92,60 +96,59 @@ export default function DashboardPage() {
                     </Card>
 
                     {/* Ongoing Cases */}
-                    <Card>
-                    <CardHeader>
-                        <CardTitle className="flex items-center gap-2 font-bold">
-                        <Briefcase className="w-5 h-5" />
-                        งานที่กำลังดำเนินการ
-                        </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {cases.length > 0 ? (
-                        <div className="space-y-3">
-                            {cases.map((caseItem) => (
-                            <Link href={`/chat/${caseItem.id}?lawyerId=${caseItem.lawyer.id}`} key={caseItem.id}>
-                                <div className={`flex items-center justify-between p-4 rounded-lg bg-card ${caseColors[caseItem.color!]}`}>
-                                <div>
-                                    <p className="font-semibold">{caseItem.title}</p>
-                                    <p className="text-sm text-muted-foreground">{caseItem.lastMessage}</p>
-                                </div>
-                                <Button size="sm" className={`${caseButtonColors[caseItem.color!]}`}>ดูรายละเอียด</Button>
-                                </div>
-                            </Link>
-                            ))}
-                        </div>
-                        ) : (
-                        <div className="text-center py-8 text-muted-foreground">
-                            <Briefcase className="mx-auto h-10 w-10 mb-2" />
-                            <p>ยังไม่มีงานที่กำลังดำเนินการ</p>
-                        </div>
-                        )}
-                    </CardContent>
-                    </Card>
-
-                    {/* My Documents */}
-                    <Card>
-                    <CardHeader className="flex flex-row items-center justify-between">
-                        <CardTitle className="flex items-center gap-2 font-bold">
-                        <FileText className="w-5 h-5" />
-                        เอกสารของฉัน
-                        </CardTitle>
-                        <Button>+ อัปโหลดเอกสารใหม่</Button>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-3">
-                            {documents.map((doc) => (
-                                <div key={doc.id} className="flex items-center justify-between p-4 rounded-lg bg-gray-50 border">
+                    {activeCases.length > 0 && (
+                        <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 font-bold">
+                            <Briefcase className="w-5 h-5" />
+                            งานที่กำลังดำเนินการ
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-3">
+                                {activeCases.map((caseItem) => (
+                                <Link href={`/chat/${caseItem.id}?lawyerId=${caseItem.lawyer.id}`} key={caseItem.id}>
+                                    <div className={`flex items-center justify-between p-4 rounded-lg bg-card ${caseColors[caseItem.color!]}`}>
                                     <div>
-                                        <p className="font-semibold">{doc.name}</p>
-                                        <p className="text-sm text-muted-foreground">{doc.status}</p>
+                                        <p className="font-semibold">{caseItem.title}</p>
+                                        <p className="text-sm text-muted-foreground">{caseItem.lastMessage}</p>
                                     </div>
-                                    <Button variant="outline" size="sm">ดาวน์โหลด</Button>
-                                </div>
-                            ))}
-                        </div>
-                    </CardContent>
-                    </Card>
+                                    <Button size="sm" className={`${caseButtonColors[caseItem.color!]}`}>ดูรายละเอียด</Button>
+                                    </div>
+                                </Link>
+                                ))}
+                            </div>
+                        </CardContent>
+                        </Card>
+                    )}
+
+                    {/* Closed Cases */}
+                    {closedCases.length > 0 && (
+                       <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 font-bold">
+                            <CheckCircle className="w-5 h-5 text-green-600" />
+                            คดีที่เสร็จสิ้น
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-3">
+                                {closedCases.map((caseItem) => (
+                                <Link href={`/chat/${caseItem.id}?lawyerId=${caseItem.lawyer.id}&status=closed`} key={caseItem.id}>
+                                    <div className={`flex items-center justify-between p-4 rounded-lg bg-gray-50 ${caseColors.gray}`}>
+                                    <div>
+                                        <p className="font-semibold">{caseItem.title}</p>
+                                        <p className="text-sm text-muted-foreground">{caseItem.lastMessage}</p>
+                                    </div>
+                                    <Badge variant="outline">ดูประวัติ</Badge>
+                                    </div>
+                                </Link>
+                                ))}
+                            </div>
+                        </CardContent>
+                        </Card>
+                    )}
+
 
                 </div>
 
