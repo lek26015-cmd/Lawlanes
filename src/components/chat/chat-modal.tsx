@@ -180,7 +180,7 @@ export default function ChatModal({
       <>
         <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
           <DrawerContent className="h-[90%] max-h-full flex flex-col outline-none p-0 border-0 bg-background">
-            <DrawerHeader className="p-4 pb-2 text-left">
+            <DrawerHeader className="p-4 pb-2 text-left bg-primary text-primary-foreground">
                 <DrawerTitle className="flex items-center gap-2 font-headline">
                  แชทกับ AI
                 </DrawerTitle>
@@ -210,22 +210,18 @@ export default function ChatModal({
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent 
-          hideCloseButton={true}
-          className="p-0 border-0 shadow-2xl fixed bottom-24 right-6 sm:max-w-sm w-full flex flex-col h-[70vh] max-h-[520px] rounded-2xl overflow-hidden"
+          hideCloseButton
+          className="sm:max-w-sm w-full flex flex-col h-[70vh] max-h-[520px] rounded-2xl overflow-hidden fixed bottom-24 right-6 p-0 border-0 shadow-2xl"
         >
-          <div className="relative p-1 rounded-t-2xl bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600">
-            <div className="bg-background rounded-t-lg">
-              <DialogHeader className="p-4 pb-3 border-b">
-                <DialogTitle className="flex items-center text-base gap-2 font-headline">
-                  แชทกับ AI
-                </DialogTitle>
-                <button onClick={onClose} className="absolute right-4 top-1/2 -translate-y-1/2 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
-                    <X className="h-4 w-4" />
-                    <span className="sr-only">Close</span>
-                </button>
-              </DialogHeader>
-            </div>
-          </div>
+           <DialogHeader className="p-4 pb-3 border-b bg-primary text-primary-foreground rounded-t-2xl">
+            <DialogTitle className="flex items-center text-base gap-2 font-headline">
+              แชทกับ AI
+            </DialogTitle>
+            <button onClick={onClose} className="absolute right-4 top-1/2 -translate-y-1/2 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+                <X className="h-4 w-4 text-primary-foreground" />
+                <span className="sr-only">Close</span>
+            </button>
+          </DialogHeader>
           {ChatContent}
         </DialogContent>
       </Dialog>
