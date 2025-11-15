@@ -29,7 +29,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, FileText, Check, Upload, Scale, Ticket, Briefcase, User as UserIcon } from 'lucide-react';
+import { AlertTriangle, FileText, Check, Upload, Scale, Ticket, Briefcase, User as UserIcon, DollarSign } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -46,6 +46,7 @@ function ChatPageContent() {
     const clientId = searchParams.get('clientId'); // For lawyer's view
     const status = searchParams.get('status');
     const view = searchParams.get('view');
+    const additionalFeeRequested = searchParams.get('additionalFeeRequested');
     
     const [lawyer, setLawyer] = useState<LawyerProfile | null>(null);
     const [client, setClient] = useState<{ id: string, name: string } | null>(null); // Mock client
@@ -64,6 +65,10 @@ function ChatPageContent() {
 
     const { auth, firestore } = useFirebase();
     const { data: user } = useUser(auth);
+
+    const initialFee = 3500;
+    const additionalFee = 1500;
+    const totalFee = initialFee + additionalFee;
 
     useEffect(() => {
         async function fetchData() {
@@ -122,6 +127,15 @@ function ChatPageContent() {
         router.push(`/review/${chatId}?lawyerId=${lawyerId}`);
     };
     
+    const handleApproveAdditionalFee = () => {
+         toast({
+            title: "อนุมัติสำเร็จ",
+            description: "ระบบกำลังนำคุณไปหน้าชำระเงินส่วนต่าง (จำลอง)",
+        });
+        // In real app, would redirect to payment page with correct amount
+        router.push(`/payment?lawyerId=${lawyerId}&fee=${additionalFee}`);
+    };
+
     const handleSubmitReview = () => {
         if (rating === 0) {
             toast({
@@ -183,12 +197,20 @@ function ChatPageContent() {
                                </div>
                                <div className="flex justify-between">
                                     <span className="text-muted-foreground">สถานะเคส:</span>
-                                    <Badge variant={isCompleted ? "secondary" : "default"}>{isCompleted ? 'เสร็จสิ้น' : 'กำลังดำเนินการ'}</Badge>
+                                    <Badge variant={isCompleted ? "secondary" : (additionalFeeRequested ? "destructive" : "default")}>
+                                        {isCompleted ? 'เสร็จสิ้น' : (additionalFeeRequested ? 'รออนุมัติค่าใช้จ่าย' : 'กำลังดำเนินการ')}
+                                    </Badge>
                                </div>
                                 <div className="flex justify-between">
-                                    <span className="text-muted-foreground">ค่าบริการ:</span>
-                                    <span className="font-semibold">฿3,500</span>
+                                    <span className="text-muted-foreground">ค่าบริการเริ่มต้น:</span>
+                                    <span className="font-semibold">฿{initialFee.toLocaleString()}</span>
                                </div>
+                                {additionalFeeRequested && (
+                                     <div className="flex justify-between font-bold text-lg">
+                                        <span className="text-muted-foreground">ค่าบริการรวม:</span>
+                                        <span className="text-foreground">฿{totalFee.toLocaleString()}</span>
+                                    </div>
+                                )}
                             </CardContent>
                             <CardFooter>
                                 {isCompleted ? (
@@ -234,6 +256,40 @@ function ChatPageContent() {
                                 <Button onClick={handleSubmitReview} className="w-full" disabled={rating === 0}>
                                     ส่งรีวิว
                                 </Button>
+                            </CardFooter>
+                        </Card>
+                    ) : additionalFeeRequested ? ( // User view, additional fee requested
+                        <Card className="border-primary shadow-lg">
+                             <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                    <DollarSign className="w-6 h-6 text-primary"/>
+                                    อนุมัติค่าบริการเพิ่มเติม
+                                </CardTitle>
+                                <CardDescription>ทนายความได้ส่งสรุปเคสและมีการเรียกเก็บค่าบริการเพิ่มเติม</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="space-y-2 rounded-lg border p-4 bg-secondary/50">
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-muted-foreground">ค่าบริการเดิมใน Escrow:</span>
+                                        <span>฿{initialFee.toLocaleString()}</span>
+                                    </div>
+                                    <div className="flex justify-between text-sm">
+                                        <span className="text-muted-foreground">ขอเบิกเพิ่มเติม:</span>
+                                        <span>฿{additionalFee.toLocaleString()}</span>
+                                    </div>
+                                    <hr className="my-2"/>
+                                    <div className="flex justify-between font-bold text-lg">
+                                        <span>ยอดรวมใหม่:</span>
+                                        <span>฿{totalFee.toLocaleString()}</span>
+                                    </div>
+                                </div>
+                                <p className="text-xs text-muted-foreground text-center">คุณต้องชำระส่วนต่างจำนวน ฿{additionalFee.toLocaleString()} เพื่อดำเนินการต่อ</p>
+                            </CardContent>
+                             <CardFooter className="flex-col gap-2">
+                                <Button className="w-full bg-green-600 hover:bg-green-700" onClick={handleApproveAdditionalFee}>
+                                    อนุมัติและชำระส่วนต่าง
+                                </Button>
+                                <Button variant="ghost" className="w-full text-destructive">ปฏิเสธและรายงานปัญหา</Button>
                             </CardFooter>
                         </Card>
                     ) : ( // User view, active

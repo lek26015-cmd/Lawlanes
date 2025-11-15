@@ -10,7 +10,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Briefcase, FileSignature, DollarSign } from 'lucide-react';
+import { ArrowLeft, Briefcase, FileSignature, DollarSign, Info } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+
 
 function CloseCasePageContent() {
   const params = useParams();
@@ -23,6 +25,7 @@ function CloseCasePageContent() {
   
   const [summary, setSummary] = useState('');
   const [finalFee, setFinalFee] = useState('3500');
+  const initialFee = 3500; // Mock initial fee
 
   const handleSubmit = () => {
     if (!summary.trim() || !finalFee.trim()) {
@@ -34,14 +37,25 @@ function CloseCasePageContent() {
       return;
     }
     
-    console.log({ caseId, summary, finalFee });
+    const finalFeeNumber = parseFloat(finalFee);
+    const requiresApproval = finalFeeNumber > initialFee;
 
-    toast({
-      title: 'ส่งสรุปเคสสำเร็จ',
-      description: `ได้ส่งสรุปและแจ้งปิดเคสสำหรับ ${caseId} เรียบร้อยแล้ว`,
-    });
+    console.log({ caseId, summary, finalFee, requiresApproval });
+    
+    if (requiresApproval) {
+        toast({
+            title: 'ส่งคำขอค่าบริการเพิ่มเติมสำเร็จ',
+            description: `ระบบได้ส่งคำขออนุมัติค่าบริการใหม่ให้ '${clientName}' แล้ว`,
+        });
+        router.push(`/chat/${caseId}?lawyerId=1&clientId=...&view=lawyer&additionalFeeRequested=true`);
+    } else {
+        toast({
+          title: 'ส่งสรุปเคสสำเร็จ',
+          description: `ได้ส่งสรุปและแจ้งปิดเคสสำหรับ ${caseId} เรียบร้อยแล้ว`,
+        });
+        router.push(`/chat/${caseId}?lawyerId=1&clientId=...&view=lawyer&status=closed`);
+    }
 
-    router.push(`/chat/${caseId}?lawyerId=1&clientId=...&view=lawyer&status=closed`);
   };
 
   return (
@@ -108,6 +122,15 @@ function CloseCasePageContent() {
                         className="pl-10 text-lg font-bold"
                     />
                 </div>
+                 {parseFloat(finalFee) > initialFee && (
+                    <Alert className="mt-4 border-blue-500 bg-blue-50 text-blue-800">
+                        <Info className="h-4 w-4 !text-blue-600" />
+                        <AlertTitle>แจ้งเพื่อทราบ</AlertTitle>
+                        <AlertDescription>
+                            ยอดเงินที่ระบุสูงกว่าค่าบริการเริ่มต้น ระบบจะส่งคำขอให้ลูกค้าอนุมัติค่าบริการส่วนต่าง
+                        </AlertDescription>
+                    </Alert>
+                 )}
             </CardContent>
           </Card>
 
