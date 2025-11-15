@@ -120,10 +120,6 @@ function ChatPageContent() {
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-3">
-                                <Button variant="outline" className="w-full">
-                                    <Sparkles className="mr-2 h-4 w-4" /> AI ช่วยแนะนำเอกสาร
-                                </Button>
-                                <Separator />
                                 <div className="space-y-2 text-sm">
                                     {files.length === 0 && (
                                         <p className="text-center text-muted-foreground text-xs py-4">ยังไม่มีเอกสาร</p>
