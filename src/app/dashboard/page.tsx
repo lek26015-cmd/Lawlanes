@@ -197,17 +197,19 @@ export default function DashboardPage() {
                         <CardContent>
                             <div className="space-y-3">
                             {tickets.map((ticket) => (
-                                <div key={ticket.id} className="flex items-center justify-between p-4 rounded-lg bg-yellow-50 border border-yellow-200">
-                                <div>
-                                    <p className="font-semibold text-yellow-900">
-                                    {ticket.caseTitle} <span className="font-mono text-xs text-yellow-700">({ticket.caseId})</span>
-                                    </p>
-                                    <p className="text-sm text-yellow-800">
-                                    ประเภทปัญหา: {ticket.problemType} | ส่งเมื่อ: {format(ticket.reportedAt, 'dd MMM yyyy', { locale: th })}
-                                    </p>
-                                </div>
-                                <Badge variant="outline" className="border-yellow-600 text-yellow-700 bg-transparent">กำลังตรวจสอบ</Badge>
-                                </div>
+                                <Link href={`/chat/${ticket.caseId}?lawyerId=${ticket.lawyerId}`} key={ticket.id}>
+                                    <div className="flex items-center justify-between p-4 rounded-lg bg-yellow-50 border border-yellow-200 cursor-pointer hover:bg-yellow-100/50 transition-colors">
+                                        <div>
+                                            <p className="font-semibold text-yellow-900">
+                                            {ticket.caseTitle} <span className="font-mono text-xs text-yellow-700">({ticket.caseId})</span>
+                                            </p>
+                                            <p className="text-sm text-yellow-800">
+                                            ประเภทปัญหา: {ticket.problemType} | ส่งเมื่อ: {format(ticket.reportedAt, 'dd MMM yyyy', { locale: th })}
+                                            </p>
+                                        </div>
+                                        <Badge variant="outline" className="border-yellow-600 text-yellow-700 bg-transparent">กำลังตรวจสอบ</Badge>
+                                    </div>
+                                </Link>
                             ))}
                             </div>
                         </CardContent>

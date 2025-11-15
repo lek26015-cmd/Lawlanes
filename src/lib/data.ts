@@ -225,6 +225,7 @@ const mockTickets: ReportedTicket[] = [
   {
     id: 'TICKET-5891A',
     caseId: 'case-001',
+    lawyerId: '2',
     caseTitle: 'ตรวจสอบสัญญาเช่าคอนโด',
     problemType: 'ทนายตอบช้า',
     status: 'pending',

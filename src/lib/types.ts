@@ -67,6 +67,7 @@ export interface Document {
 export interface ReportedTicket {
   id: string;
   caseId: string;
+  lawyerId: string;
   caseTitle: string;
   problemType: string;
   status: 'pending' | 'resolved';
