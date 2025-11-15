@@ -68,23 +68,23 @@ service cloud.firestore {
        */
       match /messages/{messageId} {
         // Function to check if the requester is part of the parent chat document.
-        // This is safe for 'get' but not for 'list'.
         function isChatParticipant() {
-          return request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
+          return exists(/databases/$(database)/documents/chats/$(chatId)) &&
+                 request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
         }
 
         // Allow reading a single message if the user is a participant.
         allow get: if isSignedIn() && isChatParticipant();
         
-        // Allow LIST operation only if the user is signed in.
-        // The security is enforced by the client-side query, which is built upon a specific chat ID.
-        // The parent /chats/{chatId} `get` rule already ensures the user is a participant of that chat.
-        allow list: if isSignedIn();
+        // Allow LIST operation only if the user is signed in and is a participant.
+        // The parent /chats/{chatId} `get` rule already ensures the user is a participant of that chat
+        // when the client constructs the query, so this is an extra layer of defense.
+        allow list: if isSignedIn() && isChatParticipant();
 
         // Allow a participant to create a new message, ensuring the senderId is their own.
-        // Also handles the race condition for the *first* message by checking the incoming parent `chat` document data.
-        allow create: if isSignedIn() && request.resource.data.senderId == request.auth.uid &&
-                      (isChatParticipant() || request.auth.uid in request.resource.data.participants);
+        allow create: if isSignedIn() && 
+                       request.resource.data.senderId == request.auth.uid &&
+                       isChatParticipant();
         
         // Generally, messages are immutable.
         allow update, delete: if false;

@@ -45,47 +45,49 @@ export function ChatBox({
   const [messages, setMessages] = useState<HumanChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [isChatReady, setIsChatReady] = useState(false); // New state to track chat document readiness
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const { initialChatMessage, setInitialChatMessage } = useChat();
 
   useEffect(() => {
     // This effect ensures the chat document exists in Firestore.
     // In a real app, this would be created upon successful payment.
-    const chatRef = doc(firestore, 'chats', chatId);
-    const chatQuery = query(collection(firestore, 'chats'), where('__name__', '==', chatId));
+    if (!chatId || !currentUser.uid || !lawyer.userId) return;
 
-    getDocs(chatQuery)
-        .then(snapshot => {
-            if (snapshot.empty) {
-                const newChatData = {
-                    participants: [currentUser.uid, lawyer.userId],
-                    createdAt: serverTimestamp(),
-                    caseTitle: 'คดี: มรดก', // Mock data
-                };
-                setDoc(chatRef, newChatData)
-                    .catch(serverError => {
-                        const permissionError = new FirestorePermissionError({
-                            path: chatRef.path,
-                            operation: 'create',
-                            requestResourceData: newChatData,
-                        });
-                        errorEmitter.emit('permission-error', permissionError);
-                    });
-            }
-        })
-        .catch(error => {
-            // This might be a permission error on the 'list' operation itself.
-            const permissionError = new FirestorePermissionError({
-                path: (chatQuery as Query)._query?.path?.canonicalString() || 'chats',
-                operation: 'list',
-            });
-            errorEmitter.emit('permission-error', permissionError);
+    const chatRef = doc(firestore, 'chats', chatId);
+    
+    // Check if chat doc exists, if not, create it.
+    const ensureChatExists = async () => {
+      try {
+        const chatDoc = await getDocs(query(collection(firestore, 'chats'), where('__name__', '==', chatId)));
+        if (chatDoc.empty) {
+          const newChatData = {
+            participants: [currentUser.uid, lawyer.userId],
+            createdAt: serverTimestamp(),
+            caseTitle: 'คดี: มรดก', // Mock data
+          };
+          // IMPORTANT: Explicitly use setDoc which can be awaited
+          await setDoc(chatRef, newChatData);
+        }
+        setIsChatReady(true); // Signal that the chat document is ready
+      } catch (error) {
+        // Handle potential permission errors during chat creation
+        const permissionError = new FirestorePermissionError({
+          path: 'chats',
+          operation: 'list', // or 'create' if we can be more specific
         });
+        errorEmitter.emit('permission-error', permissionError);
+      }
+    };
+    
+    ensureChatExists();
+
   }, [chatId, currentUser.uid, lawyer.userId, firestore]);
 
   useEffect(() => {
     // This effect sends the very first message if it exists from the payment flow.
-    if (initialChatMessage && chatId) {
+    // It WAITS until the chat document is ready.
+    if (initialChatMessage && isChatReady) {
       const messagesColRef = collection(firestore, 'chats', chatId, 'messages');
       
       const messageData = {
@@ -107,11 +109,14 @@ export function ChatBox({
       // Clear the initial message from context so it's not sent again
       setInitialChatMessage('');
     }
-  }, [chatId, initialChatMessage, currentUser.uid, firestore, setInitialChatMessage]);
+  }, [chatId, initialChatMessage, currentUser.uid, firestore, setInitialChatMessage, isChatReady]);
 
 
   useEffect(() => {
     // This effect listens for new messages in the chat.
+    // It WAITS until the chat document is ready.
+    if (!isChatReady) return;
+
     const messagesQuery = query(
       collection(firestore, 'chats', chatId, 'messages'),
       orderBy('timestamp', 'asc')
@@ -135,7 +140,7 @@ export function ChatBox({
     });
 
     return () => unsubscribe();
-  }, [chatId, firestore]);
+  }, [chatId, firestore, isChatReady]);
   
    useEffect(() => {
     // Auto-scroll to bottom
@@ -150,7 +155,7 @@ export function ChatBox({
 
   const handleSendMessage = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!input.trim() || isDisabled) return;
+    if (!input.trim() || isDisabled || !isChatReady) return;
 
     const messageData = {
       text: input,
