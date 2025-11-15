@@ -1,7 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { onAuthStateChanged, User, Auth } from 'firebase/auth';
-import { doc, getDoc, setDoc, Firestore } from 'firebase/firestore';
+import { onAuthStateChanged, User, Auth, signInAnonymously as firebaseSignInAnonymously } from 'firebase/auth';
 
 export const useUser = (auth: Auth | null) => {
   const [user, setUser] = useState<User | null>(null);
@@ -14,27 +13,24 @@ export const useUser = (auth: Auth | null) => {
     }
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setUser(user);
-      setIsLoading(false);
+      if (user) {
+        setUser(user);
+        setIsLoading(false);
+      } else {
+        // If no user, sign in anonymously
+        try {
+          const userCredential = await firebaseSignInAnonymously(auth);
+          setUser(userCredential.user);
+        } catch (error) {
+          console.error("Anonymous sign-in error:", error);
+        } finally {
+          setIsLoading(false);
+        }
+      }
     }, (error) => {
       console.error("Auth state change error:", error);
       setIsLoading(false);
     });
-
-    // Sign in anonymously if not logged in
-    const signInAnonymously = async () => {
-        if (!auth.currentUser) {
-            const { signInAnonymously } = await import('firebase/auth');
-            try {
-                await signInAnonymously(auth);
-            } catch (error) {
-                console.error("Anonymous sign-in error:", error);
-            }
-        }
-    };
-    
-    signInAnonymously();
-
 
     return () => unsubscribe();
   }, [auth]);
