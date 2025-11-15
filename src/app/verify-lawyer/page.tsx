@@ -12,6 +12,7 @@ import Image from 'next/image';
 import { getLawyerById } from '@/lib/data';
 import type { LawyerProfile } from '@/lib/types';
 import React from 'react';
+import Link from 'next/link';
 
 function VerifyLawyerContent() {
   const searchParams = useSearchParams();
@@ -88,11 +89,16 @@ function VerifyLawyerContent() {
                             alt={verifiedLawyer.name}
                             width={100}
                             height={100}
-                            className="rounded-full border-4 border-white shadow-lg"
+                            className="rounded-full object-cover border-4 border-white shadow-lg"
                            />
                           <p className="font-bold text-xl mt-4">{verifiedLawyer.name}</p>
                           <p className="text-muted-foreground">เลขที่ใบอนุญาต: 12345/2550 (ข้อมูลจำลอง)</p>
                           <p className="text-primary font-semibold mt-1">{verifiedLawyer.specialty.join(', ')}</p>
+                           <Button asChild className="mt-4">
+                              <Link href={`/lawyers/${verifiedLawyer.id}`}>
+                                  ดูโปรไฟล์
+                              </Link>
+                          </Button>
                       </CardContent>
                   </Card>
               );
