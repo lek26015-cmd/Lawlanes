@@ -1,3 +1,4 @@
+
 import type { LawyerProfile } from '@/lib/types';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import type { Article, Case, UpcomingAppointment, Document } from '@/lib/types';
@@ -194,6 +195,16 @@ const mockCases: Case[] = [
     hasNewMessage: false,
     color: 'yellow'
   },
+  {
+    id: 'case-003',
+    title: 'คดีมรดก',
+    lawyer: { id: '1', name: 'นายสมชาย กฎหมายดี', imageUrl: '', imageHint: '' },
+    lastMessage: 'เสร็จสิ้นเมื่อ: 20 ต.ค. 2567',
+    lastMessageTimestamp: '',
+    status: 'closed',
+    hasNewMessage: false,
+    color: 'blue'
+  },
 ];
 
 const mockAppointments: UpcomingAppointment[] = [
@@ -205,7 +216,7 @@ const mockAppointments: UpcomingAppointment[] = [
         imageHint: getImageHint('lawyer-1'),
     },
     date: new Date(new Date().setDate(new Date().getDate() + 3)),
-    description: 'ปรึกษา VDO Call คดีมรดก',
+    description: 'ปรึกษาคดีมรดก',
     time: '10:00 น.'
   }
 ];
