@@ -1,3 +1,4 @@
+
 import { getLawyerById } from '@/lib/data';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
@@ -5,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { StarIcon } from '@/components/icons/star-icon';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Mail, Phone } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, Trophy, BookCopy } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
@@ -20,6 +21,8 @@ export default async function LawyerProfilePage({ params }: { params: { id: stri
 
   const rating = (Number(lawyer.id) % 2) + 3.5;
   const reviewCount = Number(lawyer.id) * 7 + 5;
+  const caseWinRate = (Number(lawyer.id) * 3 + 80);
+  const totalCases = (Number(lawyer.id) * 25 + 100);
 
   const mockReviews = [
     {
@@ -127,6 +130,26 @@ export default async function LawyerProfilePage({ params }: { params: { id: stri
                              </CardContent>
                         </Card>
                     </div>
+
+                    <Card className="mt-6">
+                        <CardHeader>
+                            <CardTitle>สถิติการว่าความ (จำลอง)</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid grid-cols-2 gap-4 text-center">
+                                <div className="p-4 bg-secondary/50 rounded-lg">
+                                    <Trophy className="mx-auto h-8 w-8 text-yellow-500 mb-2" />
+                                    <p className="text-2xl font-bold">{caseWinRate}%</p>
+                                    <p className="text-sm text-muted-foreground">อัตราการชนะคดี</p>
+                                </div>
+                                <div className="p-4 bg-secondary/50 rounded-lg">
+                                    <BookCopy className="mx-auto h-8 w-8 text-foreground/70 mb-2" />
+                                    <p className="text-2xl font-bold">{totalCases}+</p>
+                                    <p className="text-sm text-muted-foreground">คดีที่ให้คำปรึกษา</p>
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
 
                     <Card className="mt-6">
                         <CardHeader>
