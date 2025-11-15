@@ -50,6 +50,7 @@ export default function SchedulePage() {
       });
       return;
     }
+    
     // In a real app, you would save this to the database.
     console.log({
       lawyerId: lawyer?.id,
@@ -57,15 +58,12 @@ export default function SchedulePage() {
       description,
     });
     
-    toast({
-      title: "ส่งคำขอนัดหมายสำเร็จ",
-      description: `คำขอของคุณเพื่อปรึกษากับคุณ ${lawyer?.name} ในวันที่ ${format(date, 'd MMMM yyyy')} ถูกส่งแล้ว`,
-    });
+    const params = new URLSearchParams();
+    params.set('lawyerId', id);
+    params.set('date', date.toISOString());
+    params.set('description', description);
 
-    // Redirect back to profile page after submission
-    setTimeout(() => {
-        router.push(`/lawyers/${id}`);
-    }, 2000)
+    router.push(`/payment?${params.toString()}`);
   };
   
   if (isLoading) {
@@ -130,7 +128,7 @@ export default function SchedulePage() {
                     </div>
 
                     <Button onClick={handleSubmit} className="w-full" size="lg" disabled={!date || !description.trim()}>
-                        ส่งคำขอนัดหมาย
+                        ส่งคำขอนัดหมายและชำระเงิน
                     </Button>
                 </CardContent>
             </Card>
