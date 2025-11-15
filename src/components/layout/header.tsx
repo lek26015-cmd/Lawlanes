@@ -71,6 +71,13 @@ export default function Header() {
   const loginButtonClasses = cn(
     useTransparentHeader ? '' : 'text-background hover:text-background hover:bg-white/10'
   );
+  
+  const searchInputClasses = cn(
+      "w-full rounded-full border focus:ring-primary pl-4 pr-12 h-12 transition-colors",
+      useTransparentHeader 
+        ? "bg-background/20 border-foreground/30 text-foreground placeholder:text-foreground/70 focus:bg-background/80"
+        : "bg-background/20 border-transparent text-background placeholder:text-background/70 focus:bg-background/30"
+  )
 
 
   return (
@@ -80,20 +87,28 @@ export default function Header() {
           <Logo className={cn(useTransparentHeader ? '' : 'text-background')} />
         </Link>
         
-        <div className="hidden md:flex flex-1 justify-center px-8 lg:px-16">
+        <div className="flex flex-1 justify-center px-8 lg:px-16">
             <div className="relative w-full max-w-lg">
               <Input
                 type="search"
                 placeholder="ค้นหาทนาย, ความเชี่ยวชาญ, หรือปัญหา..."
-                className="w-full rounded-full bg-background/20 border-transparent focus:border-primary focus:bg-background/30 focus:ring-primary pl-4 pr-12 h-12 text-white placeholder:text-white/70"
+                className={searchInputClasses}
               />
               <Button
                 type="submit"
                 size="icon"
                 variant="secondary"
-                className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-white/20 hover:bg-white/30"
+                className={cn(
+                    "absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full",
+                    useTransparentHeader 
+                    ? "bg-foreground/20 hover:bg-foreground/30"
+                    : "bg-white/20 hover:bg-white/30"
+                )}
               >
-                <Search className="h-4 w-4 text-white/80" />
+                <Search className={cn(
+                    "h-4 w-4",
+                     useTransparentHeader ? "text-foreground/80" : "text-white/80"
+                )} />
               </Button>
             </div>
         </div>
