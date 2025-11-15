@@ -103,7 +103,7 @@ export default function Home() {
   return (
     <>
       <div className="flex flex-col">
-      <section className="w-full py-20 md:py-32 lg:py-40 bg-blue-900 text-white">
+      <section className="w-full py-20 md:py-32 lg:py-40 bg-background text-foreground">
             <div className="container mx-auto px-4 md:px-6">
                 <div className="grid lg:grid-cols-2 gap-12 items-center">
                     <div className="flex flex-col items-center lg:items-start text-center lg:text-left space-y-6">
@@ -112,7 +112,7 @@ export default function Home() {
                             <br />
                             <span className="opacity-90">ที่ใช่สำหรับคุณ</span>
                         </h1>
-                        <p className="max-w-[600px] text-white/80 md:text-xl">
+                        <p className="max-w-[600px] text-foreground/80 md:text-xl">
                             Lawlane คือตลาดกลางทนายความออนไลน์ ที่เชื่อมต่อคุณกับผู้เชี่ยวชาญกฎหมายทั่วประเทศได้อย่างมั่นใจ
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4">
@@ -120,14 +120,14 @@ export default function Home() {
                             <Button size="lg" variant="secondary">ดูรายชื่อทนายทั้งหมด</Button>
                             </Link>
                             <Link href="#features">
-                            <Button size="lg" variant="outline" className="text-white border-white hover:bg-white hover:text-blue-900">
+                            <Button size="lg" variant="outline">
                                 บริการของเรา
                             </Button>
                             </Link>
                         </div>
                     </div>
 
-                    <Card className="p-6 md:p-8 shadow-xl bg-background text-foreground">
+                    <Card className="p-6 md:p-8 shadow-xl bg-card text-card-foreground">
                         <div className="absolute top-4 right-4 bg-primary text-primary-foreground p-3 rounded-full shadow-lg">
                             <Sparkles className="h-6 w-6" />
                         </div>
