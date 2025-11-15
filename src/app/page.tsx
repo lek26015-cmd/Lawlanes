@@ -158,7 +158,7 @@ export default function Home() {
             </div>
             <div className="mx-auto grid max-w-5xl items-start gap-8 sm:grid-cols-2 md:gap-12 lg:grid-cols-3 lg:max-w-none mt-12">
               {features.map((feature, index) => (
-                <Card key={index} className="h-full bg-primary hover:shadow-lg transition-shadow duration-300 border-gray-200">
+                <Card key={index} className="h-full bg-primary hover:shadow-lg transition-shadow duration-300 border-gray-200 rounded-2xl">
                   <CardHeader className="flex flex-col items-center text-center">
                     {React.cloneElement(feature.icon, { className: "h-8 w-8 text-foreground" })}
                     <CardTitle className="mt-4 text-lg font-semibold text-foreground">{feature.title}</CardTitle>
@@ -235,7 +235,7 @@ export default function Home() {
                   </CardContent>
                   <div className="p-6 pt-0">
                     <Link href={`/articles/${article.slug}`}>
-                      <Button variant="link" className="p-0">
+                      <Button variant="link" className="p-0 text-foreground">
                         อ่านต่อ <ArrowRight className="ml-2 h-4 w-4" />
                       </Button>
                     </Link>
