@@ -210,9 +210,10 @@ export default function ChatModal({
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent
-          className="sm:max-w-sm w-full flex flex-col h-[70vh] max-h-[520px] rounded-2xl overflow-hidden fixed bottom-24 right-6 p-0 border-0 shadow-2xl translate-x-0 translate-y-0"
+          hideCloseButton={false}
+          className="sm:max-w-sm w-full flex flex-col h-[70vh] max-h-[520px] rounded-2xl overflow-hidden fixed bottom-[calc(6.5rem)] right-6 p-0 border-0 shadow-2xl translate-x-0 translate-y-0"
         >
-          <DialogHeader className="p-4 pb-3 border-b bg-primary text-primary-foreground rounded-t-2xl">
+           <DialogHeader className="p-4 pb-3 border-b bg-primary text-primary-foreground">
             <DialogTitle className="text-base font-headline">
               แชทกับ AI
             </DialogTitle>
