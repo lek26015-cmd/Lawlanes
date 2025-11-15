@@ -33,6 +33,7 @@ import { AlertTriangle, FileText, Check, Upload, Scale } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import Link from 'next/link';
 
 function ChatPageContent() {
     const params = useParams();
@@ -211,9 +212,11 @@ function ChatPageContent() {
                                         </AlertDialogFooter>
                                     </AlertDialogContent>
                                 </AlertDialog>
-                                <Button variant="link" className="text-muted-foreground text-xs mt-2">
-                                    <AlertTriangle className="mr-1 h-3 w-3" /> รายงานปัญหา
-                                </Button>
+                                <Link href={`/help?ticketId=${chatId}`}>
+                                    <Button variant="link" className="text-muted-foreground text-xs mt-2">
+                                        <AlertTriangle className="mr-1 h-3 w-3" /> รายงานปัญหา
+                                    </Button>
+                                </Link>
                             </CardContent>
                         </Card>
                     )}

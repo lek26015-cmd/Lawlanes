@@ -1,4 +1,6 @@
 
+'use client';
+
 import {
   Accordion,
   AccordionContent,
@@ -9,10 +11,22 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { HelpCircle, Ticket } from "lucide-react"
+import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 
-export default function HelpPage() {
+function HelpPageContent() {
+  const searchParams = useSearchParams();
+  const ticketIdParam = searchParams.get('ticketId');
+  const [ticketId, setTicketId] = useState('');
+
+  useEffect(() => {
+    if (ticketIdParam) {
+      setTicketId(ticketIdParam);
+    }
+  }, [ticketIdParam]);
 
   const faqs = [
     {
@@ -40,6 +54,14 @@ export default function HelpPage() {
       answer: "หากคุณพบปัญหาหรือมีความไม่พอใจในการบริการ คุณสามารถใช้ปุ่ม 'รายงานปัญหา' ในหน้าแชทของเคสนั้นๆ เพื่อติดต่อทีมงานสนับสนุนลูกค้าของเราได้ทันที เราจะรีบเข้ามาตรวจสอบและให้ความช่วยเหลือโดยเร็วที่สุด"
     }
   ];
+  
+  const problemTypes = [
+    "ปัญหาการสื่อสารกับทนาย",
+    "ปัญหาการชำระเงิน/Escrow",
+    "ปัญหาทางเทคนิคของระบบ",
+    "ไม่พอใจคุณภาพบริการ",
+    "อื่นๆ",
+  ];
 
 
   return (
@@ -66,16 +88,28 @@ export default function HelpPage() {
             </CardHeader>
             <CardContent>
               <form className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="ticket-id">หมายเลขเคส / Ticket ID</Label>
-                      <Input id="ticket-id" placeholder="เช่น case-001" />
-                    </div>
-                     <div className="space-y-2">
-                      <Label htmlFor="user-email">อีเมลของคุณ</Label>
-                      <Input id="user-email" type="email" placeholder="you@example.com" />
-                    </div>
-                </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="ticket-id">หมายเลขเคส / Ticket ID</Label>
+                    <Input 
+                      id="ticket-id" 
+                      placeholder="เช่น case-001" 
+                      value={ticketId} 
+                      onChange={(e) => setTicketId(e.target.value)} 
+                    />
+                  </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="problem-type">ประเภทของปัญหา</Label>
+                     <Select>
+                        <SelectTrigger id="problem-type">
+                            <SelectValue placeholder="เลือกประเภทของปัญหา" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {problemTypes.map((type) => (
+                                <SelectItem key={type} value={type}>{type}</SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                  </div>
                  <div className="space-y-2">
                     <Label htmlFor="problem-description">รายละเอียดปัญหา</Label>
                     <Textarea id="problem-description" placeholder="กรุณาอธิบายปัญหาที่ท่านพบโดยละเอียด..." rows={4} />
@@ -104,4 +138,12 @@ export default function HelpPage() {
       </div>
     </div>
   )
+}
+
+export default function HelpPage() {
+    return (
+        <React.Suspense fallback={<div>Loading...</div>}>
+            <HelpPageContent />
+        </React.Suspense>
+    )
 }
