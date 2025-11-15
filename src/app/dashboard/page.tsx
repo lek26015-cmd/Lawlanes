@@ -197,7 +197,7 @@ export default function DashboardPage() {
                         <CardContent>
                             <div className="space-y-3">
                             {tickets.map((ticket) => (
-                                <Link href={`/chat/${ticket.caseId}?lawyerId=${ticket.lawyerId}`} key={ticket.id}>
+                                <Link href={`/support/${ticket.id}`} key={ticket.id}>
                                     <div className="flex items-center justify-between p-4 rounded-lg bg-yellow-50 border border-yellow-200 cursor-pointer hover:bg-yellow-100/50 transition-colors">
                                         <div>
                                             <p className="font-semibold text-yellow-900">
