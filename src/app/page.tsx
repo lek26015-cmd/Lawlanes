@@ -379,6 +379,11 @@ export default function Home() {
                     </div>
                     ))}
                 </div>
+                <div className="mt-8 text-center">
+                    <Button asChild size="lg" variant="outline">
+                        <Link href="/lawyers">ดูทนายทั้งหมด</Link>
+                    </Button>
+                </div>
             </div>
 
           </div>
