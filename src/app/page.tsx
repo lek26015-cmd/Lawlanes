@@ -350,23 +350,23 @@ export default function Home() {
 
         <section className="w-full py-12 md:py-24 lg:py-32 bg-gray-50">
           <div className="container mx-auto px-4 md:px-6">
-            <h2 className="text-2xl font-bold text-center mb-8">URGENT JOBS</h2>
-            <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+            <h2 className="text-3xl font-bold text-center mb-12 sm:text-4xl">URGENT JOBS</h2>
+            <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-8">
               {urgentJobs.map((job) => (
-                <div key={job.id} className="flex items-start gap-4 py-4 border-b">
+                <div key={job.id} className="flex items-center gap-6 py-4 border-b">
                    <div className="flex-shrink-0">
                       <Image 
                         src={job.logoUrl} 
                         alt={`${job.companyName} logo`}
-                        width={80}
-                        height={50}
-                        className="rounded-md object-contain border bg-white p-1"
+                        width={90}
+                        height={60}
+                        className="rounded-lg object-contain border bg-white p-1.5"
                         data-ai-hint={job.logoHint}
                       />
                    </div>
                    <div>
-                      <h3 className="font-semibold">{job.companyName}</h3>
-                      <p className="text-sm text-muted-foreground">{job.description}</p>
+                      <h3 className="font-semibold text-lg">{job.companyName}</h3>
+                      <p className="text-base text-muted-foreground">{job.description}</p>
                    </div>
                 </div>
               ))}
@@ -470,6 +470,8 @@ export default function Home() {
     </>
   );
 }
+
+    
 
     
 
