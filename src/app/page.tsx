@@ -120,7 +120,7 @@ export default function Home() {
                             <Button size="lg" variant="secondary">ดูรายชื่อทนายทั้งหมด</Button>
                             </Link>
                             <Link href="#features">
-                            <Button size="lg" variant="outline" className="text-background border-background hover:bg-background hover:text-foreground">
+                            <Button size="lg" variant="outline" className="bg-transparent text-background border-background hover:bg-background hover:text-foreground">
                                 บริการของเรา
                             </Button>
                             </Link>
