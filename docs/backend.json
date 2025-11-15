@@ -1,0 +1,71 @@
+{
+  "entities": {
+    "LawyerProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "LawyerProfile",
+      "type": "object",
+      "description": "Represents the profile of a lawyer in the Lawlane application.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the lawyer profile."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Firebase User ID of the lawyer. This is the unique ID generated and managed by Firebase Authentication."
+        },
+        "name": {
+          "type": "string",
+          "description": "The lawyer's full name."
+        },
+        "status": {
+          "type": "string",
+          "description": "The status of the lawyer's profile (e.g., 'approved', 'pending')."
+        },
+        "description": {
+          "type": "string",
+          "description": "A brief description of the lawyer's experience and expertise."
+        },
+        "specialty": {
+          "type": "string",
+          "description": "The lawyer's area of specialization (e.g., 'SME Fraud Cases', 'Civil and Commercial Law')."
+        }
+      },
+      "required": [
+        "id",
+        "userId",
+        "name",
+        "status",
+        "description",
+        "specialty"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/lawyerProfiles/{lawyerProfileId}",
+        "definition": {
+          "entityName": "LawyerProfile",
+          "schema": {
+            "$ref": "#/backend/entities/LawyerProfile"
+          },
+          "description": "Stores lawyer profiles, accessible for reading by all users if status is 'approved'. Includes the userId field for owner-based rules.",
+          "params": [
+            {
+              "name": "lawyerProfileId",
+              "description": "Unique identifier for the lawyer profile."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to address the 'configuration-not-found' error and support the Lawlane application's MVP requirements, prioritizing security and scalability. The error indicates an issue with the Firebase Authentication configuration, which is outside the scope of Firestore data structure but should be addressed in the Firebase console.  The structure focuses on storing lawyer profiles with clear access control. It utilizes Structural Segregation by placing lawyer profiles in their own collection. Authorization Independence is achieved naturally, as there's no hierarchical relationship between lawyer profiles and users who view them.  QAPs are supported because listing approved lawyer profiles is straightforward using a query on the 'status' field without requiring complex filtering in rules.  No denormalization of user data is required since the user id is associated directly with each lawyer profile."
+  }
+}

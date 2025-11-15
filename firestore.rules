@@ -1,0 +1,51 @@
+/**
+ * @fileOverview Firestore Security Rules for Lawlane application.
+ *
+ * Core Philosophy:
+ * This ruleset prioritizes secure access to lawyer profiles based on their status and ownership.
+ * It enforces that only approved lawyer profiles are publicly readable, while ensuring that only the owner (identified by `userId`) can create, update, or delete their own profile.
+ *
+ * Data Structure:
+ * Lawyer profiles are stored in the `/lawyerProfiles/{lawyerProfileId}` collection. Each document contains a `userId` field linking it to a specific Firebase User ID.
+ *
+ * Key Security Decisions:
+ * - Public Read Access: Lawyer profiles with a status of "approved" are publicly readable.
+ * - Owner-Only Writes: Only the lawyer who owns the profile (identified by `userId`) can create, update, or delete it.
+ * - Denormalization for Authorization: The `userId` field is denormalized directly onto the `lawyerProfiles` documents to allow for efficient ownership checks without additional reads.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Grants read access to lawyer profiles with status "approved" and restricts write access to the owner of the profile.
+     * @path /lawyerProfiles/{lawyerProfileId}
+     * @allow (get, list): if true (for profiles with status "approved")
+     * @allow (create): if request.auth.uid matches the userId in the request data.
+     * @allow (update, delete): if the request.auth.uid matches the userId in the existing document.
+     * @deny (create): if request.auth.uid does not match the userId in the request data.
+     * @deny (update, delete): if the request.auth.uid does not match the userId in the existing document.
+     * @principle Enforces owner-only writes and public read access for approved profiles.
+     */
+    match /lawyerProfiles/{lawyerProfileId} {
+      function isSignedIn() {
+        return request.auth != null;
+      }
+
+      function isOwner(userId) {
+        return isSignedIn() && request.auth.uid == userId;
+      }
+
+      function isExistingOwner(userId) {
+        return isOwner(userId) && resource != null;
+      }
+
+      allow get: if true;
+      allow list: if true;
+
+      allow create: if isOwner(request.resource.data.userId);
+      allow update: if isExistingOwner(resource.data.userId);
+      allow delete: if isExistingOwner(resource.data.userId);
+    }
+  }
+}
