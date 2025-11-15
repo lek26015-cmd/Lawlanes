@@ -1,3 +1,5 @@
+import { ChatResponse } from "@/ai/flows/chat-flow";
+
 export interface LawyerProfile {
   id: string;
   userId: string;
@@ -12,7 +14,7 @@ export interface LawyerProfile {
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
-  content: string;
+  content: string | ChatResponse;
   needsLawyer?: boolean;
   handoffMessage?: string;
 }

@@ -19,16 +19,35 @@ const ChatRequestSchema = z.object({
   prompt: z.string(),
 });
 
+const ChatResponseSchema = z.object({
+  sections: z.array(z.object({
+    title: z.string().describe('The title of the section.'),
+    content: z.string().describe('The content of the section.'),
+  })).describe('An array of sections to structure the response.'),
+});
+
+export type ChatResponse = z.infer<typeof ChatResponseSchema>;
+
+const chatPrompt = ai.definePrompt({
+    name: 'chatPrompt',
+    input: { schema: ChatRequestSchema },
+    output: { schema: ChatResponseSchema },
+    prompt: `You are an AI legal assistant. Provide a structured response to the user's prompt. 
+    Break down your answer into logical sections, each with a clear title and content.
+    User prompt: {{{prompt}}}
+    `,
+});
+
+
 export async function chat(
   request: z.infer<typeof ChatRequestSchema>
-): Promise<string> {
+): Promise<ChatResponse> {
   const {history, prompt} = request;
-  const {text} = await ai.generate({
-    prompt,
-    history: history as MessageData[],
-    config: {
-      temperature: 1,
-    },
+
+  const { output } = await chatPrompt({
+      history: history as MessageData[],
+      prompt,
   });
-  return text;
+
+  return output!;
 }

@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Send, Sparkles, X, Loader2 } from 'lucide-react';
-import { chat } from '@/ai/flows/chat-flow';
+import { chat, type ChatResponse } from '@/ai/flows/chat-flow';
 import type { ChatMessage } from '@/lib/types';
 import { z } from 'zod';
 
@@ -36,6 +36,11 @@ const ChatRequestSchema = z.object({
   ),
   prompt: z.string(),
 });
+
+const isChatResponse = (content: any): content is ChatResponse => {
+    return content && Array.isArray(content.sections) && content.sections.every((s: any) => typeof s.title === 'string' && typeof s.content === 'string');
+}
+
 
 export default function ChatModal({ isOpen, onOpenChange }: ChatModalProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([
@@ -85,16 +90,16 @@ export default function ChatModal({ isOpen, onOpenChange }: ChatModalProps) {
     try {
       const history = messages.map(msg => ({
           role: msg.role === 'assistant' ? 'model' as const : 'user' as const,
-          content: [{text: msg.content as string}],
+          content: [{text: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)}],
       }));
 
       const request: z.infer<typeof ChatRequestSchema> = { history, prompt };
-      const responseText = await chat(request);
+      const response = await chat(request);
 
       const assistantMessage: ChatMessage = {
         id: Date.now().toString(),
         role: 'assistant',
-        content: responseText,
+        content: response,
       };
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (error) {
@@ -145,7 +150,18 @@ export default function ChatModal({ isOpen, onOpenChange }: ChatModalProps) {
                     }`}
                     style={msg.role === 'user' ? {borderTopRightRadius: 0} : {borderTopLeftRadius: 0}}
                     >
-                        <p className="text-sm">{msg.content}</p>
+                         {typeof msg.content === 'string' ? (
+                            <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                        ) : isChatResponse(msg.content) ? (
+                            <div className="space-y-3">
+                                {msg.content.sections.map((section, index) => (
+                                <div key={index}>
+                                    <h4 className="font-semibold text-sm mb-1">{section.title}</h4>
+                                    <p className="text-sm whitespace-pre-wrap">{section.content}</p>
+                                </div>
+                                ))}
+                            </div>
+                        ) : null}
                     </div>
                 </div>
               </div>
