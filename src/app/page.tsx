@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { CheckCircle, MessageSquare, Users, Sparkles, Scale, ArrowRight, Newspaper, Loader2, Briefcase, UserCheck, ShieldCheck, ShieldAlert, Phone, Mail, FileText, Info, Award } from 'lucide-react';
+import { CheckCircle, MessageSquare, Users, Sparkles, Scale, ArrowRight, Newspaper, Loader2, Briefcase, UserCheck, ShieldCheck, ShieldAlert, Phone, Mail, Award, FileText } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { getApprovedLawyers, getAllArticles, getLawyerById, getUrgentJobs, getImageUrl, getImageHint } from '@/lib/data';
@@ -196,7 +196,7 @@ export default function Home() {
   }
   
   const mainArticle = articles[0];
-  const otherArticles = articles.slice(1, 7);
+  const otherArticles = articles.slice(1, 5);
 
   return (
     <>
