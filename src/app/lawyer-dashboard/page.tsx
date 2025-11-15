@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -186,7 +187,9 @@ export default function LawyerDashboardPage() {
                     <CardTitle className="font-bold">เครื่องมือ</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                    <Button variant="ghost" className="w-full justify-start"><CalendarPlus className="mr-2"/> จัดการตารางนัดหมาย</Button>
+                    <Link href="/lawyer-schedule" passHref>
+                        <Button variant="ghost" className="w-full justify-start"><CalendarPlus className="mr-2"/> จัดการตารางนัดหมาย</Button>
+                    </Link>
                     <Button variant="ghost" className="w-full justify-start"><BarChart className="mr-2"/> ดูรายงานสรุป</Button>
                 </CardContent>
              </Card>
