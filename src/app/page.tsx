@@ -1,3 +1,6 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -7,9 +10,11 @@ import Link from 'next/link';
 import { getApprovedLawyers } from '@/lib/data';
 import LawyerCard from '@/components/lawyer-card';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import type { LawyerProfile } from '@/lib/types';
+import ChatModal from '@/components/chat/chat-modal';
 
-export default async function Home() {
-  const features = [
+export default function Home() {
+  const [features] = useState([
     {
       icon: <MessageSquare className="h-8 w-8 text-primary" />,
       title: 'AI Legal Advisor',
@@ -25,11 +30,10 @@ export default async function Home() {
       title: 'Streamlined Case Hand-off',
       description: 'ให้ AI ช่วยแนะนำและส่งต่อเคสของคุณไปยังทนายที่เหมาะสม',
     },
-  ];
-
-  const recommendedLawyers = (await getApprovedLawyers()).slice(0, 3);
+  ]);
   
-  const articles = [
+  const [recommendedLawyers, setRecommendedLawyers] = useState<LawyerProfile[]>([]);
+  const [articles] = useState([
     {
       id: 'article-1',
       title: '5 สิ่งต้องรู้ก่อนเซ็นสัญญาจ้างงาน',
@@ -51,176 +55,205 @@ export default async function Home() {
       imageHint: 'trademark logo',
       imageUrl: PlaceHolderImages.find(img => img.id === 'article-3')?.imageUrl ?? '',
     }
-  ];
+  ]);
+  
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [initialPrompt, setInitialPrompt] = useState('');
+  const [analysisText, setAnalysisText] = useState('');
+
+  useEffect(() => {
+    async function fetchLawyers() {
+      const lawyers = await getApprovedLawyers();
+      setRecommendedLawyers(lawyers.slice(0, 3));
+    }
+    fetchLawyers();
+  }, []);
+
+  const handleAnalysis = () => {
+    if (analysisText.trim()) {
+      setInitialPrompt(analysisText);
+      setIsChatOpen(true);
+    }
+  };
 
   return (
-    <div className="flex flex-col">
-      <section className="w-full pt-12 pb-20 md:pt-24 md:pb-32 lg:pt-32 lg:pb-40 relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-background z-0"></div>
-        <div 
-            className="absolute -top-1/4 -right-1/4 w-1/2 h-1/2 bg-primary/5 rounded-full filter blur-3xl opacity-30 animate-pulse"
-            style={{ animationDuration: '8s' }}>
-        </div>
-        <div 
-            className="absolute -bottom-1/4 -left-1/4 w-1/2 h-1/2 bg-accent/5 rounded-full filter blur-3xl opacity-20 animate-pulse"
-            style={{ animationDuration: '10s', animationDelay: '2s' }}>
-        </div>
+    <>
+      <div className="flex flex-col">
+        <section className="w-full pt-12 pb-20 md:pt-24 md:pb-32 lg:pt-32 lg:pb-40 relative overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-background z-0"></div>
+          <div 
+              className="absolute -top-1/4 -right-1/4 w-1/2 h-1/2 bg-primary/5 rounded-full filter blur-3xl opacity-30 animate-pulse"
+              style={{ animationDuration: '8s' }}>
+          </div>
+          <div 
+              className="absolute -bottom-1/4 -left-1/4 w-1/2 h-1/2 bg-accent/5 rounded-full filter blur-3xl opacity-20 animate-pulse"
+              style={{ animationDuration: '10s', animationDelay: '2s' }}>
+          </div>
 
-        <div className="container mx-auto px-4 md:px-6 relative z-10">
-            <div className="grid lg:grid-cols-2 gap-12 items-center">
-                <div className="flex flex-col items-center lg:items-start text-center lg:text-left space-y-6">
-                    <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none font-headline text-primary">
-                        ค้นหาทนายความ...
-                        <br />
-                        <span className="text-foreground">ที่ใช่สำหรับคุณ</span>
-                    </h1>
-                    <p className="max-w-[600px] text-muted-foreground md:text-xl">
-                        Lawlane คือตลาดกลางทนายความออนไลน์ ที่เชื่อมต่อคุณกับผู้เชี่ยวชาญกฎหมายทั่วประเทศได้อย่างมั่นใจ
-                    </p>
-                    <div className="flex flex-col sm:flex-row gap-4">
-                        <Link href="/lawyers">
-                        <Button size="lg">ดูรายชื่อทนายทั้งหมด</Button>
-                        </Link>
-                        <Link href="#features">
-                        <Button size="lg" variant="outline">
-                            บริการของเรา
-                        </Button>
-                        </Link>
-                    </div>
-                </div>
+          <div className="container mx-auto px-4 md:px-6 relative z-10">
+              <div className="grid lg:grid-cols-2 gap-12 items-center">
+                  <div className="flex flex-col items-center lg:items-start text-center lg:text-left space-y-6">
+                      <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none font-headline text-primary">
+                          ค้นหาทนายความ...
+                          <br />
+                          <span className="text-foreground">ที่ใช่สำหรับคุณ</span>
+                      </h1>
+                      <p className="max-w-[600px] text-muted-foreground md:text-xl">
+                          Lawlane คือตลาดกลางทนายความออนไลน์ ที่เชื่อมต่อคุณกับผู้เชี่ยวชาญกฎหมายทั่วประเทศได้อย่างมั่นใจ
+                      </p>
+                      <div className="flex flex-col sm:flex-row gap-4">
+                          <Link href="/lawyers">
+                          <Button size="lg">ดูรายชื่อทนายทั้งหมด</Button>
+                          </Link>
+                          <Link href="#features">
+                          <Button size="lg" variant="outline">
+                              บริการของเรา
+                          </Button>
+                          </Link>
+                      </div>
+                  </div>
 
-                <Card className="p-6 md:p-8 relative overflow-hidden bg-gradient-to-br from-purple-100/40 via-pink-100/40 to-blue-100/40 border-purple-200/50 shadow-xl">
-                    <div className="absolute top-4 right-4 bg-primary text-primary-foreground p-3 rounded-full shadow-lg">
-                        <Sparkles className="h-6 w-6" />
-                    </div>
-                    <div className="flex items-center gap-3 mb-2">
-                        <Scale className="h-7 w-7 text-primary" />
-                        <h2 className="text-2xl md:text-3xl font-bold font-headline text-primary">
-                        ไม่แน่ใจว่าต้องการทนายด้านไหน?
-                        </h2>
-                    </div>
-                    <p className="text-muted-foreground mb-6">
-                        ให้ AI ช่วยวิเคราะห์ปัญหาเบื้องต้นและแนะนำทนายที่ตรงจุดให้คุณ
-                    </p>
-                    <div className="space-y-4">
-                        <Textarea
-                        placeholder='อธิบายปัญหาของคุณที่นี่ เช่น "โดนโกงแชร์", "ต้องการจดทะเบียนบริษัท", "ปัญหาที่ดินกับเพื่อนบ้าน"'
-                        rows={4}
-                        className="bg-background/70"
-                        />
-                        <Button size="lg" className="w-full">
-                        วิเคราะห์และแนะนำทนาย
-                        </Button>
-                    </div>
-                </Card>
+                  <Card className="p-6 md:p-8 relative overflow-hidden bg-gradient-to-br from-purple-100/40 via-pink-100/40 to-blue-100/40 border-purple-200/50 shadow-xl">
+                      <div className="absolute top-4 right-4 bg-primary text-primary-foreground p-3 rounded-full shadow-lg">
+                          <Sparkles className="h-6 w-6" />
+                      </div>
+                      <div className="flex items-center gap-3 mb-2">
+                          <Scale className="h-7 w-7 text-primary" />
+                          <h2 className="text-2xl md:text-3xl font-bold font-headline text-primary">
+                          ไม่แน่ใจว่าต้องการทนายด้านไหน?
+                          </h2>
+                      </div>
+                      <p className="text-muted-foreground mb-6">
+                          ให้ AI ช่วยวิเคราะห์ปัญหาเบื้องต้นและแนะนำทนายที่ตรงจุดให้คุณ
+                      </p>
+                      <div className="space-y-4">
+                          <Textarea
+                            value={analysisText}
+                            onChange={(e) => setAnalysisText(e.target.value)}
+                            placeholder='อธิบายปัญหาของคุณที่นี่ เช่น "โดนโกงแชร์", "ต้องการจดทะเบียนบริษัท", "ปัญหาที่ดินกับเพื่อนบ้าน"'
+                            rows={4}
+                            className="bg-background/70"
+                          />
+                          <Button size="lg" className="w-full" onClick={handleAnalysis}>
+                            วิเคราะห์และแนะนำทนาย
+                          </Button>
+                      </div>
+                  </Card>
+              </div>
+          </div>
+        </section>
+
+        <section id="features" className="w-full py-12 md:py-24 lg:py-20 bg-secondary/20">
+          <div className="container mx-auto px-4 md:px-6">
+            <div className="flex flex-col items-center justify-center space-y-4 text-center">
+              <div className="space-y-2">
+                <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">How Lawlane Works</h2>
+                <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
+                  A simple, three-step process to get legal clarity for your business.
+                </p>
+              </div>
             </div>
-        </div>
-      </section>
+            <div className="mx-auto grid max-w-5xl items-start gap-8 sm:grid-cols-2 md:gap-12 lg:grid-cols-3 lg:max-w-none mt-12">
+              {features.map((feature, index) => (
+                <Card key={index} className="h-full bg-card/80 backdrop-blur-sm hover:shadow-lg transition-shadow duration-300 border-border/50">
+                  <CardHeader className="flex flex-col items-center text-center">
+                    {feature.icon}
+                    <CardTitle className="mt-4 text-lg font-semibold">{feature.title}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="text-center">
+                    <p className="text-muted-foreground text-sm">{feature.description}</p>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+        </section>
 
-      <section id="features" className="w-full py-12 md:py-24 lg:py-20 bg-secondary/20">
-        <div className="container mx-auto px-4 md:px-6">
-          <div className="flex flex-col items-center justify-center space-y-4 text-center">
-            <div className="space-y-2">
-              <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">How Lawlane Works</h2>
-              <p className="max-w-[900px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-                A simple, three-step process to get legal clarity for your business.
+        <section className="w-full py-12 md:py-24 lg:py-32">
+          <div className="container mx-auto px-4 md:px-6">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">
+                ทนายที่แนะนำ
+              </h2>
+              <p className="max-w-2xl mx-auto mt-4 text-muted-foreground md:text-xl">
+                ทนายความผู้เชี่ยวชาญที่คัดสรรมาเพื่อธุรกิจ SME โดยเฉพาะ
               </p>
             </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {recommendedLawyers.map((lawyer) => (
+                <LawyerCard key={lawyer.id} lawyer={lawyer} />
+              ))}
+            </div>
+            <div className="text-center mt-12">
+              <Link href="/lawyers">
+                  <Button variant="outline">
+                      ดูทนายทั้งหมด <ArrowRight className="ml-2 h-4 w-4" />
+                  </Button>
+              </Link>
+            </div>
           </div>
-          <div className="mx-auto grid max-w-5xl items-start gap-8 sm:grid-cols-2 md:gap-12 lg:grid-cols-3 lg:max-w-none mt-12">
-            {features.map((feature, index) => (
-              <Card key={index} className="h-full bg-card/80 backdrop-blur-sm hover:shadow-lg transition-shadow duration-300 border-border/50">
-                <CardHeader className="flex flex-col items-center text-center">
-                  {feature.icon}
-                  <CardTitle className="mt-4 text-lg font-semibold">{feature.title}</CardTitle>
-                </CardHeader>
-                <CardContent className="text-center">
-                  <p className="text-muted-foreground text-sm">{feature.description}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
+        </section>
 
-      <section className="w-full py-12 md:py-24 lg:py-32">
-        <div className="container mx-auto px-4 md:px-6">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">
-              ทนายที่แนะนำ
-            </h2>
-            <p className="max-w-2xl mx-auto mt-4 text-muted-foreground md:text-xl">
-              ทนายความผู้เชี่ยวชาญที่คัดสรรมาเพื่อธุรกิจ SME โดยเฉพาะ
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {recommendedLawyers.map((lawyer) => (
-              <LawyerCard key={lawyer.id} lawyer={lawyer} />
-            ))}
-          </div>
-          <div className="text-center mt-12">
-            <Link href="/lawyers">
-                <Button variant="outline">
-                    ดูทนายทั้งหมด <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-            </Link>
-          </div>
-        </div>
-      </section>
-
-      <section id="articles" className="w-full py-12 md:py-24 lg:py-32 bg-secondary/20">
-        <div className="container mx-auto px-4 md:px-6">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">
-              บทความกฎหมายน่ารู้
-            </h2>
-            <p className="max-w-2xl mx-auto mt-4 text-muted-foreground md:text-xl">
-              อัปเดตความรู้ทางกฎหมายสำหรับธุรกิจของคุณ
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {articles.map((article) => (
-              <Card key={article.id} className="overflow-hidden h-full flex flex-col">
-                <Link href="#" className="block">
-                  <div className="relative h-48 w-full">
-                    <Image
-                      src={article.imageUrl}
-                      alt={article.title}
-                      fill
-                      className="object-cover"
-                      data-ai-hint={article.imageHint}
-                    />
-                  </div>
-                </Link>
-                <CardHeader>
-                  <CardTitle>
-                    <Link href="#" className="hover:text-primary transition-colors">
-                      {article.title}
-                    </Link>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="flex-grow">
-                  <CardDescription>{article.description}</CardDescription>
-                </CardContent>
-                <div className="p-6 pt-0">
-                  <Link href="#">
-                    <Button variant="link" className="p-0">
-                      อ่านต่อ <ArrowRight className="ml-2 h-4 w-4" />
-                    </Button>
+        <section id="articles" className="w-full py-12 md:py-24 lg:py-32 bg-secondary/20">
+          <div className="container mx-auto px-4 md:px-6">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">
+                บทความกฎหมายน่ารู้
+              </h2>
+              <p className="max-w-2xl mx-auto mt-4 text-muted-foreground md:text-xl">
+                อัปเดตความรู้ทางกฎหมายสำหรับธุรกิจของคุณ
+              </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {articles.map((article) => (
+                <Card key={article.id} className="overflow-hidden h-full flex flex-col">
+                  <Link href="#" className="block">
+                    <div className="relative h-48 w-full">
+                      <Image
+                        src={article.imageUrl}
+                        alt={article.title}
+                        fill
+                        className="object-cover"
+                        data-ai-hint={article.imageHint}
+                      />
+                    </div>
                   </Link>
-                </div>
-              </Card>
-            ))}
+                  <CardHeader>
+                    <CardTitle>
+                      <Link href="#" className="hover:text-primary transition-colors">
+                        {article.title}
+                      </Link>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="flex-grow">
+                    <CardDescription>{article.description}</CardDescription>
+                  </CardContent>
+                  <div className="p-6 pt-0">
+                    <Link href="#">
+                      <Button variant="link" className="p-0">
+                        อ่านต่อ <ArrowRight className="ml-2 h-4 w-4" />
+                      </Button>
+                    </Link>
+                  </div>
+                </Card>
+              ))}
+            </div>
+            <div className="text-center mt-12">
+              <Link href="#">
+                  <Button variant="outline">
+                      ดูบทความทั้งหมด <Newspaper className="ml-2 h-4 w-4" />
+                  </Button>
+              </Link>
+            </div>
           </div>
-          <div className="text-center mt-12">
-            <Link href="#">
-                <Button variant="outline">
-                    ดูบทความทั้งหมด <Newspaper className="ml-2 h-4 w-4" />
-                </Button>
-            </Link>
-          </div>
-        </div>
-      </section>
-    </div>
+        </section>
+      </div>
+      <ChatModal 
+        isOpen={isChatOpen} 
+        onOpenChange={setIsChatOpen} 
+        initialPrompt={initialPrompt}
+        clearInitialPrompt={() => setInitialPrompt('')}
+      />
+    </>
   );
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -18,6 +18,8 @@ import { z } from 'zod';
 interface ChatModalProps {
   isOpen: boolean;
   onOpenChange: (isOpen: boolean) => void;
+  initialPrompt?: string;
+  clearInitialPrompt?: () => void;
 }
 
 const quickQuestions = [
@@ -42,7 +44,7 @@ const isChatResponse = (content: any): content is ChatResponse => {
 }
 
 
-export default function ChatModal({ isOpen, onOpenChange }: ChatModalProps) {
+export default function ChatModal({ isOpen, onOpenChange, initialPrompt, clearInitialPrompt }: ChatModalProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '1',
@@ -53,6 +55,24 @@ export default function ChatModal({ isOpen, onOpenChange }: ChatModalProps) {
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (initialPrompt && isOpen) {
+      handleInitialPrompt(initialPrompt);
+      clearInitialPrompt?.();
+    }
+  }, [initialPrompt, isOpen, clearInitialPrompt]);
+
+  const handleInitialPrompt = async (prompt: string) => {
+    setIsLoading(true);
+    const userMessage: ChatMessage = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: prompt,
+    };
+    setMessages((prev) => [...prev, userMessage]);
+    await processChat(prompt);
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setInput(e.target.value);
