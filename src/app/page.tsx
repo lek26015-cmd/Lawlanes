@@ -1,75 +1,97 @@
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { CheckCircle, Gavel, MessageSquare, Users } from 'lucide-react';
+import { CheckCircle, MessageSquare, Users, Sparkles, Scale } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 
 export default function Home() {
   const features = [
     {
-      icon: <MessageSquare className="h-10 w-10 text-primary" />,
+      icon: <MessageSquare className="h-8 w-8 text-primary" />,
       title: 'AI Legal Advisor',
-      description: 'Get instant, preliminary assessments for your legal questions regarding civil and commercial law.',
+      description: 'รับการประเมินปัญหาทางกฎหมายเบื้องต้นได้ทันที',
     },
     {
-      icon: <Users className="h-10 w-10 text-primary" />,
+      icon: <Users className="h-8 w-8 text-primary" />,
       title: 'Expert Lawyer Marketplace',
-      description: 'Connect with a curated list of specialized lawyers for complex cases requiring professional handling.',
+      description: 'เชื่อมต่อกับทนายความผู้เชี่ยวชาญที่ผ่านการคัดเลือก',
     },
     {
-      icon: <CheckCircle className="h-10 w-10 text-primary" />,
+      icon: <CheckCircle className="h-8 w-8 text-primary" />,
       title: 'Streamlined Case Hand-off',
-      description: 'Our AI seamlessly determines if you need a lawyer and facilitates the connection process.',
+      description: 'ให้ AI ช่วยแนะนำและส่งต่อเคสของคุณไปยังทนายที่เหมาะสม',
     },
   ];
 
   return (
     <div className="flex flex-col">
-      <section className="w-full py-20 md:py-32 lg:py-40 bg-primary text-primary-foreground">
-        <div className="container mx-auto px-4 md:px-6 text-center">
-          <div className="flex flex-col items-center space-y-4">
-            <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none font-headline">
-              ค้นหาทนายความ... ที่ใช่สำหรับคุณ
-            </h1>
-            <p className="max-w-[700px] text-primary-foreground/80 md:text-xl">
-              Lawlane คือตลาดกลางทนายความออนไลน์ที่เชื่อมต่อคุณกับผู้เชี่ยวชาญกฎหมายทั่วประเทศ
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 mt-6">
-              <Link href="/lawyers">
-                <Button size="lg" variant="secondary">ดูรายชื่อทนายทั้งหมด</Button>
-              </Link>
-              <Link href="#features">
-                <Button size="lg" variant="outline" className="text-primary-foreground border-primary-foreground hover:bg-primary-foreground hover:text-primary">ดูบริการของเรา</Button>
-              </Link>
+      <section className="w-full pt-12 pb-20 md:pt-24 md:pb-32 lg:pt-32 lg:pb-40 relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-background z-0"></div>
+        <div 
+            className="absolute -top-1/4 -right-1/4 w-1/2 h-1/2 bg-primary/5 rounded-full filter blur-3xl opacity-30 animate-pulse"
+            style={{ animationDuration: '8s' }}>
+        </div>
+        <div 
+            className="absolute -bottom-1/4 -left-1/4 w-1/2 h-1/2 bg-accent/5 rounded-full filter blur-3xl opacity-20 animate-pulse"
+            style={{ animationDuration: '10s', animationDelay: '2s' }}>
+        </div>
+
+        <div className="container mx-auto px-4 md:px-6 relative z-10">
+          <div className="grid md:grid-cols-2 gap-12 items-center">
+            <div className="flex flex-col items-start space-y-6 text-left">
+              <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none font-headline text-primary">
+                ค้นหาทนายความ...
+                <br />
+                <span className="text-foreground">ที่ใช่สำหรับคุณ</span>
+              </h1>
+              <p className="max-w-[600px] text-muted-foreground md:text-xl">
+                Lawlane คือตลาดกลางทนายความออนไลน์ ที่เชื่อมต่อคุณกับผู้เชี่ยวชาญกฎหมายทั่วประเทศได้อย่างมั่นใจ
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 mt-6">
+                <Link href="/lawyers">
+                  <Button size="lg">ดูรายชื่อทนายทั้งหมด</Button>
+                </Link>
+                <Link href="#features">
+                  <Button size="lg" variant="outline">
+                    บริการของเรา
+                  </Button>
+                </Link>
+              </div>
+            </div>
+            <div className="relative p-8 bg-card/50 rounded-2xl shadow-lg border border-border/50 backdrop-blur-sm">
+                <div className="absolute top-0 right-0 -mt-4 -mr-4">
+                    <div className="flex items-center justify-center bg-primary text-primary-foreground rounded-full w-20 h-20 shadow-md">
+                        <Sparkles className="w-10 h-10" />
+                    </div>
+                </div>
+                <CardHeader className="p-0 mb-4">
+                    <CardTitle className="text-xl font-bold flex items-center gap-2">
+                        <Scale className="text-primary"/>
+                        ไม่แน่ใจว่าต้องการทนายด้านไหน?
+                    </CardTitle>
+                    <CardDescription className="pt-2 text-base">
+                        ให้ AI ช่วยวิเคราะห์ปัญหาเบื้องต้นและแนะนำทนายที่ตรงจุดให้คุณ
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="p-0">
+                    <div className="flex flex-col gap-4">
+                        <Textarea
+                            placeholder='อธิบายปัญหาของคุณที่นี่ เช่น "โดนโกงแชร์", "ต้องการจดทะเบียนบริษัท", "ปัญหาที่ดินกับเพื่อนบ้าน"'
+                            rows={4}
+                            className="bg-background"
+                        />
+                        <Button className="w-full" size="lg">
+                           วิเคราะห์และแนะนำทนาย
+                        </Button>
+                    </div>
+                </CardContent>
             </div>
           </div>
         </div>
       </section>
 
-      <section className="w-full -mt-20">
-        <div className="container mx-auto px-4 md:px-6">
-            <Card className="max-w-3xl mx-auto shadow-lg">
-                <CardHeader className="text-center">
-                    <CardTitle>ไม่แน่ใจว่าต้องการทนายด้านไหน?</CardTitle>
-                    <CardContent className="text-muted-foreground pt-2">ให้ AI ช่วยวิเคราะห์ปัญหาเบื้องต้นและแนะนำทนายที่ตรงจุด</CardContent>
-                </CardHeader>
-                <CardContent>
-                    <div className="flex flex-col gap-4">
-                        <Textarea 
-                            placeholder='อธิบายปัญหาของคุณที่นี่ เช่น "โดนโกงแชร์", "ต้องการจดทะเบียนบริษัท", "ปัญหาที่ดินกับเพื่อนบ้าน"'
-                            rows={3}
-                        />
-                        <Button className="w-full">
-                           วิเคราะห์และแนะนำทนายความ
-                        </Button>
-                    </div>
-                </CardContent>
-            </Card>
-        </div>
-      </section>
-      
-      <section id="features" className="w-full py-12 md:py-24 lg:py-32">
+      <section id="features" className="w-full py-12 md:py-24 lg:py-20 bg-secondary/20">
         <div className="container mx-auto px-4 md:px-6">
           <div className="flex flex-col items-center justify-center space-y-4 text-center">
             <div className="space-y-2">
@@ -81,13 +103,13 @@ export default function Home() {
           </div>
           <div className="mx-auto grid max-w-5xl items-start gap-8 sm:grid-cols-2 md:gap-12 lg:grid-cols-3 lg:max-w-none mt-12">
             {features.map((feature, index) => (
-              <Card key={index} className="h-full">
+              <Card key={index} className="h-full bg-card/80 backdrop-blur-sm hover:shadow-lg transition-shadow duration-300 border-border/50">
                 <CardHeader className="flex flex-col items-center text-center">
                   {feature.icon}
-                  <CardTitle className="mt-4">{feature.title}</CardTitle>
+                  <CardTitle className="mt-4 text-lg font-semibold">{feature.title}</CardTitle>
                 </CardHeader>
                 <CardContent className="text-center">
-                  <p className="text-muted-foreground">{feature.description}</p>
+                  <p className="text-muted-foreground text-sm">{feature.description}</p>
                 </CardContent>
               </Card>
             ))}
@@ -95,7 +117,7 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="w-full py-12 md:py-24 lg:py-32 bg-card/50">
+      <section className="w-full py-12 md:py-24 lg:py-32">
         <div className="container mx-auto grid items-center justify-center gap-4 px-4 text-center md:px-6">
           <div className="space-y-3">
             <h2 className="text-3xl font-bold tracking-tighter md:text-4xl/tight font-headline">
