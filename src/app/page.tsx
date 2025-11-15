@@ -388,7 +388,7 @@ export default function Home() {
                             <div className="aspect-video overflow-hidden rounded-2xl shadow-2xl">
                                 <Image 
                                     src={getImageUrl('lawyer-team-working')}
-                                    alt="A man in a suit holding a gavel, representing law"
+                                    alt="Man in a suit holding a gavel"
                                     fill
                                     className="object-cover"
                                     data-ai-hint={getImageHint('lawyer-team-working')}
@@ -399,24 +399,26 @@ export default function Home() {
                 </div>
             </section>
             
-            <div className='max-w-5xl mx-auto mt-12'>
-                <div className='text-center mb-8'>
-                    <h2 className='text-3xl font-bold tracking-tight text-foreground font-headline'>ทนายที่แนะนำ</h2>
-                    <Separator className='w-24 mx-auto mt-2' />
-                </div>
-                <div className="flex flex-col gap-4">
-                    {recommendedLawyers.map((lawyer) => (
-                    <div key={lawyer.id} className="border-b border-border last:border-b-0">
-                        <LawyerCard lawyer={lawyer} />
-                    </div>
-                    ))}
-                </div>
-                <div className="mt-8 text-center">
-                    <Button asChild size="lg" variant="outline">
-                        <Link href="/lawyers">ดูทนายทั้งหมด</Link>
-                    </Button>
-                </div>
-            </div>
+            <section className="w-full py-12 md:py-24 lg:py-32 bg-blue-50">
+              <div className='max-w-5xl mx-auto'>
+                  <div className='text-center mb-8'>
+                      <h2 className='text-3xl font-bold tracking-tight text-foreground font-headline'>ทนายที่แนะนำ</h2>
+                      <Separator className='w-24 mx-auto mt-2 bg-blue-200' />
+                  </div>
+                  <div className="flex flex-col gap-4">
+                      {recommendedLawyers.map((lawyer) => (
+                      <div key={lawyer.id} className="bg-white rounded-lg shadow-md">
+                          <LawyerCard lawyer={lawyer} />
+                      </div>
+                      ))}
+                  </div>
+                  <div className="mt-8 text-center">
+                      <Button asChild size="lg" variant="outline" className="bg-white">
+                          <Link href="/lawyers">ดูทนายทั้งหมด</Link>
+                      </Button>
+                  </div>
+              </div>
+            </section>
 
           </div>
         </section>
