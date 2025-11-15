@@ -182,7 +182,7 @@ export default function ChatModal({
           <DrawerContent className="h-[90%] max-h-full flex flex-col outline-none p-0 border-0 bg-background">
             <DrawerHeader className="p-4 pb-2 text-left bg-primary text-primary-foreground">
                 <DrawerTitle className="flex items-center gap-2 font-headline">
-                 แชทกับ AI
+                 Lawlane AI Assistant
                 </DrawerTitle>
             </DrawerHeader>
             {ChatContent}
@@ -211,11 +211,11 @@ export default function ChatModal({
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent
           hideCloseButton={false}
-          className="sm:max-w-sm w-full flex flex-col h-[70vh] max-h-[520px] rounded-2xl overflow-hidden fixed bottom-[calc(4.5rem+1.5rem)] right-6 p-0 border-0 shadow-2xl translate-x-0 translate-y-0"
+          className="sm:max-w-sm w-full flex flex-col h-[70vh] max-h-[520px] rounded-2xl overflow-hidden p-0 shadow-2xl border-0 fixed bottom-[calc(4.5rem+1rem)] right-6 translate-x-0 translate-y-0 data-[state=closed]:slide-out-to-bottom-full data-[state=open]:slide-in-from-bottom-full"
         >
            <DialogHeader className="p-4 pb-3 border-b bg-primary text-primary-foreground">
             <DialogTitle className="text-base font-headline">
-              แชทกับ AI
+              Lawlane AI Assistant
             </DialogTitle>
           </DialogHeader>
           {ChatContent}
