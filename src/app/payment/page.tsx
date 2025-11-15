@@ -6,7 +6,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getLawyerById } from '@/lib/data';
 import type { LawyerProfile } from '@/lib/types';
-import { ArrowLeft, CreditCard, Calendar, User, CheckCircle, QrCode } from 'lucide-react';
+import { ArrowLeft, CreditCard, Calendar, User, CheckCircle, QrCode, MessageSquare } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,12 +17,15 @@ import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import QRCode from 'qrcode.react';
 import generatePayload from 'promptpay-qr';
+import { useChat } from '@/context/chat-context';
 
 function PaymentPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { toast } = useToast();
+  const { openLawyerChat } = useChat();
 
+  const paymentType = searchParams.get('type') || 'appointment';
   const lawyerId = searchParams.get('lawyerId');
   const dateStr = searchParams.get('date');
   const description = searchParams.get('description');
@@ -33,7 +36,11 @@ function PaymentPageContent() {
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [promptPayPayload, setPromptPayPayload] = useState('');
 
-  const consultationFee = 3000; // Mock fee
+  const appointmentFee = 3000;
+  const chatTicketFee = 500;
+  const fee = paymentType === 'chat' ? chatTicketFee : appointmentFee;
+  const title = paymentType === 'chat' ? 'ยืนยันการเปิด Ticket สนทนา' : 'ยืนยันการนัดหมายและชำระเงิน';
+  const descriptionText = paymentType === 'chat' ? 'กรุณาตรวจสอบรายละเอียดและดำเนินการชำระเงินค่าเปิด Ticket' : 'กรุณาตรวจสอบรายละเอียดและดำเนินการชำระเงินค่าปรึกษา';
 
   useEffect(() => {
     async function fetchLawyer() {
@@ -50,27 +57,30 @@ function PaymentPageContent() {
   }, [lawyerId]);
   
   useEffect(() => {
-    // Generate PromptPay payload when component mounts with fee
-    const mobileNumber = '081-234-5678'; // Replace with actual or mock merchant phone number
-    const payload = generatePayload(mobileNumber, { amount: consultationFee });
+    const mobileNumber = '081-234-5678';
+    const payload = generatePayload(mobileNumber, { amount: fee });
     setPromptPayPayload(payload);
-  }, [consultationFee]);
+  }, [fee]);
 
   const handlePayment = (e?: React.FormEvent) => {
     e?.preventDefault();
     setIsProcessing(true);
-    // Simulate payment processing
     setTimeout(() => {
       setIsProcessing(false);
       setPaymentSuccess(true);
       toast({
         title: "ชำระเงินสำเร็จ!",
-        description: "เราได้ส่งคำขอนัดหมายของคุณไปยังทนายความแล้ว",
+        description: paymentType === 'chat' ? 'คุณสามารถเริ่มสนทนากับทนายความได้แล้ว' : 'เราได้ส่งคำขอนัดหมายของคุณไปยังทนายความแล้ว',
       });
-      // In a real app, you might redirect to a confirmation page or dashboard
-      setTimeout(() => {
+      
+      if (paymentType === 'chat' && lawyer) {
+        openLawyerChat(lawyer);
         router.push(`/lawyers/${lawyerId}`);
-      }, 3000);
+      } else {
+        setTimeout(() => {
+          router.push(`/lawyers/${lawyerId}`);
+        }, 3000);
+      }
     }, 2000);
   };
 
@@ -78,10 +88,10 @@ function PaymentPageContent() {
     return <div className="flex items-center justify-center min-h-[50vh]">Loading...</div>;
   }
 
-  if (!lawyer || !dateStr) {
+  if (!lawyer || (paymentType === 'appointment' && !dateStr)) {
     return (
       <div className="text-center">
-        <p className="mb-4">ข้อมูลการนัดหมายไม่ถูกต้อง</p>
+        <p className="mb-4">ข้อมูลการชำระเงินไม่ถูกต้อง</p>
         <Link href="/lawyers">
           <Button variant="outline">กลับไปหน้ารายชื่อทนาย</Button>
         </Link>
@@ -89,35 +99,36 @@ function PaymentPageContent() {
     );
   }
   
-  if (paymentSuccess) {
+  if (paymentSuccess && paymentType === 'appointment') {
     return (
         <Card className="w-full max-w-2xl mx-auto">
             <CardContent className="pt-6 text-center">
                 <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
                 <h2 className="text-2xl font-bold mb-2">การนัดหมายของคุณถูกยืนยันแล้ว</h2>
                 <p className="text-muted-foreground mb-4">
-                    เราได้ส่งรายละเอียดการนัดหมายกับคุณ {lawyer.name} ในวันที่ {format(new Date(dateStr), 'd MMMM yyyy')} ไปยังอีเมลของคุณแล้ว (จำลอง)
+                    เราได้ส่งรายละเอียดการนัดหมายกับคุณ {lawyer.name} ในวันที่ {dateStr ? format(new Date(dateStr), 'd MMMM yyyy') : ''} ไปยังอีเมลของคุณแล้ว (จำลอง)
                 </p>
                 <p className="text-sm text-muted-foreground">กำลังนำคุณกลับไปที่หน้าโปรไฟล์ทนาย...</p>
             </CardContent>
         </Card>
     )
   }
+  
+  // For chat, success is handled by opening the dialog, so we don't need a specific success screen here.
 
   return (
     <Card className="w-full max-w-4xl mx-auto">
       <CardHeader>
         <CardTitle className="text-2xl font-headline flex items-center gap-3">
-            ยืนยันการนัดหมายและชำระเงิน
+            {title}
         </CardTitle>
         <CardDescription>
-          กรุณาตรวจสอบรายละเอียดและดำเนินการชำระเงินค่าปรึกษา
+          {descriptionText}
         </CardDescription>
       </CardHeader>
       <CardContent className="grid md:grid-cols-2 gap-8">
-        {/* Appointment Summary */}
         <div className="space-y-4">
-            <h3 className="font-semibold text-lg">สรุปการนัดหมาย</h3>
+            <h3 className="font-semibold text-lg">สรุปรายการ</h3>
             <Card className="bg-secondary/50">
                 <CardContent className="pt-6">
                     <div className="flex items-center gap-4 mb-4">
@@ -126,31 +137,39 @@ function PaymentPageContent() {
                             <AvatarFallback>{lawyer.name.charAt(0)}</AvatarFallback>
                         </Avatar>
                         <div>
-                            <p className="font-semibold">ปรึกษาคุณ</p>
+                            <p className="font-semibold">{paymentType === 'chat' ? 'สนทนากับคุณ' : 'ปรึกษาคุณ'}</p>
                             <p className="text-lg font-bold">{lawyer.name}</p>
                         </div>
                     </div>
                      <div className="space-y-2 text-sm">
-                        <div className="flex items-center gap-2">
-                            <Calendar className="w-4 h-4 text-muted-foreground" />
-                            <span><span className="font-semibold">วันที่:</span> {format(new Date(dateStr), 'd MMMM yyyy')}</span>
-                        </div>
-                         <div className="flex items-start gap-2">
-                            <User className="w-4 h-4 text-muted-foreground mt-1" />
-                            <span><span className="font-semibold">หัวข้อ:</span> {description}</span>
-                        </div>
+                        {paymentType === 'appointment' ? (
+                            <>
+                                <div className="flex items-center gap-2">
+                                    <Calendar className="w-4 h-4 text-muted-foreground" />
+                                    <span><span className="font-semibold">วันที่:</span> {dateStr ? format(new Date(dateStr), 'd MMMM yyyy') : ''}</span>
+                                </div>
+                                <div className="flex items-start gap-2">
+                                    <User className="w-4 h-4 text-muted-foreground mt-1" />
+                                    <span><span className="font-semibold">หัวข้อ:</span> {description}</span>
+                                </div>
+                            </>
+                        ) : (
+                             <div className="flex items-start gap-2">
+                                <MessageSquare className="w-4 h-4 text-muted-foreground mt-1" />
+                                <span><span className="font-semibold">บริการ:</span> เปิด Ticket เพื่อเริ่มต้นการสนทนาส่วนตัว</span>
+                            </div>
+                        )}
                      </div>
                 </CardContent>
                  <CardFooter className="bg-secondary">
                     <div className="w-full flex justify-between items-center font-bold">
-                        <span>ค่าบริการปรึกษา</span>
-                        <span>{new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(consultationFee)}</span>
+                        <span>ค่าบริการ</span>
+                        <span>{new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(fee)}</span>
                     </div>
                 </CardFooter>
             </Card>
         </div>
 
-        {/* Payment Form */}
         <div className="space-y-4">
             <h3 className="font-semibold text-lg">เลือกวิธีการชำระเงิน</h3>
             <Tabs defaultValue="credit-card" className="w-full">
@@ -179,7 +198,7 @@ function PaymentPageContent() {
                             <Input id="cardName" placeholder="สมชาย กฎหมายดี" disabled={isProcessing} />
                         </div>
                         <Button type="submit" className="w-full" size="lg" disabled={isProcessing}>
-                            {isProcessing ? 'กำลังดำเนินการ...' : `ยืนยันและชำระเงิน ${new Intl.NumberFormat('th-TH').format(consultationFee)} บาท`}
+                            {isProcessing ? 'กำลังดำเนินการ...' : `ยืนยันและชำระเงิน ${new Intl.NumberFormat('th-TH').format(fee)} บาท`}
                         </Button>
                      </form>
                 </TabsContent>
@@ -189,7 +208,7 @@ function PaymentPageContent() {
                         <div className="p-4 bg-white rounded-lg">
                            <QRCode value={promptPayPayload} size={180} />
                         </div>
-                        <p className="text-sm text-muted-foreground">ยอดชำระ: {new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(consultationFee)}</p>
+                        <p className="text-sm text-muted-foreground">ยอดชำระ: {new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(fee)}</p>
                         <p className="text-xs text-muted-foreground text-center">ใช้แอปพลิเคชันธนาคารของคุณสแกน QR Code นี้เพื่อชำระเงิน</p>
                          <Button onClick={() => handlePayment()} className="w-full mt-4" size="lg" disabled={isProcessing}>
                             {isProcessing ? 'กำลังตรวจสอบ...' : `ตรวจสอบการชำระเงิน`}

@@ -1,7 +1,7 @@
 'use client';
 
 import { getLawyerById } from '@/lib/data';
-import { notFound, useParams } from 'next/navigation';
+import { notFound, useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { StarIcon } from '@/components/icons/star-icon';
@@ -17,9 +17,9 @@ import { useChat } from '@/context/chat-context';
 
 export default function LawyerProfilePage() {
   const params = useParams();
+  const router = useRouter();
   const id = params.id as string;
   const [lawyer, setLawyer] = useState<LawyerProfile | null>(null);
-  const { openLawyerChat } = useChat();
 
   useEffect(() => {
     async function fetchLawyer() {
@@ -71,7 +71,7 @@ export default function LawyerProfilePage() {
   
   const handleStartChat = () => {
     if (lawyer) {
-      openLawyerChat(lawyer);
+      router.push(`/payment?type=chat&lawyerId=${lawyer.id}`);
     }
   };
 

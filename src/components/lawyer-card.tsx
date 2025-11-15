@@ -7,20 +7,20 @@ import { Mail, Scale, Phone } from 'lucide-react';
 import { StarIcon } from '@/components/icons/star-icon';
 import Image from 'next/image';
 import Link from 'next/link';
-import { useChat } from '@/context/chat-context';
+import { useRouter } from 'next/navigation';
 
 interface LawyerCardProps {
   lawyer: LawyerProfile;
 }
 
 export default function LawyerCard({ lawyer }: LawyerCardProps) {
-  const { openLawyerChat } = useChat();
+  const router = useRouter();
   // Mock data for rating and reviews
   const rating = (Number(lawyer.id) % 2) + 3.5;
   const reviewCount = Number(lawyer.id) * 7 + 5;
 
   const handleStartChat = () => {
-    openLawyerChat(lawyer);
+    router.push(`/payment?type=chat&lawyerId=${lawyer.id}`);
   };
 
   return (
