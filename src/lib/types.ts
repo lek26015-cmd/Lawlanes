@@ -12,7 +12,7 @@ export interface LawyerProfile {
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
-  content: React.ReactNode;
+  content: string;
   needsLawyer?: boolean;
   handoffMessage?: string;
 }
