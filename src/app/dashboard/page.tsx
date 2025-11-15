@@ -7,7 +7,7 @@ import Image from 'next/image';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { ArrowRight, Briefcase, Calendar, FileText, Loader2, Search, CheckCircle } from 'lucide-react';
+import { ArrowRight, Briefcase, Calendar, FileText, Loader2, Search, CheckCircle, User } from 'lucide-react';
 import { getDashboardData } from '@/lib/data';
 import type { Case, UpcomingAppointment } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
@@ -208,6 +208,11 @@ export default function DashboardPage() {
                 <Link href="/articles" className='w-full'>
                     <Button className="w-full justify-start" variant="outline">
                         <FileText className="mr-2 h-4 w-4" /> อ่านบทความกฎหมาย
+                    </Button>
+                </Link>
+                <Link href="#" className='w-full'>
+                    <Button className="w-full justify-start" variant="outline">
+                        <User className="mr-2 h-4 w-4" /> จัดการข้อมูลส่วนบุคคล
                     </Button>
                 </Link>
               </CardContent>
