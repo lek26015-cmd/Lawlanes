@@ -19,6 +19,14 @@ export interface ChatMessage {
   handoffMessage?: string;
 }
 
+export interface HumanChatMessage {
+    id: string;
+    text: string;
+    senderId: string;
+    timestamp: any;
+}
+
+
 export interface Article {
   id: string;
   slug: string;

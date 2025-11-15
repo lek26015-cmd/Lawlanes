@@ -7,18 +7,22 @@ import { Badge } from '@/components/ui/badge';
 import { StarIcon } from '@/components/icons/star-icon';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Mail, Phone, Trophy, BookCopy } from 'lucide-react';
+import { ArrowLeft, Trophy, BookCopy } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import React, { useState, useEffect } from 'react';
 import type { LawyerProfile } from '@/lib/types';
-import ChatModal from '@/components/chat/chat-modal';
+import { initializeFirebase, useUser, useFirestore } from '@/firebase';
+import { LawyerChatBox } from '@/components/chat/lawyer-chat-box';
+
+const { firebaseApp, auth, firestore } = initializeFirebase();
 
 export default function LawyerProfilePage() {
   const params = useParams();
   const id = params.id as string;
   const [lawyer, setLawyer] = useState<LawyerProfile | null>(null);
+  const { data: user, isLoading: isUserLoading } = useUser(auth);
 
   useEffect(() => {
     async function fetchLawyer() {
@@ -31,7 +35,6 @@ export default function LawyerProfilePage() {
     }
     fetchLawyer();
   }, [id]);
-
 
   if (!lawyer) {
     return <div>Loading...</div>; // Or a loading skeleton
@@ -109,19 +112,24 @@ export default function LawyerProfilePage() {
                                 ))}
                             </div>
                         </div>
-                        <div className="flex-shrink-0 flex flex-col items-center justify-center gap-3 w-full md:w-40">
-                            <Button className="w-full bg-foreground text-background hover:bg-foreground/90">
-                                <Phone className="mr-2 h-4 w-4" /> นัดปรึกษา
-                            </Button>
-                            <Button variant="outline" className="w-full">
-                                <Mail className="mr-2 h-4 w-4" /> ส่งข้อความ
-                            </Button>
-                        </div>
                     </div>
                 </div>
 
                 <div className="p-8">
-                    <Card>
+                    {firestore && user && lawyer && !isUserLoading ? (
+                      <LawyerChatBox firestore={firestore} currentUser={user} lawyer={lawyer} />
+                    ) : (
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>เริ่มการสนทนา</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <p className="text-muted-foreground">กำลังโหลดแชท...</p>
+                        </CardContent>
+                      </Card>
+                    )}
+                    
+                    <Card className="mt-6">
                         <CardHeader>
                             <CardTitle>เกี่ยวกับ</CardTitle>
                         </CardHeader>
