@@ -185,7 +185,7 @@ export default function DashboardPage() {
                             <CardTitle className="font-bold">ช่วยเหลือ</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-2">
-                            <Link href="#" className="flex items-center text-sm text-muted-foreground hover:text-foreground">
+                            <Link href="/help" className="flex items-center text-sm text-muted-foreground hover:text-foreground">
                                 <HelpCircle className="mr-2" /> ศูนย์ช่วยเหลือ / FAQ
                             </Link>
                              <Link href="#" className="flex items-center text-sm text-muted-foreground hover:text-foreground">
