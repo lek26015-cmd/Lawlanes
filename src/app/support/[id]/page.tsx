@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { getDashboardData } from '@/lib/data';
 import type { ReportedTicket } from '@/lib/types';
@@ -16,10 +16,10 @@ import {
 } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { LifeBuoy, FileText, Ticket, ShieldX } from 'lucide-react';
+import { FileText, Ticket, Upload } from 'lucide-react';
 import { format } from 'date-fns';
 import { th } from 'date-fns/locale';
+import { useToast } from '@/hooks/use-toast';
 
 function SupportPageContent() {
     const params = useParams();
@@ -28,6 +28,9 @@ function SupportPageContent() {
     
     const [ticket, setTicket] = useState<ReportedTicket | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [files, setFiles] = useState<{ name: string, size: number }[]>([]);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const { toast } = useToast();
 
     useEffect(() => {
         async function fetchTicket() {
@@ -42,6 +45,36 @@ function SupportPageContent() {
         }
         fetchTicket();
     }, [ticketId]);
+
+    const handleUploadClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
+        if (file.size > MAX_FILE_SIZE) {
+            toast({
+                variant: "destructive",
+                title: "ไฟล์มีขนาดใหญ่เกินไป",
+                description: `กรุณาเลือกไฟล์ที่มีขนาดไม่เกิน ${MAX_FILE_SIZE / 1024 / 1024}MB`,
+            });
+            return;
+        }
+
+        setFiles(prevFiles => [...prevFiles, { name: file.name, size: file.size }]);
+        toast({
+            title: "อัปโหลดไฟล์สำเร็จ (จำลอง)",
+            description: `ไฟล์ "${file.name}" ถูกเพิ่มในรายการแล้ว`,
+        });
+
+        if(event.target) {
+            event.target.value = '';
+        }
+    };
     
     const statusBadges: { [key: string]: React.ReactNode } = {
         pending: <Badge variant="outline" className="border-yellow-600 text-yellow-700 bg-yellow-50">กำลังตรวจสอบ</Badge>,
@@ -94,14 +127,41 @@ function SupportPageContent() {
                         </CardContent>
                     </Card>
 
-                     <Card>
+                    <Card>
                         <CardHeader>
                             <CardTitle>เอกสารที่เกี่ยวข้อง</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <div className="space-y-2 text-sm text-center text-muted-foreground py-4">
-                                <FileText className="mx-auto h-8 w-8" />
-                                <p>ยังไม่มีเอกสารแนบ</p>
+                            <div className="space-y-3">
+                                <div className="space-y-2 text-sm">
+                                    {files.length === 0 ? (
+                                        <div className="text-center text-muted-foreground py-4 text-xs">
+                                            <FileText className="mx-auto h-8 w-8 mb-2" />
+                                            <p>ยังไม่มีเอกสารแนบ</p>
+                                        </div>
+                                    ) : (
+                                        files.map((file, index) => (
+                                            <div key={index} className="flex justify-between items-center p-2 rounded-md hover:bg-gray-100">
+                                                <div className="flex items-center gap-2 overflow-hidden">
+                                                    <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                                                    <span className="truncate" title={file.name}>{file.name}</span>
+                                                </div>
+                                                <span className="text-muted-foreground text-xs flex-shrink-0">
+                                                    {(file.size / 1024 / 1024).toFixed(2)}MB
+                                                </span>
+                                            </div>
+                                        ))
+                                    )}
+                                </div>
+                                <input 
+                                    type="file" 
+                                    ref={fileInputRef} 
+                                    onChange={handleFileChange}
+                                    className="hidden" 
+                                />
+                                <Button onClick={handleUploadClick} className="w-full">
+                                    <Upload className="mr-2 h-4 w-4" /> อัปโหลดไฟล์
+                                </Button>
                             </div>
                         </CardContent>
                     </Card>
