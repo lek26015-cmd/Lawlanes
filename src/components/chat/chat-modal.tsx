@@ -168,7 +168,7 @@ export default function ChatModal({
             className="rounded-full"
           />
           <Button type="submit" size="icon" className="rounded-full flex-shrink-0" disabled={isLoading || !input.trim()}>
-            <Send className="h-4 w-4 transform -rotate-45" />
+            <Send className="h-4 w-4" />
           </Button>
         </form>
       </div>
@@ -178,11 +178,11 @@ export default function ChatModal({
   if (isMobile) {
     return (
       <>
-        <Drawer open={isOpen} onOpenChange={onClose}>
+        <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
           <DrawerContent className="h-[90%] max-h-full flex flex-col outline-none p-0 border-0 bg-background">
             <DrawerHeader className="p-4 pb-2 text-left">
                 <DrawerTitle className="flex items-center gap-2 font-headline">
-                 Lawlane AI Assistant
+                 แชทกับ AI
                 </DrawerTitle>
             </DrawerHeader>
             {ChatContent}
@@ -217,7 +217,7 @@ export default function ChatModal({
             <div className="bg-background rounded-t-lg">
               <DialogHeader className="p-4 pb-3 border-b">
                 <DialogTitle className="flex items-center text-base gap-2 font-headline">
-                  Lawlane AI Assistant
+                  แชทกับ AI
                 </DialogTitle>
                 <button onClick={onClose} className="absolute right-4 top-1/2 -translate-y-1/2 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
                     <X className="h-4 w-4" />
@@ -230,7 +230,7 @@ export default function ChatModal({
         </DialogContent>
       </Dialog>
       
-      <AlertDialog open={showDisclaimer && !isMobile}>
+      <AlertDialog open={showDisclaimer}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>ข้อจำกัดความรับผิดชอบ (Disclaimer)</AlertDialogTitle>
