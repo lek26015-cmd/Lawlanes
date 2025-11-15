@@ -122,7 +122,7 @@ export default function DashboardPage() {
                 {completedCases.length > 0 ? (
                   <div className="space-y-4">
                     {completedCases.map((caseItem) => (
-                      <Link href={`/chat/${caseItem.id}?lawyerId=${caseItem.lawyer.id}`} key={caseItem.id}>
+                      <Link href={`/chat/${caseItem.id}?lawyerId=${caseItem.lawyer.id}&status=closed`} key={caseItem.id}>
                         <div className="flex items-center p-3 -mx-3 rounded-lg hover:bg-secondary transition-colors">
                           <Avatar className="h-12 w-12 mr-4">
                             <AvatarImage src={caseItem.lawyer.imageUrl} alt={caseItem.lawyer.name} data-ai-hint={caseItem.lawyer.imageHint} />

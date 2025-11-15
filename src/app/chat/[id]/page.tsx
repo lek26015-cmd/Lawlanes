@@ -14,6 +14,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter
 } from '@/components/ui/card';
 import {
   AlertDialog,
@@ -29,6 +30,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, FileText, Check, Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { StarIcon } from '@/components/icons/star-icon';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 
 function ChatPageContent() {
     const params = useParams();
@@ -36,14 +40,21 @@ function ChatPageContent() {
     const searchParams = useSearchParams();
     const chatId = params.id as string;
     const lawyerId = searchParams.get('lawyerId');
+    const status = searchParams.get('status');
     
     const [lawyer, setLawyer] = useState<LawyerProfile | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [files, setFiles] = useState<{ name: string, size: number }[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { toast } = useToast();
-    const [escrowStatus, setEscrowStatus] = useState<'initial' | 'confirmed'>('initial');
-    const [isChatDisabled, setIsChatDisabled] = useState(false);
+    
+    const isCompleted = status === 'closed';
+    // Manage chat disabled state based on whether the case is completed from the start
+    const [isChatDisabled, setIsChatDisabled] = useState(isCompleted);
+
+    // Review state
+    const [rating, setRating] = useState(0);
+    const [reviewText, setReviewText] = useState("");
 
     const { auth, firestore } = useFirebase();
     const { data: user } = useUser(auth);
@@ -93,7 +104,6 @@ function ChatPageContent() {
     };
     
     const handleConfirmRelease = () => {
-        setEscrowStatus('confirmed');
         setIsChatDisabled(true); // Disable chat on case completion
         toast({
             title: "ดำเนินการสำเร็จ",
@@ -102,6 +112,23 @@ function ChatPageContent() {
         
         // Navigate to the review page
         router.push(`/review/${chatId}?lawyerId=${lawyerId}`);
+    };
+    
+    const handleSubmitReview = () => {
+        if (rating === 0) {
+            toast({
+                variant: "destructive",
+                title: "กรุณาให้คะแนน",
+                description: "โปรดเลือกดาวเพื่อให้คะแนนความพึงพอใจ",
+            });
+            return;
+        }
+        console.log({ chatId, lawyerId, rating, reviewText });
+        toast({
+            title: "ส่งรีวิวสำเร็จ",
+            description: "ขอบคุณสำหรับความคิดเห็นของคุณ!",
+        });
+        // Optionally, disable the review form after submission
     };
 
 
@@ -120,23 +147,54 @@ function ChatPageContent() {
                     <ChatBox firestore={firestore} currentUser={user} lawyer={lawyer} chatId={chatId} isDisabled={isChatDisabled} />
                 </div>
                 <div className="lg:col-span-1 space-y-6">
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>สถานะ Escrow</CardTitle>
-                        </CardHeader>
-                        <CardContent className="text-center">
-                            <p className="text-muted-foreground">เงินของคุณถูกพักไว้ที่ Lawlane</p>
-                            <p className="text-4xl font-bold my-2">฿3,500</p>
-                            <p className="text-xs text-muted-foreground max-w-xs mx-auto">
-                               {escrowStatus === 'initial' 
-                                 ? "เงินจะถูกโอนให้ทนายเมื่อคุณกดยืนยันว่างานเสร็จสิ้น"
-                                 : "เคสนี้เสร็จสมบูรณ์แล้ว ขอบคุณที่ใช้บริการ"}
-                            </p>
-
-                            {escrowStatus === 'initial' ? (
+                    {isCompleted ? (
+                         <Card>
+                            <CardHeader>
+                                <CardTitle>ให้คะแนนและรีวิว</CardTitle>
+                                <CardDescription>เคสนี้เสร็จสิ้นแล้ว โปรดให้คะแนนการบริการของคุณ</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="space-y-2 rounded-lg border p-4">
+                                    <Label className="font-semibold text-center block">คะแนนความพึงพอใจ</Label>
+                                    <div className="flex items-center justify-center gap-3">
+                                        {[1, 2, 3, 4, 5].map((star) => (
+                                            <button key={star} onClick={() => setRating(star)} className="focus:outline-none">
+                                                <StarIcon className={`w-8 h-8 cursor-pointer transition-all duration-150 ease-in-out ${rating >= star ? 'text-yellow-400 fill-yellow-400 scale-110' : 'text-gray-300 hover:text-yellow-300 hover:scale-105'}`} />
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="review-text">ความคิดเห็นเพิ่มเติม</Label>
+                                    <Textarea
+                                        id="review-text"
+                                        placeholder="เล่าประสบการณ์ของคุณ..."
+                                        value={reviewText}
+                                        onChange={(e) => setReviewText(e.target.value)}
+                                        rows={4}
+                                    />
+                                </div>
+                            </CardContent>
+                            <CardFooter>
+                                <Button onClick={handleSubmitReview} className="w-full" disabled={rating === 0}>
+                                    ส่งรีวิว
+                                </Button>
+                            </CardFooter>
+                        </Card>
+                    ) : (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>สถานะ Escrow</CardTitle>
+                            </CardHeader>
+                            <CardContent className="text-center">
+                                <p className="text-muted-foreground">เงินของคุณถูกพักไว้ที่ Lawlane</p>
+                                <p className="text-4xl font-bold my-2">฿3,500</p>
+                                <p className="text-xs text-muted-foreground max-w-xs mx-auto">
+                                   เงินจะถูกโอนให้ทนายเมื่อคุณกดยืนยันว่างานเสร็จสิ้น
+                                </p>
                                 <AlertDialog>
                                     <AlertDialogTrigger asChild>
-                                         <Button className="w-full mt-4 bg-green-600 hover:bg-green-700 text-white">
+                                        <Button className="w-full mt-4 bg-green-600 hover:bg-green-700 text-white">
                                             <Check className="mr-2 h-4 w-4" /> ยืนยันและปล่อยเงินให้ทนาย
                                         </Button>
                                     </AlertDialogTrigger>
@@ -149,22 +207,16 @@ function ChatPageContent() {
                                         </AlertDialogHeader>
                                         <AlertDialogFooter>
                                         <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
-                                        <AlertDialogAction onClick={handleConfirmRelease}>ยืนยัน</AlertDialogAction>
+                                        <AlertDialogAction onClick={handleConfirmRelease} className="bg-foreground text-background hover:bg-foreground/90">ยืนยัน</AlertDialogAction>
                                         </AlertDialogFooter>
                                     </AlertDialogContent>
                                 </AlertDialog>
-                            ) : (
-                                 <p className="mt-4 p-3 bg-green-100 text-green-800 text-sm rounded-lg">
-                                    <Check className="inline-block mr-2 h-4 w-4" />
-                                    การสนทนาในเคสนี้สิ้นสุดแล้ว
-                                </p>
-                            )}
-
-                            <Button variant="link" className="text-muted-foreground text-xs mt-2">
-                                <AlertTriangle className="mr-1 h-3 w-3" /> รายงานปัญหา
-                            </Button>
-                        </CardContent>
-                    </Card>
+                                <Button variant="link" className="text-muted-foreground text-xs mt-2">
+                                    <AlertTriangle className="mr-1 h-3 w-3" /> รายงานปัญหา
+                                </Button>
+                            </CardContent>
+                        </Card>
+                    )}
 
                     <Card>
                         <CardHeader>
