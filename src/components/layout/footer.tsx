@@ -3,8 +3,6 @@
 import Link from 'next/link';
 import Logo from '@/components/logo';
 import { usePathname } from 'next/navigation';
-import { cn } from '@/lib/utils';
-
 
 export default function Footer() {
   const pathname = usePathname();
@@ -20,7 +18,7 @@ export default function Footer() {
 
   const forLawyersLinks = [
     { href: '/signup', label: 'เข้าร่วมเป็นทนาย Lawlane' },
-    { href: '/login', label: 'เข้าสู่ระบบทนาย' },
+    { href: '/signup', label: 'เข้าสู่ระบบทนาย' },
     { href: '#', label: 'Dashboard ทนาย' },
   ];
 

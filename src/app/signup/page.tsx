@@ -107,10 +107,7 @@ export default function SignupPage() {
         </CardContent>
         <CardFooter className="flex flex-col gap-4">
           <div className="text-center text-sm">
-            Already have an account?{" "}
-            <Link href="/login" className="underline">
-              Log in
-            </Link>
+            {/* Kept for potential future use, but no login page to link to now */}
           </div>
         </CardFooter>
       </Card>

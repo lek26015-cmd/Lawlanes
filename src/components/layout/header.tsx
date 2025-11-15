@@ -25,6 +25,8 @@ export default function Header() {
 
     if (isHomePage) {
       window.addEventListener('scroll', handleScroll);
+      // Set initial state based on scroll position
+      handleScroll();
     } else {
       // Not on home page, so header should not be transparent
       setIsScrolled(true);
@@ -35,7 +37,8 @@ export default function Header() {
         window.removeEventListener('scroll', handleScroll);
       }
     };
-  }, [isHomePage, isScrolled, pathname]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isHomePage, pathname]);
 
   const useTransparentHeader = isHomePage && !isScrolled;
 
@@ -113,7 +116,7 @@ export default function Header() {
         </nav>
 
         <div className="hidden items-center gap-2 md:flex ml-4 whitespace-nowrap">
-          <Link href="/login">
+          <Link href="/signup">
             <Button variant="ghost" className={loginButtonClasses}>เข้าสู่ระบบ</Button>
           </Link>
           <Link href="/signup">
