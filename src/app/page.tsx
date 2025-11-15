@@ -442,7 +442,7 @@ export default function Home() {
               </Carousel>
           </div>
         </section>
-
+        
         <section className="w-full py-12 md:py-16 lg:py-20 bg-gray-50">
             <div className="container mx-auto px-4 md:px-6">
                 <Card className="bg-gradient-to-br from-gray-100 to-blue-50 text-foreground p-8 rounded-2xl shadow-lg text-center border-t-4 border-primary">
@@ -517,9 +517,3 @@ export default function Home() {
     </>
   );
 }
-
-    
-
-    
-
-    
