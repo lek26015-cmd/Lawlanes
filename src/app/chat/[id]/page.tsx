@@ -194,7 +194,11 @@ function ChatPageContent() {
                                 {isCompleted ? (
                                     <Button disabled className="w-full">เคสนี้เสร็จสิ้นแล้ว</Button>
                                 ) : (
-                                    <Button variant="outline" className="w-full">ส่งสรุปและปิดเคส</Button>
+                                    <Button variant="outline" className="w-full" asChild>
+                                        <Link href={`/lawyer-dashboard/close-case/${chatId}?clientName=${client?.name}`}>
+                                            ส่งสรุปและปิดเคส
+                                        </Link>
+                                    </Button>
                                 )}
                             </CardFooter>
                         </Card>
