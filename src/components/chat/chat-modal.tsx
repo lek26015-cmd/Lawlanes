@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Scale, Send, User } from 'lucide-react';
+import { Scale, Send, User, X } from 'lucide-react';
 import type { ChatMessage } from '@/lib/types';
 import { getAiChatResponse } from '@/app/chat/actions';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -19,23 +19,36 @@ import { useIsMobile } from '@/hooks/use-mobile';
 interface ChatModalProps {
   isOpen: boolean;
   onClose: () => void;
+  showDisclaimer: boolean;
+  onDisclaimerAgree: () => void;
+  onDisclaimerCancel: () => void;
 }
 
-export default function ChatModal({ isOpen, onClose }: ChatModalProps) {
+export default function ChatModal({ 
+  isOpen, 
+  onClose,
+  showDisclaimer,
+  onDisclaimerAgree,
+  onDisclaimerCancel,
+}: ChatModalProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [showDisclaimer, setShowDisclaimer] = useState(false);
-  const [disclaimerAgreed, setDisclaimerAgreed] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
-
-  useEffect(() => {
-    if (isOpen && !disclaimerAgreed) {
-      setShowDisclaimer(true);
-    }
-  }, [isOpen, disclaimerAgreed]);
   
+  useEffect(() => {
+    if (isOpen && messages.length === 0) {
+        setMessages([
+          {
+            id: 'initial',
+            role: 'assistant',
+            content: 'สวัสดีครับ ผมคือ AI Legal Advisor ยินดีให้คำปรึกษาเบื้องต้นด้านกฎหมายแพ่งและพาณิชย์สำหรับ SMEs ครับ'
+          }
+        ]);
+    }
+  }, [isOpen, messages.length]);
+
   useEffect(() => {
     setTimeout(() => {
         if (scrollAreaRef.current) {
@@ -46,18 +59,6 @@ export default function ChatModal({ isOpen, onClose }: ChatModalProps) {
         }
     }, 100);
   }, [messages, isLoading]);
-  
-  const handleDisclaimerAgree = () => {
-    setDisclaimerAgreed(true);
-    setShowDisclaimer(false);
-    setMessages([
-      {
-        id: 'initial',
-        role: 'assistant',
-        content: 'สวัสดีครับ ผมคือ AI Legal Advisor ยินดีให้คำปรึกษาเบื้องต้นด้านกฎหมายแพ่งและพาณิชย์สำหรับ SMEs ครับ'
-      }
-    ]);
-  };
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,15 +90,6 @@ export default function ChatModal({ isOpen, onClose }: ChatModalProps) {
     }
 
     setIsLoading(false);
-  };
-  
-  const handleClose = () => {
-    onClose();
-    setTimeout(() => {
-      if (!disclaimerAgreed) {
-        setMessages([]);
-      }
-    }, 300);
   };
 
   const ChatContent = (
@@ -163,7 +155,7 @@ export default function ChatModal({ isOpen, onClose }: ChatModalProps) {
   if (isMobile) {
     return (
       <>
-        <Drawer open={isOpen} onOpenChange={handleClose}>
+        <Drawer open={isOpen} onOpenChange={onClose}>
           <DrawerContent className="h-full max-h-full flex flex-col outline-none p-0 border-0">
              <div className="relative h-full flex flex-col bg-background">
                 <div className="absolute -inset-0.5 bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600" />
@@ -190,8 +182,8 @@ export default function ChatModal({ isOpen, onClose }: ChatModalProps) {
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <Button variant="outline" onClick={handleClose}>ยกเลิก</Button>
-              <AlertDialogAction onClick={handleDisclaimerAgree}>ยอมรับและดำเนินการต่อ</AlertDialogAction>
+              <Button variant="outline" onClick={onDisclaimerCancel}>ยกเลิก</Button>
+              <AlertDialogAction onClick={onDisclaimerAgree}>ยอมรับและดำเนินการต่อ</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
@@ -201,15 +193,12 @@ export default function ChatModal({ isOpen, onClose }: ChatModalProps) {
 
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={handleClose}>
+      <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent 
           className="p-0 border-0 shadow-2xl fixed bottom-[88px] right-6 sm:max-w-md md:max-w-lg w-full flex flex-col h-[70vh] max-h-[600px] rounded-2xl overflow-hidden bg-transparent"
-          onInteractOutside={(e) => {
-            e.preventDefault();
-            handleClose();
-          }}
+          hideCloseButton
         >
-          <div className="absolute -inset-0.5 bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 rounded-2xl" />
+          <div className="absolute -inset-0.5 bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 rounded-2xl animate-rainbow-border-spin" />
            <div className="relative bg-background w-full h-full flex flex-col rounded-xl overflow-hidden">
             <DialogHeader className="p-6 pb-2">
               <DialogTitle className="flex items-center gap-2 font-headline">
@@ -218,6 +207,10 @@ export default function ChatModal({ isOpen, onClose }: ChatModalProps) {
               <DialogDescription>
                 นี่ไม่ใช่คำแนะนำทางกฎหมาย เป็นเพียงการประเมินเบื้องต้น
               </DialogDescription>
+               <button onClick={onClose} className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+                  <X className="h-4 w-4" />
+                  <span className="sr-only">Close</span>
+              </button>
             </DialogHeader>
             {ChatContent}
           </div>
@@ -233,8 +226,8 @@ export default function ChatModal({ isOpen, onClose }: ChatModalProps) {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <Button variant="outline" onClick={handleClose}>ยกเลิก</Button>
-            <AlertDialogAction onClick={handleDisclaimerAgree}>ยอมรับและดำเนินการต่อ</AlertDialogAction>
+            <Button variant="outline" onClick={onDisclaimerCancel}>ยกเลิก</Button>
+            <AlertDialogAction onClick={onDisclaimerAgree}>ยอมรับและดำเนินการต่อ</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
