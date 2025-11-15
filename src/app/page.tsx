@@ -398,31 +398,31 @@ export default function Home() {
                 </div>
             </section>
             
-            <section className="w-full py-16 bg-blue-50">
-              <div className="container mx-auto px-4 md:px-6">
-                  <div className='text-center mb-8'>
-                      <h2 className='text-3xl font-bold tracking-tight text-foreground font-headline'>ทนายที่แนะนำ</h2>
-                      <Separator className='w-24 mx-auto mt-2 bg-blue-200' />
-                  </div>
-                  <div className="max-w-5xl mx-auto flex flex-col gap-4">
-                      {recommendedLawyers.map((lawyer) => (
-                      <div key={lawyer.id} className="bg-white rounded-lg shadow-md">
-                          <LawyerCard lawyer={lawyer} />
-                      </div>
-                      ))}
-                  </div>
-                  <div className="mt-8 text-center">
-                      <Button asChild size="lg" variant="outline" className="bg-white">
-                          <Link href="/lawyers">ดูทนายทั้งหมด</Link>
-                      </Button>
-                  </div>
-              </div>
-            </section>
-
           </div>
         </section>
 
-        <section className="w-full py-12 md:py-16 lg:py-20 bg-gray-50">
+        <section className="w-full py-12 md:py-24 lg:py-32 bg-gray-50">
+          <div className="container mx-auto px-4 md:px-6">
+              <div className='text-center mb-8'>
+                  <h2 className='text-3xl font-bold tracking-tight text-foreground font-headline'>ทนายที่แนะนำ</h2>
+                  <Separator className='w-24 mx-auto mt-2 bg-gray-200' />
+              </div>
+              <div className="max-w-5xl mx-auto flex flex-col gap-4">
+                  {recommendedLawyers.map((lawyer) => (
+                  <div key={lawyer.id} className="bg-white rounded-lg shadow-md">
+                      <LawyerCard lawyer={lawyer} />
+                  </div>
+                  ))}
+              </div>
+              <div className="mt-8 text-center">
+                  <Button asChild size="lg" variant="outline" className="bg-white">
+                      <Link href="/lawyers">ดูทนายทั้งหมด</Link>
+                  </Button>
+              </div>
+          </div>
+        </section>
+
+        <section className="w-full py-12 md:py-16 lg:py-20 bg-background">
             <div className="container mx-auto px-4 md:px-6">
                 <Carousel
                   plugins={[carouselPlugin.current]}
@@ -610,5 +610,3 @@ export default function Home() {
     </>
   );
 }
-
-    
