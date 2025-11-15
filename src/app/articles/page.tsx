@@ -45,10 +45,10 @@ export default function ArticlesPage() {
     <div className="container mx-auto px-4 md:px-6 py-12">
       <div className="text-center mb-12">
         <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl font-headline text-foreground">
-          บล็อกของเรา
+          บทความหน้ารู้
         </h1>
         <p className="max-w-2xl mx-auto mt-4 text-muted-foreground md:text-xl">
-          เคล็ดลับ, แรงบันดาลใจ, และเรื่องราวเบื้องหลังการแข่งขันต่างๆ
+          สาระความรู้ทางกฎหมายที่น่าสนใจสำหรับ SME และบุคคลทั่วไป
         </p>
       </div>
 
