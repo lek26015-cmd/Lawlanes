@@ -142,11 +142,11 @@ export default function ChatModal({ isOpen, onOpenChange, initialPrompt, clearIn
         hideCloseButton={true}
         className="fixed inset-0 w-full h-full rounded-none sm:inset-auto sm:bottom-6 sm:right-6 sm:w-96 sm:h-[70vh] sm:rounded-2xl bg-white shadow-2xl border z-50 p-0 flex flex-col"
       >
-        <DialogHeader className="flex flex-row justify-between items-center p-4 border-b bg-primary text-primary-foreground sm:rounded-t-2xl">
+        <DialogHeader className="flex flex-row justify-between items-center p-4 border-b bg-foreground text-background sm:rounded-t-2xl">
             <DialogTitle asChild>
                 <h3 className="text-xl font-bold">Lawlane AI Assistant</h3>
             </DialogTitle>
-            <button onClick={() => onOpenChange(false)} className="text-primary-foreground/70 hover:text-white">
+            <button onClick={() => onOpenChange(false)} className="text-background/70 hover:text-white">
                 <X className="w-6 h-6" />
             </button>
         </DialogHeader>
@@ -157,7 +157,7 @@ export default function ChatModal({ isOpen, onOpenChange, initialPrompt, clearIn
               <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : ''}`}>
                  {msg.role === 'assistant' && (
                     <div className="flex-shrink-0 mr-3">
-                        <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center shadow-md">
+                        <div className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center shadow-md">
                             <Sparkles className="w-5 h-5" />
                         </div>
                     </div>
@@ -165,7 +165,7 @@ export default function ChatModal({ isOpen, onOpenChange, initialPrompt, clearIn
                 <div className={`max-w-xs lg:max-w-sm xl:max-w-md`}>
                     <div className={`p-3 rounded-lg shadow-sm ${
                         msg.role === 'user' 
-                        ? 'bg-primary text-primary-foreground' 
+                        ? 'bg-foreground text-background' 
                         : 'bg-white border'
                     }`}
                     style={msg.role === 'user' ? {borderTopRightRadius: 0} : {borderTopLeftRadius: 0}}
@@ -189,7 +189,7 @@ export default function ChatModal({ isOpen, onOpenChange, initialPrompt, clearIn
             {isLoading && (
                  <div className="flex">
                     <div className="flex-shrink-0 mr-3">
-                        <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center shadow-md">
+                        <div className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center shadow-md">
                             <Sparkles className="w-5 h-5" />
                         </div>
                     </div>
@@ -230,7 +230,7 @@ export default function ChatModal({ isOpen, onOpenChange, initialPrompt, clearIn
                   disabled={isLoading}
                   className="flex-grow px-4 py-3 rounded-full bg-gray-100 border-2 border-transparent focus:bg-white focus:border-primary transition outline-none"
                 />
-                <Button type="submit" size="icon" disabled={isLoading} className="p-3 rounded-full bg-primary text-white hover:bg-primary/90 transition shadow-lg w-11 h-11">
+                <Button type="submit" size="icon" disabled={isLoading} className="p-3 rounded-full bg-foreground text-background hover:bg-foreground/90 transition shadow-lg w-11 h-11">
                     <Send className="w-5 h-5" />
                 </Button>
             </form>
