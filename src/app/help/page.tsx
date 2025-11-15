@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
 import { HelpCircle, Ticket } from "lucide-react"
 
 export default function HelpPage() {
@@ -61,16 +62,26 @@ export default function HelpPage() {
                 <Ticket className="w-6 h-6" />
                 รายงานปัญหา
               </CardTitle>
-              <CardDescription>หากคุณพบปัญหากับเคสใดๆ โปรดกรอกหมายเลขเคสเพื่อส่งเรื่องให้เจ้าหน้าที่ตรวจสอบ</CardDescription>
+              <CardDescription>หากคุณพบปัญหากับเคสใดๆ โปรดกรอกข้อมูลด้านล่างเพื่อส่งเรื่องให้เจ้าหน้าที่ตรวจสอบ</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="flex flex-col sm:flex-row items-end gap-4">
-                <div className="w-full sm:flex-grow space-y-2">
-                  <Label htmlFor="ticket-id">หมายเลขเคส / Ticket ID</Label>
-                  <Input id="ticket-id" placeholder="เช่น case-001" />
+              <form className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="ticket-id">หมายเลขเคส / Ticket ID</Label>
+                      <Input id="ticket-id" placeholder="เช่น case-001" />
+                    </div>
+                     <div className="space-y-2">
+                      <Label htmlFor="user-email">อีเมลของคุณ</Label>
+                      <Input id="user-email" type="email" placeholder="you@example.com" />
+                    </div>
                 </div>
+                 <div className="space-y-2">
+                    <Label htmlFor="problem-description">รายละเอียดปัญหา</Label>
+                    <Textarea id="problem-description" placeholder="กรุณาอธิบายปัญหาที่ท่านพบโดยละเอียด..." rows={4} />
+                  </div>
                 <Button className="w-full sm:w-auto">ส่งเรื่อง</Button>
-              </div>
+              </form>
             </CardContent>
           </Card>
 
