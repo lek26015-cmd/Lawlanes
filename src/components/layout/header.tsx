@@ -47,7 +47,7 @@ export default function Header() {
             <Button variant="ghost">เข้าสู่ระบบ</Button>
           </Link>
           <Link href="/signup">
-            <Button>เข้าสู่ระบบทนาย</Button>
+            <Button className="bg-foreground text-background hover:bg-foreground/90">เข้าสู่ระบบทนาย</Button>
           </Link>
         </div>
       </div>
