@@ -41,7 +41,7 @@ export interface Article {
 export interface Case {
   id: string;
   title: string;
-  lawyer: Pick<LawyerProfile, 'name' | 'imageUrl' | 'imageHint'>;
+  lawyer: Pick<LawyerProfile, 'id' | 'name' | 'imageUrl' | 'imageHint'>;
   lastMessage: string;
   lastMessageTimestamp: string;
   status: 'active' | 'closed';

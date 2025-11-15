@@ -181,6 +181,7 @@ const mockCases: Case[] = [
     id: 'case-001',
     title: 'คดีผิดสัญญาเช่าซื้อ',
     lawyer: {
+      id: lawyerForCase1!.id,
       name: lawyerForCase1!.name,
       imageUrl: lawyerForCase1!.imageUrl,
       imageHint: lawyerForCase1!.imageHint,
@@ -194,6 +195,7 @@ const mockCases: Case[] = [
     id: 'case-002',
     title: 'ปรึกษาเรื่องสัญญาจ้างพนักงาน',
     lawyer: {
+      id: lawyerForCase2!.id,
       name: lawyerForCase2!.name,
       imageUrl: lawyerForCase2!.imageUrl,
       imageHint: lawyerForCase2!.imageHint,
