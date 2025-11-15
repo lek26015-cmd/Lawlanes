@@ -177,7 +177,7 @@ export default function Home() {
                             </Link>
                             <Link href="#features">
                             <Button size="lg" variant="outline" className="bg-transparent text-background border-background hover:bg-background hover:text-foreground">
-                                บริการของเรา
+                                ปรึกษากฎหมายเบื้องต้น
                             </Button>
                             </Link>
                         </div>
