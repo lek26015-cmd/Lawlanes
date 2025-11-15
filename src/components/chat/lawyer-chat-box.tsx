@@ -22,6 +22,8 @@ import { Send, Loader2, X } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useFirebase } from '@/firebase';
+import { errorEmitter, FirestorePermissionError } from '@/firebase';
 
 interface LawyerChatBoxProps {
   firestore: Firestore;
@@ -58,25 +60,52 @@ export function LawyerChatBox({
     setIsLoading(true);
     
     const findOrCreateChat = async () => {
-        const querySnapshot = await getDocs(chatQuery);
-        const existingChat = querySnapshot.docs.find(doc =>
-            doc.data().participants.includes(lawyer.userId)
-        );
+        try {
+            const querySnapshot = await getDocs(chatQuery);
+            if(!isMounted) return;
 
-        if(!isMounted) return;
+            const existingChat = querySnapshot.docs.find(doc =>
+                doc.data().participants.includes(lawyer.userId)
+            );
 
-        if (existingChat) {
-            setChatId(existingChat.id);
-        } else {
-            const newChatId = uuidv4();
-            const chatRef = doc(firestore, 'chats', newChatId);
-            await setDoc(chatRef, {
-                participants: [currentUser.uid, lawyer.userId],
-                createdAt: serverTimestamp(),
-            });
-            setChatId(newChatId);
+            if (existingChat) {
+                setChatId(existingChat.id);
+            } else {
+                const newChatId = uuidv4();
+                const chatRef = doc(firestore, 'chats', newChatId);
+                const newChatData = {
+                    participants: [currentUser.uid, lawyer.userId],
+                    createdAt: serverTimestamp(),
+                };
+                
+                // Non-blocking write with detailed error handling
+                setDoc(chatRef, newChatData)
+                  .catch(serverError => {
+                    const permissionError = new FirestorePermissionError({
+                      path: chatRef.path,
+                      operation: 'create',
+                      requestResourceData: newChatData,
+                    });
+                    errorEmitter.emit('permission-error', permissionError);
+                  });
+
+                setChatId(newChatId);
+            }
+        } catch (error) {
+            console.error("Error finding or creating chat:", error);
+            // This might be a permission error on the 'list' operation itself.
+             if (error instanceof Error && error.message.includes('permission-denied')) {
+                const permissionError = new FirestorePermissionError({
+                  path: (chatQuery as any)._query.path.canonicalString(), // Unsafe but useful
+                  operation: 'list',
+                });
+                errorEmitter.emit('permission-error', permissionError);
+            }
+        } finally {
+            if (isMounted) {
+                setIsLoading(false);
+            }
         }
-        setIsLoading(false);
     };
 
     findOrCreateChat();
@@ -106,6 +135,12 @@ export function LawyerChatBox({
         ...doc.data(),
       } as HumanChatMessage));
       setMessages(msgs);
+    }, (error) => {
+        const permissionError = new FirestorePermissionError({
+          path: `chats/${chatId}/messages`,
+          operation: 'list',
+        });
+        errorEmitter.emit('permission-error', permissionError);
     });
 
     return () => unsubscribe();
@@ -131,22 +166,27 @@ export function LawyerChatBox({
       timestamp: serverTimestamp(),
       id: uuidv4(),
     };
+    
+    setInput('');
 
-    try {
-      await addDoc(
-        collection(firestore, 'chats', chatId, 'messages'),
-        messageData
-      );
-      setInput('');
-    } catch (error) {
-      console.error('Error sending message:', error);
-    }
+    const messagesColRef = collection(firestore, 'chats', chatId, 'messages');
+
+    // Non-blocking write with detailed error handling
+    addDoc(messagesColRef, messageData)
+      .catch(serverError => {
+        const permissionError = new FirestorePermissionError({
+          path: messagesColRef.path,
+          operation: 'create',
+          requestResourceData: messageData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+      });
   };
 
   return (
     <div className="flex flex-col h-full bg-card">
       <CardHeader className="flex flex-row justify-between items-center p-4 border-b bg-foreground text-background rounded-t-2xl">
-        <CardTitle>
+        <CardTitle asChild>
           <div className="flex items-center gap-3">
             <Avatar className="h-8 w-8 border-2 border-background">
                 <AvatarImage src={lawyer.imageUrl} />
@@ -229,3 +269,5 @@ export function LawyerChatBox({
     </div>
   );
 }
+
+    
