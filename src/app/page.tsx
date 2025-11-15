@@ -88,33 +88,38 @@ export default async function Home() {
                 </Link>
               </div>
             </div>
-            <div className="relative p-8 bg-card/50 rounded-2xl shadow-lg border border-border/50 backdrop-blur-sm">
-                <div className="absolute top-0 right-0 -mt-4 -mr-4">
-                    <div className="flex items-center justify-center bg-primary text-primary-foreground rounded-full w-20 h-20 shadow-md">
-                        <Sparkles className="w-10 h-10" />
-                    </div>
-                </div>
-                <CardHeader className="p-0 mb-4">
-                    <CardTitle className="text-xl font-bold flex items-center gap-2">
-                        <Scale className="text-primary"/>
-                        ไม่แน่ใจว่าต้องการทนายด้านไหน?
-                    </CardTitle>
-                    <CardDescription className="pt-2 text-base">
-                        ให้ AI ช่วยวิเคราะห์ปัญหาเบื้องต้นและแนะนำทนายที่ตรงจุดให้คุณ
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="p-0">
-                    <div className="flex flex-col gap-4">
-                        <Textarea
-                            placeholder='อธิบายปัญหาของคุณที่นี่ เช่น "โดนโกงแชร์", "ต้องการจดทะเบียนบริษัท", "ปัญหาที่ดินกับเพื่อนบ้าน"'
-                            rows={4}
-                            className="bg-background"
-                        />
-                        <Button className="w-full" size="lg">
-                           วิเคราะห์และแนะนำทนาย
-                        </Button>
-                    </div>
-                </CardContent>
+            <div className="relative group">
+              <div
+                className="absolute -inset-0.5 bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 rounded-2xl blur opacity-75 group-hover:opacity-100 transition duration-300"
+              />
+              <div className="relative p-8 bg-card/80 rounded-2xl shadow-lg border border-border/50 backdrop-blur-sm">
+                  <div className="absolute top-0 right-0 -mt-4 -mr-4">
+                      <div className="flex items-center justify-center bg-primary text-primary-foreground rounded-full w-20 h-20 shadow-md">
+                          <Sparkles className="w-10 h-10" />
+                      </div>
+                  </div>
+                  <CardHeader className="p-0 mb-4">
+                      <CardTitle className="text-xl font-bold flex items-center gap-2">
+                          <Scale className="text-primary"/>
+                          ไม่แน่ใจว่าต้องการทนายด้านไหน?
+                      </CardTitle>
+                      <CardDescription className="pt-2 text-base">
+                          ให้ AI ช่วยวิเคราะห์ปัญหาเบื้องต้นและแนะนำทนายที่ตรงจุดให้คุณ
+                      </CardDescription>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                      <div className="flex flex-col gap-4">
+                          <Textarea
+                              placeholder='อธิบายปัญหาของคุณที่นี่ เช่น "โดนโกงแชร์", "ต้องการจดทะเบียนบริษัท", "ปัญหาที่ดินกับเพื่อนบ้าน"'
+                              rows={4}
+                              className="bg-background"
+                          />
+                          <Button className="w-full" size="lg">
+                             วิเคราะห์และแนะนำทนาย
+                          </Button>
+                      </div>
+                  </CardContent>
+              </div>
             </div>
           </div>
         </div>
