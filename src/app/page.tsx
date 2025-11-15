@@ -177,17 +177,17 @@ export default function Home() {
 
                     <div className="relative group">
                         <div className="absolute -inset-0.5 bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 rounded-2xl blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-rainbow-border-spin"></div>
-                        <Card className="relative p-6 md:p-8 shadow-xl bg-primary text-primary-foreground rounded-2xl">
-                            <div className="absolute top-4 right-4 bg-foreground text-background p-3 rounded-full shadow-lg">
+                        <Card className="relative p-6 md:p-8 shadow-xl bg-foreground text-background rounded-2xl">
+                            <div className="absolute top-4 right-4 bg-background/10 text-background p-3 rounded-full shadow-lg">
                                 <Sparkles className="h-6 w-6" />
                             </div>
                             <div className="flex items-center gap-3 mb-2">
-                                <Scale className="h-7 w-7 text-primary-foreground" />
+                                <Scale className="h-7 w-7 text-background" />
                                 <h2 className="text-2xl md:text-3xl font-bold font-headline">
                                 ไม่แน่ใจว่าต้องการทนายด้านไหน?
                                 </h2>
                             </div>
-                            <p className="text-primary-foreground/80 mb-6">
+                            <p className="text-background/80 mb-6">
                                 ให้ AI ช่วยวิเคราะห์ปัญหาเบื้องต้นและแนะนำทนายที่ตรงจุดให้คุณ
                             </p>
                             <div className="space-y-4">
@@ -196,9 +196,9 @@ export default function Home() {
                                   onChange={(e) => setAnalysisText(e.target.value)}
                                   placeholder='อธิบายปัญหาของคุณที่นี่ เช่น "โดนโกงแชร์", "ต้องการจดทะเบียนบริษัท", "ปัญหาที่ดินกับเพื่อนบ้าน"'
                                   rows={4}
-                                  className="bg-gray-100 text-primary-foreground placeholder:text-primary-foreground/60"
+                                  className="bg-background/10 text-background placeholder:text-background/60 border-background/20"
                                 />
-                                <Button size="lg" className="w-full bg-foreground text-background hover:bg-foreground/90" onClick={handleAnalysis} disabled={isFindingLawyers}>
+                                <Button size="lg" className="w-full bg-background text-foreground hover:bg-background/90" onClick={handleAnalysis} disabled={isFindingLawyers}>
                                   {isFindingLawyers ? (
                                       <>
                                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -215,7 +215,7 @@ export default function Home() {
             </div>
         </section>
 
-        <section id="features" className="w-full py-12 md:py-24 lg:py-20 bg-primary text-primary-foreground">
+        <section id="features" className="w-full py-12 md:py-24 lg:py-20 bg-background text-foreground">
           <div className="container mx-auto px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <div className="space-y-2">
@@ -227,7 +227,7 @@ export default function Home() {
             </div>
             <div className="mx-auto grid max-w-5xl items-start gap-8 sm:grid-cols-2 md:gap-12 lg:grid-cols-3 lg:max-w-none mt-12">
               {features.map((feature, index) => (
-                <Card key={index} className="h-full bg-primary hover:shadow-lg transition-shadow duration-300 border-gray-200 rounded-2xl">
+                <Card key={index} className="h-full bg-card hover:shadow-lg transition-shadow duration-300 border-gray-200 rounded-2xl">
                   <CardHeader className="flex flex-col items-center text-center">
                     {React.cloneElement(feature.icon, { className: "h-8 w-8 text-foreground" })}
                     <CardTitle className="mt-4 text-lg font-semibold text-foreground">{feature.title}</CardTitle>
@@ -268,7 +268,7 @@ export default function Home() {
                                   onChange={(e) => setLicenseNumber(e.target.value)}
                                   disabled={isVerifying}
                               />
-                              <Button type="submit" size="lg" variant="secondary" className="w-full sm:w-auto font-bold h-12" disabled={isVerifying}>
+                              <Button type="submit" size="lg" variant="secondary" className="w-full sm:w-auto font-bold h-12 rounded-full" disabled={isVerifying}>
                                   {isVerifying ? <Loader2 className="animate-spin" /> : 'ตรวจสอบเลย'}
                               </Button>
                            </form>
