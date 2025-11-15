@@ -286,12 +286,12 @@ export default function Home() {
             
             <div className="max-w-4xl mx-auto">
                  <Card className="bg-foreground text-background rounded-2xl overflow-hidden">
-                    <div className="flex flex-col items-center p-8 gap-6 text-center">
+                    <div className="flex flex-col items-center p-8 md:p-12 gap-6 text-center">
                         <div className="flex items-center gap-5">
-                            <ShieldCheck className="w-12 h-12 text-green-400 flex-shrink-0" />
+                            <ShieldCheck className="w-16 h-16 text-green-400 flex-shrink-0" />
                             <div>
-                                <h3 className="font-bold text-2xl">ตรวจสอบสถานะทนายความ</h3>
-                                <p className="text-background/80 mt-1">สร้างความมั่นใจก่อนเริ่มจ้างงาน ด้วยการตรวจสอบข้อมูลใบอนุญาตว่าความ</p>
+                                <h3 className="font-bold text-3xl md:text-4xl">ตรวจสอบสถานะทนายความ</h3>
+                                <p className="text-background/80 mt-2 text-lg">สร้างความมั่นใจก่อนเริ่มจ้างงาน ด้วยการตรวจสอบข้อมูลใบอนุญาตว่าความ</p>
                             </div>
                         </div>
                         <div className="w-full max-w-lg">
@@ -367,7 +367,7 @@ export default function Home() {
         <section className="w-full py-12 md:py-24 lg:py-32 bg-gray-50">
           <div className="container mx-auto px-4 md:px-6">
             <h2 className="text-3xl font-bold text-center mb-12 sm:text-5xl font-headline">URGENT JOBS</h2>
-            <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+            <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
               {urgentJobs.map((job) => (
                 <div key={job.id} className="flex items-center gap-6 py-4 border-b">
                    <div className="flex-shrink-0">
@@ -381,8 +381,8 @@ export default function Home() {
                       />
                    </div>
                    <div>
-                      <h3 className="font-semibold text-lg">{job.companyName}</h3>
-                      <p className="text-base text-muted-foreground">{job.description}</p>
+                      <h3 className="font-semibold text-xl">{job.companyName}</h3>
+                      <p className="text-lg text-muted-foreground">{job.description}</p>
                    </div>
                 </div>
               ))}
@@ -410,12 +410,12 @@ export default function Home() {
                         <Link href={`/articles/${mainArticle.slug}`} className="group block">
                             <Card className="border-none shadow-none rounded-lg">
                                 <CardContent className="p-0">
-                                    <div className="relative aspect-[4/3] mb-4">
+                                    <div className="relative aspect-[4/3] mb-4 overflow-hidden rounded-lg">
                                         <Image
                                             src={mainArticle.imageUrl}
                                             alt={mainArticle.title}
                                             fill
-                                            className="object-cover rounded-lg transition-transform duration-300 group-hover:scale-105"
+                                            className="object-cover transition-transform duration-300 group-hover:scale-105"
                                             data-ai-hint={mainArticle.imageHint}
                                         />
                                     </div>
@@ -430,12 +430,12 @@ export default function Home() {
                         {otherArticles.map((article) => (
                            <Link key={article.id} href={`/articles/${article.slug}`} className="group block">
                              <div className="overflow-hidden h-full flex flex-col">
-                                <div className="relative aspect-video mb-3">
+                                <div className="relative aspect-video mb-3 overflow-hidden rounded-lg">
                                      <Image
                                         src={article.imageUrl}
                                         alt={article.title}
                                         fill
-                                        className="object-cover rounded-lg transition-transform duration-300 group-hover:scale-105"
+                                        className="object-cover transition-transform duration-300 group-hover:scale-105"
                                         data-ai-hint={article.imageHint}
                                     />
                                      <div className="absolute top-2 left-2">
