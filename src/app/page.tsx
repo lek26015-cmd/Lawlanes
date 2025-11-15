@@ -145,31 +145,36 @@ export default function Home() {
           case 'found':
               if (!verifiedLawyer) return null;
               return (
-                  <Card className="border-green-500 bg-green-50/50 mt-6 animate-in fade-in-50">
-                      <CardHeader className="text-center">
-                          <ShieldCheck className="w-12 h-12 mx-auto text-green-600"/>
-                          <CardTitle className="text-green-800">ตรวจสอบพบข้อมูล</CardTitle>
-                          <CardDescription>ทนายความนี้ได้รับการยืนยันในระบบ Lawlane</CardDescription>
-                      </CardHeader>
-                      <CardContent className="flex flex-col items-center text-center">
+                  <Card className="bg-gradient-to-br from-green-50 to-blue-50 mt-6 animate-in fade-in-50 overflow-hidden shadow-lg border-green-300">
+                    <CardContent className="p-6">
+                      <div className="flex flex-col md:flex-row items-center gap-6">
+                        <div className="flex-shrink-0 text-center">
                           <Image
                             src={verifiedLawyer.imageUrl}
                             alt={verifiedLawyer.name}
-                            width={100}
-                            height={100}
-                            className="rounded-full border-4 border-white shadow-lg"
-                           />
-                          <p className="font-bold text-xl mt-4">{verifiedLawyer.name}</p>
-                          <p className="text-muted-foreground">เลขที่ใบอนุญาต: 12345/2550 (ข้อมูลจำลอง)</p>
+                            width={120}
+                            height={120}
+                            className="rounded-full border-4 border-white shadow-md"
+                          />
+                          <div className="mt-4 flex items-center justify-center gap-2 text-green-700">
+                             <ShieldCheck className="w-6 h-6"/>
+                             <p className="font-bold text-lg">ยืนยันตัวตนแล้ว</p>
+                          </div>
+                        </div>
+                        <div className="flex-grow text-center md:text-left">
+                          <p className="text-muted-foreground text-sm">ผลการตรวจสอบเลขที่ใบอนุญาต: 12345/2550</p>
+                          <h4 className="font-bold text-2xl mt-1 text-foreground">{verifiedLawyer.name}</h4>
                           <p className="text-primary font-semibold mt-1">{verifiedLawyer.specialty.join(', ')}</p>
-                      </CardContent>
-                      <CardFooter className="justify-center">
-                          <Button asChild>
+                          <div className="mt-4">
+                             <Button asChild>
                               <Link href={`/lawyers/${verifiedLawyer.id}`}>
-                                  ดูโปรไฟล์
+                                  ดูโปรไฟล์ฉบับเต็ม
                               </Link>
                           </Button>
-                      </CardFooter>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
                   </Card>
               );
           case 'not_found':
@@ -288,7 +293,7 @@ export default function Home() {
                  <Card className="bg-foreground text-background rounded-2xl overflow-hidden">
                     <div className="flex flex-col items-center p-8 md:p-12 gap-6 text-center">
                         <div className="flex items-center gap-5">
-                            <ShieldCheck className="w-16 h-16 text-green-400 flex-shrink-0" />
+                            <ShieldCheck className="w-20 h-20 text-green-400 flex-shrink-0" />
                             <div>
                                 <h3 className="font-bold text-3xl md:text-4xl">ตรวจสอบสถานะทนายความ</h3>
                                 <p className="text-background/80 mt-2 text-lg">สร้างความมั่นใจก่อนเริ่มจ้างงาน ด้วยการตรวจสอบข้อมูลใบอนุญาตว่าความ</p>
@@ -381,8 +386,8 @@ export default function Home() {
                       />
                    </div>
                    <div>
-                      <h3 className="font-semibold text-xl">{job.companyName}</h3>
-                      <p className="text-lg text-muted-foreground">{job.description}</p>
+                      <h3 className="font-semibold text-lg">{job.companyName}</h3>
+                      <p className="text-base text-muted-foreground">{job.description}</p>
                    </div>
                 </div>
               ))}
