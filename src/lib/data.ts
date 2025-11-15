@@ -175,6 +175,8 @@ export async function getArticleBySlug(slug: string): Promise<Article | undefine
 // Mock data for Dashboard
 const lawyerForCase1 = mockLawyers.find(l => l.id === '2');
 const lawyerForCase2 = mockLawyers.find(l => l.id === '3');
+const lawyerForCase3 = mockLawyers.find(l => l.id === '1');
+
 
 const mockCases: Case[] = [
   {
@@ -203,6 +205,20 @@ const mockCases: Case[] = [
     lastMessage: 'คุณ: ขอบคุณสำหรับคำแนะนำครับ',
     lastMessageTimestamp: 'เมื่อวาน',
     status: 'active',
+    hasNewMessage: false,
+  },
+  {
+    id: 'case-003',
+    title: 'คดีฉ้อโกงออนไลน์',
+    lawyer: {
+      id: lawyerForCase3!.id,
+      name: lawyerForCase3!.name,
+      imageUrl: lawyerForCase3!.imageUrl,
+      imageHint: lawyerForCase3!.imageHint,
+    },
+    lastMessage: 'เคสเสร็จสิ้นแล้ว ขอบคุณที่ใช้บริการ',
+    lastMessageTimestamp: '2 สัปดาห์ที่แล้ว',
+    status: 'closed',
     hasNewMessage: false,
   },
 ];
