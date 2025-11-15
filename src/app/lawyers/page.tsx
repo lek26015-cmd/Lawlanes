@@ -92,7 +92,7 @@ function LawyersPageContent() {
         
         <div className="md:col-span-3">
           {isSorting && (
-            <div className="mb-8 p-4 rounded-lg bg-secondary/50">
+            <div className="mb-8 p-4 rounded-lg bg-secondary">
                 <p className="text-center font-semibold text-primary mb-2">กำลังวิเคราะห์และจัดเรียงทนายที่แนะนำ...</p>
                 <Progress value={progress} className="w-full" />
             </div>
@@ -108,7 +108,7 @@ function LawyersPageContent() {
                 พบทนายความ {filteredLawyers.length} ท่าน ที่ตรงกับเงื่อนไข
               </p>
               {filteredLawyers.map((lawyer) => (
-                 <div key={lawyer.id} className={`transition-all duration-500 rounded-xl ${recommendedLawyerIds.includes(lawyer.id) ? 'border-2 border-primary shadow-lg' : 'border'}`}>
+                 <div key={lawyer.id} className={`transition-all duration-500 rounded-xl ${recommendedLawyerIds.includes(lawyer.id) ? 'border-2 border-primary shadow-lg' : ''}`}>
                     <LawyerCard lawyer={lawyer} />
                  </div>
               ))}

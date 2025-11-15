@@ -15,7 +15,7 @@ export default function LawyerCard({ lawyer }: LawyerCardProps) {
   const reviewCount = Number(lawyer.id) * 7 + 5;
 
   return (
-    <div className="flex flex-col md:flex-row items-start p-6 gap-6 w-full bg-card">
+    <div className="flex flex-col md:flex-row items-start p-6 gap-6 w-full bg-card text-card-foreground rounded-lg border">
       <div className="flex-shrink-0 flex flex-col items-center gap-2 w-full md:w-24">
         <div className="relative h-20 w-20 flex-shrink-0">
           <Image
@@ -28,7 +28,7 @@ export default function LawyerCard({ lawyer }: LawyerCardProps) {
         </div>
         <div className="flex items-center gap-1">
           {[...Array(5)].map((_, i) => (
-            <StarIcon key={i} className={`w-4 h-4 ${i < Math.floor(rating) ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground/30'}`} />
+            <StarIcon key={i} className={`w-4 h-4 ${i < Math.floor(rating) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} />
           ))}
         </div>
         <p className="text-xs text-muted-foreground">({reviewCount} รีวิว)</p>
@@ -49,7 +49,7 @@ export default function LawyerCard({ lawyer }: LawyerCardProps) {
         <Button className="w-full">
           ดูโปรไฟล์
         </Button>
-         <Button variant="outline" className="w-full bg-green-500 text-white hover:bg-green-600 hover:text-white">
+         <Button variant="outline" className="w-full">
           นัดปรึกษา
         </Button>
       </div>

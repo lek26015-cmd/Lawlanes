@@ -151,7 +151,7 @@ export default function ChatModal({ isOpen, onOpenChange, initialPrompt, clearIn
             </button>
         </DialogHeader>
 
-        <ScrollArea className="flex-grow p-4">
+        <ScrollArea className="flex-grow p-4 bg-gray-50">
           <div className="space-y-4">
             {messages.map((msg) => (
               <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : ''}`}>
@@ -166,7 +166,7 @@ export default function ChatModal({ isOpen, onOpenChange, initialPrompt, clearIn
                     <div className={`p-3 rounded-lg shadow-sm ${
                         msg.role === 'user' 
                         ? 'bg-primary text-primary-foreground' 
-                        : 'bg-secondary'
+                        : 'bg-white border'
                     }`}
                     style={msg.role === 'user' ? {borderTopRightRadius: 0} : {borderTopLeftRadius: 0}}
                     >
@@ -194,7 +194,7 @@ export default function ChatModal({ isOpen, onOpenChange, initialPrompt, clearIn
                         </div>
                     </div>
                     <div>
-                        <div className="bg-secondary p-3 rounded-lg shadow-sm" style={{borderTopLeftRadius: 0}}>
+                        <div className="bg-white border p-3 rounded-lg shadow-sm" style={{borderTopLeftRadius: 0}}>
                             <div className="flex items-center space-x-2">
                                 <Loader2 className="w-5 h-5 animate-spin" />
                                 <span className="text-sm text-muted-foreground">กำลังคิด...</span>
@@ -206,7 +206,7 @@ export default function ChatModal({ isOpen, onOpenChange, initialPrompt, clearIn
           </div>
         </ScrollArea>
         
-        <div className="p-3 border-t bg-secondary/30">
+        <div className="p-3 border-t bg-gray-100">
             <p className="text-xs font-semibold text-muted-foreground mb-2 ml-1">คำถามด่วน:</p>
             <div className="flex flex-wrap gap-2">
                 {quickQuestions.map(q => (
@@ -228,7 +228,7 @@ export default function ChatModal({ isOpen, onOpenChange, initialPrompt, clearIn
                   onChange={handleInputChange}
                   placeholder="พิมพ์คำถามของคุณ..."
                   disabled={isLoading}
-                  className="flex-grow px-4 py-3 rounded-full bg-secondary/50 border-2 border-transparent focus:bg-white focus:border-primary transition outline-none"
+                  className="flex-grow px-4 py-3 rounded-full bg-gray-100 border-2 border-transparent focus:bg-white focus:border-primary transition outline-none"
                 />
                 <Button type="submit" size="icon" disabled={isLoading} className="p-3 rounded-full bg-primary text-white hover:bg-primary/90 transition shadow-lg w-11 h-11">
                     <Send className="w-5 h-5" />
