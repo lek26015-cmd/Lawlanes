@@ -191,7 +191,7 @@ export default function DashboardPage() {
                         <CardHeader>
                             <CardTitle className="flex items-center gap-2 font-bold">
                             <Ticket className="w-5 h-5 text-destructive" />
-                            ตั๋วปัญหาที่รายงาน
+                            Ticket ปัญหาที่รายงาน
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
