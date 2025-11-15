@@ -3,6 +3,7 @@ import { Badge } from '@/components/ui/badge';
 import type { LawyerProfile } from '@/lib/types';
 import { Mail, Scale } from 'lucide-react';
 import { StarIcon } from '@/components/icons/star-icon';
+import Image from 'next/image';
 
 interface LawyerCardProps {
   lawyer: LawyerProfile;
@@ -17,9 +18,13 @@ export default function LawyerCard({ lawyer }: LawyerCardProps) {
     <div className="flex flex-col md:flex-row items-start p-6 gap-6 w-full bg-card">
       <div className="flex-shrink-0 flex flex-col items-center gap-2 w-full md:w-24">
         <div className="relative h-20 w-20 flex-shrink-0">
-            <div className="w-full h-full rounded-full bg-primary/10 flex items-center justify-center">
-                 <Scale className="w-10 h-10 text-primary" />
-            </div>
+          <Image
+            src={lawyer.imageUrl}
+            alt={lawyer.name}
+            fill
+            className="rounded-full object-cover"
+            data-ai-hint={lawyer.imageHint}
+          />
         </div>
         <div className="flex items-center gap-1">
           {[...Array(5)].map((_, i) => (
