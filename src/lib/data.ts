@@ -1,7 +1,7 @@
 
 import type { LawyerProfile } from '@/lib/types';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import type { Article, Case, UpcomingAppointment, Document, ReportedTicket } from '@/lib/types';
+import type { Article, Case, UpcomingAppointment, Document, ReportedTicket, LawyerAppointmentRequest, LawyerCase } from '@/lib/types';
 
 
 const getImageUrl = (id: string) => PlaceHolderImages.find(img => img.id === id)?.imageUrl ?? '';
@@ -243,4 +243,40 @@ export async function getDashboardData(): Promise<{ cases: Case[], appointments:
       });
     }, 500);
   });
+}
+
+// Mock data for Lawyer Dashboard
+const mockNewRequests: LawyerAppointmentRequest[] = [
+    {
+        id: 'req-001',
+        clientName: 'คุณสมหญิง ใจดี',
+        caseTitle: 'ปรึกษาเรื่องสัญญาจ้าง',
+        description: 'ต้องการให้ทนายความช่วยตรวจสอบร่างสัญญาจ้างพนักงานตำแหน่งผู้จัดการฝ่ายการตลาด มีประเด็นเรื่องขอบเขตการทำงานและเงื่อนไขการเลิกจ้างที่ต้องการคำแนะนำด่วน',
+        requestedAt: new Date(new Date().setHours(new Date().getHours() - 2)),
+    },
+    {
+        id: 'req-002',
+        clientName: 'บริษัท เติบโต จำกัด',
+        caseTitle: 'ขอคำปรึกษาด้าน PDPA',
+        description: 'บริษัทกำลังจะเปิดตัวแอปพลิเคชันใหม่ ต้องการปรึกษาแนวทางการเก็บข้อมูลผู้ใช้งานให้สอดคล้องกับกฎหมาย PDPA',
+        requestedAt: new Date(new Date().setDate(new Date().getDate() - 1)),
+    }
+];
+
+const mockLawyerCases: LawyerCase[] = [
+    { id: 'lcase-001', title: 'คดีฉ้อโกงออนไลน์', clientName: 'คุณมานี', status: 'กำลังดำเนินการ', lastUpdate: '2 วันที่แล้ว', hasNewMessage: true },
+    { id: 'lcase-002', title: 'ปัญหาข้อพิพาทที่ดิน', clientName: 'คุณวิชัย', status: 'กำลังดำเนินการ', lastUpdate: '5 ชั่วโมงที่แล้ว', hasNewMessage: false },
+    { id: 'lcase-003', title: 'ร่างสัญญาแฟรนไชส์', clientName: 'ร้านชานมไข่มุก', status: 'เสร็จสิ้น', lastUpdate: '15 ต.ค. 2567', hasNewMessage: false },
+];
+
+export async function getLawyerDashboardData(): Promise<{ newRequests: LawyerAppointmentRequest[], activeCases: LawyerCase[], completedCases: LawyerCase[] }> {
+    return new Promise(resolve => {
+        setTimeout(() => {
+            resolve({
+                newRequests: mockNewRequests,
+                activeCases: mockLawyerCases.filter(c => c.status === 'กำลังดำเนินการ'),
+                completedCases: mockLawyerCases.filter(c => c.status === 'เสร็จสิ้น'),
+            });
+        }, 500);
+    });
 }

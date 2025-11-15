@@ -73,3 +73,21 @@ export interface ReportedTicket {
   status: 'pending' | 'resolved';
   reportedAt: Date;
 }
+
+// Types for Lawyer Dashboard
+export interface LawyerAppointmentRequest {
+  id: string;
+  clientName: string;
+  caseTitle: string;
+  description: string;
+  requestedAt: Date;
+}
+
+export interface LawyerCase {
+  id: string;
+  title: string;
+  clientName: string;
+  status: 'รอการตอบรับ' | 'กำลังดำเนินการ' | 'เสร็จสิ้น';
+  lastUpdate: string;
+  hasNewMessage: boolean;
+}

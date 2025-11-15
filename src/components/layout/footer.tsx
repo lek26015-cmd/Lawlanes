@@ -21,7 +21,7 @@ export default function Footer() {
   const forLawyersLinks = [
     { href: '/for-lawyers', label: 'เข้าร่วมเป็นทนาย Lawlane' },
     { href: '/', label: 'เข้าสู่ระบบทนาย' },
-    { href: '#', label: 'Dashboard ทนาย' },
+    { href: '/lawyer-dashboard', label: 'Dashboard ทนาย' },
   ];
 
   const legalLinks = [
