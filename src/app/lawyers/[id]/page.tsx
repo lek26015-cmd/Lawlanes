@@ -116,8 +116,10 @@ export default function LawyerProfilePage() {
                             </div>
                         </div>
                          <div className="flex-shrink-0 flex flex-col items-center justify-center gap-3 w-full md:w-40 md:ml-auto">
-                            <Button disabled className="w-full bg-foreground text-background hover:bg-foreground/90">
+                            <Button asChild className="w-full bg-foreground text-background hover:bg-foreground/90">
+                              <Link href={`/lawyers/${lawyer.id}/schedule`}>
                                 <Phone className="mr-2 h-4 w-4" /> นัดปรึกษา
+                              </Link>
                             </Button>
                             <Button onClick={handleStartChat} variant="outline" className="w-full">
                                 <Mail className="mr-2 h-4 w-4" /> ส่งข้อความ

@@ -58,7 +58,10 @@
           "description": "The timestamp when the chat was created."
         }
       },
-      "required": ["participants", "createdAt"]
+      "required": [
+        "participants",
+        "createdAt"
+      ]
     },
     "ChatMessage": {
       "title": "ChatMessage",
@@ -79,7 +82,58 @@
           "description": "The timestamp when the message was sent."
         }
       },
-      "required": ["senderId", "text", "timestamp"]
+      "required": [
+        "senderId",
+        "text",
+        "timestamp"
+      ]
+    },
+    "Appointment": {
+      "title": "Appointment",
+      "description": "Represents a consultation appointment request from a user to a lawyer.",
+      "type": "object",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "description": "The ID of the user requesting the appointment."
+        },
+        "lawyerId": {
+          "type": "string",
+          "description": "The ID of the lawyer the appointment is with."
+        },
+        "appointmentDate": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The requested date and time for the appointment."
+        },
+        "description": {
+          "type": "string",
+          "description": "A brief description of the legal issue to be discussed."
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "pending",
+            "confirmed",
+            "cancelled",
+            "completed"
+          ],
+          "description": "The status of the appointment."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the appointment was requested."
+        }
+      },
+      "required": [
+        "userId",
+        "lawyerId",
+        "appointmentDate",
+        "description",
+        "status",
+        "createdAt"
+      ]
     }
   },
   "auth": {
