@@ -5,13 +5,13 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ArrowUp } from 'lucide-react';
+import { Send, Sparkles, X } from 'lucide-react';
 import { Badge } from '../ui/badge';
+import { Separator } from '../ui/separator';
 
 interface ChatModalProps {
   isOpen: boolean;
@@ -28,51 +28,57 @@ const quickQuestions = [
 export default function ChatModal({ isOpen, onOpenChange }: ChatModalProps) {
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-sm w-full flex flex-col h-[70vh] max-h-[520px] rounded-2xl overflow-hidden fixed bottom-6 right-6 p-0 border-0 shadow-2xl">
-        <DialogHeader className="p-4 pb-3 border-b">
-          <DialogTitle className="text-lg font-semibold">แชทกับ AI</DialogTitle>
-        </DialogHeader>
+      <DialogContent 
+        hideCloseButton={true}
+        className="fixed inset-0 w-full h-full rounded-none sm:inset-auto sm:bottom-6 sm:right-6 sm:w-96 sm:h-auto sm:max-h-[80vh] sm:rounded-2xl bg-white shadow-2xl border z-50 p-0 flex flex-col"
+      >
+        <div className="flex justify-between items-center p-4 border-b bg-primary text-primary-foreground sm:rounded-t-2xl">
+            <h3 className="text-xl font-bold">Lawlane AI Assistant</h3>
+            <button onClick={() => onOpenChange(false)} className="text-primary-foreground/70 hover:text-white">
+                <X className="w-6 h-6" />
+            </button>
+        </div>
 
-        <ScrollArea className="flex-1 p-4">
+        <ScrollArea className="flex-grow p-4">
           <div className="space-y-4">
-            {/* Initial Message */}
-            <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-xs">
-                AI
-              </div>
-              <div className="bg-secondary rounded-lg p-3 text-sm max-w-xs">
-                <p>สวัสดีครับ! ผมคือผู้ช่วย AI ด้านกฎหมายจาก Lawlane มีอะไรให้ผมช่วยวิเคราะห์เบื้องต้นไหมครับ? (นี่คือเวอร์ชั่นสาธิต)</p>
-              </div>
-            </div>
-
-            {/* Quick Questions */}
-            <div className="pt-2">
-                <p className="text-xs text-muted-foreground mb-2">คำถามด่วน:</p>
-                <div className="flex flex-wrap gap-2">
-                    {quickQuestions.map(q => (
-                        <Badge key={q} variant="outline" className="cursor-pointer hover:bg-accent">{q}</Badge>
-                    ))}
+            <div className="flex">
+                <div className="flex-shrink-0">
+                    <div className="w-8 h-8 rounded-full bg-primary text-white flex items-center justify-center shadow-md">
+                        <Sparkles className="w-5 h-5" />
+                    </div>
+                </div>
+                <div className="ml-3">
+                    <div className="bg-secondary p-3 rounded-lg shadow-sm" style={{borderTopLeftRadius: 0}}>
+                        <p className="text-sm text-secondary-foreground">
+                            สวัสดีครับ! ผมคือผู้ช่วย AI ด้านกฎหมายจาก Lawlane มีอะไรให้ผมช่วยวิเคราะห์เบื้องต้นไหมครับ? (นี่คือเวอร์ชันสาธิต)
+                        </p>
+                    </div>
                 </div>
             </div>
           </div>
         </ScrollArea>
+        
+        <div className="p-3 border-t bg-secondary/30">
+            <p className="text-xs font-semibold text-muted-foreground mb-2 ml-1">คำถามด่วน:</p>
+            <div className="flex flex-wrap gap-2">
+                {quickQuestions.map(q => (
+                    <button key={q} className="text-xs px-3 py-1 bg-white border border-border rounded-full hover:bg-accent transition">{q}</button>
+                ))}
+            </div>
+        </div>
 
-        <DialogFooter className="p-4 border-t">
-          <div className="relative w-full">
-            <Input
-              placeholder="พิมพ์คำถามของคุณ..."
-              className="pr-12"
-            />
-            <Button
-              type="submit"
-              size="icon"
-              className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8"
-            >
-              <ArrowUp className="h-4 w-4" />
-              <span className="sr-only">Send</span>
-            </Button>
-          </div>
-        </DialogFooter>
+        <div className="p-4 border-t bg-white sm:rounded-b-2xl">
+            <div className="flex items-center space-x-2">
+                <Input
+                  placeholder="พิมพ์คำถามของคุณ..."
+                  className="flex-grow px-4 py-3 rounded-full bg-secondary/50 border-2 border-transparent focus:bg-white focus:border-primary transition outline-none"
+                />
+                <Button type="submit" size="icon" className="p-3 rounded-full bg-primary text-white hover:bg-primary/90 transition shadow-lg w-11 h-11">
+                    <Send className="w-5 h-5" />
+                </Button>
+            </div>
+        </div>
+
       </DialogContent>
     </Dialog>
   );
