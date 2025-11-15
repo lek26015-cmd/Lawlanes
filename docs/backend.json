@@ -39,11 +39,51 @@
         "description",
         "specialty"
       ]
+    },
+    "Chat": {
+      "title": "Chat",
+      "description": "Represents a chat session between a user and a lawyer.",
+      "type": "object",
+      "properties": {
+        "participants": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "An array containing the user IDs of the two participants in the chat."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the chat was created."
+        }
+      },
+      "required": ["participants", "createdAt"]
+    },
+    "ChatMessage": {
+      "title": "ChatMessage",
+      "description": "Represents a single message within a chat.",
+      "type": "object",
+      "properties": {
+        "senderId": {
+          "type": "string",
+          "description": "The user ID of the message sender."
+        },
+        "text": {
+          "type": "string",
+          "description": "The text content of the message."
+        },
+        "timestamp": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the message was sent."
+        }
+      },
+      "required": ["senderId", "text", "timestamp"]
     }
   },
   "auth": {
     "providers": [
-      "password",
       "anonymous"
     ]
   },
@@ -64,8 +104,41 @@
             }
           ]
         }
+      },
+      {
+        "path": "/chats/{chatId}",
+        "definition": {
+          "entityName": "Chat",
+          "schema": {
+            "$ref": "#/backend/entities/Chat"
+          },
+          "description": "Stores chat sessions between users and lawyers.",
+          "params": [
+            {
+              "name": "chatId",
+              "description": "Unique identifier for the chat session."
+            }
+          ],
+          "subcollections": [
+            {
+              "path": "messages/{messageId}",
+              "definition": {
+                "entityName": "ChatMessage",
+                "schema": {
+                  "$ref": "#/backend/entities/ChatMessage"
+                },
+                "description": "Stores individual messages within a chat session.",
+                "params": [
+                  {
+                    "name": "messageId",
+                    "description": "Unique identifier for the message."
+                  }
+                ]
+              }
+            }
+          ]
+        }
       }
-    ],
-    "reasoning": "The Firestore structure is designed to address the 'configuration-not-found' error and support the Lawlane application's MVP requirements, prioritizing security and scalability. The error indicates an issue with the Firebase Authentication configuration, which is outside the scope of Firestore data structure but should be addressed in the Firebase console.  The structure focuses on storing lawyer profiles with clear access control. It utilizes Structural Segregation by placing lawyer profiles in their own collection. Authorization Independence is achieved naturally, as there's no hierarchical relationship between lawyer profiles and users who view them.  QAPs are supported because listing approved lawyer profiles is straightforward using a query on the 'status' field without requiring complex filtering in rules.  No denormalization of user data is required since the user id is associated directly with each lawyer profile."
+    ]
   }
 }
