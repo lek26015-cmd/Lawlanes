@@ -221,28 +221,12 @@ const mockAppointments: UpcomingAppointment[] = [
   }
 ];
 
-const mockDocuments: Document[] = [
-    {
-        id: 'doc-001',
-        name: 'สัญญาเช่าคอนโด_สมหญิง.pdf',
-        status: 'อัปโหลดเมื่อ: 24 ต.ค. 2567 | สถานะ: รอดำเนินการ',
-        isCompleted: false,
-    },
-    {
-        id: 'doc-002',
-        name: 'สัญญาจ้างงาน_ทนายตรวจสอบแล้ว.pdf',
-        status: 'ตรวจสอบเสร็จเมื่อ: 22 ต.ค. 2567 | โดย: ทนายวิโรจน์ ส.',
-        isCompleted: true,
-    }
-]
-
-export async function getDashboardData(): Promise<{ cases: Case[], appointments: UpcomingAppointment[], documents: Document[] }> {
+export async function getDashboardData(): Promise<{ cases: Case[], appointments: UpcomingAppointment[] }> {
   return new Promise(resolve => {
     setTimeout(() => {
       resolve({
         cases: mockCases,
         appointments: mockAppointments,
-        documents: mockDocuments
       });
     }, 500);
   });

@@ -21,7 +21,7 @@ export default function DashboardPage() {
   useEffect(() => {
     async function fetchData() {
       setIsLoading(true);
-      const { cases, appointments, documents } = await getDashboardData();
+      const { cases, appointments } = await getDashboardData();
       setCases(cases);
       setAppointments(appointments);
       setIsLoading(false);
@@ -48,7 +48,6 @@ export default function DashboardPage() {
     { icon: <MessageSquare />, text: 'นัดหมายปรึกษาทนาย', color: 'bg-green-100' },
     { icon: <FileUp />, text: 'ส่งเอกสารให้ตรวจสอบ', color: 'bg-blue-100' },
     { icon: <Building />, text: 'จดทะเบียนธุรกิจ', color: 'bg-yellow-100' },
-    { icon: <User />, text: 'จัดการข้อมูลส่วนบุคคล', color: 'bg-purple-100' },
   ];
 
   return (
@@ -162,7 +161,9 @@ export default function DashboardPage() {
                             </Avatar>
                             <p className="font-semibold text-lg">สมหญิง ใจดี</p>
                             <p className="text-sm text-muted-foreground mb-4">somying@example.com</p>
-                            <Button variant="outline" className="w-full">จัดการบัญชี / แก้ไขโปรไฟล์</Button>
+                            <Link href="/account" className="w-full">
+                                <Button variant="outline" className="w-full">จัดการบัญชี / แก้ไขโปรไฟล์</Button>
+                            </Link>
                         </CardContent>
                     </Card>
                     
@@ -171,7 +172,7 @@ export default function DashboardPage() {
                             <CardTitle className="font-bold">บริการด่วน</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-2">
-                           {quickServices.map((service, index) => (
+                           {[...quickServices, { icon: <User />, text: 'จัดการข้อมูลส่วนบุคคล', color: 'bg-purple-100' }].map((service, index) => (
                              <Button key={index} variant="ghost" className={`w-full justify-start h-12 text-base ${service.color}`}>
                                 {service.icon} {service.text}
                              </Button>
