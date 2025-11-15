@@ -34,10 +34,10 @@ export default function Header() {
           <Link href="/" className="transition-colors text-foreground/80 hover:text-foreground">
             หน้าแรก
           </Link>
-          <Link href="#features" className="transition-colors text-foreground/60 hover:text-foreground">
+          <Link href="/#features" className="transition-colors text-foreground/60 hover:text-foreground">
             บริการ
           </Link>
-          <Link href="#" className="transition-colors text-foreground/60 hover:text-foreground">
+          <Link href="/articles" className="transition-colors text-foreground/60 hover:text-foreground">
             บทความ
           </Link>
         </nav>
