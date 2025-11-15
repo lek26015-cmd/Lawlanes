@@ -1,10 +1,10 @@
 
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, Suspense, useRef } from 'react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { getLawyerById } from '@/lib/data';
-import type { LawyerProfile, HumanChatMessage } from '@/lib/types';
+import type { LawyerProfile } from '@/lib/types';
 import { useFirebase } from '@/firebase';
 import { useUser } from '@/firebase/auth/use-user';
 import { ChatBox } from '@/components/chat/chat-box';
@@ -17,8 +17,9 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, FileText, Check, Sparkles } from 'lucide-react';
+import { AlertTriangle, FileText, Check, Sparkles, Upload } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
+import { useToast } from '@/hooks/use-toast';
 
 function ChatPageContent() {
     const params = useParams();
@@ -28,6 +29,9 @@ function ChatPageContent() {
     
     const [lawyer, setLawyer] = useState<LawyerProfile | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [files, setFiles] = useState<{ name: string, size: number }[]>([]);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const { toast } = useToast();
 
     const { auth, firestore } = useFirebase();
     const { data: user } = useUser(auth);
@@ -45,6 +49,36 @@ function ChatPageContent() {
         fetchLawyer();
     }, [lawyerId]);
 
+    const handleUploadClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+
+        if (file.size > MAX_FILE_SIZE) {
+            toast({
+                variant: "destructive",
+                title: "ไฟล์มีขนาดใหญ่เกินไป",
+                description: `กรุณาเลือกไฟล์ที่มีขนาดไม่เกิน ${MAX_FILE_SIZE / 1024 / 1024}MB`,
+            });
+            return;
+        }
+
+        setFiles(prevFiles => [...prevFiles, { name: file.name, size: file.size }]);
+        toast({
+            title: "อัปโหลดไฟล์สำเร็จ (จำลอง)",
+            description: `ไฟล์ "${file.name}" ถูกเพิ่มในรายการแล้ว`,
+        });
+
+        // Reset file input
+        if(event.target) {
+            event.target.value = '';
+        }
+    };
 
     if (isLoading) {
         return <div>Loading chat...</div>
@@ -91,22 +125,30 @@ function ChatPageContent() {
                                 </Button>
                                 <Separator />
                                 <div className="space-y-2 text-sm">
-                                    <div className="flex justify-between items-center p-2 rounded-md hover:bg-gray-100">
-                                        <div className="flex items-center gap-2">
-                                            <FileText className="h-5 w-5 text-muted-foreground" />
-                                            <span>สัญญา_A.pdf</span>
+                                    {files.length === 0 && (
+                                        <p className="text-center text-muted-foreground text-xs py-4">ยังไม่มีเอกสาร</p>
+                                    )}
+                                    {files.map((file, index) => (
+                                         <div key={index} className="flex justify-between items-center p-2 rounded-md hover:bg-gray-100">
+                                            <div className="flex items-center gap-2 overflow-hidden">
+                                                <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                                                <span className="truncate" title={file.name}>{file.name}</span>
+                                            </div>
+                                            <span className="text-muted-foreground text-xs flex-shrink-0">
+                                                {(file.size / 1024 / 1024).toFixed(2)}MB
+                                            </span>
                                         </div>
-                                        <span className="text-muted-foreground text-xs">1.2MB</span>
-                                    </div>
-                                    <div className="flex justify-between items-center p-2 rounded-md hover:bg-gray-100">
-                                        <div className="flex items-center gap-2">
-                                            <FileText className="h-5 w-5 text-muted-foreground" />
-                                            <span>รูปถ่ายความเสียหาย.jpg</span>
-                                        </div>
-                                        <span className="text-muted-foreground text-xs">4.5MB</span>
-                                    </div>
+                                    ))}
                                 </div>
-                                <Button className="w-full">อัปโหลดไฟล์</Button>
+                                <input 
+                                    type="file" 
+                                    ref={fileInputRef} 
+                                    onChange={handleFileChange}
+                                    className="hidden" 
+                                />
+                                <Button onClick={handleUploadClick} className="w-full">
+                                    <Upload className="mr-2 h-4 w-4" /> อัปโหลดไฟล์
+                                </Button>
                             </div>
                         </CardContent>
                     </Card>
