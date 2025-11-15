@@ -183,7 +183,7 @@ export default function Home() {
                                   name="licenseNumber"
                                   type="text"
                                   placeholder="กรอกเลขใบอนุญาต"
-                                  className="h-12 bg-white/20 text-white placeholder:text-white/70 border-white/30"
+                                  className="h-12 bg-white/20 text-white placeholder:text-white/70 border-white/30 rounded-full"
                               />
                               <Button type="submit" size="lg" variant="secondary" className="w-full sm:w-auto font-bold h-12">
                                   ตรวจสอบเลย
@@ -299,5 +299,3 @@ export default function Home() {
     </>
   );
 }
-
-    
