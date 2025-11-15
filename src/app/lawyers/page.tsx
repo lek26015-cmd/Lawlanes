@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { getApprovedLawyers } from '@/lib/data';
 import LawyerCard from '@/components/lawyer-card';
@@ -8,6 +8,7 @@ import type { LawyerProfile } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
 import React from 'react';
 import { Progress } from '@/components/ui/progress';
+import LawyerFilterSidebar from '@/components/lawyer-filter';
 
 function LawyersPageContent() {
   const searchParams = useSearchParams();
@@ -25,11 +26,13 @@ function LawyersPageContent() {
       setIsLoading(true);
       const lawyers = await getApprovedLawyers();
       setAllLawyers(lawyers);
-      setFilteredLawyers(lawyers); // Show all lawyers initially
+      setFilteredLawyers(lawyers);
       setIsLoading(false);
     }
     fetchLawyers();
   }, []);
+  
+  const specialtyArray = useMemo(() => specialties ? specialties.split(',') : [], [specialties]);
 
   useEffect(() => {
     if (isLoading || !specialties) return;
@@ -38,7 +41,6 @@ function LawyersPageContent() {
     setProgress(30);
 
     const timer = setTimeout(() => {
-      const specialtyArray = specialties.split(',');
       const recommended = allLawyers.filter(lawyer =>
         lawyer.specialty.some(spec => specialtyArray.includes(spec))
       );
@@ -54,11 +56,11 @@ function LawyersPageContent() {
         setProgress(100);
         setTimeout(() => setIsSorting(false), 500);
       }, 500);
-    }, 1000); // Simulate AI analysis and sorting time
+    }, 1000);
 
     return () => clearTimeout(timer);
 
-  }, [specialties, allLawyers, isLoading]);
+  }, [specialties, allLawyers, isLoading, specialtyArray]);
 
   useEffect(() => {
     if (isSorting) {
@@ -83,26 +85,37 @@ function LawyersPageContent() {
         </p>
       </div>
 
-      {isSorting && (
-        <div className="mb-8 p-4 rounded-lg bg-secondary/50">
-            <p className="text-center font-semibold text-primary mb-2">กำลังวิเคราะห์และจัดเรียงทนายที่แนะนำ...</p>
-            <Progress value={progress} className="w-full" />
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="col-span-1">
+          <LawyerFilterSidebar />
         </div>
-      )}
+        
+        <div className="md:col-span-3">
+          {isSorting && (
+            <div className="mb-8 p-4 rounded-lg bg-secondary/50">
+                <p className="text-center font-semibold text-primary mb-2">กำลังวิเคราะห์และจัดเรียงทนายที่แนะนำ...</p>
+                <Progress value={progress} className="w-full" />
+            </div>
+          )}
 
-      {isLoading ? (
-        <div className="flex justify-center items-center h-64">
-          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          {isLoading ? (
+            <div className="flex justify-center items-center h-64">
+              <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            </div>
+          ) : (
+            <div className="flex flex-col gap-4">
+              <p className="text-muted-foreground mb-4">
+                พบทนายความ {filteredLawyers.length} ท่าน ที่ตรงกับเงื่อนไข
+              </p>
+              {filteredLawyers.map((lawyer) => (
+                 <div key={lawyer.id} className={`transition-all duration-500 rounded-xl ${recommendedLawyerIds.includes(lawyer.id) ? 'border-2 border-primary shadow-lg' : 'border'}`}>
+                    <LawyerCard lawyer={lawyer} />
+                 </div>
+              ))}
+            </div>
+          )}
         </div>
-      ) : (
-        <div className="flex flex-col gap-4">
-          {filteredLawyers.map((lawyer) => (
-             <div key={lawyer.id} className={`transition-all duration-500 ${recommendedLawyerIds.includes(lawyer.id) ? 'border-2 border-primary rounded-xl shadow-lg' : 'border-b border-border'}`}>
-                <LawyerCard lawyer={lawyer} />
-             </div>
-          ))}
-        </div>
-      )}
+      </div>
     </div>
   );
 }

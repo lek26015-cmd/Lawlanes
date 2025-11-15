@@ -1,29 +1,38 @@
-import Image from 'next/image';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { LawyerProfile } from '@/lib/types';
-import { Mail } from 'lucide-react';
+import { Mail, Scale } from 'lucide-react';
+import { StarIcon } from '@/components/icons/star-icon';
 
 interface LawyerCardProps {
   lawyer: LawyerProfile;
 }
 
 export default function LawyerCard({ lawyer }: LawyerCardProps) {
+  // Mock data for rating and reviews
+  const rating = (Number(lawyer.id) % 2) + 3.5;
+  const reviewCount = Number(lawyer.id) * 7 + 5;
+
   return (
-    <div className="flex flex-col md:flex-row items-center p-4 gap-4 w-full">
-      <div className="relative h-24 w-24 flex-shrink-0">
-        <Image
-          src={lawyer.imageUrl}
-          alt={`Profile of ${lawyer.name}`}
-          fill
-          className="rounded-full object-cover border-4 border-secondary"
-          data-ai-hint={lawyer.imageHint}
-        />
+    <div className="flex flex-col md:flex-row items-start p-6 gap-6 w-full bg-card">
+      <div className="flex-shrink-0 flex flex-col items-center gap-2 w-full md:w-24">
+        <div className="relative h-20 w-20 flex-shrink-0">
+            <div className="w-full h-full rounded-full bg-primary/10 flex items-center justify-center">
+                 <Scale className="w-10 h-10 text-primary" />
+            </div>
+        </div>
+        <div className="flex items-center gap-1">
+          {[...Array(5)].map((_, i) => (
+            <StarIcon key={i} className={`w-4 h-4 ${i < Math.floor(rating) ? 'text-yellow-400 fill-yellow-400' : 'text-muted-foreground/30'}`} />
+          ))}
+        </div>
+        <p className="text-xs text-muted-foreground">({reviewCount} รีวิว)</p>
       </div>
 
       <div className="flex-grow text-center md:text-left">
-        <h3 className="font-bold text-lg">{lawyer.name}</h3>
-        <p className="text-sm text-muted-foreground mt-1 mb-2">{lawyer.description}</p>
+        <h3 className="font-bold text-xl">{lawyer.name}</h3>
+        <p className="font-semibold text-primary mt-1 mb-2">{lawyer.specialty[0]}</p>
+        <p className="text-sm text-muted-foreground mt-1 mb-4">{lawyer.description}</p>
         <div className="flex flex-wrap gap-2 justify-center md:justify-start">
           {lawyer.specialty.map((spec, index) => (
             <Badge key={index} variant="secondary">{spec}</Badge>
@@ -31,9 +40,12 @@ export default function LawyerCard({ lawyer }: LawyerCardProps) {
         </div>
       </div>
 
-      <div className="flex-shrink-0 flex flex-col items-center justify-center md:pl-4 md:border-l md:border-border/50 w-full md:w-auto mt-4 md:mt-0">
-        <Button className="w-full md:w-auto">
-          <Mail className="mr-2 h-4 w-4" /> ติดต่อทนาย
+      <div className="flex-shrink-0 flex flex-col items-center justify-center gap-2 w-full md:w-36 mt-4 md:mt-0">
+        <Button className="w-full">
+          ดูโปรไฟล์
+        </Button>
+         <Button variant="outline" className="w-full bg-green-500 text-white hover:bg-green-600 hover:text-white">
+          นัดปรึกษา
         </Button>
       </div>
     </div>
