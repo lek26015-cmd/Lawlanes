@@ -13,6 +13,7 @@ import LawyerCard from '@/components/lawyer-card';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import type { LawyerProfile } from '@/lib/types';
 import { findLawyerSpecialties } from '@/ai/flows/find-lawyers-flow';
+import ChatModal from '@/components/chat/chat-modal';
 
 export default function Home() {
   const router = useRouter();
@@ -61,6 +62,8 @@ export default function Home() {
   
   const [isFindingLawyers, setIsFindingLawyers] = useState(false);
   const [analysisText, setAnalysisText] = useState('');
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [initialPrompt, setInitialPrompt] = useState('');
 
   useEffect(() => {
     async function fetchLawyers() {
@@ -72,7 +75,6 @@ export default function Home() {
 
   const handleAnalysis = async () => {
     if (!analysisText.trim()) return;
-
     setIsFindingLawyers(true);
     try {
       const result = await findLawyerSpecialties({ problem: analysisText });
@@ -80,12 +82,23 @@ export default function Home() {
       router.push(`/lawyers?specialties=${specialtiesQuery}`);
     } catch (error) {
       console.error('Error finding lawyer specialties:', error);
-      // Fallback to a generic search or show an error
       router.push('/lawyers');
     } finally {
       setIsFindingLawyers(false);
     }
   };
+  
+  const handleCardClick = () => {
+      if (analysisText) {
+          setInitialPrompt(analysisText);
+      }
+      setIsChatOpen(true);
+  }
+  
+  const clearInitialPrompt = () => {
+    setInitialPrompt('');
+  }
+
 
   return (
     <>
@@ -197,10 +210,12 @@ export default function Home() {
                 ทนายความผู้เชี่ยวชาญที่คัดสรรมาเพื่อธุรกิจ SME โดยเฉพาะ
               </p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {recommendedLawyers.map((lawyer) => (
-                <LawyerCard key={lawyer.id} lawyer={lawyer} />
-              ))}
+            <div className="flex flex-col gap-4">
+                {recommendedLawyers.map((lawyer) => (
+                  <div key={lawyer.id} className="border-b border-border">
+                    <LawyerCard lawyer={lawyer} />
+                  </div>
+                ))}
             </div>
             <div className="text-center mt-12">
               <Link href="/lawyers">
@@ -266,6 +281,9 @@ export default function Home() {
           </div>
         </section>
       </div>
+      <ChatModal isOpen={isChatOpen} onOpenChange={setIsChatOpen} initialPrompt={initialPrompt} clearInitialPrompt={clearInitialPrompt} />
     </>
   );
 }
+
+    
