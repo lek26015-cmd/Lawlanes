@@ -145,7 +145,7 @@ export default function Home() {
           case 'found':
               if (!verifiedLawyer) return null;
               return (
-                  <Card className="bg-gradient-to-br from-green-50 to-blue-50 mt-6 animate-in fade-in-50 overflow-hidden shadow-lg border-green-300">
+                  <Card className="bg-gradient-to-br from-green-50 to-blue-50 mt-6 animate-in fade-in-50 overflow-hidden shadow-lg border-green-300 relative">
                     <CardContent className="p-6">
                       <div className="flex flex-col md:flex-row items-center gap-6">
                         <div className="flex-shrink-0 text-center">
@@ -172,6 +172,9 @@ export default function Home() {
                               </Link>
                           </Button>
                           </div>
+                        </div>
+                         <div className="hidden md:block absolute top-1/2 right-8 -translate-y-1/2">
+                          <Award className="w-24 h-24 text-green-500 opacity-20" />
                         </div>
                       </div>
                     </CardContent>
@@ -369,7 +372,7 @@ export default function Home() {
             </div>
         </section>
         
-        <section className="w-full py-12 md:py-24 lg:py-32 bg-gray-50">
+        <section className="w-full py-12 md:py-24 lg:py-32 bg-white">
           <div className="container mx-auto px-4 md:px-6">
             <h2 className="text-3xl font-bold text-center mb-12 sm:text-5xl font-headline">URGENT JOBS</h2>
             <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
@@ -386,8 +389,8 @@ export default function Home() {
                       />
                    </div>
                    <div>
-                      <h3 className="font-semibold text-lg">{job.companyName}</h3>
-                      <p className="text-base text-muted-foreground">{job.description}</p>
+                      <h3 className="font-semibold text-xl">{job.companyName}</h3>
+                      <p className="text-lg text-muted-foreground">{job.description}</p>
                    </div>
                 </div>
               ))}
@@ -395,7 +398,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section id="articles" className="w-full py-12 md:py-24 lg:py-32 bg-white">
+        <section id="articles" className="w-full py-12 md:py-24 lg:py-32 bg-gray-50">
           <div className="container mx-auto px-4 md:px-6">
             <div className="flex justify-between items-center mb-12">
               <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl font-headline text-foreground">
@@ -413,7 +416,7 @@ export default function Home() {
                     {/* Main Article */}
                     {mainArticle && (
                         <Link href={`/articles/${mainArticle.slug}`} className="group block">
-                            <Card className="border-none shadow-none rounded-lg">
+                            <Card className="border-none shadow-none rounded-lg bg-transparent">
                                 <CardContent className="p-0">
                                     <div className="relative aspect-[4/3] mb-4 overflow-hidden rounded-lg">
                                         <Image
@@ -434,7 +437,8 @@ export default function Home() {
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-8">
                         {otherArticles.map((article) => (
                            <Link key={article.id} href={`/articles/${article.slug}`} className="group block">
-                             <div className="overflow-hidden h-full flex flex-col">
+                             <Card className="overflow-hidden h-full flex flex-col border-none shadow-none rounded-lg bg-transparent">
+                                <CardContent className="p-0">
                                 <div className="relative aspect-video mb-3 overflow-hidden rounded-lg">
                                      <Image
                                         src={article.imageUrl}
@@ -443,12 +447,13 @@ export default function Home() {
                                         className="object-cover transition-transform duration-300 group-hover:scale-105"
                                         data-ai-hint={article.imageHint}
                                     />
-                                     <div className="absolute top-2 left-2">
+                                     <div className="absolute top-2 right-2">
                                         <Badge variant="secondary" className="text-xs bg-orange-100 text-orange-800 border-orange-200">{article.category}</Badge>
                                      </div>
                                 </div>
                                 <h4 className="font-semibold leading-snug group-hover:text-primary text-sm">{article.title}</h4>
-                             </div>
+                                </CardContent>
+                             </Card>
                            </Link>
                         ))}
                     </div>
@@ -460,7 +465,7 @@ export default function Home() {
           </div>
         </section>
         
-        <section className="w-full py-12 md:py-24 lg:py-32 bg-gray-50">
+        <section className="w-full py-12 md:py-24 lg:py-32 bg-white">
           <div className="container mx-auto px-4 md:px-6 text-center">
              <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl font-headline text-foreground mb-4">
                 Partnership ขอนแก่นน่าอยู่
