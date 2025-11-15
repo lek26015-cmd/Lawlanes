@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -13,11 +14,12 @@ export default function Footer() {
     { href: '/#features', label: 'บริการ' },
     { href: '/articles', label: 'บทความ' },
     { href: '/lawyers', label: 'ค้นหาทนาย' },
+    { href: '/verify-lawyer', label: 'ตรวจสอบสถานะทนาย' },
     { href: '/dashboard', label: 'แดชบอร์ดลูกค้า' },
   ];
 
   const forLawyersLinks = [
-    { href: '/', label: 'เข้าร่วมเป็นทนาย Lawlane' },
+    { href: '/for-lawyers', label: 'เข้าร่วมเป็นทนาย Lawlane' },
     { href: '/', label: 'เข้าสู่ระบบทนาย' },
     { href: '#', label: 'Dashboard ทนาย' },
   ];
