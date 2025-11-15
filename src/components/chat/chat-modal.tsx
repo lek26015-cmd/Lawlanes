@@ -211,7 +211,7 @@ export default function ChatModal({
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent
           hideCloseButton={false}
-          className="sm:max-w-sm w-full flex flex-col h-[70vh] max-h-[520px] rounded-2xl overflow-hidden p-0 shadow-2xl border-0 fixed bottom-[calc(4.5rem+1rem)] right-6 translate-x-0 translate-y-0 data-[state=closed]:slide-out-to-bottom-full data-[state=open]:slide-in-from-bottom-full"
+          className="sm:max-w-sm w-full flex flex-col h-[70vh] max-h-[520px] rounded-2xl overflow-hidden p-0 shadow-2xl border-0 fixed bottom-[calc(4.5rem+1rem)] right-6"
         >
            <DialogHeader className="p-4 pb-3 border-b bg-primary text-primary-foreground">
             <DialogTitle className="text-base font-headline">
