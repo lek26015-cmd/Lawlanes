@@ -9,9 +9,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { CheckCircle, MessageSquare, Users, Sparkles, Scale, ArrowRight, Newspaper, Loader2, Briefcase, UserCheck, ShieldCheck, ShieldAlert, Phone, Mail, File, Info } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { getApprovedLawyers, getAllArticles, getLawyerById } from '@/lib/data';
+import { getApprovedLawyers, getAllArticles, getLawyerById, getUrgentJobs } from '@/lib/data';
 import LawyerCard from '@/components/lawyer-card';
-import type { LawyerProfile, Article } from '@/lib/types';
+import type { LawyerProfile, Article, UrgentJob } from '@/lib/types';
 import { findLawyerSpecialties } from '@/ai/flows/find-lawyers-flow';
 import { useChat } from '@/context/chat-context';
 import { Input } from '@/components/ui/input';
@@ -41,6 +41,7 @@ export default function Home() {
   
   const [recommendedLawyers, setRecommendedLawyers] = useState<LawyerProfile[]>([]);
   const [articles, setArticles] = useState<Article[]>([]);
+  const [urgentJobs, setUrgentJobs] = useState<UrgentJob[]>([]);
   
   const [isFindingLawyers, setIsFindingLawyers] = useState(false);
   const [analysisText, setAnalysisText] = useState('');
@@ -58,6 +59,8 @@ export default function Home() {
       setRecommendedLawyers(lawyers.slice(0, 3));
       const allArticles = await getAllArticles();
       setArticles(allArticles);
+      const jobs = await getUrgentJobs();
+      setUrgentJobs(jobs);
     }
     fetchData();
   }, []);
@@ -345,6 +348,33 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        <section className="w-full py-12 md:py-24 lg:py-32 bg-gray-50">
+          <div className="container mx-auto px-4 md:px-6">
+            <h2 className="text-2xl font-bold text-center mb-8">URGENT JOBS</h2>
+            <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+              {urgentJobs.map((job) => (
+                <div key={job.id} className="flex items-start gap-4 py-4 border-b">
+                   <div className="flex-shrink-0">
+                      <Image 
+                        src={job.logoUrl} 
+                        alt={`${job.companyName} logo`}
+                        width={80}
+                        height={50}
+                        className="rounded-md object-contain border bg-white p-1"
+                        data-ai-hint={job.logoHint}
+                      />
+                   </div>
+                   <div>
+                      <h3 className="font-semibold">{job.companyName}</h3>
+                      <p className="text-sm text-muted-foreground">{job.description}</p>
+                   </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
 
         <section id="articles" className="w-full py-12 md:py-24 lg:py-32 bg-white">
           <div className="container mx-auto px-4 md:px-6">

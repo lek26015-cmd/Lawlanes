@@ -93,3 +93,11 @@ export interface LawyerCase {
   lastUpdate: string;
   hasNewMessage: boolean;
 }
+
+export interface UrgentJob {
+  id: string;
+  companyName: string;
+  description: string;
+  logoUrl: string;
+  logoHint: string;
+}

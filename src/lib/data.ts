@@ -1,7 +1,7 @@
 
 import type { LawyerProfile } from '@/lib/types';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import type { Article, Case, UpcomingAppointment, Document, ReportedTicket, LawyerAppointmentRequest, LawyerCase } from '@/lib/types';
+import type { Article, Case, UpcomingAppointment, Document, ReportedTicket, LawyerAppointmentRequest, LawyerCase, UrgentJob } from '@/lib/types';
 
 
 const getImageUrl = (id: string) => PlaceHolderImages.find(img => img.id === id)?.imageUrl ?? '';
@@ -344,4 +344,22 @@ export async function getLawyerDashboardData(): Promise<{ newRequests: LawyerApp
             });
         }, 500);
     });
+}
+
+// Mock data for Urgent Jobs advertisement section
+export const mockUrgentJobs: UrgentJob[] = [
+  { id: 'job1', companyName: 'บริษัท เค.เลเซอร์ เทคโนโลยี (ไทยแลนด์) จำกัด', description: 'เปิดรับสมัครพนักงานหลายตำแหน่ง ดูรายละเอียดเพิ่มเติม Click', logoUrl: getImageUrl('ad-logo-1'), logoHint: getImageHint('ad-logo-1') },
+  { id: 'job2', companyName: 'บริษัท ไท้เส กรุ๊ป จำกัด', description: 'เปิดรับสมัครพนักงานด่วน! ดูรายละเอียดเพิ่มเติม Click!', logoUrl: getImageUrl('ad-logo-2'), logoHint: getImageHint('ad-logo-2') },
+  { id: 'job3', companyName: 'บริษัท พี.เจ.ชลบุรี พาราวู้ด จำกัด', description: 'เปิดรับสมัครพนักงานหลายตำแหน่ง สนใจ Click!', logoUrl: getImageUrl('ad-logo-3'), logoHint: getImageHint('ad-logo-3') },
+  { id: 'job4', companyName: 'Global Asia Pacific Co.,Ltd.', description: 'เปิดรับ Sales Executive ดูรายละเอียดเพิ่มเติม Click!!', logoUrl: getImageUrl('ad-logo-4'), logoHint: getImageHint('ad-logo-4') },
+  { id: 'job5', companyName: 'บริษัท ปัญจวัฒนาพลาสติก จำกัด (มหาชน)', description: 'เปิดรับสมัคร วิศวกร และ ช่างเทคนิค หลายอัตรา เพื่อรองรับการขยายกำลังการผลิต สนใจ Click!', logoUrl: getImageUrl('ad-logo-5'), logoHint: getImageHint('ad-logo-5') },
+  { id: 'job6', companyName: 'GDT MARKETING AND RETAIL CO.,LTD', description: 'ด่วน! รับสมัคร พนักงานไลฟ์สดขายสินค้า รายได้ดี 12,000-30,000+++ (รวมค่าคอมมิชชั่น) สนใจ Click!', logoUrl: getImageUrl('ad-logo-6'), logoHint: getImageHint('ad-logo-6') },
+];
+
+export async function getUrgentJobs(): Promise<UrgentJob[]> {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      resolve(mockUrgentJobs);
+    }, 100);
+  });
 }
