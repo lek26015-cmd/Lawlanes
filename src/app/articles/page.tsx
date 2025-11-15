@@ -53,7 +53,7 @@ export default function ArticlesPage() {
       </div>
 
       <div className="max-w-3xl mx-auto mb-12">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center p-4 border rounded-lg bg-card">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-center p-4 border rounded-xl bg-card">
           <div className="md:col-span-2 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground" />
             <Input
