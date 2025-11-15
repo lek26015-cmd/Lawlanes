@@ -61,26 +61,26 @@ service cloud.firestore {
 
       // Only participants can update chat metadata (e.g., last message timestamp - though not implemented yet).
       allow update: if isParticipant();
-    }
 
-    /**
-     * @description Secures messages within a chat room.
-     * @path /chats/{chatId}/messages/{messageId}
-     */
-    match /chats/{chatId}/messages/{messageId} {
-      function isChatParticipant() {
-        // Checks if the requesting user is a participant in the parent chat document.
-        return isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
+      /**
+       * @description Secures messages within a chat room.
+       * @path /chats/{chatId}/messages/{messageId}
+       */
+      match /messages/{messageId} {
+        // Re-use the isParticipant function from the parent scope, but check against the *existing* document in Firestore
+        function isChatParticipant() {
+          return isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
+        }
+
+        // Allow participants to read all messages in the chat.
+        allow get, list: if isChatParticipant();
+
+        // Allow a participant to create a new message, ensuring the senderId is their own.
+        allow create: if isChatParticipant() && request.resource.data.senderId == request.auth.uid;
+        
+        // Generally, messages are immutable.
+        allow update, delete: if false;
       }
-
-      // Allow participants to read all messages in the chat.
-      allow get, list: if isChatParticipant();
-
-      // Allow a participant to create a new message, ensuring the senderId is their own.
-      allow create: if isChatParticipant() && request.resource.data.senderId == request.auth.uid;
-      
-      // Generally, messages are immutable.
-      allow update, delete: if false;
     }
   }
 }
