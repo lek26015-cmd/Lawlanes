@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { StarIcon } from '@/components/icons/star-icon';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Trophy, BookCopy } from 'lucide-react';
+import { ArrowLeft, Trophy, BookCopy, Mail, Phone } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
@@ -15,6 +15,7 @@ import React, { useState, useEffect } from 'react';
 import type { LawyerProfile } from '@/lib/types';
 import { initializeFirebase, useUser, useFirestore } from '@/firebase';
 import { LawyerChatBox } from '@/components/chat/lawyer-chat-box';
+import ChatModal from '@/components/chat/chat-modal';
 
 const { firebaseApp, auth, firestore } = initializeFirebase();
 
@@ -35,6 +36,7 @@ export default function LawyerProfilePage() {
     }
     fetchLawyer();
   }, [id]);
+
 
   if (!lawyer) {
     return <div>Loading...</div>; // Or a loading skeleton
@@ -111,6 +113,14 @@ export default function LawyerProfilePage() {
                                     <Badge key={index} variant="secondary">{spec}</Badge>
                                 ))}
                             </div>
+                        </div>
+                         <div className="flex-shrink-0 flex flex-col items-center justify-center gap-3 w-full md:w-40 md:ml-auto">
+                            <Button disabled className="w-full bg-foreground text-background hover:bg-foreground/90">
+                                <Phone className="mr-2 h-4 w-4" /> นัดปรึกษา
+                            </Button>
+                            <Button disabled variant="outline" className="w-full">
+                                <Mail className="mr-2 h-4 w-4" /> ส่งข้อความ
+                            </Button>
                         </div>
                     </div>
                 </div>
