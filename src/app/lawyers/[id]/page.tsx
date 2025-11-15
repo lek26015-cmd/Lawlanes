@@ -9,6 +9,7 @@ import { ArrowLeft, Mail, Phone } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
+import React from 'react';
 
 export default async function LawyerProfilePage({ params }: { params: { id: string } }) {
   const lawyer = await getLawyerById(params.id);
