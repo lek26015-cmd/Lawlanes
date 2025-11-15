@@ -14,13 +14,7 @@ import { Send, Sparkles, X, Loader2 } from 'lucide-react';
 import { chat, type ChatResponse } from '@/ai/flows/chat-flow';
 import type { ChatMessage } from '@/lib/types';
 import { z } from 'zod';
-
-interface ChatModalProps {
-  isOpen: boolean;
-  onOpenChange: (isOpen: boolean) => void;
-  initialPrompt?: string;
-  clearInitialPrompt?: () => void;
-}
+import { useChat } from '@/context/chat-context';
 
 const quickQuestions = [
   'ร่างสัญญา',
@@ -43,8 +37,8 @@ const isChatResponse = (content: any): content is ChatResponse => {
     return content && Array.isArray(content.sections) && content.sections.every((s: any) => typeof s.title === 'string' && typeof s.content === 'string');
 }
 
-
-export default function ChatModal({ isOpen, onOpenChange, initialPrompt, clearInitialPrompt }: ChatModalProps) {
+export default function ChatModal() {
+  const { isAiChatOpen, setAiChatOpen, initialPrompt, setInitialPrompt } = useChat();
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '1',
@@ -57,11 +51,11 @@ export default function ChatModal({ isOpen, onOpenChange, initialPrompt, clearIn
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (initialPrompt && isOpen) {
+    if (initialPrompt && isAiChatOpen) {
       handleInitialPrompt(initialPrompt);
-      clearInitialPrompt?.();
+      setInitialPrompt(''); // Clear the prompt after using it
     }
-  }, [initialPrompt, isOpen, clearInitialPrompt]);
+  }, [initialPrompt, isAiChatOpen]);
 
   const handleInitialPrompt = async (prompt: string) => {
     setIsLoading(true);
@@ -137,7 +131,7 @@ export default function ChatModal({ isOpen, onOpenChange, initialPrompt, clearIn
 
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <Dialog open={isAiChatOpen} onOpenChange={setAiChatOpen}>
       <DialogContent 
         hideCloseButton={true}
         className="fixed inset-0 w-full h-full rounded-none sm:inset-auto sm:bottom-6 sm:right-6 sm:w-96 sm:h-[70vh] sm:rounded-2xl bg-white shadow-2xl border z-50 p-0 flex flex-col"
@@ -146,7 +140,7 @@ export default function ChatModal({ isOpen, onOpenChange, initialPrompt, clearIn
             <DialogTitle asChild>
                 <h3 className="text-xl font-bold">Lawlane AI Assistant</h3>
             </DialogTitle>
-            <button onClick={() => onOpenChange(false)} className="text-background/70 hover:text-white">
+            <button onClick={() => setAiChatOpen(false)} className="text-background/70 hover:text-white">
                 <X className="w-6 h-6" />
             </button>
         </DialogHeader>

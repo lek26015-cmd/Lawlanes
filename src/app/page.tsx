@@ -12,7 +12,7 @@ import { getApprovedLawyers, getAllArticles } from '@/lib/data';
 import LawyerCard from '@/components/lawyer-card';
 import type { LawyerProfile, Article } from '@/lib/types';
 import { findLawyerSpecialties } from '@/ai/flows/find-lawyers-flow';
-import ChatModal from '@/components/chat/chat-modal';
+import { useChat } from '@/context/chat-context';
 
 export default function Home() {
   const router = useRouter();
@@ -39,8 +39,7 @@ export default function Home() {
   
   const [isFindingLawyers, setIsFindingLawyers] = useState(false);
   const [analysisText, setAnalysisText] = useState('');
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const [initialPrompt, setInitialPrompt] = useState('');
+  const { setAiChatOpen, setInitialPrompt } = useChat();
 
   useEffect(() => {
     async function fetchData() {
@@ -55,30 +54,10 @@ export default function Home() {
   const handleAnalysis = async () => {
     if (!analysisText.trim()) return;
     
-    if (analysisText) {
-      setInitialPrompt(analysisText);
-      setIsChatOpen(true);
-      return;
-    }
-    
-    setIsFindingLawyers(true);
-    try {
-      const result = await findLawyerSpecialties({ problem: analysisText });
-      const specialtiesQuery = result.specialties.join(',');
-      router.push(`/lawyers?specialties=${specialtiesQuery}`);
-    } catch (error) {
-      console.error('Error finding lawyer specialties:', error);
-      router.push('/lawyers');
-    } finally {
-      setIsFindingLawyers(false);
-    }
+    setInitialPrompt(analysisText);
+    setAiChatOpen(true);
   };
   
-  const clearInitialPrompt = () => {
-    setInitialPrompt('');
-  }
-
-
   return (
     <>
       <div className="flex flex-col">
@@ -253,7 +232,6 @@ export default function Home() {
           </div>
         </section>
       </div>
-      <ChatModal isOpen={isChatOpen} onOpenChange={setIsChatOpen} initialPrompt={initialPrompt} clearInitialPrompt={clearInitialPrompt} />
     </>
   );
 }

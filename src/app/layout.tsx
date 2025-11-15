@@ -6,6 +6,9 @@ import Footer from '@/components/layout/footer';
 import FloatingChatButton from '@/components/chat/floating-chat-button';
 import React from 'react';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
+import { ChatProvider } from '@/context/chat-context';
+import ChatModal from '@/components/chat/chat-modal';
+import LawyerChatDialog from '@/components/chat/lawyer-chat-dialog';
 
 export const metadata: Metadata = {
   title: 'Lawlane AI Legal Advisor',
@@ -28,12 +31,16 @@ export default function RootLayout({
       </head>
       <body className="font-body antialiased">
         <FirebaseClientProvider>
-          <div className="flex min-h-screen flex-col">
-            <Header />
-            <main className="flex-1">{children}</main>
-            <Footer />
-          </div>
-          <FloatingChatButton />
+          <ChatProvider>
+            <div className="flex min-h-screen flex-col">
+              <Header />
+              <main className="flex-1">{children}</main>
+              <Footer />
+            </div>
+            <FloatingChatButton />
+            <ChatModal />
+            <LawyerChatDialog />
+          </ChatProvider>
         </FirebaseClientProvider>
         <Toaster />
       </body>

@@ -9,7 +9,6 @@ import {
   serverTimestamp,
   onSnapshot,
   orderBy,
-  limit,
   doc,
   setDoc,
   Firestore,
@@ -19,22 +18,23 @@ import type { LawyerProfile, HumanChatMessage } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, Loader2 } from 'lucide-react';
+import { Send, Loader2, X } from 'lucide-react';
 import { v4 as uuidv4 } from 'uuid';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useCollection, useDoc } from '@/firebase';
 
 interface LawyerChatBoxProps {
   firestore: Firestore;
   currentUser: User;
   lawyer: LawyerProfile;
+  onClose?: () => void;
 }
 
 export function LawyerChatBox({
   firestore,
   currentUser,
   lawyer,
+  onClose
 }: LawyerChatBoxProps) {
   const [chatId, setChatId] = useState<string | null>(null);
   const [messages, setMessages] = useState<HumanChatMessage[]>([]);
@@ -52,9 +52,10 @@ export function LawyerChatBox({
 
 
   useEffect(() => {
-    if (!chatQuery) return;
+    if (!chatQuery || !lawyer) return;
     
     let isMounted = true;
+    setIsLoading(true);
     
     const findOrCreateChat = async () => {
         const querySnapshot = await getDocs(chatQuery);
@@ -80,12 +81,19 @@ export function LawyerChatBox({
 
     findOrCreateChat();
     
-    return () => { isMounted = false };
+    return () => { 
+        isMounted = false;
+        setMessages([]);
+        setChatId(null);
+    };
 
-  }, [chatQuery, currentUser.uid, lawyer.userId, firestore]);
+  }, [chatQuery, currentUser.uid, lawyer, firestore]);
   
   useEffect(() => {
-    if (!chatId) return;
+    if (!chatId) {
+        setMessages([]);
+        return;
+    };
 
     const messagesQuery = query(
       collection(firestore, 'chats', chatId, 'messages'),
@@ -136,12 +144,25 @@ export function LawyerChatBox({
   };
 
   return (
-    <Card className="mt-6">
-      <CardHeader>
-        <CardTitle>กล่องข้อความ - สนทนากับ {lawyer.name}</CardTitle>
+    <div className="flex flex-col h-full bg-card">
+      <CardHeader className="flex flex-row justify-between items-center p-4 border-b bg-foreground text-background rounded-t-2xl">
+        <CardTitle asChild>
+          <div className="flex items-center gap-3">
+            <Avatar className="h-8 w-8 border-2 border-background">
+                <AvatarImage src={lawyer.imageUrl} />
+                <AvatarFallback>{lawyer.name.charAt(0)}</AvatarFallback>
+            </Avatar>
+            <h3 className="text-lg font-bold truncate">{lawyer.name}</h3>
+          </div>
+        </CardTitle>
+        {onClose && (
+            <button onClick={onClose} className="text-background/70 hover:text-white">
+                <X className="w-6 h-6" />
+            </button>
+        )}
       </CardHeader>
-      <CardContent>
-        <div className="flex flex-col h-96 border rounded-lg">
+      
+      <div className="flex-grow flex flex-col min-h-0">
           <ScrollArea className="flex-grow p-4" ref={scrollAreaRef}>
             {isLoading ? (
               <div className="flex justify-center items-center h-full">
@@ -149,7 +170,9 @@ export function LawyerChatBox({
               </div>
             ) : messages.length === 0 ? (
                 <div className="flex justify-center items-center h-full">
-                    <p className="text-muted-foreground">เริ่มต้นการสนทนากับคุณ {lawyer.name.split(' ')[1]}</p>
+                    <p className="text-muted-foreground text-sm text-center px-4">
+                        เริ่มต้นการสนทนากับคุณ {lawyer.name.split(' ')[1]}
+                    </p>
                 </div>
             ) : (
               <div className="space-y-4">
@@ -203,7 +226,6 @@ export function LawyerChatBox({
             </form>
           </div>
         </div>
-      </CardContent>
-    </Card>
+    </div>
   );
 }

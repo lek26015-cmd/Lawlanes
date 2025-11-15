@@ -1,3 +1,5 @@
+'use client';
+
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { LawyerProfile } from '@/lib/types';
@@ -5,15 +7,21 @@ import { Mail, Scale, Phone } from 'lucide-react';
 import { StarIcon } from '@/components/icons/star-icon';
 import Image from 'next/image';
 import Link from 'next/link';
+import { useChat } from '@/context/chat-context';
 
 interface LawyerCardProps {
   lawyer: LawyerProfile;
 }
 
 export default function LawyerCard({ lawyer }: LawyerCardProps) {
+  const { openLawyerChat } = useChat();
   // Mock data for rating and reviews
   const rating = (Number(lawyer.id) % 2) + 3.5;
   const reviewCount = Number(lawyer.id) * 7 + 5;
+
+  const handleStartChat = () => {
+    openLawyerChat(lawyer);
+  };
 
   return (
     <div className="flex flex-col md:flex-row items-start p-6 gap-6 w-full bg-card text-card-foreground rounded-lg border">
@@ -52,11 +60,9 @@ export default function LawyerCard({ lawyer }: LawyerCardProps) {
             ดูโปรไฟล์
           </Button>
         </Link>
-        <Link href={`/lawyers/${lawyer.id}`} className="w-full">
-            <Button variant="outline" className="w-full">
-                <Mail className="mr-2 h-4 w-4" /> ส่งข้อความ
-            </Button>
-        </Link>
+        <Button variant="outline" className="w-full" onClick={handleStartChat}>
+            <Mail className="mr-2 h-4 w-4" /> ส่งข้อความ
+        </Button>
       </div>
     </div>
   );

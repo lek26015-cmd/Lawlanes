@@ -13,17 +13,13 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import React, { useState, useEffect } from 'react';
 import type { LawyerProfile } from '@/lib/types';
-import { initializeFirebase, useUser, useFirestore } from '@/firebase';
-import { LawyerChatBox } from '@/components/chat/lawyer-chat-box';
-import ChatModal from '@/components/chat/chat-modal';
-
-const { firebaseApp, auth, firestore } = initializeFirebase();
+import { useChat } from '@/context/chat-context';
 
 export default function LawyerProfilePage() {
   const params = useParams();
   const id = params.id as string;
   const [lawyer, setLawyer] = useState<LawyerProfile | null>(null);
-  const { data: user, isLoading: isUserLoading } = useUser(auth);
+  const { openLawyerChat } = useChat();
 
   useEffect(() => {
     async function fetchLawyer() {
@@ -36,7 +32,6 @@ export default function LawyerProfilePage() {
     }
     fetchLawyer();
   }, [id]);
-
 
   if (!lawyer) {
     return <div>Loading...</div>; // Or a loading skeleton
@@ -73,6 +68,12 @@ export default function LawyerProfilePage() {
       date: 'พฤษภาคม 2024',
     },
   ];
+  
+  const handleStartChat = () => {
+    if (lawyer) {
+      openLawyerChat(lawyer);
+    }
+  };
 
   return (
     <>
@@ -118,7 +119,7 @@ export default function LawyerProfilePage() {
                             <Button disabled className="w-full bg-foreground text-background hover:bg-foreground/90">
                                 <Phone className="mr-2 h-4 w-4" /> นัดปรึกษา
                             </Button>
-                            <Button disabled variant="outline" className="w-full">
+                            <Button onClick={handleStartChat} variant="outline" className="w-full">
                                 <Mail className="mr-2 h-4 w-4" /> ส่งข้อความ
                             </Button>
                         </div>
@@ -126,20 +127,7 @@ export default function LawyerProfilePage() {
                 </div>
 
                 <div className="p-8">
-                    {firestore && user && lawyer && !isUserLoading ? (
-                      <LawyerChatBox firestore={firestore} currentUser={user} lawyer={lawyer} />
-                    ) : (
-                      <Card>
-                        <CardHeader>
-                          <CardTitle>เริ่มการสนทนา</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                          <p className="text-muted-foreground">กำลังโหลดแชท...</p>
-                        </CardContent>
-                      </Card>
-                    )}
-                    
-                    <Card className="mt-6">
+                    <Card>
                         <CardHeader>
                             <CardTitle>เกี่ยวกับ</CardTitle>
                         </CardHeader>
@@ -221,7 +209,6 @@ export default function LawyerProfilePage() {
                         </CardContent>
                     </Card>
                 </div>
-
             </Card>
         </div>
       </div>
