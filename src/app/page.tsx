@@ -294,12 +294,12 @@ export default function Home() {
             
             <div className="max-w-4xl mx-auto">
                  <Card className="bg-foreground text-background rounded-2xl overflow-hidden">
-                    <div className="flex flex-col items-center p-8 md:p-12 gap-6 text-center">
-                        <div className="flex items-center gap-5">
-                            <ShieldCheck className="w-20 h-20 text-green-400 flex-shrink-0" />
+                    <div className="flex flex-col items-center p-8 md:p-12 gap-8 text-center">
+                        <div className="flex flex-col items-center gap-4 text-center">
+                            <ShieldCheck className="w-24 h-24 text-green-400 flex-shrink-0" />
                             <div>
-                                <h3 className="font-bold text-3xl md:text-4xl">ตรวจสอบสถานะทนายความ</h3>
-                                <p className="text-background/80 mt-2 text-lg">สร้างความมั่นใจก่อนเริ่มจ้างงาน ด้วยการตรวจสอบข้อมูลใบอนุญาตว่าความ</p>
+                                <h3 className="font-bold text-4xl md:text-5xl">ตรวจสอบสถานะทนายความ</h3>
+                                <p className="text-background/80 mt-2 text-xl">สร้างความมั่นใจก่อนเริ่มจ้างงาน ด้วยการตรวจสอบข้อมูลใบอนุญาตว่าความ</p>
                             </div>
                         </div>
                         <div className="w-full max-w-lg">
@@ -311,12 +311,12 @@ export default function Home() {
                                   name="licenseNumber"
                                   type="text"
                                   placeholder="กรอกเลขใบอนุญาต"
-                                  className="h-12 bg-white/20 text-white placeholder:text-white/70 border-white/30 rounded-full"
+                                  className="h-12 bg-white/20 text-white placeholder:text-white/70 border-white/30 rounded-full text-base"
                                   value={licenseNumber}
                                   onChange={(e) => setLicenseNumber(e.target.value)}
                                   disabled={isVerifying}
                               />
-                              <Button type="submit" size="lg" variant="secondary" className="w-full sm:w-auto font-bold h-12 rounded-full" disabled={isVerifying}>
+                              <Button type="submit" size="lg" variant="secondary" className="w-full sm:w-auto font-bold h-12 rounded-full text-base" disabled={isVerifying}>
                                   {isVerifying ? <Loader2 className="animate-spin" /> : 'ตรวจสอบเลย'}
                               </Button>
                            </form>
@@ -355,7 +355,7 @@ export default function Home() {
                             <div className="aspect-video overflow-hidden rounded-2xl shadow-2xl">
                                 <Image 
                                     src={getImageUrl('lawyer-team-working')}
-                                    alt="Lawyer team working"
+                                    alt="A man in a suit holding a gavel, representing law"
                                     fill
                                     className="object-cover"
                                     data-ai-hint={getImageHint('lawyer-team-working')}
