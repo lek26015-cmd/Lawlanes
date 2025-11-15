@@ -15,6 +15,7 @@ import type { LawyerProfile, Article } from '@/lib/types';
 import { findLawyerSpecialties } from '@/ai/flows/find-lawyers-flow';
 import { useChat } from '@/context/chat-context';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 
 
 export default function Home() {
@@ -165,6 +166,9 @@ export default function Home() {
       }
   }
   
+  const mainArticle = articles[0];
+  const otherArticles = articles.slice(1, 7);
+
   return (
     <>
       <div className="flex flex-col">
@@ -343,60 +347,74 @@ export default function Home() {
 
         <section id="articles" className="w-full py-12 md:py-24 lg:py-32 bg-white">
           <div className="container mx-auto px-4 md:px-6">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline text-foreground">
+            <div className="flex justify-between items-center mb-8">
+              <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl font-headline text-foreground">
                 บทความกฎหมายน่ารู้
               </h2>
-              <p className="max-w-2xl mx-auto mt-4 text-muted-foreground md:text-xl">
-                อัปเดตความรู้ทางกฎหมายสำหรับธุรกิจของคุณ
-              </p>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              {articles.map((article) => (
-                <Card key={article.id} className="overflow-hidden h-full flex flex-col">
-                  <Link href={`/articles/${article.slug}`} className="block">
-                    <div className="relative h-48 w-full">
-                      <Image
-                        src={article.imageUrl}
-                        alt={article.title}
-                        fill
-                        className="object-cover"
-                        data-ai-hint={article.imageHint}
-                      />
-                    </div>
-                  </Link>
-                  <CardHeader>
-                    <CardTitle>
-                      <Link href={`/articles/${article.slug}`} className="hover:text-primary transition-colors">
-                        {article.title}
-                      </Link>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="flex-grow">
-                    <CardDescription>{article.description}</CardDescription>
-                  </CardContent>
-                  <div className="p-6 pt-0">
-                    <Link href={`/articles/${article.slug}`}>
-                      <Button variant="link" className="p-0 text-foreground">
-                        อ่านต่อ <ArrowRight className="ml-2 h-4 w-4" />
-                      </Button>
-                    </Link>
-                  </div>
-                </Card>
-              ))}
-            </div>
-            <div className="text-center mt-12">
               <Link href="/articles">
-                  <Button variant="outline">
-                      ดูบทความทั้งหมด <Newspaper className="ml-2 h-4 w-4" />
-                  </Button>
+                <Button variant="link" className="text-foreground">
+                  ดูทั้งหมด <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
               </Link>
             </div>
+            
+            {articles.length > 0 ? (
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Main Article */}
+                    {mainArticle && (
+                        <Link href={`/articles/${mainArticle.slug}`} className="group block">
+                            <Card className="overflow-hidden h-full">
+                                <div className="relative aspect-[4/3]">
+                                    <Image
+                                        src={mainArticle.imageUrl}
+                                        alt={mainArticle.title}
+                                        fill
+                                        className="object-cover transition-transform duration-300 group-hover:scale-105"
+                                        data-ai-hint={mainArticle.imageHint}
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                                    <div className="absolute bottom-0 left-0 p-6">
+                                        <Badge variant="secondary">{mainArticle.category}</Badge>
+                                        <h3 className="text-2xl font-bold text-white mt-2 leading-tight group-hover:underline">{mainArticle.title}</h3>
+                                    </div>
+                                </div>
+                            </Card>
+                        </Link>
+                    )}
+                    
+                    {/* Other Articles */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        {otherArticles.map((article) => (
+                           <Link key={article.id} href={`/articles/${article.slug}`} className="group block">
+                             <Card className="overflow-hidden h-full flex flex-col">
+                                <div className="relative aspect-video">
+                                     <Image
+                                        src={article.imageUrl}
+                                        alt={article.title}
+                                        fill
+                                        className="object-cover transition-transform duration-300 group-hover:scale-105"
+                                        data-ai-hint={article.imageHint}
+                                    />
+                                     <div className="absolute top-2 right-2">
+                                        <Badge variant="secondary" className="text-xs">{article.category}</Badge>
+                                     </div>
+                                </div>
+                                <CardContent className="p-4 flex-grow">
+                                    <h4 className="font-semibold leading-snug group-hover:underline">{article.title}</h4>
+                                </CardContent>
+                             </Card>
+                           </Link>
+                        ))}
+                    </div>
+                </div>
+            ) : (
+                <p>Loading articles...</p>
+            )}
+
           </div>
         </section>
+
       </div>
     </>
   );
 }
-
-    

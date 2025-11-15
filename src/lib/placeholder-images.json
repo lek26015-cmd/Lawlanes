@@ -31,6 +31,12 @@
       "imageHint": "lawyer books"
     },
     {
+      "id": "article-0",
+      "description": "Speaker on a conference stage with a colorful background",
+      "imageUrl": "https://images.unsplash.com/photo-1540575467063-178a50c2df87?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxjb25mZXJlbmNlJTIwc3RhZ2V8ZW58MHx8fHwxNzYzMjI1MDIzfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "conference stage"
+    },
+    {
       "id": "article-1",
       "description": "Signing a contract",
       "imageUrl": "https://images.unsplash.com/photo-1739430630591-9380bdf1c798?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxjb250cmFjdCUyMGRvY3VtZW50fGVufDB8fHx8MTc2MzE5ODg2OHww&ixlib=rb-4.1.0&q=80&w=1080",
@@ -47,6 +53,42 @@
       "description": "Trademark logo",
       "imageUrl": "https://images.unsplash.com/photo-1608241611705-fa1853e69b91?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8dHJhZGVtYXJrJTIwbG9nb3xlbnwwfHx8fDE3NjMxOTg4Njh8MA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "trademark logo"
+    },
+    {
+      "id": "article-4",
+      "description": "Resume on a desk",
+      "imageUrl": "https://images.unsplash.com/photo-1758270703396-b7cb640fea29?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxyZXN1bWUlMjBkb2N1bWVudHxlbnwwfHx8fDE3NjMxOTg5NTl8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "resume document"
+    },
+    {
+      "id": "article-5",
+      "description": "Rack of clothes in a store",
+      "imageUrl": "https://images.unsplash.com/photo-1555529733-ba28d9c4587c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxjbG90aGluZyUyMHJhY2t8ZW58MHx8fHwxNzYzMjI1MDIzfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "clothing rack"
+    },
+    {
+      "id": "article-6",
+      "description": "Audience at a conference",
+      "imageUrl": "https://images.unsplash.com/photo-1558008258-3256797b43f3?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxjb25mZXJlbmNlJTIwZXZlbnR8ZW58MHx8fHwxNzYzMTQwMTIxfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "conference event"
+    },
+    {
+      "id": "article-7",
+      "description": "Two people in a job interview",
+      "imageUrl": "https://images.unsplash.com/photo-1573497491208-6b1acb260507?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxqb2IlMjBpbnRlcnZpZXd8ZW58MHx8fHwxNzYzMTI3MjIxfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "job interview"
+    },
+    {
+      "id": "article-8",
+      "description": "Group of people on a stage for a marketing event",
+      "imageUrl": "https://images.unsplash.com/photo-1762968274962-20c12e6e8ecd?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw1fHxtYXJrZXRpbmclMjBldmVudHxlbnwwfHx8fDE3NjMyMjUwMjN8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "marketing event"
+    },
+    {
+      "id": "article-9",
+      "description": "Two people having coffee, suggesting a support conversation",
+      "imageUrl": "https://images.unsplash.com/photo-1573878587306-c6723c815090?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxzdXBwb3J0JTIwZ3JvdXB8ZW58MHx8fHwxNzYzMjAyMDIxfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "support group"
     }
   ]
 }
