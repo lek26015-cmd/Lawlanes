@@ -11,7 +11,7 @@ import { ArrowRight, Briefcase, Calendar, FileText, Loader2, Search } from 'luci
 import { getDashboardData } from '@/lib/data';
 import type { Case, UpcomingAppointment } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
-import { format } from 'date-fns';
+import { format, differenceInCalendarDays, isToday } from 'date-fns';
 import { th } from 'date-fns/locale';
 
 export default function DashboardPage() {
@@ -29,6 +29,18 @@ export default function DashboardPage() {
     }
     fetchData();
   }, []);
+
+  const getDaysUntilText = (date: Date) => {
+    const today = new Date();
+    if (isToday(date)) {
+      return "(วันนี้)";
+    }
+    const days = differenceInCalendarDays(date, today);
+    if (days > 0) {
+      return `(อีก ${days} วัน)`;
+    }
+    return "";
+  };
 
   return (
     <div className="container mx-auto px-4 md:px-6 py-12">
@@ -116,6 +128,7 @@ export default function DashboardPage() {
                           <p className="font-semibold">ปรึกษากับ {appt.lawyer.name}</p>
                           <p className="text-sm text-muted-foreground">
                             {format(appt.date, 'EEEE, d MMMM yyyy', { locale: th })}
+                            <span className="ml-2 font-medium text-primary">{getDaysUntilText(appt.date)}</span>
                           </p>
                           <p className="text-sm text-muted-foreground mt-1 truncate">
                            <span className='font-medium'>หัวข้อ:</span> {appt.description}
