@@ -7,32 +7,62 @@ import Logo from '@/components/logo';
 import { Input } from '@/components/ui/input';
 import { Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useState, useEffect } from 'react';
 
 export default function Header() {
   const pathname = usePathname();
   const isHomePage = pathname === '/';
+  const [isScrolled, setIsScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      // Set a threshold, e.g., 50px
+      const scrolled = window.scrollY > 50;
+      if (scrolled !== isScrolled) {
+        setIsScrolled(scrolled);
+      }
+    };
+
+    if (isHomePage) {
+      window.addEventListener('scroll', handleScroll);
+    }
+
+    return () => {
+      if (isHomePage) {
+        window.removeEventListener('scroll', handleScroll);
+      }
+    };
+  }, [isHomePage, isScrolled]);
+
+  const useTransparentHeader = isHomePage && !isScrolled;
 
   const headerClasses = cn(
-    "sticky top-0 z-50 w-full border-b",
-    isHomePage ? 'bg-white text-foreground' : 'bg-foreground text-background'
+    'sticky top-0 z-50 w-full border-b transition-colors duration-300',
+    useTransparentHeader
+      ? 'bg-white text-foreground border-gray-200'
+      : 'bg-foreground text-background border-foreground'
   );
 
   const navLinkClasses = cn(
-    "transition-colors",
-    isHomePage ? 'text-foreground/60 hover:text-foreground' : 'text-background/80 hover:text-background'
+    'transition-colors',
+    useTransparentHeader
+      ? 'text-foreground/60 hover:text-foreground'
+      : 'text-background/80 hover:text-background'
   );
-  
+
   const activeNavLinkClasses = cn(
-    "transition-colors",
-    isHomePage ? 'text-foreground' : 'text-background'
+    'font-semibold',
+    useTransparentHeader ? 'text-foreground' : 'text-background'
   );
   
   const loginButtonClasses = cn(
-    isHomePage ? '' : 'text-background hover:text-background hover:bg-white/10'
+    useTransparentHeader ? '' : 'text-background hover:text-background hover:bg-white/10'
   );
 
   const signupButtonClasses = cn(
-    isHomePage ? 'bg-foreground text-background hover:bg-foreground/90' : 'bg-background text-foreground hover:bg-background/90'
+    useTransparentHeader 
+      ? 'bg-foreground text-background hover:bg-foreground/90' 
+      : 'bg-background text-foreground hover:bg-background/90'
   );
 
 
@@ -40,7 +70,7 @@ export default function Header() {
     <header className={headerClasses}>
       <div className="container mx-auto flex h-20 items-center justify-between px-4 md:px-6">
         <Link href="/" aria-label="Home">
-          <Logo className={cn(isHomePage ? '' : 'text-background')} />
+          <Logo className={cn(useTransparentHeader ? '' : 'text-background')} />
         </Link>
         
         <div className="hidden md:flex flex-1 justify-center px-8 lg:px-16">
@@ -70,7 +100,7 @@ export default function Header() {
           <Link href="/#features" className={navLinkClasses}>
             บริการ
           </Link>
-          <Link href="/articles" className={pathname === '/articles' ? activeNavLinkClasses : navLinkClasses}>
+          <Link href="/articles" className={pathname.startsWith('/articles') ? activeNavLinkClasses : navLinkClasses}>
             บทความ
           </Link>
         </nav>
