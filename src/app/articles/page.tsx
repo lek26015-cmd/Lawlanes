@@ -10,6 +10,7 @@ import type { Article } from '@/lib/types';
 import { ArrowRight, Search, FileText } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
 
 export default function ArticlesPage() {
   const [articles, setArticles] = useState<Article[]>([]);
