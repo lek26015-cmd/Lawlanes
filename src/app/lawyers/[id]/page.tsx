@@ -1,7 +1,7 @@
 'use client';
 
 import { getLawyerById } from '@/lib/data';
-import { notFound } from 'next/navigation';
+import { notFound, useParams } from 'next/navigation';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { StarIcon } from '@/components/icons/star-icon';
@@ -28,7 +28,9 @@ export default function LawyerProfilePage({ params }: { params: { id: string } }
       }
       setLawyer(lawyerData);
     }
-    fetchLawyer();
+    if (params.id) {
+        fetchLawyer();
+    }
   }, [params.id]);
   
   const handleConsultClick = (type: 'consult' | 'message') => {
