@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -400,12 +399,12 @@ export default function Home() {
             </section>
             
             <section className="w-full py-12 md:py-24 lg:py-32 bg-blue-50">
-              <div className='max-w-5xl mx-auto'>
+              <div className="container mx-auto px-4 md:px-6">
                   <div className='text-center mb-8'>
                       <h2 className='text-3xl font-bold tracking-tight text-foreground font-headline'>ทนายที่แนะนำ</h2>
                       <Separator className='w-24 mx-auto mt-2 bg-blue-200' />
                   </div>
-                  <div className="flex flex-col gap-4">
+                  <div className="max-w-5xl mx-auto flex flex-col gap-4">
                       {recommendedLawyers.map((lawyer) => (
                       <div key={lawyer.id} className="bg-white rounded-lg shadow-md">
                           <LawyerCard lawyer={lawyer} />
@@ -611,3 +610,5 @@ export default function Home() {
     </>
   );
 }
+
+    
