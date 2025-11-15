@@ -164,7 +164,7 @@ export default function ChatModal({ isOpen, onClose }: ChatModalProps) {
     return (
       <>
         <Drawer open={isOpen} onOpenChange={handleClose}>
-          <DrawerContent className="h-full max-h-full flex flex-col bg-background outline-none p-0 border-0">
+          <DrawerContent className="h-full max-h-full flex flex-col bg-transparent outline-none p-0 border-0">
              <div className="relative h-full flex flex-col">
                 <div className="absolute -inset-0.5 bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600" />
                 <div className="relative bg-background h-full flex flex-col">
@@ -203,11 +203,11 @@ export default function ChatModal({ isOpen, onClose }: ChatModalProps) {
     <>
       <Dialog open={isOpen} onOpenChange={handleClose}>
         <DialogContent 
-          className="p-0 border-0 shadow-2xl fixed bottom-[88px] right-6 sm:max-w-md md:max-w-lg w-full flex flex-col h-[70vh] max-h-[600px] rounded-2xl overflow-hidden"
+          className="p-0 border-0 shadow-2xl fixed bottom-[88px] right-6 sm:max-w-md md:max-w-lg w-full flex flex-col h-[70vh] max-h-[600px] rounded-2xl overflow-hidden bg-transparent"
           onInteractOutside={(e) => e.preventDefault()}
         >
           <div className="absolute -inset-0.5 bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 rounded-2xl" />
-           <div className="relative bg-background w-full h-full flex flex-col rounded-2xl overflow-hidden">
+           <div className="relative bg-background w-full h-full flex flex-col rounded-xl overflow-hidden">
             <DialogHeader className="p-6 pb-2">
               <DialogTitle className="flex items-center gap-2 font-headline">
                 <Scale /> AI Legal Advisor
