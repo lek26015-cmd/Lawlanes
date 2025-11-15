@@ -6,6 +6,7 @@ import { getApprovedLawyers } from '@/lib/data';
 import LawyerCard from '@/components/lawyer-card';
 import type { LawyerProfile } from '@/lib/types';
 import { Loader2 } from 'lucide-react';
+import React from 'react';
 
 function LawyersPageContent() {
   const searchParams = useSearchParams();
