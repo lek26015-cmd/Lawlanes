@@ -95,9 +95,9 @@ function LawyersPageContent() {
           <Loader2 className="h-12 w-12 animate-spin text-primary" />
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div className="flex flex-col gap-4">
           {filteredLawyers.map((lawyer) => (
-             <div key={lawyer.id} className={`transition-all duration-500 ${recommendedLawyerIds.includes(lawyer.id) ? 'border-2 border-primary rounded-xl shadow-lg' : ''}`}>
+             <div key={lawyer.id} className={`transition-all duration-500 ${recommendedLawyerIds.includes(lawyer.id) ? 'border-2 border-primary rounded-xl shadow-lg' : 'border-b border-border'}`}>
                 <LawyerCard lawyer={lawyer} />
              </div>
           ))}
