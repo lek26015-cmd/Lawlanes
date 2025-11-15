@@ -13,14 +13,11 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import React, { useState, useEffect } from 'react';
 import type { LawyerProfile } from '@/lib/types';
-import ChatModal from '@/components/chat/chat-modal';
 
 export default function LawyerProfilePage() {
   const params = useParams();
   const id = params.id as string;
   const [lawyer, setLawyer] = useState<LawyerProfile | null>(null);
-  const [isChatOpen, setIsChatOpen] = useState(false);
-  const [initialPrompt, setInitialPrompt] = useState('');
 
   useEffect(() => {
     async function fetchLawyer() {
@@ -33,18 +30,6 @@ export default function LawyerProfilePage() {
     }
     fetchLawyer();
   }, [id]);
-  
-  const handleConsultClick = (type: 'consult' | 'message') => {
-      const prompt = type === 'consult' 
-          ? `สวัสดีครับ สนใจนัดปรึกษาคุณ ${lawyer?.name} ครับ`
-          : `สวัสดีครับ สนใจส่งข้อความปรึกษาคุณ ${lawyer?.name} ครับ`;
-      setInitialPrompt(prompt);
-      setIsChatOpen(true);
-  }
-  
-  const clearInitialPrompt = () => {
-      setInitialPrompt('');
-  }
 
 
   if (!lawyer) {
@@ -123,14 +108,6 @@ export default function LawyerProfilePage() {
                                 ))}
                             </div>
                         </div>
-                         <div className="flex-shrink-0 flex flex-col items-center justify-center gap-3 w-full md:w-40 md:ml-auto">
-                            <Button className="w-full bg-foreground text-background hover:bg-foreground/90" onClick={() => handleConsultClick('consult')}>
-                                <Phone className="mr-2 h-4 w-4" /> นัดปรึกษา
-                            </Button>
-                            <Button variant="outline" className="w-full" onClick={() => handleConsultClick('message')}>
-                                <Mail className="mr-2 h-4 w-4" /> ส่งข้อความ
-                            </Button>
-                         </div>
                     </div>
                 </div>
 
@@ -222,7 +199,6 @@ export default function LawyerProfilePage() {
         </div>
       </div>
     </div>
-    <ChatModal isOpen={isChatOpen} onOpenChange={setIsChatOpen} initialPrompt={initialPrompt} clearInitialPrompt={clearInitialPrompt} />
     </>
   );
 }
