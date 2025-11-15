@@ -227,7 +227,7 @@ function ChatPageContent() {
                                     onChange={handleFileChange}
                                     className="hidden" 
                                 />
-                                <Button onClick={handleUploadClick} className="w-full">
+                                <Button onClick={handleUploadClick} className="w-full" disabled={isChatDisabled}>
                                     <Upload className="mr-2 h-4 w-4" /> อัปโหลดไฟล์
                                 </Button>
                             </div>
