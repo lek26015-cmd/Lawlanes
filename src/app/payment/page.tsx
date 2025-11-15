@@ -6,7 +6,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getLawyerById } from '@/lib/data';
 import type { LawyerProfile } from '@/lib/types';
-import { ArrowLeft, CreditCard, Calendar, User, CheckCircle } from 'lucide-react';
+import { ArrowLeft, CreditCard, Calendar, User, CheckCircle, QrCode } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +14,9 @@ import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import QRCode from 'qrcode.react';
+import generatePayload from 'promptpay-qr';
 
 function PaymentPageContent() {
   const searchParams = useSearchParams();
@@ -28,6 +31,7 @@ function PaymentPageContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
+  const [promptPayPayload, setPromptPayPayload] = useState('');
 
   const consultationFee = 3000; // Mock fee
 
@@ -44,9 +48,16 @@ function PaymentPageContent() {
     }
     fetchLawyer();
   }, [lawyerId]);
+  
+  useEffect(() => {
+    // Generate PromptPay payload when component mounts with fee
+    const mobileNumber = '081-234-5678'; // Replace with actual or mock merchant phone number
+    const payload = generatePayload(mobileNumber, { amount: consultationFee });
+    setPromptPayPayload(payload);
+  }, [consultationFee]);
 
-  const handlePayment = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handlePayment = (e?: React.FormEvent) => {
+    e?.preventDefault();
     setIsProcessing(true);
     // Simulate payment processing
     setTimeout(() => {
@@ -97,7 +108,6 @@ function PaymentPageContent() {
     <Card className="w-full max-w-4xl mx-auto">
       <CardHeader>
         <CardTitle className="text-2xl font-headline flex items-center gap-3">
-            <CreditCard />
             ยืนยันการนัดหมายและชำระเงิน
         </CardTitle>
         <CardDescription>
@@ -142,30 +152,51 @@ function PaymentPageContent() {
 
         {/* Payment Form */}
         <div className="space-y-4">
-             <h3 className="font-semibold text-lg">ข้อมูลการชำระเงิน (ตัวอย่าง)</h3>
-             <form onSubmit={handlePayment} className="space-y-4">
-                <div className="space-y-2">
-                    <Label htmlFor="cardNumber">หมายเลขบัตรเครดิต</Label>
-                    <Input id="cardNumber" placeholder="0000 0000 0000 0000" disabled={isProcessing} />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="expiryDate">วันหมดอายุ (MM/YY)</Label>
-                        <Input id="expiryDate" placeholder="MM/YY" disabled={isProcessing} />
+            <h3 className="font-semibold text-lg">เลือกวิธีการชำระเงิน</h3>
+            <Tabs defaultValue="credit-card" className="w-full">
+                <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="credit-card"><CreditCard className="mr-2 h-4 w-4" /> บัตรเครดิต</TabsTrigger>
+                    <TabsTrigger value="promptpay"><QrCode className="mr-2 h-4 w-4" /> PromptPay</TabsTrigger>
+                </TabsList>
+                <TabsContent value="credit-card" className="mt-4">
+                     <form onSubmit={handlePayment} className="space-y-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="cardNumber">หมายเลขบัตรเครดิต</Label>
+                            <Input id="cardNumber" placeholder="0000 0000 0000 0000" disabled={isProcessing} />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label htmlFor="expiryDate">วันหมดอายุ (MM/YY)</Label>
+                                <Input id="expiryDate" placeholder="MM/YY" disabled={isProcessing} />
+                            </div>
+                            <div className="space-y-2">
+                                <Label htmlFor="cvc">CVC</Label>
+                                <Input id="cvc" placeholder="123" disabled={isProcessing} />
+                            </div>
+                        </div>
+                         <div className="space-y-2">
+                            <Label htmlFor="cardName">ชื่อบนบัตร</Label>
+                            <Input id="cardName" placeholder="สมชาย กฎหมายดี" disabled={isProcessing} />
+                        </div>
+                        <Button type="submit" className="w-full" size="lg" disabled={isProcessing}>
+                            {isProcessing ? 'กำลังดำเนินการ...' : `ยืนยันและชำระเงิน ${new Intl.NumberFormat('th-TH').format(consultationFee)} บาท`}
+                        </Button>
+                     </form>
+                </TabsContent>
+                <TabsContent value="promptpay" className="mt-4">
+                    <div className="flex flex-col items-center justify-center space-y-4 p-4 border rounded-md">
+                        <p className="font-semibold">สแกน QR Code เพื่อชำระเงิน</p>
+                        <div className="p-4 bg-white rounded-lg">
+                           <QRCode value={promptPayPayload} size={180} />
+                        </div>
+                        <p className="text-sm text-muted-foreground">ยอดชำระ: {new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(consultationFee)}</p>
+                        <p className="text-xs text-muted-foreground text-center">ใช้แอปพลิเคชันธนาคารของคุณสแกน QR Code นี้เพื่อชำระเงิน</p>
+                         <Button onClick={() => handlePayment()} className="w-full mt-4" size="lg" disabled={isProcessing}>
+                            {isProcessing ? 'กำลังตรวจสอบ...' : `ตรวจสอบการชำระเงิน`}
+                        </Button>
                     </div>
-                    <div className="space-y-2">
-                        <Label htmlFor="cvc">CVC</Label>
-                        <Input id="cvc" placeholder="123" disabled={isProcessing} />
-                    </div>
-                </div>
-                 <div className="space-y-2">
-                    <Label htmlFor="cardName">ชื่อบนบัตร</Label>
-                    <Input id="cardName" placeholder="สมชาย กฎหมายดี" disabled={isProcessing} />
-                </div>
-                <Button type="submit" className="w-full" size="lg" disabled={isProcessing}>
-                    {isProcessing ? 'กำลังดำเนินการ...' : `ยืนยันและชำระเงิน ${new Intl.NumberFormat('th-TH').format(consultationFee)} บาท`}
-                </Button>
-             </form>
+                </TabsContent>
+            </Tabs>
         </div>
       </CardContent>
     </Card>
