@@ -39,7 +39,10 @@ function SupportPageContent() {
                 return;
             }
             const { tickets } = await getDashboardData();
-            const currentTicket = tickets.find(t => t.id === ticketId);
+            // Simulate changing one ticket to resolved for testing purposes
+            const modifiedTickets = tickets.map(t => t.id === 'TICKET-5891A' ? { ...t, status: 'resolved' as const } : t);
+            const currentTicket = modifiedTickets.find(t => t.id === ticketId);
+
             setTicket(currentTicket || null);
             setIsLoading(false);
         }
@@ -78,7 +81,7 @@ function SupportPageContent() {
     
     const statusBadges: { [key: string]: React.ReactNode } = {
         pending: <Badge variant="outline" className="border-yellow-600 text-yellow-700 bg-yellow-50">กำลังตรวจสอบ</Badge>,
-        resolved: <Badge variant="secondary">แก้ไขแล้ว</Badge>,
+        resolved: <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-200">แก้ไขแล้ว</Badge>,
     }
 
     if (isLoading) {
@@ -88,12 +91,14 @@ function SupportPageContent() {
     if (!ticket) {
         return <div>Ticket not found.</div>
     }
+    
+    const isResolved = ticket.status === 'resolved';
 
     return (
         <div className="container mx-auto px-4 md:px-6 py-8">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2">
-                    <SupportChatBox ticket={ticket} />
+                    <SupportChatBox ticket={ticket} isDisabled={isResolved} />
                 </div>
                 <div className="lg:col-span-1 space-y-6">
                     <Card>
@@ -157,9 +162,10 @@ function SupportPageContent() {
                                     type="file" 
                                     ref={fileInputRef} 
                                     onChange={handleFileChange}
-                                    className="hidden" 
+                                    className="hidden"
+                                    disabled={isResolved}
                                 />
-                                <Button onClick={handleUploadClick} className="w-full">
+                                <Button onClick={handleUploadClick} className="w-full" disabled={isResolved}>
                                     <Upload className="mr-2 h-4 w-4" /> อัปโหลดไฟล์
                                 </Button>
                             </div>

@@ -13,6 +13,7 @@ import { useFirebase } from '@/firebase';
 
 interface SupportChatBoxProps {
   ticket: ReportedTicket;
+  isDisabled?: boolean;
 }
 
 interface SupportMessage {
@@ -23,7 +24,7 @@ interface SupportMessage {
     avatarUrl?: string;
 }
 
-export function SupportChatBox({ ticket }: SupportChatBoxProps) {
+export function SupportChatBox({ ticket, isDisabled = false }: SupportChatBoxProps) {
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -66,7 +67,7 @@ export function SupportChatBox({ ticket }: SupportChatBoxProps) {
 
   const handleSendMessage = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!input.trim() || !user) return;
+    if (!input.trim() || !user || isDisabled) return;
 
     const userMessage: SupportMessage = {
       id: Date.now().toString(),
@@ -163,14 +164,14 @@ export function SupportChatBox({ ticket }: SupportChatBoxProps) {
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={"พิมพ์ข้อความถึงฝ่ายสนับสนุน..."}
-            disabled={isLoading}
+            placeholder={isDisabled ? "Ticket นี้ได้รับการแก้ไขแล้ว" : "พิมพ์ข้อความถึงฝ่ายสนับสนุน..."}
+            disabled={isLoading || isDisabled}
             className="flex-grow rounded-full"
           />
           <Button
             type="submit"
             size="icon"
-            disabled={isLoading || !input.trim()}
+            disabled={isLoading || !input.trim() || isDisabled}
             className="rounded-full w-10 h-10 bg-blue-600 hover:bg-blue-700"
           >
             <Send className="w-5 h-5" />
