@@ -116,10 +116,10 @@ export default function Header() {
         </nav>
 
         <div className="hidden items-center gap-2 md:flex ml-4 whitespace-nowrap">
-          <Link href="/signup">
+          <Link href="/">
             <Button variant="ghost" className={loginButtonClasses}>เข้าสู่ระบบ</Button>
           </Link>
-          <Link href="/signup">
+          <Link href="/">
             <Button className={signupButtonClasses}>เข้าสู่ระบบทนาย</Button>
           </Link>
         </div>

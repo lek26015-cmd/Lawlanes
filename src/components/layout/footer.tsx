@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 
 export default function Footer() {
   const pathname = usePathname();
-  const isAuthPage = pathname === '/login' || pathname === '/signup';
+  const isAuthPage = pathname === '/signup';
 
   const quickLinks = [
     { href: '/', label: 'หน้าแรก' },
@@ -17,8 +17,8 @@ export default function Footer() {
   ];
 
   const forLawyersLinks = [
-    { href: '/signup', label: 'เข้าร่วมเป็นทนาย Lawlane' },
-    { href: '/signup', label: 'เข้าสู่ระบบทนาย' },
+    { href: '/', label: 'เข้าร่วมเป็นทนาย Lawlane' },
+    { href: '/', label: 'เข้าสู่ระบบทนาย' },
     { href: '#', label: 'Dashboard ทนาย' },
   ];
 
