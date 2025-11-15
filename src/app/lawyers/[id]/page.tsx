@@ -13,6 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import React, { useState, useEffect } from 'react';
 import type { LawyerProfile } from '@/lib/types';
+import ChatModal from '@/components/chat/chat-modal';
 
 export default function LawyerProfilePage() {
   const params = useParams();
@@ -91,7 +92,7 @@ export default function LawyerProfilePage() {
                                 priority
                             />
                         </div>
-                        <div className="text-center md:text-left">
+                        <div className="text-center md:text-left flex-grow">
                             <h1 className="text-3xl font-bold font-headline text-foreground">{lawyer.name}</h1>
                             <p className="text-lg text-primary font-semibold mt-1">{lawyer.specialty[0]}</p>
                             <div className="flex items-center gap-2 mt-2 justify-center md:justify-start">
@@ -107,6 +108,14 @@ export default function LawyerProfilePage() {
                                     <Badge key={index} variant="secondary">{spec}</Badge>
                                 ))}
                             </div>
+                        </div>
+                        <div className="flex-shrink-0 flex flex-col items-center justify-center gap-3 w-full md:w-40">
+                            <Button className="w-full bg-foreground text-background hover:bg-foreground/90">
+                                <Phone className="mr-2 h-4 w-4" /> นัดปรึกษา
+                            </Button>
+                            <Button variant="outline" className="w-full">
+                                <Mail className="mr-2 h-4 w-4" /> ส่งข้อความ
+                            </Button>
                         </div>
                     </div>
                 </div>

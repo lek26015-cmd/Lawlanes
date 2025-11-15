@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { LawyerProfile } from '@/lib/types';
-import { Mail, Scale } from 'lucide-react';
+import { Mail, Scale, Phone } from 'lucide-react';
 import { StarIcon } from '@/components/icons/star-icon';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -52,6 +52,9 @@ export default function LawyerCard({ lawyer }: LawyerCardProps) {
             ดูโปรไฟล์
           </Button>
         </Link>
+        <Button variant="outline" className="w-full">
+            <Phone className="mr-2 h-4 w-4" /> นัดปรึกษา
+        </Button>
       </div>
     </div>
   );
