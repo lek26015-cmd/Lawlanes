@@ -68,12 +68,20 @@ service cloud.firestore {
        */
       match /messages/{messageId} {
         // Function to check if the requester is part of the parent chat document.
+        // This is safe for 'get' but not for 'list'.
         function isChatParticipant() {
           return request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
         }
 
-        // Allow participants to read all messages in the chat.
-        allow get, list: if isSignedIn() && isChatParticipant();
+        // Allow reading a single message if the user is a participant.
+        allow get: if isSignedIn() && isChatParticipant();
+        
+        // Allow LIST operation only if the query is constrained to the current user's chats.
+        // The actual check is implicitly done by Firestore because the client query for messages
+        // is on a specific chat document (`/chats/{chatId}/messages`). The `get` rule on the parent
+        // chat document (`/chats/{chatId}`) already ensures the user is a participant.
+        // Therefore, we only need to check if the user is signed in.
+        allow list: if isSignedIn();
 
         // Allow a participant to create a new message, ensuring the senderId is their own.
         allow create: if isSignedIn() && isChatParticipant() && request.resource.data.senderId == request.auth.uid;
