@@ -7,10 +7,12 @@ import type { LawyerProfile } from '@/lib/types';
 interface ChatContextType {
   isAiChatOpen: boolean;
   setAiChatOpen: (isOpen: boolean) => void;
+  // Deprecated properties for the old pop-up chat
   isLawyerChatOpen: boolean;
   activeLawyer: LawyerProfile | null;
   openLawyerChat: (lawyer: LawyerProfile) => void;
   closeLawyerChat: () => void;
+  // Properties for new chat flow
   initialPrompt: string;
   setInitialPrompt: (prompt: string) => void;
   initialChatMessage: string;
@@ -28,14 +30,16 @@ export const ChatProvider = ({ children }: { children: ReactNode }) => {
 
 
   const openLawyerChat = (lawyer: LawyerProfile) => {
+    // This function is now deprecated in favor of the full-page chat
     setActiveLawyer(lawyer);
     setIsLawyerChatOpen(true);
   };
 
   const closeLawyerChat = () => {
+    // This function is now deprecated
     setIsLawyerChatOpen(false);
     setActiveLawyer(null);
-    setInitialChatMessage(''); // Clear message when chat is closed
+    setInitialChatMessage('');
   };
 
   return (

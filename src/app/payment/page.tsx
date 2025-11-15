@@ -19,6 +19,8 @@ import QRCode from 'qrcode.react';
 import generatePayload from 'promptpay-qr';
 import { useChat } from '@/context/chat-context';
 import { Textarea } from '@/components/ui/textarea';
+import { v4 as uuidv4 } from 'uuid';
+
 
 function PaymentPageContent() {
   const searchParams = useSearchParams();
@@ -38,7 +40,7 @@ function PaymentPageContent() {
   const [promptPayPayload, setPromptPayPayload] = useState('');
   const [initialMessage, setInitialMessage] = useState('');
 
-  const appointmentFee = 3000;
+  const appointmentFee = 3500;
   const chatTicketFee = 500;
   const fee = paymentType === 'chat' ? chatTicketFee : appointmentFee;
   const title = paymentType === 'chat' ? 'ยืนยันการเปิด Ticket สนทนา' : 'ยืนยันการนัดหมายและชำระเงิน';
@@ -59,7 +61,8 @@ function PaymentPageContent() {
   }, [lawyerId]);
   
   useEffect(() => {
-    const mobileNumber = '081-234-5678';
+    // This is a mock phone number for QR generation
+    const mobileNumber = '081-234-5678'; 
     const payload = generatePayload(mobileNumber, { amount: fee });
     setPromptPayPayload(payload);
   }, [fee]);
@@ -78,17 +81,20 @@ function PaymentPageContent() {
     setIsProcessing(true);
     setTimeout(() => {
       setIsProcessing(false);
-      setPaymentSuccess(true);
+      
       toast({
         title: "ชำระเงินสำเร็จ!",
         description: paymentType === 'chat' ? 'คุณสามารถเริ่มสนทนากับทนายความได้แล้ว' : 'เราได้ส่งคำขอนัดหมายของคุณไปยังทนายความแล้ว',
       });
       
       if (paymentType === 'chat' && lawyer) {
+        // In a real app, this would create a chat session in the DB.
+        // For now, we generate a mock chat ID and navigate to the new chat page.
+        const newChatId = uuidv4();
         setInitialChatMessage(initialMessage);
-        openLawyerChat(lawyer);
-        router.push(`/lawyers/${lawyerId}`);
-      } else {
+        router.push(`/chat/${newChatId}?lawyerId=${lawyer.id}`);
+      } else if (paymentType === 'appointment') {
+        setPaymentSuccess(true);
         setTimeout(() => {
           router.push(`/lawyers/${lawyerId}`);
         }, 3000);
@@ -125,8 +131,6 @@ function PaymentPageContent() {
         </Card>
     )
   }
-  
-  // For chat, success is handled by opening the dialog, so we don't need a specific success screen here.
 
   return (
     <Card className="w-full max-w-4xl mx-auto">
@@ -200,7 +204,7 @@ function PaymentPageContent() {
 
         <div className="space-y-4">
             <h3 className="font-semibold text-lg">เลือกวิธีการชำระเงิน</h3>
-            <Tabs defaultValue="credit-card" className="w-full">
+            <Tabs defaultValue="promptpay" className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="credit-card"><CreditCard className="mr-2 h-4 w-4" /> บัตรเครดิต</TabsTrigger>
                     <TabsTrigger value="promptpay"><QrCode className="mr-2 h-4 w-4" /> PromptPay</TabsTrigger>
@@ -231,7 +235,7 @@ function PaymentPageContent() {
                      </form>
                 </TabsContent>
                 <TabsContent value="promptpay" className="mt-4">
-                    <div className="flex flex-col items-center justify-center space-y-4 p-4 border rounded-md">
+                    <div className="flex flex-col items-center justify-center space-y-4 p-4 border rounded-md bg-white">
                         <p className="font-semibold">สแกน QR Code เพื่อชำระเงิน</p>
                         <div className="p-4 bg-white rounded-lg">
                            <QRCode value={promptPayPayload} size={180} />

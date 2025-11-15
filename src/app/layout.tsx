@@ -3,12 +3,10 @@ import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import Header from '@/components/layout/header';
 import Footer from '@/components/layout/footer';
-import FloatingChatButton from '@/components/chat/floating-chat-button';
 import React from 'react';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { ChatProvider } from '@/context/chat-context';
 import ChatModal from '@/components/chat/chat-modal';
-import LawyerChatDialog from '@/components/chat/lawyer-chat-dialog';
 
 export const metadata: Metadata = {
   title: 'Lawlane AI Legal Advisor',
@@ -34,12 +32,11 @@ export default function RootLayout({
           <ChatProvider>
             <div className="flex min-h-screen flex-col">
               <Header />
-              <main className="flex-1">{children}</main>
+              <main className="flex-1 bg-gray-50/50">{children}</main>
               <Footer />
             </div>
-            <FloatingChatButton />
+            {/* FloatingChatButton and LawyerChatDialog are removed to favor the new full-page chat */}
             <ChatModal />
-            <LawyerChatDialog />
           </ChatProvider>
         </FirebaseClientProvider>
         <Toaster />

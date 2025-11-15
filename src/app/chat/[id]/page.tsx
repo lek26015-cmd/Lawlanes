@@ -1,0 +1,126 @@
+
+'use client';
+
+import { useState, useEffect, Suspense } from 'react';
+import { useParams, useSearchParams } from 'next/navigation';
+import { getLawyerById } from '@/lib/data';
+import type { LawyerProfile, HumanChatMessage } from '@/lib/types';
+import { useFirebase } from '@/firebase';
+import { useUser } from '@/firebase/auth/use-user';
+import { ChatBox } from '@/components/chat/chat-box';
+
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { AlertTriangle, FileText, Check, Sparkles } from 'lucide-react';
+import { Separator } from '@/components/ui/separator';
+
+function ChatPageContent() {
+    const params = useParams();
+    const searchParams = useSearchParams();
+    const chatId = params.id as string;
+    const lawyerId = searchParams.get('lawyerId');
+    
+    const [lawyer, setLawyer] = useState<LawyerProfile | null>(null);
+    const [isLoading, setIsLoading] = useState(true);
+
+    const { auth, firestore } = useFirebase();
+    const { data: user } = useUser(auth);
+
+    useEffect(() => {
+        async function fetchLawyer() {
+            if (!lawyerId) {
+                setIsLoading(false);
+                return;
+            }
+            const lawyerData = await getLawyerById(lawyerId);
+            setLawyer(lawyerData || null);
+            setIsLoading(false);
+        }
+        fetchLawyer();
+    }, [lawyerId]);
+
+
+    if (isLoading) {
+        return <div>Loading chat...</div>
+    }
+
+    if (!lawyer || !user || !firestore) {
+        return <div>Unable to load chat. Missing information.</div>
+    }
+
+    return (
+        <div className="container mx-auto px-4 md:px-6 py-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <div className="lg:col-span-2">
+                    <ChatBox firestore={firestore} currentUser={user} lawyer={lawyer} chatId={chatId} />
+                </div>
+                <div className="lg:col-span-1 space-y-6">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>สถานะ Escrow</CardTitle>
+                        </CardHeader>
+                        <CardContent className="text-center">
+                            <p className="text-muted-foreground">เงินของคุณถูกพักไว้ที่ Lawlane</p>
+                            <p className="text-4xl font-bold my-2">฿3,500</p>
+                            <p className="text-xs text-muted-foreground max-w-xs mx-auto">
+                                เงินจะถูกโอนให้ทนายเมื่อคุณกดยืนยันว่างานเสร็จสิ้น
+                            </p>
+                            <Button className="w-full mt-4 bg-green-600 hover:bg-green-700 text-white">
+                                <Check className="mr-2 h-4 w-4" /> ยืนยันและปล่อยเงินให้ทนาย
+                            </Button>
+                            <Button variant="link" className="text-muted-foreground text-xs mt-2">
+                                <AlertTriangle className="mr-1 h-3 w-3" /> รายงานปัญหา
+                            </Button>
+                        </CardContent>
+                    </Card>
+
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>เอกสารในคดี</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-3">
+                                <Button variant="outline" className="w-full">
+                                    <Sparkles className="mr-2 h-4 w-4" /> AI ช่วยแนะนำเอกสาร
+                                </Button>
+                                <Separator />
+                                <div className="space-y-2 text-sm">
+                                    <div className="flex justify-between items-center p-2 rounded-md hover:bg-gray-100">
+                                        <div className="flex items-center gap-2">
+                                            <FileText className="h-5 w-5 text-muted-foreground" />
+                                            <span>สัญญา_A.pdf</span>
+                                        </div>
+                                        <span className="text-muted-foreground text-xs">1.2MB</span>
+                                    </div>
+                                    <div className="flex justify-between items-center p-2 rounded-md hover:bg-gray-100">
+                                        <div className="flex items-center gap-2">
+                                            <FileText className="h-5 w-5 text-muted-foreground" />
+                                            <span>รูปถ่ายความเสียหาย.jpg</span>
+                                        </div>
+                                        <span className="text-muted-foreground text-xs">4.5MB</span>
+                                    </div>
+                                </div>
+                                <Button className="w-full">อัปโหลดไฟล์</Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+        </div>
+    )
+}
+
+
+export default function ChatPage() {
+    return (
+        <Suspense fallback={<div>Loading...</div>}>
+            <ChatPageContent />
+        </Suspense>
+    )
+}

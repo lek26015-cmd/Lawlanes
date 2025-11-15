@@ -1,7 +1,7 @@
 'use client';
 
 import { Button } from '@/components/ui/button';
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, Sparkles } from 'lucide-react';
 import { useChat } from '@/context/chat-context';
 
 export default function FloatingChatButton() {
@@ -17,8 +17,8 @@ export default function FloatingChatButton() {
             className="relative w-full h-14 pl-5 pr-6 py-2 bg-foreground hover:bg-foreground/90 text-background rounded-full shadow-lg flex items-center justify-center text-base font-semibold"
             aria-label="Open AI Chat"
           >
-            <MessageSquare className="mr-2 h-6 w-6" />
-            แชทกับ AI
+            <Sparkles className="mr-2 h-6 w-6" />
+            AI ผู้ช่วยกฎหมาย
           </Button>
         </div>
       </div>
