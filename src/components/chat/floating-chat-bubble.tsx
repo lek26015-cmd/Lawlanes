@@ -40,17 +40,25 @@ export default function FloatingChatBubble() {
         <div className="relative group">
           <div
             className={cn(
-              "absolute -inset-1.5 bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 rounded-full blur-lg opacity-75 group-hover:opacity-100 transition duration-300",
+              "absolute -inset-1 bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 rounded-full blur-lg opacity-75 group-hover:opacity-100 transition duration-300",
               isChatOpen ? "" : "animate-pulse"
             )}
+            style={{ animationDuration: '5s' }}
           />
           <Button
-            size="icon"
-            className="relative rounded-full h-16 w-16 shadow-lg"
+            size="lg"
+            className="relative rounded-full h-16 shadow-lg text-lg"
             onClick={handleToggleChat}
             aria-label="Toggle AI Legal Assistant"
           >
-            {isChatOpen ? <X className="h-7 w-7" /> : <MessageCircle className="h-7 w-7" />}
+            {isChatOpen ? (
+              <X className="h-7 w-7" />
+            ) : (
+              <>
+                <MessageCircle className="h-7 w-7 mr-3" />
+                <span>แชทกับ AI</span>
+              </>
+            )}
           </Button>
         </div>
       </div>
