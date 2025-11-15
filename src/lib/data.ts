@@ -365,10 +365,4 @@ export async function getUrgentJobs(): Promise<UrgentJob[]> {
   });
 }
 
-export async function getAdBanner(): Promise<ImagePlaceholder | null> {
-  return new Promise(resolve => {
-    setTimeout(() => {
-      resolve(PlaceHolderImages.find(img => img.id === 'ad-banner-2') || null);
-    }, 100);
-  });
-}
+    
