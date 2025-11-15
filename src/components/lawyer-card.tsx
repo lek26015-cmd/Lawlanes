@@ -67,5 +67,3 @@ export default function LawyerCard({ lawyer }: LawyerCardProps) {
     </div>
   );
 }
-
-    
