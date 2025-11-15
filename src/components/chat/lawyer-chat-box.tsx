@@ -12,6 +12,7 @@ import {
   doc,
   setDoc,
   Firestore,
+  Query,
 } from 'firebase/firestore';
 import { User } from 'firebase/auth';
 import type { LawyerProfile, HumanChatMessage } from '@/lib/types';
@@ -59,53 +60,51 @@ export function LawyerChatBox({
     let isMounted = true;
     setIsLoading(true);
     
-    const findOrCreateChat = async () => {
-        try {
-            const querySnapshot = await getDocs(chatQuery);
-            if(!isMounted) return;
+    const findOrCreateChat = () => {
+        getDocs(chatQuery)
+            .then(querySnapshot => {
+                if(!isMounted) return;
 
-            const existingChat = querySnapshot.docs.find(doc =>
-                doc.data().participants.includes(lawyer.userId)
-            );
+                const existingChat = querySnapshot.docs.find(doc =>
+                    doc.data().participants.includes(lawyer.userId)
+                );
 
-            if (existingChat) {
-                setChatId(existingChat.id);
-            } else {
-                const newChatId = uuidv4();
-                const chatRef = doc(firestore, 'chats', newChatId);
-                const newChatData = {
-                    participants: [currentUser.uid, lawyer.userId],
-                    createdAt: serverTimestamp(),
-                };
-                
-                // Non-blocking write with detailed error handling
-                setDoc(chatRef, newChatData)
-                  .catch(serverError => {
-                    const permissionError = new FirestorePermissionError({
-                      path: chatRef.path,
-                      operation: 'create',
-                      requestResourceData: newChatData,
-                    });
-                    errorEmitter.emit('permission-error', permissionError);
-                  });
+                if (existingChat) {
+                    setChatId(existingChat.id);
+                } else {
+                    const newChatId = uuidv4();
+                    const chatRef = doc(firestore, 'chats', newChatId);
+                    const newChatData = {
+                        participants: [currentUser.uid, lawyer.userId],
+                        createdAt: serverTimestamp(),
+                    };
+                    
+                    setDoc(chatRef, newChatData)
+                      .catch(serverError => {
+                        const permissionError = new FirestorePermissionError({
+                          path: chatRef.path,
+                          operation: 'create',
+                          requestResourceData: newChatData,
+                        });
+                        errorEmitter.emit('permission-error', permissionError);
+                      });
 
-                setChatId(newChatId);
-            }
-        } catch (error) {
-            console.error("Error finding or creating chat:", error);
-            // This might be a permission error on the 'list' operation itself.
-             if (error instanceof Error && error.message.includes('permission-denied')) {
+                    setChatId(newChatId);
+                }
+            })
+            .catch(error => {
+                // This might be a permission error on the 'list' operation itself.
                 const permissionError = new FirestorePermissionError({
-                  path: (chatQuery as any)._query.path.canonicalString(), // Unsafe but useful
-                  operation: 'list',
+                    path: (chatQuery as Query)._query?.path?.canonicalString() || 'chats',
+                    operation: 'list',
                 });
                 errorEmitter.emit('permission-error', permissionError);
-            }
-        } finally {
-            if (isMounted) {
-                setIsLoading(false);
-            }
-        }
+            })
+            .finally(() => {
+                if (isMounted) {
+                    setIsLoading(false);
+                }
+            });
     };
 
     findOrCreateChat();
@@ -116,7 +115,7 @@ export function LawyerChatBox({
         setChatId(null);
     };
 
-  }, [chatQuery, currentUser.uid, lawyer, firestore]);
+  }, [chatQuery, currentUser.uid, lawyer.userId, firestore]);
   
   useEffect(() => {
     if (!chatId) {
@@ -269,5 +268,3 @@ export function LawyerChatBox({
     </div>
   );
 }
-
-    
