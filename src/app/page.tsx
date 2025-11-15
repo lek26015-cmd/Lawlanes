@@ -155,17 +155,17 @@ export default function Home() {
           <div className="container mx-auto px-4 md:px-6">
             
             <div className="mb-16">
-                 <Card className="bg-blue-50 border-blue-200">
-                    <div className="flex flex-col md:flex-row items-center justify-between p-8 gap-6">
-                        <div className="flex items-center gap-4">
-                            <ShieldCheck className="w-10 h-10 text-blue-600 flex-shrink-0" />
+                 <Card className="bg-foreground text-background rounded-2xl">
+                    <div className="flex flex-col md:flex-row items-center justify-between p-8 gap-6 text-center md:text-left">
+                        <div className="flex items-center gap-5">
+                            <ShieldCheck className="w-12 h-12 text-green-400 flex-shrink-0" />
                             <div>
-                                <h3 className="font-bold text-xl text-blue-900">ตรวจสอบสถานะทนายความ</h3>
-                                <p className="text-blue-800/90">สร้างความมั่นใจก่อนเริ่มจ้างงาน ด้วยการตรวจสอบข้อมูลใบอนุญาตว่าความ</p>
+                                <h3 className="font-bold text-2xl">ตรวจสอบสถานะทนายความ</h3>
+                                <p className="text-background/80 mt-1">สร้างความมั่นใจก่อนเริ่มจ้างงาน ด้วยการตรวจสอบข้อมูลใบอนุญาตว่าความ</p>
                             </div>
                         </div>
-                        <Link href="/verify-lawyer" className="w-full md:w-auto">
-                            <Button className="bg-foreground text-background hover:bg-foreground/90 w-full">
+                        <Link href="/verify-lawyer" className="w-full md:w-auto flex-shrink-0 mt-4 md:mt-0">
+                            <Button size="lg" variant="secondary" className="w-full font-bold">
                                 ตรวจสอบเลย
                             </Button>
                         </Link>
