@@ -320,32 +320,6 @@ export default function Home() {
                   </Button>
               </Link>
             </div>
-
-             <div className="mt-20">
-                <Card className="relative rounded-2xl overflow-hidden shadow-2xl text-white">
-                  <Image
-                    src="https://images.unsplash.com/photo-1556761175-5973dc0f32e7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxidXNpbmVzcyUyMHRlYW18ZW58MHx8fHwxNjc3MjU1Mjc2fDA&ixlib=rb-4.1.0&q=80&w=1080"
-                    alt="Law firm advertisement"
-                    fill
-                    className="object-cover"
-                    data-ai-hint="business team"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-r from-blue-900/80 via-blue-900/60 to-transparent p-12 flex flex-col justify-center">
-                    <Logo className="text-white text-4xl mb-4" />
-                    <h3 className="text-3xl font-bold max-w-md">ทีมกฎหมายมืออาชีพ พร้อมดูแลธุรกิจของคุณ</h3>
-                    <p className="mt-2 max-w-lg text-white/80">บริการให้คำปรึกษาครบวงจรสำหรับ SMEs, Startups, และองค์กร</p>
-                    <div className="mt-6 space-y-2 text-sm">
-                        <div className="flex items-center gap-2"><CheckCircle className="text-green-400" /> <span>ให้คำปรึกษาด้านสัญญาและเอกสารทางกฎหมาย</span></div>
-                        <div className="flex items-center gap-2"><CheckCircle className="text-green-400" /> <span>ดูแลคดีความและข้อพิพาททางธุรกิจ</span></div>
-                        <div className="flex items-center gap-2"><CheckCircle className="text-green-400" /> <span>วางโครงสร้างบริษัทและธุรกรรม</span></div>
-                    </div>
-                     <div className="mt-8">
-                        <Button variant="secondary" size="lg">ติดต่อเราเพื่อรับคำปรึกษา</Button>
-                    </div>
-                  </div>
-                </Card>
-            </div>
-
           </div>
         </section>
 
