@@ -343,6 +343,53 @@ export default function Home() {
           </div>
         </section>
 
+        <section className="w-full py-12 md:py-16 lg:py-20 bg-gray-50">
+            <div className="container mx-auto px-4 md:px-6">
+                <Card className="bg-gradient-to-br from-gray-100 to-blue-50 text-foreground p-8 rounded-2xl shadow-lg text-center border-t-4 border-primary">
+                    <CardHeader className="p-0">
+                        <Award className="mx-auto h-12 w-12 text-primary mb-3" />
+                        <CardTitle className="text-2xl font-bold">โฆษณาสำนักกฎหมายของคุณที่นี่</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0 mt-4">
+                        <p className="text-muted-foreground mb-6 max-w-lg mx-auto">
+                            เข้าถึงลูกค้ากลุ่มเป้าหมายได้โดยตรง โปรโมตบริการของคุณบน Lawlane เพื่อเพิ่มการมองเห็นและสร้างความน่าเชื่อถือ
+                        </p>
+                    </CardContent>
+                    <CardFooter className="p-0 mt-6 justify-center">
+                         <Button asChild size="lg">
+                            <Link href="#">ติดต่อลงโฆษณา</Link>
+                        </Button>
+                    </CardFooter>
+                </Card>
+            </div>
+        </section>
+
+        <section className="w-full py-12 md:py-24 lg:py-32 bg-gray-50">
+          <div className="container mx-auto px-4 md:px-6">
+            <h2 className="text-3xl font-bold text-center mb-12 sm:text-5xl font-headline">URGENT JOBS</h2>
+            <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-8">
+              {urgentJobs.map((job) => (
+                <div key={job.id} className="flex items-center gap-6 py-4 border-b">
+                   <div className="flex-shrink-0">
+                      <Image 
+                        src={job.logoUrl} 
+                        alt={`${job.companyName} logo`}
+                        width={120}
+                        height={80}
+                        className="rounded-lg object-contain border bg-white p-1.5"
+                        data-ai-hint={job.logoHint}
+                      />
+                   </div>
+                   <div>
+                      <h3 className="font-semibold text-xl">{job.companyName}</h3>
+                      <p className="text-lg text-muted-foreground">{job.description}</p>
+                   </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
         <section id="articles" className="w-full py-12 md:py-24 lg:py-32 bg-white">
           <div className="container mx-auto px-4 md:px-6">
             <div className="flex justify-between items-center mb-8">
@@ -443,53 +490,6 @@ export default function Home() {
           </div>
         </section>
         
-        <section className="w-full py-12 md:py-16 lg:py-20 bg-gray-50">
-            <div className="container mx-auto px-4 md:px-6">
-                <Card className="bg-gradient-to-br from-gray-100 to-blue-50 text-foreground p-8 rounded-2xl shadow-lg text-center border-t-4 border-primary">
-                    <CardHeader className="p-0">
-                        <Award className="mx-auto h-12 w-12 text-primary mb-3" />
-                        <CardTitle className="text-2xl font-bold">โฆษณาสำนักกฎหมายของคุณที่นี่</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-0 mt-4">
-                        <p className="text-muted-foreground mb-6 max-w-lg mx-auto">
-                            เข้าถึงลูกค้ากลุ่มเป้าหมายได้โดยตรง โปรโมตบริการของคุณบน Lawlane เพื่อเพิ่มการมองเห็นและสร้างความน่าเชื่อถือ
-                        </p>
-                    </CardContent>
-                    <CardFooter className="p-0 mt-6 justify-center">
-                         <Button asChild size="lg">
-                            <Link href="#">ติดต่อลงโฆษณา</Link>
-                        </Button>
-                    </CardFooter>
-                </Card>
-            </div>
-        </section>
-
-        <section className="w-full py-12 md:py-24 lg:py-32 bg-gray-50">
-          <div className="container mx-auto px-4 md:px-6">
-            <h2 className="text-3xl font-bold text-center mb-12 sm:text-5xl font-headline">URGENT JOBS</h2>
-            <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-8">
-              {urgentJobs.map((job) => (
-                <div key={job.id} className="flex items-center gap-6 py-4 border-b">
-                   <div className="flex-shrink-0">
-                      <Image 
-                        src={job.logoUrl} 
-                        alt={`${job.companyName} logo`}
-                        width={120}
-                        height={80}
-                        className="rounded-lg object-contain border bg-white p-1.5"
-                        data-ai-hint={job.logoHint}
-                      />
-                   </div>
-                   <div>
-                      <h3 className="font-semibold text-xl">{job.companyName}</h3>
-                      <p className="text-lg text-muted-foreground">{job.description}</p>
-                   </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
         <section className="w-full py-12 md:py-24 lg:py-32 bg-foreground text-background">
           <div className="container mx-auto px-4 md:px-6">
             <div className="text-center">
