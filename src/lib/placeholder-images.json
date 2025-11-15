@@ -89,6 +89,12 @@
       "description": "Two people having coffee, suggesting a support conversation",
       "imageUrl": "https://images.unsplash.com/photo-1573878587306-c6723c815090?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxzdXBwb3J0JTIwZ3JvdXB8ZW58MHx8fHwxNzYzMjAyMDIxfDA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "support group"
+    },
+    {
+      "id": "ad-banner-1",
+      "description": "Professional team in a modern office",
+      "imageUrl": "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxfHxidXNpbmVzcyUyMHRlYW18ZW58MHx8fHwxNjc3MjU1Mjc2fDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "business team"
     }
   ]
 }
