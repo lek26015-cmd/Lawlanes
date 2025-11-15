@@ -42,7 +42,7 @@ export default function Home() {
   
   const [isFindingLawyers, setIsFindingLawyers] = useState(false);
   const [analysisText, setAnalysisText] = useState('');
-  const { setAiChatOpen, setInitialPrompt } = useChat();
+  const { setAiChatOpen } = useChat();
 
   // State for lawyer verification
   const [licenseNumber, setLicenseNumber] = useState('');
@@ -62,9 +62,18 @@ export default function Home() {
 
   const handleAnalysis = async () => {
     if (!analysisText.trim()) return;
-    
-    setInitialPrompt(analysisText);
-    setAiChatOpen(true);
+    setIsFindingLawyers(true);
+    try {
+      const result = await findLawyerSpecialties({ problem: analysisText });
+      const specialties = result.specialties.join(',');
+      router.push(`/lawyers?specialties=${encodeURIComponent(specialties)}`);
+    } catch (error) {
+      console.error('Failed to find lawyer specialties:', error);
+      // If AI fails, just go to the lawyers page without filter
+      router.push('/lawyers');
+    } finally {
+      setIsFindingLawyers(false);
+    }
   };
 
   const handleVerify = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -389,3 +398,5 @@ export default function Home() {
     </>
   );
 }
+
+    
