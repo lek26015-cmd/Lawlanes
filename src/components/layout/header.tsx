@@ -13,32 +13,35 @@ export default function Header() {
   const pathname = usePathname();
   const isAuthPage = false; // Placeholder, as signup page is removed
   const isHomePage = pathname === '/';
-  const [isScrolled, setIsScrolled] = useState(false);
+  
+  // Initialize isScrolled based on whether it's the home page or not.
+  // On non-home pages, the header is always "scrolled".
+  const [isScrolled, setIsScrolled] = useState(!isHomePage);
 
   useEffect(() => {
-    const handleScroll = () => {
-      const scrolled = window.scrollY > 50;
-      if (scrolled !== isScrolled) {
-        setIsScrolled(scrolled);
-      }
-    };
-
-    if (isHomePage) {
-      window.addEventListener('scroll', handleScroll);
-      // Set initial state based on scroll position
-      handleScroll();
-    } else {
-      // Not on home page, so header should not be transparent
-      setIsScrolled(true);
+    // Only add scroll listener if it's the home page
+    if (!isHomePage) {
+        // Ensure isScrolled is true for non-home pages
+        if (!isScrolled) setIsScrolled(true);
+        return;
     }
 
-    return () => {
-      if (isHomePage) {
-        window.removeEventListener('scroll', handleScroll);
-      }
+    const handleScroll = () => {
+      const scrolled = window.scrollY > 50;
+      setIsScrolled(scrolled);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isHomePage, pathname]);
+
+    // Add listener
+    window.addEventListener('scroll', handleScroll, { passive: true });
+
+    // Set initial state on mount (client-side only)
+    handleScroll();
+
+    // Cleanup listener
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, [pathname, isHomePage]); // Rerun effect if pathname changes
 
   const useTransparentHeader = isHomePage && !isScrolled;
 
@@ -49,7 +52,7 @@ export default function Header() {
   const headerClasses = cn(
     'sticky top-0 z-50 w-full border-b transition-colors duration-300',
     useTransparentHeader
-      ? 'bg-white text-foreground border-gray-200'
+      ? 'bg-transparent text-foreground border-transparent'
       : 'bg-foreground text-background border-foreground'
   );
 
