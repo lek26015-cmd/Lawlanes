@@ -94,28 +94,6 @@ function SupportPageContent() {
                         </CardContent>
                     </Card>
 
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>การดำเนินการ</CardTitle>
-                        </CardHeader>
-                        <CardContent className="flex flex-col gap-3">
-                             <TooltipProvider>
-                                <Tooltip>
-                                    <TooltipTrigger asChild>
-                                        <div className="w-full">
-                                            <Button className="w-full" disabled>
-                                                <ShieldX className="mr-2 h-4 w-4" /> ปิด Ticket
-                                            </Button>
-                                        </div>
-                                    </TooltipTrigger>
-                                    <TooltipContent>
-                                        <p>เฉพาะเจ้าหน้าที่เท่านั้นที่สามารถปิด Ticket นี้ได้</p>
-                                    </TooltipContent>
-                                </Tooltip>
-                            </TooltipProvider>
-                        </CardContent>
-                    </Card>
-
                      <Card>
                         <CardHeader>
                             <CardTitle>เอกสารที่เกี่ยวข้อง</CardTitle>
