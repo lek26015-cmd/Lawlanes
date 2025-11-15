@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -9,9 +10,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { CheckCircle, MessageSquare, Users, Sparkles, Scale, ArrowRight, Newspaper, Loader2, Briefcase, UserCheck, ShieldCheck, ShieldAlert, Phone, Mail, File, Info } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { getApprovedLawyers, getAllArticles, getLawyerById, getUrgentJobs } from '@/lib/data';
+import { getApprovedLawyers, getAllArticles, getLawyerById, getUrgentJobs, getAdBanner } from '@/lib/data';
 import LawyerCard from '@/components/lawyer-card';
-import type { LawyerProfile, Article, UrgentJob } from '@/lib/types';
+import type { LawyerProfile, Article, UrgentJob, ImagePlaceholder } from '@/lib/types';
 import { findLawyerSpecialties } from '@/ai/flows/find-lawyers-flow';
 import { useChat } from '@/context/chat-context';
 import { Input } from '@/components/ui/input';
@@ -42,6 +43,7 @@ export default function Home() {
   const [recommendedLawyers, setRecommendedLawyers] = useState<LawyerProfile[]>([]);
   const [articles, setArticles] = useState<Article[]>([]);
   const [urgentJobs, setUrgentJobs] = useState<UrgentJob[]>([]);
+  const [adBanner, setAdBanner] = useState<ImagePlaceholder | null>(null);
   
   const [isFindingLawyers, setIsFindingLawyers] = useState(false);
   const [analysisText, setAnalysisText] = useState('');
@@ -61,6 +63,8 @@ export default function Home() {
       setArticles(allArticles);
       const jobs = await getUrgentJobs();
       setUrgentJobs(jobs);
+      const banner = await getAdBanner();
+      setAdBanner(banner);
     }
     fetchData();
   }, []);
@@ -325,6 +329,24 @@ export default function Home() {
             </div>
           </div>
         </section>
+
+        {adBanner && (
+          <section className="w-full py-12 md:py-16 lg:py-20 bg-gray-50">
+            <div className="container mx-auto px-4 md:px-6">
+              <Link href="#" className="block group">
+                <div className="relative aspect-[5/1] w-full overflow-hidden rounded-lg">
+                  <Image
+                    src={adBanner.imageUrl}
+                    alt={adBanner.description}
+                    fill
+                    className="object-cover"
+                    data-ai-hint={adBanner.imageHint}
+                  />
+                </div>
+              </Link>
+            </div>
+          </section>
+        )}
 
         <section className="w-full py-12 md:py-24 lg:py-32 bg-gray-50">
           <div className="container mx-auto px-4 md:px-6">

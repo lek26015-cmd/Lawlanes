@@ -1,4 +1,5 @@
 
+
 import { ChatResponse } from "@/ai/flows/chat-flow";
 
 export interface LawyerProfile {
@@ -101,3 +102,10 @@ export interface UrgentJob {
   logoUrl: string;
   logoHint: string;
 }
+
+export type ImagePlaceholder = {
+  id: string;
+  description: string;
+  imageUrl: string;
+  imageHint: string;
+};

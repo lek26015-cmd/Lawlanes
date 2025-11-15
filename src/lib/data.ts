@@ -1,5 +1,6 @@
 
-import type { LawyerProfile } from '@/lib/types';
+
+import type { LawyerProfile, ImagePlaceholder } from '@/lib/types';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import type { Article, Case, UpcomingAppointment, Document, ReportedTicket, LawyerAppointmentRequest, LawyerCase, UrgentJob } from '@/lib/types';
 
@@ -360,6 +361,14 @@ export async function getUrgentJobs(): Promise<UrgentJob[]> {
   return new Promise(resolve => {
     setTimeout(() => {
       resolve(mockUrgentJobs);
+    }, 100);
+  });
+}
+
+export async function getAdBanner(): Promise<ImagePlaceholder | null> {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      resolve(PlaceHolderImages.find(img => img.id === 'ad-banner-2') || null);
     }, 100);
   });
 }
