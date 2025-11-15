@@ -1,3 +1,4 @@
+
 import { ChatResponse } from "@/ai/flows/chat-flow";
 
 export interface LawyerProfile {
@@ -87,6 +88,7 @@ export interface LawyerCase {
   id: string;
   title: string;
   clientName: string;
+  clientId: string;
   status: 'รอการตอบรับ' | 'กำลังดำเนินการ' | 'เสร็จสิ้น';
   lastUpdate: string;
   hasNewMessage: boolean;

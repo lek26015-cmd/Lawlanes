@@ -30,51 +30,48 @@ import { errorEmitter } from '@/firebase/error-emitter';
 interface ChatBoxProps {
   firestore: Firestore;
   currentUser: User;
-  lawyer: LawyerProfile;
+  otherUser: { name: string, userId: string, imageUrl: string };
   chatId: string;
   isDisabled?: boolean;
+  isLawyerView?: boolean;
 }
 
 export function ChatBox({
   firestore,
   currentUser,
-  lawyer,
+  otherUser,
   chatId,
   isDisabled = false,
+  isLawyerView = false,
 }: ChatBoxProps) {
   const [messages, setMessages] = useState<HumanChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(true);
-  const [isChatReady, setIsChatReady] = useState(false); // New state to track chat document readiness
+  const [isChatReady, setIsChatReady] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const { initialChatMessage, setInitialChatMessage } = useChat();
 
   useEffect(() => {
-    // This effect ensures the chat document exists in Firestore.
-    // In a real app, this would be created upon successful payment.
-    if (!chatId || !currentUser.uid || !lawyer.userId) return;
+    if (!chatId || !currentUser.uid || !otherUser.userId) return;
 
     const chatRef = doc(firestore, 'chats', chatId);
     
-    // Check if chat doc exists, if not, create it.
     const ensureChatExists = async () => {
       try {
         const chatDoc = await getDocs(query(collection(firestore, 'chats'), where('__name__', '==', chatId)));
         if (chatDoc.empty) {
           const newChatData = {
-            participants: [currentUser.uid, lawyer.userId],
+            participants: [currentUser.uid, otherUser.userId],
             createdAt: serverTimestamp(),
             caseTitle: 'คดี: มรดก', // Mock data
           };
-          // IMPORTANT: Explicitly use setDoc which can be awaited
           await setDoc(chatRef, newChatData);
         }
-        setIsChatReady(true); // Signal that the chat document is ready
+        setIsChatReady(true);
       } catch (error) {
-        // Handle potential permission errors during chat creation
         const permissionError = new FirestorePermissionError({
           path: 'chats',
-          operation: 'list', // or 'create' if we can be more specific
+          operation: 'list',
         });
         errorEmitter.emit('permission-error', permissionError);
       }
@@ -82,11 +79,9 @@ export function ChatBox({
     
     ensureChatExists();
 
-  }, [chatId, currentUser.uid, lawyer.userId, firestore]);
+  }, [chatId, currentUser.uid, otherUser.userId, firestore]);
 
   useEffect(() => {
-    // This effect sends the very first message if it exists from the payment flow.
-    // It WAITS until the chat document is ready.
     if (initialChatMessage && isChatReady) {
       const messagesColRef = collection(firestore, 'chats', chatId, 'messages');
       
@@ -106,15 +101,12 @@ export function ChatBox({
           errorEmitter.emit('permission-error', permissionError);
         });
 
-      // Clear the initial message from context so it's not sent again
       setInitialChatMessage('');
     }
   }, [chatId, initialChatMessage, currentUser.uid, firestore, setInitialChatMessage, isChatReady]);
 
 
   useEffect(() => {
-    // This effect listens for new messages in the chat.
-    // It WAITS until the chat document is ready.
     if (!isChatReady) return;
 
     const messagesQuery = query(
@@ -143,7 +135,6 @@ export function ChatBox({
   }, [chatId, firestore, isChatReady]);
   
    useEffect(() => {
-    // Auto-scroll to bottom
     if (scrollAreaRef.current) {
         const scrollableNode = scrollAreaRef.current.querySelector('div[style*="overflow: scroll"]');
         if(scrollableNode) {
@@ -178,32 +169,35 @@ export function ChatBox({
       });
   };
 
-  const firstUserMessage = messages.find(m => m.senderId === currentUser.uid);
+  const firstUserMessage = messages.find(m => m.senderId !== (isLawyerView ? currentUser.uid : otherUser.userId));
 
   return (
     <Card className="flex flex-col h-[80vh] shadow-lg">
       <CardHeader className="border-b">
         <CardTitle className="text-xl">คดี: มรดก</CardTitle>
-        <p className="text-sm text-muted-foreground">สนทนากับ {lawyer.name}</p>
+        <p className="text-sm text-muted-foreground">
+          {isLawyerView ? `เคสของ ${otherUser.name}` : `สนทนากับ ${otherUser.name}`}
+        </p>
       </CardHeader>
       
       <CardContent className="flex-grow p-0 flex flex-col min-h-0">
           <ScrollArea className="flex-grow p-6" ref={scrollAreaRef}>
             <div className="space-y-6">
-                {/* AI Summary Message */}
-                <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
-                        <Sparkles className="w-5 h-5" />
-                    </div>
-                    <div className="flex-1">
-                        <div className="p-4 rounded-lg bg-yellow-50 border border-yellow-200">
-                             <p className="font-semibold text-sm text-yellow-800">AI: สรุปข้อเท็จจริงเบื้องต้นจากลูกความ</p>
-                             <p className="text-sm text-yellow-700 mt-1">
-                               {firstUserMessage ? `(AI สรุปข้อเท็จจริง) ลูกค้าแจ้งว่า: "${firstUserMessage.text}"` : "กำลังรอข้อความแรกจากผู้ใช้..."}
-                             </p>
+                {isLawyerView && (
+                    <div className="flex items-start gap-3">
+                        <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
+                            <Sparkles className="w-5 h-5" />
+                        </div>
+                        <div className="flex-1">
+                            <div className="p-4 rounded-lg bg-yellow-50 border border-yellow-200">
+                                <p className="font-semibold text-sm text-yellow-800">AI: สรุปข้อเท็จจริงเบื้องต้นจากลูกความ</p>
+                                <p className="text-sm text-yellow-700 mt-1">
+                                    {firstUserMessage ? `(AI สรุป) ลูกความแจ้งว่า: "${firstUserMessage.text}"` : "กำลังรอข้อความแรกจากลูกความ..."}
+                                </p>
+                            </div>
                         </div>
                     </div>
-                </div>
+                )}
 
                  {isLoading ? (
                     <div className="flex justify-center items-center h-full">
@@ -225,9 +219,9 @@ export function ChatBox({
                       >
                         {msg.senderId !== currentUser.uid && (
                           <Avatar className="h-8 w-8">
-                            <AvatarImage src={lawyer.imageUrl} />
+                            <AvatarImage src={otherUser.imageUrl} />
                             <AvatarFallback>
-                              {lawyer.name.charAt(0)}
+                              {otherUser.name.charAt(0)}
                             </AvatarFallback>
                           </Avatar>
                         )}

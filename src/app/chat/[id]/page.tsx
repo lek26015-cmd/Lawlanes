@@ -29,7 +29,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, FileText, Check, Upload, Scale, Ticket } from 'lucide-react';
+import { AlertTriangle, FileText, Check, Upload, Scale, Ticket, Briefcase, User as UserIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -41,19 +41,22 @@ function ChatPageContent() {
     const searchParams = useSearchParams();
     const chatId = params.id as string;
     const lawyerId = searchParams.get('lawyerId');
+    const clientId = searchParams.get('clientId'); // For lawyer's view
     const status = searchParams.get('status');
+    const view = searchParams.get('view');
     
     const [lawyer, setLawyer] = useState<LawyerProfile | null>(null);
+    const [client, setClient] = useState<{ id: string, name: string } | null>(null); // Mock client
     const [isLoading, setIsLoading] = useState(true);
     const [files, setFiles] = useState<{ name: string, size: number }[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { toast } = useToast();
     
     const isCompleted = status === 'closed';
-    // Manage chat disabled state based on whether the case is completed from the start
+    const isLawyerView = view === 'lawyer';
     const [isChatDisabled, setIsChatDisabled] = useState(isCompleted);
 
-    // Review state
+    // Review state (for user view)
     const [rating, setRating] = useState(0);
     const [reviewText, setReviewText] = useState("");
 
@@ -61,17 +64,20 @@ function ChatPageContent() {
     const { data: user } = useUser(auth);
 
     useEffect(() => {
-        async function fetchLawyer() {
-            if (!lawyerId) {
-                setIsLoading(false);
-                return;
+        async function fetchData() {
+            setIsLoading(true);
+            if (lawyerId) {
+                const lawyerData = await getLawyerById(lawyerId);
+                setLawyer(lawyerData || null);
             }
-            const lawyerData = await getLawyerById(lawyerId);
-            setLawyer(lawyerData || null);
+            if (isLawyerView && clientId) {
+                 // In a real app, you would fetch client details by clientId
+                setClient({ id: clientId, name: 'สมหญิง ใจดี' });
+            }
             setIsLoading(false);
         }
-        fetchLawyer();
-    }, [lawyerId]);
+        fetchData();
+    }, [lawyerId, clientId, isLawyerView]);
 
     const handleUploadClick = () => {
         fileInputRef.current?.click();
@@ -105,13 +111,12 @@ function ChatPageContent() {
     };
     
     const handleConfirmRelease = () => {
-        setIsChatDisabled(true); // Disable chat on case completion
+        setIsChatDisabled(true); 
         toast({
             title: "ดำเนินการสำเร็จ",
             description: "เคสเสร็จสมบูรณ์แล้ว กำลังนำคุณไปยังหน้าให้คะแนน...",
         });
         
-        // Navigate to the review page
         router.push(`/review/${chatId}?lawyerId=${lawyerId}`);
     };
     
@@ -129,26 +134,69 @@ function ChatPageContent() {
             title: "ส่งรีวิวสำเร็จ",
             description: "ขอบคุณสำหรับความคิดเห็นของคุณ!",
         });
-        // Optionally, disable the review form after submission
     };
-
 
     if (isLoading) {
         return <div>Loading chat...</div>
     }
 
-    if (!lawyer || !user || !firestore) {
+    const chatPartner = isLawyerView ? client : lawyer;
+    if (!chatPartner || !user || !firestore) {
         return <div>Unable to load chat. Missing information.</div>
     }
+
+    const otherUser = {
+        name: isLawyerView ? (client?.name ?? 'Client') : (lawyer?.name ?? 'Lawyer'),
+        userId: isLawyerView ? (client?.id ?? '') : (lawyer?.userId ?? ''),
+        imageUrl: isLawyerView ? "https://picsum.photos/seed/user-avatar/100/100" : (lawyer?.imageUrl ?? ''),
+    };
+
 
     return (
         <div className="container mx-auto px-4 md:px-6 py-8">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2">
-                    <ChatBox firestore={firestore} currentUser={user} lawyer={lawyer} chatId={chatId} isDisabled={isChatDisabled} />
+                    <ChatBox firestore={firestore} currentUser={user} otherUser={otherUser} chatId={chatId} isDisabled={isChatDisabled} isLawyerView={isLawyerView} />
                 </div>
                 <div className="lg:col-span-1 space-y-6">
-                    {isCompleted ? (
+                   {isLawyerView ? (
+                        <Card>
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2">
+                                   <Briefcase className="w-5 h-5"/>
+                                   ข้อมูลเคส
+                                </CardTitle>
+                                <CardDescription>เคส: คดีมรดก</CardDescription>
+                            </CardHeader>
+                            <CardContent className="space-y-4 text-sm">
+                               <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary/40">
+                                   <Avatar>
+                                       <AvatarImage src={otherUser.imageUrl} />
+                                       <AvatarFallback>{otherUser.name.charAt(0)}</AvatarFallback>
+                                   </Avatar>
+                                   <div>
+                                       <p className="font-semibold text-muted-foreground">ลูกค้า</p>
+                                       <p className="font-bold text-foreground">{otherUser.name}</p>
+                                   </div>
+                               </div>
+                               <div className="flex justify-between">
+                                    <span className="text-muted-foreground">สถานะเคส:</span>
+                                    <Badge variant={isCompleted ? "secondary" : "default"}>{isCompleted ? 'เสร็จสิ้น' : 'กำลังดำเนินการ'}</Badge>
+                               </div>
+                                <div className="flex justify-between">
+                                    <span className="text-muted-foreground">ค่าบริการ:</span>
+                                    <span className="font-semibold">฿3,500</span>
+                               </div>
+                            </CardContent>
+                            <CardFooter>
+                                {isCompleted ? (
+                                    <Button disabled className="w-full">เคสนี้เสร็จสิ้นแล้ว</Button>
+                                ) : (
+                                    <Button variant="outline" className="w-full">ส่งสรุปและปิดเคส</Button>
+                                )}
+                            </CardFooter>
+                        </Card>
+                   ) : isCompleted ? ( // User view, completed
                          <Card>
                             <CardHeader>
                                 <CardTitle>ให้คะแนนและรีวิว</CardTitle>
@@ -182,7 +230,7 @@ function ChatPageContent() {
                                 </Button>
                             </CardFooter>
                         </Card>
-                    ) : (
+                    ) : ( // User view, active
                         <Card>
                             <CardHeader>
                                 <CardTitle>สถานะ Escrow</CardTitle>

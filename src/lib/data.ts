@@ -10,7 +10,7 @@ const getImageHint = (id: string) => PlaceHolderImages.find(img => img.id === id
 export const mockLawyers: LawyerProfile[] = [
   {
     id: '1',
-    userId: 'user1',
+    userId: 'LAWYER_USER_ID_1', // Changed to be distinct
     name: 'นายสมชาย กฎหมายดี',
     status: 'approved',
     description: 'ผู้เชี่ยวชาญด้านคดีฉ้อโกงและสัญญาสำหรับ SMEs ประสบการณ์กว่า 15 ปีในการว่าความและให้คำปรึกษา',
@@ -20,7 +20,7 @@ export const mockLawyers: LawyerProfile[] = [
   },
   {
     id: '2',
-    userId: 'user2',
+    userId: 'LAWYER_USER_ID_2',
     name: 'นางสาวสมศรี ยุติธรรม',
     status: 'approved',
     description: 'ทนายความหญิงที่มุ่งเน้นการแก้ปัญหาข้อพิพาททางธุรกิจด้วยการเจรจาไกล่เกลี่ยและการฟ้องร้อง',
@@ -30,7 +30,7 @@ export const mockLawyers: LawyerProfile[] = [
   },
   {
     id: '3',
-    userId: 'user3',
+    userId: 'LAWYER_USER_ID_3',
     name: 'นายวิชัย ชนะคดี',
     status: 'approved',
     description: 'มีประสบการณ์สูงในการจัดการคดีฉ้อโกงที่ซับซ้อนและข้อพิพาททางการค้าระหว่างประเทศ',
@@ -40,7 +40,7 @@ export const mockLawyers: LawyerProfile[] = [
   },
   {
     id: '4',
-    userId: 'user4',
+    userId: 'LAWYER_USER_ID_4',
     name: 'นางสาวมานี มีสัตย์',
     status: 'approved',
     description: 'เชี่ยวชาญด้านกฎหมายคุ้มครองผู้บริโภคและการเรียกร้องค่าเสียหายจากสัญญาที่ไม่เป็นธรรม',
@@ -50,7 +50,7 @@ export const mockLawyers: LawyerProfile[] = [
   },
   {
     id: '5',
-    userId: 'user5',
+    userId: 'LAWYER_USER_ID_5',
     name: 'นายเก่งกาจ รักความถูกต้อง',
     status: 'approved',
     description: 'ให้คำปรึกษาเชิงรุกเพื่อป้องกันปัญหาทางกฎหมายสำหรับธุรกิจ SMEs และสตาร์ทอัพ',
@@ -264,9 +264,9 @@ const mockNewRequests: LawyerAppointmentRequest[] = [
 ];
 
 const mockLawyerCases: LawyerCase[] = [
-    { id: 'lcase-001', title: 'คดีฉ้อโกงออนไลน์', clientName: 'คุณมานี', status: 'กำลังดำเนินการ', lastUpdate: '2 วันที่แล้ว', hasNewMessage: true },
-    { id: 'lcase-002', title: 'ปัญหาข้อพิพาทที่ดิน', clientName: 'คุณวิชัย', status: 'กำลังดำเนินการ', lastUpdate: '5 ชั่วโมงที่แล้ว', hasNewMessage: false },
-    { id: 'lcase-003', title: 'ร่างสัญญาแฟรนไชส์', clientName: 'ร้านชานมไข่มุก', status: 'เสร็จสิ้น', lastUpdate: '15 ต.ค. 2567', hasNewMessage: false },
+    { id: 'lcase-001', title: 'คดีฉ้อโกงออนไลน์', clientName: 'คุณมานี', clientId: 'CLIENT_ID_1', status: 'กำลังดำเนินการ', lastUpdate: '2 วันที่แล้ว', hasNewMessage: true },
+    { id: 'lcase-002', title: 'ปัญหาข้อพิพาทที่ดิน', clientName: 'คุณวิชัย', clientId: 'CLIENT_ID_2', status: 'กำลังดำเนินการ', lastUpdate: '5 ชั่วโมงที่แล้ว', hasNewMessage: false },
+    { id: 'lcase-003', title: 'ร่างสัญญาแฟรนไชส์', clientName: 'ร้านชานมไข่มุก', clientId: 'CLIENT_ID_3', status: 'เสร็จสิ้น', lastUpdate: '15 ต.ค. 2567', hasNewMessage: false },
 ];
 
 export async function getLawyerDashboardData(): Promise<{ newRequests: LawyerAppointmentRequest[], activeCases: LawyerCase[], completedCases: LawyerCase[] }> {

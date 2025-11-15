@@ -106,7 +106,7 @@ export default function LawyerDashboardPage() {
               </CardHeader>
               <CardContent>
                 {activeCases.map((caseItem) => (
-                    <Link href={`/chat/${caseItem.id}?lawyerId=1`} key={caseItem.id}>
+                    <Link href={`/chat/${caseItem.id}?lawyerId=1&clientId=${caseItem.clientId}&view=lawyer`} key={caseItem.id}>
                         <div className="flex items-center justify-between p-4 rounded-lg hover:bg-gray-200/50 transition-colors">
                             <div>
                                 <p className="font-semibold">{caseItem.title}</p>
@@ -132,7 +132,7 @@ export default function LawyerDashboardPage() {
               </CardHeader>
                <CardContent>
                 {completedCases.map((caseItem) => (
-                    <Link href={`/chat/${caseItem.id}?lawyerId=1&status=closed`} key={caseItem.id}>
+                    <Link href={`/chat/${caseItem.id}?lawyerId=1&clientId=${caseItem.clientId}&view=lawyer&status=closed`} key={caseItem.id}>
                         <div className="flex items-center justify-between p-4 rounded-lg hover:bg-gray-200/50 transition-colors">
                             <div>
                                 <p className="font-semibold">{caseItem.title}</p>
