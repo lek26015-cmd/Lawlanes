@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useEffect, Suspense, useRef } from 'react';
@@ -16,10 +15,33 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog"
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, FileText, Check, Sparkles, Upload } from 'lucide-react';
+import { AlertTriangle, FileText, Check, Sparkles, Upload, Star, MessageSquare, ThumbsUp } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
+import { Textarea } from '@/components/ui/textarea';
+import { StarIcon } from '@/components/icons/star-icon';
+import { Label } from '@/components/ui/label';
 
 function ChatPageContent() {
     const params = useParams();
@@ -32,6 +54,10 @@ function ChatPageContent() {
     const [files, setFiles] = useState<{ name: string, size: number }[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { toast } = useToast();
+    const [escrowStatus, setEscrowStatus] = useState<'initial' | 'confirmed'>('initial');
+    const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
+    const [rating, setRating] = useState(0);
+    const [reviewText, setReviewText] = useState("");
 
     const { auth, firestore } = useFirebase();
     const { data: user } = useUser(auth);
@@ -79,6 +105,34 @@ function ChatPageContent() {
             event.target.value = '';
         }
     };
+    
+    const handleConfirmRelease = () => {
+        setEscrowStatus('confirmed');
+        toast({
+            title: "ดำเนินการสำเร็จ",
+            description: "เงินได้ถูกโอนไปยังทนายความเรียบร้อยแล้ว",
+        });
+    };
+
+    const handleSubmitReview = () => {
+        if (rating === 0) {
+            toast({
+                variant: "destructive",
+                title: "กรุณาให้คะแนน",
+                description: "โปรดเลือกดาวเพื่อให้คะแนนความพึงพอใจ",
+            });
+            return;
+        }
+        console.log({ rating, reviewText });
+        setIsReviewDialogOpen(false);
+        setRating(0);
+        setReviewText("");
+        toast({
+            title: "ส่งรีวิวสำเร็จ",
+            description: "ขอบคุณสำหรับความคิดเห็นของคุณ!",
+        });
+    };
+
 
     if (isLoading) {
         return <div>Loading chat...</div>
@@ -103,11 +157,73 @@ function ChatPageContent() {
                             <p className="text-muted-foreground">เงินของคุณถูกพักไว้ที่ Lawlane</p>
                             <p className="text-4xl font-bold my-2">฿3,500</p>
                             <p className="text-xs text-muted-foreground max-w-xs mx-auto">
-                                เงินจะถูกโอนให้ทนายเมื่อคุณกดยืนยันว่างานเสร็จสิ้น
+                               {escrowStatus === 'initial' 
+                                 ? "เงินจะถูกโอนให้ทนายเมื่อคุณกดยืนยันว่างานเสร็จสิ้น"
+                                 : "เคสนี้เสร็จสมบูรณ์แล้ว ขอบคุณที่ใช้บริการ"}
                             </p>
-                            <Button className="w-full mt-4 bg-green-600 hover:bg-green-700 text-white">
-                                <Check className="mr-2 h-4 w-4" /> ยืนยันและปล่อยเงินให้ทนาย
-                            </Button>
+
+                            {escrowStatus === 'initial' ? (
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                         <Button className="w-full mt-4 bg-green-600 hover:bg-green-700 text-white">
+                                            <Check className="mr-2 h-4 w-4" /> ยืนยันและปล่อยเงินให้ทนาย
+                                        </Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                        <AlertDialogTitle>ยืนยันการจบเคส?</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            เมื่อคุณยืนยันและปล่อยเงินให้ทนายแล้ว การสนทนาในเคสนี้จะสิ้นสุดลงและคุณจะไม่สามารถส่งข้อความได้อีก คุณแน่ใจหรือไม่ที่จะดำเนินการต่อ?
+                                        </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                        <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+                                        <AlertDialogAction onClick={handleConfirmRelease}>ยืนยัน</AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
+                            ) : (
+                                <Dialog open={isReviewDialogOpen} onOpenChange={setIsReviewDialogOpen}>
+                                    <DialogTrigger asChild>
+                                        <Button className="w-full mt-4">
+                                            <Star className="mr-2 h-4 w-4" /> ให้คะแนนและรีวิว
+                                        </Button>
+                                    </DialogTrigger>
+                                    <DialogContent className="sm:max-w-[425px]">
+                                        <DialogHeader>
+                                            <DialogTitle>ให้คะแนนทนายความ</DialogTitle>
+                                            <DialogDescription>
+                                                โปรดให้คะแนนความพึงพอใจและแสดงความคิดเห็นเพื่อการพัฒนา
+                                            </DialogDescription>
+                                        </DialogHeader>
+                                        <div className="py-4 space-y-4">
+                                            <div className="space-y-2">
+                                                <Label>คะแนนความพึงพอใจ</Label>
+                                                <div className="flex items-center gap-2">
+                                                    {[1, 2, 3, 4, 5].map((star) => (
+                                                        <button key={star} onClick={() => setRating(star)}>
+                                                            <StarIcon className={`w-8 h-8 cursor-pointer transition-colors ${rating >= star ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300 hover:text-yellow-300'}`} />
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                             <div className="space-y-2">
+                                                <Label htmlFor="review-text">ความคิดเห็นเพิ่มเติม (ถ้ามี)</Label>
+                                                <Textarea 
+                                                    id="review-text"
+                                                    placeholder="เล่าประสบการณ์ของคุณ..."
+                                                    value={reviewText}
+                                                    onChange={(e) => setReviewText(e.target.value)}
+                                                />
+                                            </div>
+                                        </div>
+                                        <DialogFooter>
+                                            <Button type="button" onClick={handleSubmitReview}>ส่งรีวิว</Button>
+                                        </DialogFooter>
+                                    </DialogContent>
+                                </Dialog>
+                            )}
+
                             <Button variant="link" className="text-muted-foreground text-xs mt-2">
                                 <AlertTriangle className="mr-1 h-3 w-3" /> รายงานปัญหา
                             </Button>
@@ -162,3 +278,5 @@ export default function ChatPage() {
         </Suspense>
     )
 }
+
+    
