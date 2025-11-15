@@ -82,7 +82,7 @@ export default function DashboardPage() {
                                     กับ: {appt.lawyer.name} | วันที่: {format(appt.date, 'dd MMM yyyy', { locale: th })} | เวลา: {appt.time}
                                 </p>
                                 </div>
-                                <Button size="sm" className="bg-green-600 hover:bg-green-700">ดูรายละเอียด</Button>
+                                <Button size="sm" className="bg-foreground hover:bg-foreground/90 text-background rounded-md">ดูรายละเอียด</Button>
                             </div>
                             ))}
                         </div>
