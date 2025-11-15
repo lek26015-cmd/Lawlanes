@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { useState, useEffect } from 'react';
@@ -177,17 +178,17 @@ export default function Home() {
 
                     <div className="relative group">
                         <div className="absolute -inset-0.5 bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 rounded-2xl blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-rainbow-border-spin"></div>
-                        <Card className="relative p-6 md:p-8 shadow-xl bg-foreground text-background rounded-2xl">
-                            <div className="absolute top-4 right-4 bg-background/10 text-background p-3 rounded-full shadow-lg">
+                        <Card className="relative p-6 md:p-8 shadow-xl bg-card text-card-foreground rounded-2xl">
+                            <div className="absolute top-4 right-4 bg-foreground/10 text-foreground p-3 rounded-full shadow-lg">
                                 <Sparkles className="h-6 w-6" />
                             </div>
                             <div className="flex items-center gap-3 mb-2">
-                                <Scale className="h-7 w-7 text-background" />
+                                <Scale className="h-7 w-7 text-foreground" />
                                 <h2 className="text-2xl md:text-3xl font-bold font-headline">
                                 ไม่แน่ใจว่าต้องการทนายด้านไหน?
                                 </h2>
                             </div>
-                            <p className="text-background/80 mb-6">
+                            <p className="text-muted-foreground mb-6">
                                 ให้ AI ช่วยวิเคราะห์ปัญหาเบื้องต้นและแนะนำทนายที่ตรงจุดให้คุณ
                             </p>
                             <div className="space-y-4">
@@ -196,9 +197,9 @@ export default function Home() {
                                   onChange={(e) => setAnalysisText(e.target.value)}
                                   placeholder='อธิบายปัญหาของคุณที่นี่ เช่น "โดนโกงแชร์", "ต้องการจดทะเบียนบริษัท", "ปัญหาที่ดินกับเพื่อนบ้าน"'
                                   rows={4}
-                                  className="bg-background/10 text-background placeholder:text-background/60 border-background/20"
+                                  className="bg-background/10 text-foreground placeholder:text-muted-foreground border-border"
                                 />
-                                <Button size="lg" className="w-full bg-background text-foreground hover:bg-background/90" onClick={handleAnalysis} disabled={isFindingLawyers}>
+                                <Button size="lg" className="w-full" onClick={handleAnalysis} disabled={isFindingLawyers}>
                                   {isFindingLawyers ? (
                                       <>
                                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
