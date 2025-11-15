@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { CheckCircle, MessageSquare, Users, Sparkles, Scale, ArrowRight, Newspaper, Loader2, Briefcase, UserCheck } from 'lucide-react';
+import { CheckCircle, MessageSquare, Users, Sparkles, Scale, ArrowRight, Newspaper, Loader2, Briefcase, UserCheck, ShieldCheck } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { getApprovedLawyers, getAllArticles } from '@/lib/data';
@@ -153,6 +153,26 @@ export default function Home() {
 
         <section className="w-full py-12 md:py-24 lg:py-32 bg-gray-50">
           <div className="container mx-auto px-4 md:px-6">
+            
+            <div className="mb-16">
+                 <Card className="bg-blue-50 border-blue-200">
+                    <div className="flex flex-col md:flex-row items-center justify-between p-8 gap-6">
+                        <div className="flex items-center gap-4">
+                            <ShieldCheck className="w-10 h-10 text-blue-600 flex-shrink-0" />
+                            <div>
+                                <h3 className="font-bold text-xl text-blue-900">ตรวจสอบสถานะทนายความ</h3>
+                                <p className="text-blue-800/90">สร้างความมั่นใจก่อนเริ่มจ้างงาน ด้วยการตรวจสอบข้อมูลใบอนุญาตว่าความ</p>
+                            </div>
+                        </div>
+                        <Link href="/verify-lawyer" className="w-full md:w-auto">
+                            <Button className="bg-foreground text-background hover:bg-foreground/90 w-full">
+                                ตรวจสอบเลย
+                            </Button>
+                        </Link>
+                    </div>
+                 </Card>
+            </div>
+
             <div className="text-center mb-12">
               <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline text-foreground">
                 ทนายที่แนะนำ
