@@ -13,6 +13,8 @@ import LawyerCard from '@/components/lawyer-card';
 import type { LawyerProfile, Article } from '@/lib/types';
 import { findLawyerSpecialties } from '@/ai/flows/find-lawyers-flow';
 import { useChat } from '@/context/chat-context';
+import { Input } from '@/components/ui/input';
+
 
 export default function Home() {
   const router = useRouter();
@@ -155,7 +157,7 @@ export default function Home() {
           <div className="container mx-auto px-4 md:px-6">
             
             <div className="mb-16">
-                 <Card className="bg-foreground text-background rounded-2xl">
+                 <Card className="bg-foreground text-background rounded-2xl overflow-hidden">
                     <div className="flex flex-col md:flex-row items-center justify-between p-8 gap-6 text-center md:text-left">
                         <div className="flex items-center gap-5">
                             <ShieldCheck className="w-12 h-12 text-green-400 flex-shrink-0" />
@@ -164,11 +166,30 @@ export default function Home() {
                                 <p className="text-background/80 mt-1">สร้างความมั่นใจก่อนเริ่มจ้างงาน ด้วยการตรวจสอบข้อมูลใบอนุญาตว่าความ</p>
                             </div>
                         </div>
-                        <Link href="/verify-lawyer" className="w-full md:w-auto flex-shrink-0 mt-4 md:mt-0">
-                            <Button size="lg" variant="secondary" className="w-full font-bold">
-                                ตรวจสอบเลย
-                            </Button>
-                        </Link>
+                        <div className="w-full md:w-auto flex-shrink-0 mt-4 md:mt-0">
+                           <form 
+                             className="flex flex-col sm:flex-row items-center gap-2 w-full md:w-96"
+                             onSubmit={(e) => {
+                                e.preventDefault();
+                                const licenseNumber = (e.currentTarget.elements.namedItem('licenseNumber') as HTMLInputElement).value;
+                                if(licenseNumber) {
+                                  router.push(`/verify-lawyer?licenseNumber=${encodeURIComponent(licenseNumber)}`);
+                                } else {
+                                  router.push('/verify-lawyer');
+                                }
+                             }}
+                           >
+                              <Input
+                                  name="licenseNumber"
+                                  type="text"
+                                  placeholder="กรอกเลขใบอนุญาต"
+                                  className="h-12 bg-white/20 text-white placeholder:text-white/70 border-white/30"
+                              />
+                              <Button type="submit" size="lg" variant="secondary" className="w-full sm:w-auto font-bold h-12">
+                                  ตรวจสอบเลย
+                              </Button>
+                           </form>
+                        </div>
                     </div>
                  </Card>
             </div>
@@ -278,3 +299,5 @@ export default function Home() {
     </>
   );
 }
+
+    

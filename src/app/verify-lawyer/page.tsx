@@ -1,7 +1,8 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -10,9 +11,13 @@ import { Upload, Search, ShieldCheck, ShieldAlert, Loader2, FileCheck2 } from 'l
 import Image from 'next/image';
 import { getLawyerById } from '@/lib/data';
 import type { LawyerProfile } from '@/lib/types';
+import React from 'react';
 
-export default function VerifyLawyerPage() {
-  const [licenseNumber, setLicenseNumber] = useState('');
+function VerifyLawyerContent() {
+  const searchParams = useSearchParams();
+  const licenseNumberFromQuery = searchParams.get('licenseNumber');
+
+  const [licenseNumber, setLicenseNumber] = useState(licenseNumberFromQuery || '');
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isVerifying, setIsVerifying] = useState(false);
   const [verificationResult, setVerificationResult] = useState<'found' | 'not_found' | 'error' | null>(null);
@@ -25,9 +30,16 @@ export default function VerifyLawyerPage() {
       setLicenseNumber(''); // Clear license number if a file is uploaded
     }
   };
+  
+  useEffect(() => {
+    if (licenseNumberFromQuery) {
+        handleVerify(licenseNumberFromQuery);
+    }
+  }, [licenseNumberFromQuery]);
 
-  const handleVerify = async () => {
-    if (!licenseNumber && !uploadedFile) return;
+  const handleVerify = async (numberToVerify?: string) => {
+    const targetLicenseNumber = numberToVerify || licenseNumber;
+    if (!targetLicenseNumber && !uploadedFile) return;
 
     setIsVerifying(true);
     setVerificationResult(null);
@@ -38,7 +50,7 @@ export default function VerifyLawyerPage() {
       try {
         // Simulate logic: if input is '12345/2550', we find a specific lawyer.
         // In a real scenario, this would be an API call to a database.
-        if (licenseNumber === '12345/2550' || uploadedFile) {
+        if (targetLicenseNumber === '12345/2550' || uploadedFile) {
           const lawyer = await getLawyerById('1'); // Get a mock lawyer
           if (lawyer) {
             setVerifiedLawyer(lawyer);
@@ -118,7 +130,13 @@ export default function VerifyLawyerPage() {
               <CardDescription>กรอกเลขใบอนุญาตว่าความ หรืออัปโหลดรูปภาพบัตรทนายความ</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="space-y-2">
+              <form 
+                className="space-y-2"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  handleVerify();
+                }}
+              >
                 <Label htmlFor="license-number">เลขใบอนุญาตว่าความ</Label>
                 <Input
                   id="license-number"
@@ -130,7 +148,7 @@ export default function VerifyLawyerPage() {
                   }}
                   disabled={isVerifying || !!uploadedFile}
                 />
-              </div>
+              </form>
 
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
@@ -166,7 +184,7 @@ export default function VerifyLawyerPage() {
                 </div>
               </div>
               
-              <Button onClick={handleVerify} className="w-full" size="lg" disabled={isVerifying || (!licenseNumber && !uploadedFile)}>
+              <Button onClick={() => handleVerify()} className="w-full" size="lg" disabled={isVerifying || (!licenseNumber && !uploadedFile)}>
                 {isVerifying ? (
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
@@ -191,3 +209,14 @@ export default function VerifyLawyerPage() {
     </div>
   );
 }
+
+
+export default function VerifyLawyerPage() {
+    return (
+        <React.Suspense fallback={<div>Loading...</div>}>
+            <VerifyLawyerContent />
+        </React.Suspense>
+    )
+}
+
+    
