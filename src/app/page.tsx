@@ -329,7 +329,7 @@ export default function Home() {
 
         <section className="w-full py-12 md:py-16 lg:py-20 bg-gray-50">
             <div className="container mx-auto px-4 md:px-6">
-                <Card className="bg-gradient-to-br from-gray-100 to-blue-50 text-foreground p-8 rounded-lg shadow-lg text-center border-t-4 border-primary">
+                <Card className="bg-gradient-to-br from-gray-100 to-blue-50 text-foreground p-8 rounded-2xl shadow-lg text-center border-t-4 border-primary">
                     <CardHeader className="p-0">
                         <Award className="mx-auto h-12 w-12 text-primary mb-3" />
                         <CardTitle className="text-2xl font-bold">โฆษณาสำนักกฎหมายของคุณที่นี่</CardTitle>
