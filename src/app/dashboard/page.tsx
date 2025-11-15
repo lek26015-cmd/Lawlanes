@@ -124,35 +124,6 @@ export default function DashboardPage() {
                         </Card>
                     )}
 
-                    {/* Reported Tickets */}
-                    {tickets.length > 0 && (
-                        <Card>
-                        <CardHeader>
-                            <CardTitle className="flex items-center gap-2 font-bold">
-                            <Ticket className="w-5 h-5 text-destructive" />
-                            ตั๋วปัญหาที่รายงาน
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-3">
-                            {tickets.map((ticket) => (
-                                <div key={ticket.id} className="flex items-center justify-between p-4 rounded-lg bg-yellow-50 border border-yellow-200">
-                                <div>
-                                    <p className="font-semibold text-yellow-900">
-                                    {ticket.caseTitle} <span className="font-mono text-xs text-yellow-700">({ticket.caseId})</span>
-                                    </p>
-                                    <p className="text-sm text-yellow-800">
-                                    ประเภทปัญหา: {ticket.problemType} | ส่งเมื่อ: {format(ticket.reportedAt, 'dd MMM yyyy', { locale: th })}
-                                    </p>
-                                </div>
-                                <Badge variant="outline" className="border-yellow-600 text-yellow-700 bg-transparent">กำลังตรวจสอบ</Badge>
-                                </div>
-                            ))}
-                            </div>
-                        </CardContent>
-                        </Card>
-                    )}
-
                     {/* Closed Cases */}
                     {closedCases.length > 0 && (
                        <Card>
@@ -213,6 +184,35 @@ export default function DashboardPage() {
                            ))}
                         </CardContent>
                     </Card>
+
+                    {/* Reported Tickets */}
+                    {tickets.length > 0 && (
+                        <Card>
+                        <CardHeader>
+                            <CardTitle className="flex items-center gap-2 font-bold">
+                            <Ticket className="w-5 h-5 text-destructive" />
+                            ตั๋วปัญหาที่รายงาน
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-3">
+                            {tickets.map((ticket) => (
+                                <div key={ticket.id} className="flex items-center justify-between p-4 rounded-lg bg-yellow-50 border border-yellow-200">
+                                <div>
+                                    <p className="font-semibold text-yellow-900">
+                                    {ticket.caseTitle} <span className="font-mono text-xs text-yellow-700">({ticket.caseId})</span>
+                                    </p>
+                                    <p className="text-sm text-yellow-800">
+                                    ประเภทปัญหา: {ticket.problemType} | ส่งเมื่อ: {format(ticket.reportedAt, 'dd MMM yyyy', { locale: th })}
+                                    </p>
+                                </div>
+                                <Badge variant="outline" className="border-yellow-600 text-yellow-700 bg-transparent">กำลังตรวจสอบ</Badge>
+                                </div>
+                            ))}
+                            </div>
+                        </CardContent>
+                        </Card>
+                    )}
                     
                     <Card>
                         <CardHeader>
