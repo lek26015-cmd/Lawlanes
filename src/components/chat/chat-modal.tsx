@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Scale, Send, User, X } from 'lucide-react';
+import { Scale, Send, User, X, Sparkles } from 'lucide-react';
 import type { ChatMessage } from '@/lib/types';
 import { getAiChatResponse } from '@/app/chat/actions';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -37,13 +37,20 @@ export default function ChatModal({
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const isMobile = useIsMobile();
   
+  const suggestedQuestions = [
+    'ร่างสัญญา',
+    'คดีมรดก',
+    'จดทะเบียนบริษัท',
+    'คดีที่ดิน',
+  ];
+
   useEffect(() => {
     if (isOpen && messages.length === 0) {
         setMessages([
           {
             id: 'initial',
             role: 'assistant',
-            content: 'สวัสดีครับ ผมคือ AI Legal Advisor ยินดีให้คำปรึกษาเบื้องต้นด้านกฎหมายแพ่งและพาณิชย์สำหรับ SMEs ครับ'
+            content: 'สวัสดีครับ! ผมคือผู้ช่วย AI ด้านกฎหมายจาก Lawlane มีอะไรให้ผมช่วยวิเคราะห์เบื้องต้นไหมครับ? (นี่คือเวอร์ชั่นสาธิต)'
           }
         ]);
     }
@@ -60,16 +67,17 @@ export default function ChatModal({
     }, 100);
   }, [messages, isLoading]);
 
-  const handleSendMessage = async (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent, query?: string) => {
     e.preventDefault();
-    if (!input.trim() || isLoading) return;
+    const messageToSend = query || input;
+    if (!messageToSend.trim() || isLoading) return;
 
-    const userMessage: ChatMessage = { id: Date.now().toString(), role: 'user', content: input };
+    const userMessage: ChatMessage = { id: Date.now().toString(), role: 'user', content: messageToSend };
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
 
-    const result = await getAiChatResponse({ query: input });
+    const result = await getAiChatResponse({ query: messageToSend });
     
     if (result.success && result.data) {
        const assistantMessage: ChatMessage = {
@@ -92,24 +100,28 @@ export default function ChatModal({
     setIsLoading(false);
   };
 
+  const handleSuggestedQuestionClick = (question: string) => {
+    handleSendMessage({ preventDefault: () => {} } as React.FormEvent, question);
+  }
+
   const ChatContent = (
     <>
-      <ScrollArea className="flex-1 px-6" ref={scrollAreaRef}>
-        <div className="space-y-4 py-4">
+      <ScrollArea className="flex-1 px-4 sm:px-6" ref={scrollAreaRef}>
+        <div className="space-y-6 py-6">
           {messages.map((message) => (
-            <div key={message.id} className={cn('flex items-start gap-3', message.role === 'user' ? 'justify-end' : '')}>
+            <div key={message.id} className={cn('flex items-start gap-3 text-sm', message.role === 'user' ? 'justify-end' : 'justify-start')}>
               {message.role === 'assistant' && (
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback className="bg-primary text-primary-foreground"><Scale className="h-5 w-5"/></AvatarFallback>
+                <Avatar className="h-8 w-8 border border-primary/20">
+                  <AvatarFallback className="bg-primary/10 text-primary"><Sparkles className="h-4 w-4"/></AvatarFallback>
                 </Avatar>
               )}
-              <div className={cn("max-w-[75%] rounded-lg p-3 text-sm", message.role === 'assistant' ? 'bg-muted' : 'bg-primary text-primary-foreground')}>
+              <div className={cn("max-w-[80%] rounded-xl p-3", message.role === 'assistant' ? 'bg-muted rounded-bl-none' : 'bg-primary text-primary-foreground rounded-br-none')}>
                 <p className="whitespace-pre-wrap">{message.content}</p>
                 {message.needsLawyer && (
-                  <div className="mt-4 border-t border-primary/20 pt-3">
-                    <p className="font-semibold text-sm mb-2">{message.handoffMessage || 'เคสของคุณอาจต้องการทนายผู้เชี่ยวชาญ'}</p>
+                  <div className="mt-3 border-t border-primary/20 pt-3">
+                    <p className="font-semibold text-xs mb-2">{message.handoffMessage || 'เคสของคุณอาจต้องการทนายผู้เชี่ยวชาญ'}</p>
                     <Link href="/lawyers" onClick={onClose}>
-                      <Button size="sm" variant={message.role === 'assistant' ? 'secondary' : 'default'}>คลิกเพื่อดูรายชื่อทนาย</Button>
+                      <Button size="sm" variant={message.role === 'assistant' ? 'secondary' : 'default'} className="text-xs h-7">คลิกเพื่อดูรายชื่อทนาย</Button>
                     </Link>
                   </div>
                 )}
@@ -123,10 +135,10 @@ export default function ChatModal({
           ))}
           {isLoading && (
              <div className="flex items-start gap-3">
-                <Avatar className="h-8 w-8">
-                  <AvatarFallback className="bg-primary text-primary-foreground"><Scale className="h-5 w-5"/></AvatarFallback>
+                <Avatar className="h-8 w-8 border border-primary/20">
+                  <AvatarFallback className="bg-primary/10 text-primary"><Sparkles className="h-4 w-4"/></AvatarFallback>
                 </Avatar>
-                <div className="max-w-[75%] rounded-lg p-3 bg-muted w-full">
+                <div className="max-w-[80%] rounded-xl p-3 bg-muted rounded-bl-none w-full">
                    <Skeleton className="h-4 w-1/4" />
                    <Skeleton className="h-4 w-full mt-2" />
                    <Skeleton className="h-4 w-3/4 mt-2" />
@@ -135,17 +147,28 @@ export default function ChatModal({
           )}
         </div>
       </ScrollArea>
-      <div className="p-6 pt-4 border-t">
-        <form onSubmit={handleSendMessage} className="flex items-center gap-2">
+      <div className="px-4 sm:px-6 py-4 border-t bg-background/80 backdrop-blur-sm">
+        <div className='mb-3'>
+            <p className='text-xs text-muted-foreground mb-2'>คำถามด่วน:</p>
+            <div className='flex flex-wrap gap-2'>
+                {suggestedQuestions.map((q) => (
+                    <Button key={q} size="sm" variant="outline" className='text-xs h-7' onClick={() => handleSuggestedQuestionClick(q)} disabled={isLoading}>
+                        {q}
+                    </Button>
+                ))}
+            </div>
+        </div>
+        <form onSubmit={handleSendMessage} className="flex items-center gap-3">
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="พิมพ์คำถามของคุณที่นี่..."
+            placeholder="พิมพ์คำถามของคุณ..."
             autoComplete="off"
             disabled={isLoading}
+            className="rounded-full"
           />
-          <Button type="submit" size="icon" disabled={isLoading || !input.trim()}>
-            <Send className="h-4 w-4" />
+          <Button type="submit" size="icon" className="rounded-full flex-shrink-0" disabled={isLoading || !input.trim()}>
+            <Send className="h-4 w-4 transform -rotate-45" />
           </Button>
         </form>
       </div>
@@ -156,21 +179,13 @@ export default function ChatModal({
     return (
       <>
         <Drawer open={isOpen} onOpenChange={onClose}>
-          <DrawerContent className="h-full max-h-full flex flex-col outline-none p-0 border-0">
-             <div className="relative h-full flex flex-col bg-background">
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600" />
-                <div className="relative bg-background h-full flex flex-col">
-                    <DrawerHeader className="p-4 pb-2 text-left">
-                        <DrawerTitle className="flex items-center gap-2 font-headline">
-                        <Scale /> AI Legal Advisor
-                        </DrawerTitle>
-                        <DrawerDescription>
-                        นี่ไม่ใช่คำแนะนำทางกฎหมาย เป็นเพียงการประเมินเบื้องต้น
-                        </DrawerDescription>
-                    </DrawerHeader>
-                    {ChatContent}
-                </div>
-            </div>
+          <DrawerContent className="h-[90%] max-h-full flex flex-col outline-none p-0 border-0 bg-background">
+            <DrawerHeader className="p-4 pb-2 text-left">
+                <DrawerTitle className="flex items-center gap-2 font-headline">
+                 Lawlane AI Assistant
+                </DrawerTitle>
+            </DrawerHeader>
+            {ChatContent}
           </DrawerContent>
         </Drawer>
         <AlertDialog open={showDisclaimer}>
@@ -195,25 +210,18 @@ export default function ChatModal({
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent 
-          className="p-0 border-0 shadow-2xl fixed bottom-[88px] right-6 sm:max-w-md md:max-w-lg w-full flex flex-col h-[70vh] max-h-[600px] rounded-2xl overflow-hidden bg-transparent"
-          hideCloseButton
+          className="p-0 border-0 shadow-2xl fixed bottom-24 right-6 sm:max-w-sm w-full flex flex-col h-[70vh] max-h-[520px] rounded-2xl overflow-hidden"
         >
-          <div className="absolute -inset-0.5 bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 rounded-2xl animate-rainbow-border-spin" />
-           <div className="relative bg-background w-full h-full flex flex-col rounded-xl overflow-hidden">
-            <DialogHeader className="p-6 pb-2">
-              <DialogTitle className="flex items-center gap-2 font-headline">
-                <Scale /> AI Legal Advisor
+            <DialogHeader className="p-4 pb-3 border-b">
+              <DialogTitle className="flex items-center text-base gap-2 font-headline">
+                Lawlane AI Assistant
               </DialogTitle>
-              <DialogDescription>
-                นี่ไม่ใช่คำแนะนำทางกฎหมาย เป็นเพียงการประเมินเบื้องต้น
-              </DialogDescription>
-               <button onClick={onClose} className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
+               <button onClick={onClose} className="absolute right-4 top-1/2 -translate-y-1/2 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
                   <X className="h-4 w-4" />
                   <span className="sr-only">Close</span>
               </button>
             </DialogHeader>
             {ChatContent}
-          </div>
         </DialogContent>
       </Dialog>
       

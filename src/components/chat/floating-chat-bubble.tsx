@@ -1,18 +1,22 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { MessageCircle } from 'lucide-react';
+import { MessageCircle, X } from 'lucide-react';
 import ChatModal from './chat-modal';
 import { cn } from '@/lib/utils';
 
 export default function FloatingChatBubble() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [showDisclaimer, setShowDisclaimer] = useState(false);
-  const [disclaimerAgreed, setDisclaimerAgreed] = useState(false);
+  const [disclaimerAgreed, setDisclaimerAgreed] = useState(
+    typeof window !== 'undefined' ? localStorage.getItem('disclaimerAgreed') === 'true' : false
+  );
 
-  const handleOpenChat = () => {
-    if (disclaimerAgreed) {
+  const handleToggleChat = () => {
+    if (isChatOpen) {
+      setIsChatOpen(false);
+    } else if (disclaimerAgreed) {
       setIsChatOpen(true);
     } else {
       setShowDisclaimer(true);
@@ -20,6 +24,7 @@ export default function FloatingChatBubble() {
   };
 
   const handleDisclaimerAgree = () => {
+    localStorage.setItem('disclaimerAgreed', 'true');
     setDisclaimerAgreed(true);
     setShowDisclaimer(false);
     setIsChatOpen(true);
@@ -35,17 +40,17 @@ export default function FloatingChatBubble() {
         <div className="relative group">
           <div
             className={cn(
-              "absolute -inset-0.5 bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 rounded-full blur opacity-75 group-hover:opacity-100 transition duration-300 animate-pulse",
+              "absolute -inset-1.5 bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 rounded-full blur-lg opacity-75 group-hover:opacity-100 transition duration-300",
+              isChatOpen ? "" : "animate-pulse"
             )}
           />
           <Button
-            size="lg"
-            className="relative rounded-full px-6 h-14 shadow-lg text-lg"
-            onClick={handleOpenChat}
-            aria-label="Open AI Legal Advisor"
+            size="icon"
+            className="relative rounded-full h-16 w-16 shadow-lg"
+            onClick={handleToggleChat}
+            aria-label="Toggle AI Legal Assistant"
           >
-            <MessageCircle className="h-6 w-6 mr-3" />
-            <span className="font-semibold">แชทกับ AI</span>
+            {isChatOpen ? <X className="h-7 w-7" /> : <MessageCircle className="h-7 w-7" />}
           </Button>
         </div>
       </div>
