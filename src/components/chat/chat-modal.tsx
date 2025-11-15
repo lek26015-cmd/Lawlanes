@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from '@/components/ui/dialog';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from '@/components/ui/drawer';
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter } from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
@@ -210,17 +210,12 @@ export default function ChatModal({
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
         <DialogContent
-          hideCloseButton
-          className="sm:max-w-sm w-full flex flex-col h-[70vh] max-h-[520px] rounded-2xl overflow-hidden fixed bottom-24 right-6 p-0 border-0 shadow-2xl"
+          className="sm:max-w-sm w-full flex flex-col h-[70vh] max-h-[520px] rounded-2xl overflow-hidden fixed bottom-24 right-6 p-0 border-0 shadow-2xl translate-x-0 translate-y-0"
         >
-           <DialogHeader className="p-4 pb-3 border-b bg-primary text-primary-foreground">
-            <DialogTitle className="flex items-center text-base gap-2 font-headline">
+          <DialogHeader className="p-4 pb-3 border-b bg-primary text-primary-foreground rounded-t-2xl">
+            <DialogTitle className="text-base font-headline">
               แชทกับ AI
             </DialogTitle>
-            <button onClick={onClose} className="absolute right-4 top-1/2 -translate-y-1/2 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
-                <X className="h-4 w-4 text-primary-foreground" />
-                <span className="sr-only">Close</span>
-            </button>
           </DialogHeader>
           {ChatContent}
         </DialogContent>
