@@ -112,7 +112,7 @@ function ReviewPageContent() {
                         <div className="flex items-center justify-center gap-3">
                             {[1, 2, 3, 4, 5].map((star) => (
                                 <button key={star} onClick={() => setRating(star)} className="focus:outline-none">
-                                    <Scale className={`w-10 h-10 cursor-pointer transition-all duration-150 ease-in-out ${rating >= star ? 'text-primary fill-primary/20 scale-110' : 'text-gray-300 hover:text-primary/50 hover:scale-105'}`} />
+                                    <Scale className={`w-10 h-10 cursor-pointer transition-all duration-150 ease-in-out ${rating >= star ? 'text-yellow-500 fill-yellow-500/20 scale-110' : 'text-gray-300 hover:text-yellow-500/50 hover:scale-105'}`} />
                                 </button>
                             ))}
                         </div>

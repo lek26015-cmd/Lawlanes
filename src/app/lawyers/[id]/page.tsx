@@ -104,7 +104,7 @@ export default function LawyerProfilePage() {
                             <div className="flex items-center gap-2 mt-2 justify-center md:justify-start">
                                 <div className="flex items-center gap-1">
                                 {[...Array(5)].map((_, i) => (
-                                    <Scale key={i} className={`w-5 h-5 ${i < Math.floor(rating) ? 'text-primary fill-primary/20' : 'text-gray-300'}`} />
+                                    <Scale key={i} className={`w-5 h-5 ${i < Math.floor(rating) ? 'text-yellow-500 fill-yellow-500/20' : 'text-gray-300'}`} />
                                 ))}
                                 </div>
                                 <span className="text-muted-foreground">({reviewCount} รีวิว)</span>
@@ -198,7 +198,7 @@ export default function LawyerProfilePage() {
                                                 </div>
                                                 <div className="flex items-center gap-1 my-1">
                                                     {[...Array(5)].map((_, i) => (
-                                                        <Scale key={i} className={`w-4 h-4 ${i < review.rating ? 'text-primary fill-primary/20' : 'text-gray-300'}`} />
+                                                        <Scale key={i} className={`w-4 h-4 ${i < review.rating ? 'text-yellow-500 fill-yellow-500/20' : 'text-gray-300'}`} />
                                                     ))}
                                                 </div>
                                                 <p className="text-sm text-muted-foreground">{review.comment}</p>

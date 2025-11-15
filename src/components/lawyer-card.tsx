@@ -37,7 +37,7 @@ export default function LawyerCard({ lawyer }: LawyerCardProps) {
         </div>
         <div className="flex items-center gap-1">
           {[...Array(5)].map((_, i) => (
-            <Scale key={i} className={`w-4 h-4 ${i < Math.floor(rating) ? 'text-primary fill-primary/20' : 'text-gray-300'}`} />
+            <Scale key={i} className={`w-4 h-4 ${i < Math.floor(rating) ? 'text-yellow-500 fill-yellow-500/20' : 'text-gray-300'}`} />
           ))}
         </div>
         <p className="text-xs text-muted-foreground">({reviewCount} รีวิว)</p>

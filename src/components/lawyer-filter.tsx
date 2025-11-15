@@ -55,7 +55,7 @@ export default function LawyerFilterSidebar() {
                 <RadioGroupItem value={String(rating)} id={`rating-${rating}`} />
                 <Label htmlFor={`rating-${rating}`} className="flex items-center gap-1 font-normal">
                   {[...Array(5)].map((_, i) => (
-                    <Scale key={i} className={`w-4 h-4 ${i < rating ? 'text-primary fill-primary/20' : 'text-muted-foreground'}`} />
+                    <Scale key={i} className={`w-4 h-4 ${i < rating ? 'text-yellow-500 fill-yellow-500/20' : 'text-muted-foreground'}`} />
                   ))}
                   ขึ้นไป
                 </Label>
