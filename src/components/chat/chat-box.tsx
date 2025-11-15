@@ -168,6 +168,8 @@ export function ChatBox({
       });
   };
 
+  const firstUserMessage = messages.find(m => m.senderId === currentUser.uid);
+
   return (
     <Card className="flex flex-col h-[80vh] shadow-lg">
       <CardHeader className="border-b">
@@ -187,7 +189,7 @@ export function ChatBox({
                         <div className="p-4 rounded-lg bg-yellow-50 border border-yellow-200">
                              <p className="font-semibold text-sm text-yellow-800">AI: สรุปข้อเท็จจริงเบื้องต้นจากลูกความ</p>
                              <p className="text-sm text-yellow-700 mt-1">
-                               (AI สรุปข้อเท็จจริง) ลูกค้าแจ้งว่า: "ฉันต้องการหย่ากับผัวเพราะมันไปมีเมียน้อย ทำให้ลูกต้องกำพร้า แบบนี้ต้องฟ้องเอาค่าเสียหายให้เข็ด" (นี่คือข้อมูลจำลองที่ AI ช่วยสรุปให้ทนายครับ)
+                               {firstUserMessage ? `(AI สรุปข้อเท็จจริง) ลูกค้าแจ้งว่า: "${firstUserMessage.text}" (นี่คือข้อมูลจำลองที่ AI ช่วยสรุปให้ทนายครับ)` : "กำลังรอข้อความแรกจากผู้ใช้..."}
                              </p>
                         </div>
                     </div>
