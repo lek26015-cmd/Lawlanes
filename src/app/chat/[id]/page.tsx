@@ -58,6 +58,7 @@ function ChatPageContent() {
     const [isReviewDialogOpen, setIsReviewDialogOpen] = useState(false);
     const [rating, setRating] = useState(0);
     const [reviewText, setReviewText] = useState("");
+    const [isChatDisabled, setIsChatDisabled] = useState(false);
 
     const { auth, firestore } = useFirebase();
     const { data: user } = useUser(auth);
@@ -108,10 +109,13 @@ function ChatPageContent() {
     
     const handleConfirmRelease = () => {
         setEscrowStatus('confirmed');
+        setIsChatDisabled(true); // Disable chat on case completion
         toast({
             title: "ดำเนินการสำเร็จ",
             description: "เงินได้ถูกโอนไปยังทนายความเรียบร้อยแล้ว",
         });
+        // Automatically open the review dialog
+        setIsReviewDialogOpen(true);
     };
 
     const handleSubmitReview = () => {
@@ -146,7 +150,7 @@ function ChatPageContent() {
         <div className="container mx-auto px-4 md:px-6 py-8">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2">
-                    <ChatBox firestore={firestore} currentUser={user} lawyer={lawyer} chatId={chatId} />
+                    <ChatBox firestore={firestore} currentUser={user} lawyer={lawyer} chatId={chatId} isDisabled={isChatDisabled} />
                 </div>
                 <div className="lg:col-span-1 space-y-6">
                     <Card>
@@ -183,12 +187,13 @@ function ChatPageContent() {
                                     </AlertDialogContent>
                                 </AlertDialog>
                             ) : (
-                                <Dialog open={isReviewDialogOpen} onOpenChange={setIsReviewDialogOpen}>
-                                    <DialogTrigger asChild>
-                                        <Button className="w-full mt-4">
-                                            <Star className="mr-2 h-4 w-4" /> ให้คะแนนและรีวิว
-                                        </Button>
-                                    </DialogTrigger>
+                                 <p className="mt-4 p-3 bg-green-100 text-green-800 text-sm rounded-lg">
+                                    <Check className="inline-block mr-2 h-4 w-4" />
+                                    การสนทนาในเคสนี้สิ้นสุดแล้ว
+                                </p>
+                            )}
+
+                             <Dialog open={isReviewDialogOpen} onOpenChange={setIsReviewDialogOpen}>
                                     <DialogContent className="sm:max-w-[425px]">
                                         <DialogHeader>
                                             <DialogTitle>ให้คะแนนทนายความ</DialogTitle>
@@ -222,7 +227,6 @@ function ChatPageContent() {
                                         </DialogFooter>
                                     </DialogContent>
                                 </Dialog>
-                            )}
 
                             <Button variant="link" className="text-muted-foreground text-xs mt-2">
                                 <AlertTriangle className="mr-1 h-3 w-3" /> รายงานปัญหา
@@ -278,5 +282,3 @@ export default function ChatPage() {
         </Suspense>
     )
 }
-
-    

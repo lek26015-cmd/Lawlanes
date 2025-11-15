@@ -32,6 +32,7 @@ interface ChatBoxProps {
   currentUser: User;
   lawyer: LawyerProfile;
   chatId: string;
+  isDisabled?: boolean;
 }
 
 export function ChatBox({
@@ -39,6 +40,7 @@ export function ChatBox({
   currentUser,
   lawyer,
   chatId,
+  isDisabled = false,
 }: ChatBoxProps) {
   const [messages, setMessages] = useState<HumanChatMessage[]>([]);
   const [input, setInput] = useState('');
@@ -148,7 +150,7 @@ export function ChatBox({
 
   const handleSendMessage = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!input.trim()) return;
+    if (!input.trim() || isDisabled) return;
 
     const messageData = {
       text: input,
@@ -244,14 +246,14 @@ export function ChatBox({
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="พิมพ์ข้อความ..."
-            disabled={isLoading}
+            placeholder={isDisabled ? "การสนทนานี้สิ้นสุดแล้ว" : "พิมพ์ข้อความ..."}
+            disabled={isLoading || isDisabled}
             className="flex-grow rounded-full"
           />
           <Button
             type="submit"
             size="icon"
-            disabled={isLoading || !input.trim()}
+            disabled={isLoading || !input.trim() || isDisabled}
             className="rounded-full w-10 h-10 bg-blue-600 hover:bg-blue-700"
           >
             <Send className="w-5 h-5" />
