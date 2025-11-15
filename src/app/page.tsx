@@ -1,11 +1,13 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { CheckCircle, MessageSquare, Users, Sparkles, Scale } from 'lucide-react';
+import { CheckCircle, MessageSquare, Users, Sparkles, Scale, ArrowRight } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { getApprovedLawyers } from '@/lib/data';
+import LawyerCard from '@/components/lawyer-card';
 
-export default function Home() {
+export default async function Home() {
   const features = [
     {
       icon: <MessageSquare className="h-8 w-8 text-primary" />,
@@ -23,6 +25,8 @@ export default function Home() {
       description: 'ให้ AI ช่วยแนะนำและส่งต่อเคสของคุณไปยังทนายที่เหมาะสม',
     },
   ];
+
+  const recommendedLawyers = (await getApprovedLawyers()).slice(0, 3);
 
   return (
     <div className="flex flex-col">
@@ -118,20 +122,25 @@ export default function Home() {
       </section>
 
       <section className="w-full py-12 md:py-24 lg:py-32">
-        <div className="container mx-auto grid items-center justify-center gap-4 px-4 text-center md:px-6">
-          <div className="space-y-3">
-            <h2 className="text-3xl font-bold tracking-tighter md:text-4xl/tight font-headline">
-              Ready to find your legal solution?
+        <div className="container mx-auto px-4 md:px-6">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">
+              ทนายที่แนะนำ
             </h2>
-            <p className="mx-auto max-w-[600px] text-muted-foreground md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
-              Explore our marketplace of expert lawyers, hand-picked for their experience with SME cases.
+            <p className="max-w-2xl mx-auto mt-4 text-muted-foreground md:text-xl">
+              ทนายความผู้เชี่ยวชาญที่คัดสรรมาเพื่อธุรกิจ SME โดยเฉพาะ
             </p>
           </div>
-          <div className="mx-auto w-full max-w-sm space-y-2">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {recommendedLawyers.map((lawyer) => (
+              <LawyerCard key={lawyer.id} lawyer={lawyer} />
+            ))}
+          </div>
+          <div className="text-center mt-12">
             <Link href="/lawyers">
-              <Button size="lg" className="w-full">
-                View Lawyers
-              </Button>
+                <Button variant="outline">
+                    ดูทนายทั้งหมด <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
             </Link>
           </div>
         </div>
