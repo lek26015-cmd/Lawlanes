@@ -103,75 +103,65 @@ export default function Home() {
   return (
     <>
       <div className="flex flex-col">
-        <section className="w-full pt-12 pb-20 md:pt-24 md:pb-32 lg:pt-32 lg:pb-40 relative overflow-hidden">
-          <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-background to-background z-0"></div>
-          <div 
-              className="absolute -top-1/4 -right-1/4 w-1/2 h-1/2 bg-primary/5 rounded-full filter blur-3xl opacity-30 animate-pulse"
-              style={{ animationDuration: '8s' }}>
-          </div>
-          <div 
-              className="absolute -bottom-1/4 -left-1/4 w-1/2 h-1/2 bg-accent/5 rounded-full filter blur-3xl opacity-20 animate-pulse"
-              style={{ animationDuration: '10s', animationDelay: '2s' }}>
-          </div>
+        <section className="w-full py-20 md:py-32 lg:py-40 bg-primary text-primary-foreground">
+            <div className="container mx-auto px-4 md:px-6">
+                <div className="grid lg:grid-cols-2 gap-12 items-center">
+                    <div className="flex flex-col items-center lg:items-start text-center lg:text-left space-y-6">
+                        <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none font-headline">
+                            ค้นหาทนายความ...
+                            <br />
+                            <span className="opacity-90">ที่ใช่สำหรับคุณ</span>
+                        </h1>
+                        <p className="max-w-[600px] text-primary-foreground/80 md:text-xl">
+                            Lawlane คือตลาดกลางทนายความออนไลน์ ที่เชื่อมต่อคุณกับผู้เชี่ยวชาญกฎหมายทั่วประเทศได้อย่างมั่นใจ
+                        </p>
+                        <div className="flex flex-col sm:flex-row gap-4">
+                            <Link href="/lawyers">
+                            <Button size="lg" variant="secondary">ดูรายชื่อทนายทั้งหมด</Button>
+                            </Link>
+                            <Link href="#features">
+                            <Button size="lg" variant="outline" className="text-white border-white hover:bg-white hover:text-primary">
+                                บริการของเรา
+                            </Button>
+                            </Link>
+                        </div>
+                    </div>
 
-          <div className="container mx-auto px-4 md:px-6 relative z-10">
-              <div className="grid lg:grid-cols-2 gap-12 items-center">
-                  <div className="flex flex-col items-center lg:items-start text-center lg:text-left space-y-6">
-                      <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none font-headline text-primary">
-                          ค้นหาทนายความ...
-                          <br />
-                          <span className="text-foreground">ที่ใช่สำหรับคุณ</span>
-                      </h1>
-                      <p className="max-w-[600px] text-muted-foreground md:text-xl">
-                          Lawlane คือตลาดกลางทนายความออนไลน์ ที่เชื่อมต่อคุณกับผู้เชี่ยวชาญกฎหมายทั่วประเทศได้อย่างมั่นใจ
-                      </p>
-                      <div className="flex flex-col sm:flex-row gap-4">
-                          <Link href="/lawyers">
-                          <Button size="lg">ดูรายชื่อทนายทั้งหมด</Button>
-                          </Link>
-                          <Link href="#features">
-                          <Button size="lg" variant="outline">
-                              บริการของเรา
-                          </Button>
-                          </Link>
-                      </div>
-                  </div>
-
-                  <Card className="p-6 md:p-8 relative overflow-hidden bg-gradient-to-br from-purple-100/40 via-pink-100/40 to-blue-100/40 border-purple-200/50 shadow-xl">
-                      <div className="absolute top-4 right-4 bg-primary text-primary-foreground p-3 rounded-full shadow-lg">
-                          <Sparkles className="h-6 w-6" />
-                      </div>
-                      <div className="flex items-center gap-3 mb-2">
-                          <Scale className="h-7 w-7 text-primary" />
-                          <h2 className="text-2xl md:text-3xl font-bold font-headline text-primary">
-                          ไม่แน่ใจว่าต้องการทนายด้านไหน?
-                          </h2>
-                      </div>
-                      <p className="text-muted-foreground mb-6">
-                          ให้ AI ช่วยวิเคราะห์ปัญหาเบื้องต้นและแนะนำทนายที่ตรงจุดให้คุณ
-                      </p>
-                      <div className="space-y-4">
-                          <Textarea
-                            value={analysisText}
-                            onChange={(e) => setAnalysisText(e.target.value)}
-                            placeholder='อธิบายปัญหาของคุณที่นี่ เช่น "โดนโกงแชร์", "ต้องการจดทะเบียนบริษัท", "ปัญหาที่ดินกับเพื่อนบ้าน"'
-                            rows={4}
-                            className="bg-background/70"
-                          />
-                          <Button size="lg" className="w-full" onClick={handleAnalysis} disabled={isFindingLawyers}>
-                            {isFindingLawyers ? (
-                                <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                กำลังวิเคราะห์...
-                                </>
-                            ) : (
-                                'วิเคราะห์และแนะนำทนาย'
-                            )}
-                          </Button>
-                      </div>
-                  </Card>
-              </div>
-          </div>
+                    <Card className="p-6 md:p-8 shadow-xl bg-background text-foreground">
+                        <div className="absolute top-4 right-4 bg-primary text-primary-foreground p-3 rounded-full shadow-lg">
+                            <Sparkles className="h-6 w-6" />
+                        </div>
+                        <div className="flex items-center gap-3 mb-2">
+                            <Scale className="h-7 w-7 text-primary" />
+                            <h2 className="text-2xl md:text-3xl font-bold font-headline text-primary">
+                            ไม่แน่ใจว่าต้องการทนายด้านไหน?
+                            </h2>
+                        </div>
+                        <p className="text-muted-foreground mb-6">
+                            ให้ AI ช่วยวิเคราะห์ปัญหาเบื้องต้นและแนะนำทนายที่ตรงจุดให้คุณ
+                        </p>
+                        <div className="space-y-4">
+                            <Textarea
+                              value={analysisText}
+                              onChange={(e) => setAnalysisText(e.target.value)}
+                              placeholder='อธิบายปัญหาของคุณที่นี่ เช่น "โดนโกงแชร์", "ต้องการจดทะเบียนบริษัท", "ปัญหาที่ดินกับเพื่อนบ้าน"'
+                              rows={4}
+                              className="bg-secondary"
+                            />
+                            <Button size="lg" className="w-full" onClick={handleAnalysis} disabled={isFindingLawyers}>
+                              {isFindingLawyers ? (
+                                  <>
+                                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                  กำลังวิเคราะห์...
+                                  </>
+                              ) : (
+                                  'วิเคราะห์และแนะนำทนาย'
+                              )}
+                            </Button>
+                        </div>
+                    </Card>
+                </div>
+            </div>
         </section>
 
         <section id="features" className="w-full py-12 md:py-24 lg:py-20 bg-secondary/20">
@@ -285,5 +275,3 @@ export default function Home() {
     </>
   );
 }
-
-    
