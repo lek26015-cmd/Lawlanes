@@ -81,7 +81,6 @@ export default function Header() {
         </Link>
         
         <div className="hidden md:flex flex-1 justify-center px-8 lg:px-16">
-           {!isHomePage && (
             <div className="relative w-full max-w-lg">
               <Input
                 type="search"
@@ -97,7 +96,6 @@ export default function Header() {
                 <Search className="h-4 w-4 text-white/80" />
               </Button>
             </div>
-           )}
         </div>
 
         <nav className="hidden items-center gap-4 text-sm font-medium md:flex whitespace-nowrap">
