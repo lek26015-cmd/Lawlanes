@@ -23,7 +23,7 @@ export default function Footer() {
   ];
 
   const legalLinks = [
-    { href: '#', label: 'นโยบายความเป็นส่วนตัว' },
+    { href: '/privacy', label: 'นโยบายความเป็นส่วนตัว' },
     { href: '#', label: 'ข้อกำหนดการใช้งาน' },
     { href: '#', label: 'ศูนย์ช่วยเหลือ' },
   ];

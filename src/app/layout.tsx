@@ -8,6 +8,7 @@ import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { ChatProvider } from '@/context/chat-context';
 import ChatModal from '@/components/chat/chat-modal';
 import FloatingChatButton from '@/components/chat/floating-chat-button';
+import CookieBanner from '@/components/cookie-banner';
 
 export const metadata: Metadata = {
   title: 'Lawlane AI Legal Advisor',
@@ -38,6 +39,7 @@ export default function RootLayout({
             </div>
             <FloatingChatButton />
             <ChatModal />
+            <CookieBanner />
           </ChatProvider>
         </FirebaseClientProvider>
         <Toaster />
