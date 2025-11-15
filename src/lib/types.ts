@@ -46,6 +46,7 @@ export interface Case {
   lastMessageTimestamp: string;
   status: 'active' | 'closed';
   hasNewMessage?: boolean;
+  color?: 'blue' | 'yellow';
 }
 
 export interface UpcomingAppointment {
@@ -53,4 +54,12 @@ export interface UpcomingAppointment {
     lawyer: Pick<LawyerProfile, 'name' | 'imageUrl' | 'imageHint'>;
     date: Date;
     description: string;
+    time: string;
+}
+
+export interface Document {
+    id: string;
+    name: string;
+    status: string;
+    isCompleted: boolean;
 }

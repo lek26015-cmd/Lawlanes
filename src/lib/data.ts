@@ -1,6 +1,6 @@
 import type { LawyerProfile } from '@/lib/types';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import type { Article, Case, UpcomingAppointment } from '@/lib/types';
+import type { Article, Case, UpcomingAppointment, Document } from '@/lib/types';
 
 
 const getImageUrl = (id: string) => PlaceHolderImages.find(img => img.id === id)?.imageUrl ?? '';
@@ -173,53 +173,26 @@ export async function getArticleBySlug(slug: string): Promise<Article | undefine
 }
 
 // Mock data for Dashboard
-const lawyerForCase1 = mockLawyers.find(l => l.id === '2');
-const lawyerForCase2 = mockLawyers.find(l => l.id === '3');
-const lawyerForCase3 = mockLawyers.find(l => l.id === '1');
-
-
 const mockCases: Case[] = [
   {
     id: 'case-001',
-    title: 'คดีผิดสัญญาเช่าซื้อ',
-    lawyer: {
-      id: lawyerForCase1!.id,
-      name: lawyerForCase1!.name,
-      imageUrl: lawyerForCase1!.imageUrl,
-      imageHint: lawyerForCase1!.imageHint,
-    },
-    lastMessage: 'ผมได้ส่งร่างเอกสารให้ตรวจสอบแล้วนะครับ',
-    lastMessageTimestamp: '2 ชั่วโมงที่แล้ว',
+    title: 'ตรวจสอบสัญญาเช่าคอนโด',
+    lawyer: { id: '2', name: 'นางสาวสมศรี ยุติธรรม', imageUrl: '', imageHint: '' },
+    lastMessage: 'สถานะ: รอทนายส่งใบเสนอราคา | ส่งเมื่อ: 24 ต.ค. 2567',
+    lastMessageTimestamp: '',
     status: 'active',
-    hasNewMessage: true,
+    hasNewMessage: false,
+    color: 'blue'
   },
   {
     id: 'case-002',
-    title: 'ปรึกษาเรื่องสัญญาจ้างพนักงาน',
-    lawyer: {
-      id: lawyerForCase2!.id,
-      name: lawyerForCase2!.name,
-      imageUrl: lawyerForCase2!.imageUrl,
-      imageHint: lawyerForCase2!.imageHint,
-    },
-    lastMessage: 'คุณ: ขอบคุณสำหรับคำแนะนำครับ',
-    lastMessageTimestamp: 'เมื่อวาน',
+    title: 'จดทะเบียนบริษัท ลอว์เลน จำกัด',
+    lawyer: { id: '3', name: 'นายวิชัย ชนะคดี', imageUrl: '', imageHint: '' },
+    lastMessage: 'สถานะ: ทนายกำลังเตรียมเอกสาร | ส่งเมื่อ: 23 ต.ค. 2567',
+    lastMessageTimestamp: '',
     status: 'active',
     hasNewMessage: false,
-  },
-  {
-    id: 'case-003',
-    title: 'คดีฉ้อโกงออนไลน์',
-    lawyer: {
-      id: lawyerForCase3!.id,
-      name: lawyerForCase3!.name,
-      imageUrl: lawyerForCase3!.imageUrl,
-      imageHint: lawyerForCase3!.imageHint,
-    },
-    lastMessage: 'เคสเสร็จสิ้นแล้ว ขอบคุณที่ใช้บริการ',
-    lastMessageTimestamp: '2 สัปดาห์ที่แล้ว',
-    status: 'closed',
-    hasNewMessage: false,
+    color: 'yellow'
   },
 ];
 
@@ -227,21 +200,38 @@ const mockAppointments: UpcomingAppointment[] = [
   {
     id: 'appt-001',
     lawyer: {
-        name: lawyerForCase1!.name,
-        imageUrl: lawyerForCase1!.imageUrl,
-        imageHint: lawyerForCase1!.imageHint,
+        name: 'ทนายสมชาย ก.',
+        imageUrl: getImageUrl('lawyer-1'),
+        imageHint: getImageHint('lawyer-1'),
     },
     date: new Date(new Date().setDate(new Date().getDate() + 3)),
-    description: 'ปรึกษาเรื่องการฟ้องร้องคดีฉ้อโกง'
+    description: 'ปรึกษา VDO Call คดีมรดก',
+    time: '10:00 น.'
   }
 ];
 
-export async function getDashboardData(): Promise<{ cases: Case[], appointments: UpcomingAppointment[] }> {
+const mockDocuments: Document[] = [
+    {
+        id: 'doc-001',
+        name: 'สัญญาเช่าคอนโด_สมหญิง.pdf',
+        status: 'อัปโหลดเมื่อ: 24 ต.ค. 2567 | สถานะ: รอดำเนินการ',
+        isCompleted: false,
+    },
+    {
+        id: 'doc-002',
+        name: 'สัญญาจ้างงาน_ทนายตรวจสอบแล้ว.pdf',
+        status: 'ตรวจสอบเสร็จเมื่อ: 22 ต.ค. 2567 | โดย: ทนายวิโรจน์ ส.',
+        isCompleted: true,
+    }
+]
+
+export async function getDashboardData(): Promise<{ cases: Case[], appointments: UpcomingAppointment[], documents: Document[] }> {
   return new Promise(resolve => {
     setTimeout(() => {
       resolve({
         cases: mockCases,
         appointments: mockAppointments,
+        documents: mockDocuments
       });
     }, 500);
   });
