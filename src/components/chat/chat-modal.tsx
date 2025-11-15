@@ -3,6 +3,7 @@
 import {
   Dialog,
   DialogContent,
+  DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,7 +30,9 @@ export default function ChatModal({ isOpen, onOpenChange }: ChatModalProps) {
         className="fixed inset-0 w-full h-full rounded-none sm:inset-auto sm:bottom-6 sm:right-6 sm:w-96 sm:h-[70vh] sm:rounded-2xl bg-white shadow-2xl border z-50 p-0 flex flex-col"
       >
         <div className="flex justify-between items-center p-4 border-b bg-primary text-primary-foreground sm:rounded-t-2xl">
-            <h3 className="text-xl font-bold">Lawlane AI Assistant</h3>
+            <DialogTitle asChild>
+                <h3 className="text-xl font-bold">Lawlane AI Assistant</h3>
+            </DialogTitle>
             <button onClick={() => onOpenChange(false)} className="text-primary-foreground/70 hover:text-white">
                 <X className="w-6 h-6" />
             </button>
