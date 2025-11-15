@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Scale, Send, User, X } from 'lucide-react';
+import { Scale, Send, User } from 'lucide-react';
 import type { ChatMessage } from '@/lib/types';
 import { getAiChatResponse } from '@/app/chat/actions';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -164,8 +164,8 @@ export default function ChatModal({ isOpen, onClose }: ChatModalProps) {
     return (
       <>
         <Drawer open={isOpen} onOpenChange={handleClose}>
-          <DrawerContent className="h-full max-h-full flex flex-col bg-transparent outline-none p-0 border-0">
-             <div className="relative h-full flex flex-col">
+          <DrawerContent className="h-full max-h-full flex flex-col outline-none p-0 border-0">
+             <div className="relative h-full flex flex-col bg-background">
                 <div className="absolute -inset-0.5 bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600" />
                 <div className="relative bg-background h-full flex flex-col">
                     <DrawerHeader className="p-4 pb-2 text-left">
@@ -204,7 +204,10 @@ export default function ChatModal({ isOpen, onClose }: ChatModalProps) {
       <Dialog open={isOpen} onOpenChange={handleClose}>
         <DialogContent 
           className="p-0 border-0 shadow-2xl fixed bottom-[88px] right-6 sm:max-w-md md:max-w-lg w-full flex flex-col h-[70vh] max-h-[600px] rounded-2xl overflow-hidden bg-transparent"
-          onInteractOutside={(e) => e.preventDefault()}
+          onInteractOutside={(e) => {
+            e.preventDefault();
+            handleClose();
+          }}
         >
           <div className="absolute -inset-0.5 bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 rounded-2xl" />
            <div className="relative bg-background w-full h-full flex flex-col rounded-xl overflow-hidden">
@@ -215,10 +218,6 @@ export default function ChatModal({ isOpen, onClose }: ChatModalProps) {
               <DialogDescription>
                 นี่ไม่ใช่คำแนะนำทางกฎหมาย เป็นเพียงการประเมินเบื้องต้น
               </DialogDescription>
-              <button onClick={handleClose} className="absolute right-4 top-4 rounded-sm opacity-70 ring-offset-background transition-opacity hover:opacity-100 focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none data-[state=open]:bg-accent data-[state=open]:text-muted-foreground">
-                <X className="h-4 w-4" />
-                <span className="sr-only">Close</span>
-              </button>
             </DialogHeader>
             {ChatContent}
           </div>
