@@ -129,7 +129,7 @@ export default function Home() {
 
                     <div className="relative group">
                         <div className="absolute -inset-0.5 bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 rounded-lg blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-rainbow-border-spin"></div>
-                        <Card className="relative p-6 md:p-8 shadow-xl bg-primary text-primary-foreground">
+                        <Card className="relative p-6 md:p-8 shadow-xl bg-primary text-primary-foreground rounded-lg">
                             <div className="absolute top-4 right-4 bg-foreground text-background p-3 rounded-full shadow-lg">
                                 <Sparkles className="h-6 w-6" />
                             </div>
