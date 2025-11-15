@@ -25,6 +25,7 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
+import { Separator } from '@/components/ui/separator';
 
 
 export default function Home() {
@@ -366,13 +367,20 @@ export default function Home() {
                 </div>
             </section>
             
-            <div className="flex flex-col gap-4">
-                {recommendedLawyers.map((lawyer) => (
-                  <div key={lawyer.id} className="border-b border-border">
-                    <LawyerCard lawyer={lawyer} />
-                  </div>
-                ))}
+            <div className='max-w-5xl mx-auto mt-12'>
+                <div className='text-center mb-8'>
+                    <h2 className='text-3xl font-bold tracking-tight text-foreground font-headline'>ทนายที่แนะนำ</h2>
+                    <Separator className='w-24 mx-auto mt-2' />
+                </div>
+                <div className="flex flex-col gap-4">
+                    {recommendedLawyers.map((lawyer) => (
+                    <div key={lawyer.id} className="border-b border-border last:border-b-0">
+                        <LawyerCard lawyer={lawyer} />
+                    </div>
+                    ))}
+                </div>
             </div>
+
           </div>
         </section>
 
