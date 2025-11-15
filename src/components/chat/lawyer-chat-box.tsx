@@ -146,7 +146,7 @@ export function LawyerChatBox({
   return (
     <div className="flex flex-col h-full bg-card">
       <CardHeader className="flex flex-row justify-between items-center p-4 border-b bg-foreground text-background rounded-t-2xl">
-        <CardTitle asChild>
+        <CardTitle>
           <div className="flex items-center gap-3">
             <Avatar className="h-8 w-8 border-2 border-background">
                 <AvatarImage src={lawyer.imageUrl} />
