@@ -54,6 +54,13 @@ export default function Home() {
 
   const handleAnalysis = async () => {
     if (!analysisText.trim()) return;
+    
+    if (analysisText) {
+      setInitialPrompt(analysisText);
+      setIsChatOpen(true);
+      return;
+    }
+    
     setIsFindingLawyers(true);
     try {
       const result = await findLawyerSpecialties({ problem: analysisText });
@@ -66,13 +73,6 @@ export default function Home() {
       setIsFindingLawyers(false);
     }
   };
-  
-  const handleCardClick = () => {
-      if (analysisText) {
-          setInitialPrompt(analysisText);
-      }
-      setIsChatOpen(true);
-  }
   
   const clearInitialPrompt = () => {
     setInitialPrompt('');

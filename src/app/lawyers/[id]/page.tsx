@@ -1,3 +1,4 @@
+'use client';
 
 import { getLawyerById } from '@/lib/data';
 import { notFound } from 'next/navigation';
@@ -10,13 +11,41 @@ import { ArrowLeft, Mail, Phone, Trophy, BookCopy } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import type { LawyerProfile } from '@/lib/types';
+import ChatModal from '@/components/chat/chat-modal';
 
-export default async function LawyerProfilePage({ params }: { params: { id: string } }) {
-  const lawyer = await getLawyerById(params.id);
+export default function LawyerProfilePage({ params }: { params: { id: string } }) {
+  const [lawyer, setLawyer] = useState<LawyerProfile | null>(null);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [initialPrompt, setInitialPrompt] = useState('');
+
+  useEffect(() => {
+    async function fetchLawyer() {
+      const lawyerData = await getLawyerById(params.id);
+      if (!lawyerData) {
+        notFound();
+      }
+      setLawyer(lawyerData);
+    }
+    fetchLawyer();
+  }, [params.id]);
+  
+  const handleConsultClick = (type: 'consult' | 'message') => {
+      const prompt = type === 'consult' 
+          ? `สวัสดีครับ สนใจนัดปรึกษาคุณ ${lawyer?.name} ครับ`
+          : `สวัสดีครับ สนใจส่งข้อความปรึกษาคุณ ${lawyer?.name} ครับ`;
+      setInitialPrompt(prompt);
+      setIsChatOpen(true);
+  }
+  
+  const clearInitialPrompt = () => {
+      setInitialPrompt('');
+  }
+
 
   if (!lawyer) {
-    notFound();
+    return <div>Loading...</div>; // Or a loading skeleton
   }
 
   const rating = (Number(lawyer.id) % 2) + 3.5;
@@ -52,6 +81,7 @@ export default async function LawyerProfilePage({ params }: { params: { id: stri
   ];
 
   return (
+    <>
     <div className="bg-gray-50 min-h-screen">
       <div className="container mx-auto px-4 md:px-6 py-12">
         <div className="max-w-4xl mx-auto">
@@ -91,17 +121,13 @@ export default async function LawyerProfilePage({ params }: { params: { id: stri
                             </div>
                         </div>
                          <div className="flex-shrink-0 flex flex-col items-center justify-center gap-3 w-full md:w-40 md:ml-auto">
-                            <Link href="/lawyers" className="w-full">
-                                <Button className="w-full bg-foreground text-background hover:bg-foreground/90">
-                                    <Phone className="mr-2 h-4 w-4" /> นัดปรึกษา
-                                </Button>
-                            </Link>
-                            <Link href="/lawyers" className="w-full">
-                                <Button variant="outline" className="w-full">
-                                    <Mail className="mr-2 h-4 w-4" /> ส่งข้อความ
-                                </Button>
-                            </Link>
-                        </div>
+                            <Button className="w-full bg-foreground text-background hover:bg-foreground/90" onClick={() => handleConsultClick('consult')}>
+                                <Phone className="mr-2 h-4 w-4" /> นัดปรึกษา
+                            </Button>
+                            <Button variant="outline" className="w-full" onClick={() => handleConsultClick('message')}>
+                                <Mail className="mr-2 h-4 w-4" /> ส่งข้อความ
+                            </Button>
+                         </div>
                     </div>
                 </div>
 
@@ -193,5 +219,7 @@ export default async function LawyerProfilePage({ params }: { params: { id: stri
         </div>
       </div>
     </div>
+    <ChatModal isOpen={isChatOpen} onOpenChange={setIsChatOpen} initialPrompt={initialPrompt} clearInitialPrompt={clearInitialPrompt} />
+    </>
   );
 }

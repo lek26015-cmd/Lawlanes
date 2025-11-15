@@ -11,7 +11,7 @@ import { useState, useEffect } from 'react';
 
 export default function Header() {
   const pathname = usePathname();
-  const isAuthPage = pathname === '/signup';
+  const isAuthPage = false; // Placeholder, as signup page is removed
   const isHomePage = pathname === '/';
   const [isScrolled, setIsScrolled] = useState(false);
 
@@ -69,12 +69,6 @@ export default function Header() {
     useTransparentHeader ? '' : 'text-background hover:text-background hover:bg-white/10'
   );
 
-  const signupButtonClasses = cn(
-    useTransparentHeader 
-      ? 'bg-foreground text-background hover:bg-foreground/90' 
-      : 'bg-background text-foreground hover:bg-background/90'
-  );
-
 
   return (
     <header className={headerClasses}>
@@ -118,9 +112,6 @@ export default function Header() {
         <div className="hidden items-center gap-2 md:flex ml-4 whitespace-nowrap">
           <Link href="/">
             <Button variant="ghost" className={loginButtonClasses}>เข้าสู่ระบบ</Button>
-          </Link>
-          <Link href="/">
-            <Button className={signupButtonClasses}>เข้าสู่ระบบทนาย</Button>
           </Link>
         </div>
       </div>
