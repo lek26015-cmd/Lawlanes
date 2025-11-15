@@ -90,6 +90,35 @@ export default async function Home() {
         </div>
       </section>
 
+      <section className="w-full py-12 md:py-24 lg:py-20 bg-secondary/10">
+        <div className="container mx-auto px-4 md:px-6">
+          <Card className="max-w-3xl mx-auto p-6 md:p-8 relative overflow-hidden bg-gradient-to-br from-purple-100/40 via-pink-100/40 to-blue-100/40 border-purple-200/50 shadow-xl">
+              <div className="absolute top-4 right-4 bg-primary text-primary-foreground p-3 rounded-full shadow-lg">
+                <Sparkles className="h-6 w-6" />
+              </div>
+              <div className="flex items-center gap-3 mb-2">
+                <Scale className="h-7 w-7 text-primary" />
+                <h2 className="text-2xl md:text-3xl font-bold font-headline text-primary">
+                  ไม่แน่ใจว่าต้องการทนายด้านไหน?
+                </h2>
+              </div>
+              <p className="text-muted-foreground mb-6">
+                ให้ AI ช่วยวิเคราะห์ปัญหาเบื้องต้นและแนะนำทนายที่ตรงจุดให้คุณ
+              </p>
+              <div className="space-y-4">
+                <Textarea
+                  placeholder='อธิบายปัญหาของคุณที่นี่ เช่น "โดนโกงแชร์", "ต้องการจดทะเบียนบริษัท", "ปัญหาที่ดินกับเพื่อนบ้าน"'
+                  rows={4}
+                  className="bg-background/70"
+                />
+                <Button size="lg" className="w-full">
+                  วิเคราะห์และแนะนำทนาย
+                </Button>
+              </div>
+          </Card>
+        </div>
+      </section>
+
       <section id="features" className="w-full py-12 md:py-24 lg:py-20 bg-secondary/20">
         <div className="container mx-auto px-4 md:px-6">
           <div className="flex flex-col items-center justify-center space-y-4 text-center">
