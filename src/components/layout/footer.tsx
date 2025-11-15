@@ -37,7 +37,7 @@ export default function Footer() {
             <h3 className="font-semibold text-white mb-4">ลิงก์ด่วน</h3>
             <ul className="space-y-2">
               {quickLinks.map((link) => (
-                <li key={link.href}>
+                <li key={link.label}>
                   <Link href={link.href} className="text-sm hover:text-white transition-colors">
                     {link.label}
                   </Link>
@@ -50,7 +50,7 @@ export default function Footer() {
             <h3 className="font-semibold text-white mb-4">สำหรับทนายความ</h3>
             <ul className="space-y-2">
               {forLawyersLinks.map((link) => (
-                <li key={link.href}>
+                <li key={link.label}>
                   <Link href={link.href} className="text-sm hover:text-white transition-colors">
                     {link.label}
                   </Link>
@@ -63,7 +63,7 @@ export default function Footer() {
             <h3 className="font-semibold text-white mb-4">กฎหมาย</h3>
             <ul className="space-y-2">
               {legalLinks.map((link) => (
-                <li key={link.href}>
+                <li key={link.label}>
                   <Link href={link.href} className="text-sm hover:text-white transition-colors">
                     {link.label}
                   </Link>
