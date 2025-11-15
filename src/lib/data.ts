@@ -69,6 +69,14 @@ export async function getApprovedLawyers(): Promise<LawyerProfile[]> {
   });
 }
 
+export async function getLawyerById(id: string): Promise<LawyerProfile | undefined> {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      resolve(mockLawyers.find(l => l.id === id));
+    }, 200);
+  });
+}
+
 export const mockArticles: Article[] = [
     {
       id: 'article-1',

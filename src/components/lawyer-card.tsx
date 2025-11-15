@@ -4,6 +4,7 @@ import type { LawyerProfile } from '@/lib/types';
 import { Mail, Scale } from 'lucide-react';
 import { StarIcon } from '@/components/icons/star-icon';
 import Image from 'next/image';
+import Link from 'next/link';
 
 interface LawyerCardProps {
   lawyer: LawyerProfile;
@@ -46,9 +47,11 @@ export default function LawyerCard({ lawyer }: LawyerCardProps) {
       </div>
 
       <div className="flex-shrink-0 flex flex-col items-center justify-center gap-2 w-full md:w-36 mt-4 md:mt-0">
-        <Button className="w-full bg-foreground text-background hover:bg-foreground/90">
-          ดูโปรไฟล์
-        </Button>
+        <Link href={`/lawyers/${lawyer.id}`} className="w-full">
+          <Button className="w-full bg-foreground text-background hover:bg-foreground/90">
+            ดูโปรไฟล์
+          </Button>
+        </Link>
          <Button variant="outline" className="w-full">
           นัดปรึกษา
         </Button>
