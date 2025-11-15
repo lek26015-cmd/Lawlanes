@@ -15,23 +15,24 @@ import React, { useState, useEffect } from 'react';
 import type { LawyerProfile } from '@/lib/types';
 import ChatModal from '@/components/chat/chat-modal';
 
-export default function LawyerProfilePage({ params }: { params: { id: string } }) {
+export default function LawyerProfilePage() {
+  const params = useParams();
+  const id = params.id as string;
   const [lawyer, setLawyer] = useState<LawyerProfile | null>(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [initialPrompt, setInitialPrompt] = useState('');
 
   useEffect(() => {
     async function fetchLawyer() {
-      const lawyerData = await getLawyerById(params.id);
+      if (!id) return;
+      const lawyerData = await getLawyerById(id);
       if (!lawyerData) {
         notFound();
       }
       setLawyer(lawyerData);
     }
-    if (params.id) {
-        fetchLawyer();
-    }
-  }, [params.id]);
+    fetchLawyer();
+  }, [id]);
   
   const handleConsultClick = (type: 'consult' | 'message') => {
       const prompt = type === 'consult' 
@@ -185,7 +186,7 @@ export default function LawyerProfilePage({ params }: { params: { id: string } }
 
                     <Card className="mt-6">
                         <CardHeader>
-                            <CardTitle>รีวิวจากผู้ใช้บริการ ({mockReviews.length})</CardTitle>
+                            <CardTitle>รีวิวจากผู้ใช้บริการ ({mockReviews.length})</CardHeader>
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-6">
