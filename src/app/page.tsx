@@ -7,10 +7,10 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { CheckCircle, MessageSquare, Users, Sparkles, Scale, ArrowRight, Newspaper, Loader2, Briefcase, UserCheck, ShieldCheck, ShieldAlert, Phone, Mail, File, Info, Award } from 'lucide-react';
+import { CheckCircle, MessageSquare, Users, Sparkles, Scale, ArrowRight, Newspaper, Loader2, Briefcase, UserCheck, ShieldCheck, ShieldAlert, Phone, Mail, FileText, Info, Award } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { getApprovedLawyers, getAllArticles, getLawyerById, getUrgentJobs } from '@/lib/data';
+import { getApprovedLawyers, getAllArticles, getLawyerById, getUrgentJobs, getImageUrl, getImageHint } from '@/lib/data';
 import LawyerCard from '@/components/lawyer-card';
 import type { LawyerProfile, Article, UrgentJob, ImagePlaceholder } from '@/lib/types';
 import { findLawyerSpecialties } from '@/ai/flows/find-lawyers-flow';
@@ -154,7 +154,7 @@ export default function Home() {
                             alt={verifiedLawyer.name}
                             width={120}
                             height={120}
-                            className="rounded-full border-4 border-white shadow-md"
+                            className="rounded-full border-4 border-white shadow-md object-cover"
                           />
                           <div className="mt-4 flex items-center justify-center gap-2 text-green-700">
                              <ShieldCheck className="w-6 h-6"/>
@@ -326,27 +326,52 @@ export default function Home() {
                  <ResultCard />
             </div>
 
-            <div className="text-center mt-24 mb-12">
-              <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline text-foreground">
-                ทนายที่แนะนำ
-              </h2>
-              <p className="max-w-2xl mx-auto mt-4 text-muted-foreground md:text-xl">
-                ทนายความผู้เชี่ยวชาญที่คัดสรรมาเพื่อธุรกิจ SME โดยเฉพาะ
-              </p>
-            </div>
+            <section className="w-full py-12 md:py-24 lg:py-32">
+                <div className="container mx-auto px-4 md:px-6">
+                    <div className="grid md:grid-cols-2 gap-12 items-center">
+                        <div className="space-y-4">
+                            <p className="text-sm font-semibold text-primary uppercase">สำหรับธุรกิจ SME</p>
+                            <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground font-headline">
+                                ค้นหาทนายความที่เชี่ยวชาญ<br />และเหมาะสมกับธุรกิจของคุณ
+                            </h2>
+                            <p className="text-muted-foreground text-lg">
+                                เพิ่มประสิทธิภาพ ลดขั้นตอนที่ซับซ้อน และลดความเสี่ยงทางกฎหมายด้วยการเชื่อมต่อกับเครือข่ายทนายความผู้เชี่ยวชาญของเรา
+                            </p>
+                             <div className="flex items-center gap-4 text-muted-foreground">
+                                <ShieldCheck className="w-6 h-6 text-primary" />
+                                <span>ทนายความที่ผ่านการตรวจสอบและยืนยันตัวตน</span>
+                            </div>
+                             <div className="flex items-center gap-4 text-muted-foreground">
+                                <FileText className="w-6 h-6 text-primary" />
+                                <span>เชี่ยวชาญหลากหลาย ทั้งคดีแพ่ง ฉ้อโกง และสัญญา</span>
+                            </div>
+                            <div className="pt-4">
+                               <Button size="lg" asChild>
+                                 <Link href="/lawyers">ดูทนายความทั้งหมด</Link>
+                               </Button>
+                            </div>
+                        </div>
+                        <div className="relative">
+                            <div className="aspect-video overflow-hidden rounded-2xl shadow-2xl">
+                                <Image 
+                                    src={getImageUrl('lawyer-team-working')}
+                                    alt="Lawyer team working"
+                                    fill
+                                    className="object-cover"
+                                    data-ai-hint={getImageHint('lawyer-team-working')}
+                                />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+            
             <div className="flex flex-col gap-4">
                 {recommendedLawyers.map((lawyer) => (
                   <div key={lawyer.id} className="border-b border-border">
                     <LawyerCard lawyer={lawyer} />
                   </div>
                 ))}
-            </div>
-            <div className="text-center mt-12">
-              <Link href="/lawyers">
-                  <Button variant="outline">
-                      ดูทนายทั้งหมด <ArrowRight className="ml-2 h-4 w-4" />
-                  </Button>
-              </Link>
             </div>
           </div>
         </section>
