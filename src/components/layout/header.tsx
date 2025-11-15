@@ -11,12 +11,12 @@ import { useState, useEffect } from 'react';
 
 export default function Header() {
   const pathname = usePathname();
+  const isAuthPage = pathname === '/login' || pathname === '/signup';
   const isHomePage = pathname === '/';
   const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
     const handleScroll = () => {
-      // Set a threshold, e.g., 50px
       const scrolled = window.scrollY > 50;
       if (scrolled !== isScrolled) {
         setIsScrolled(scrolled);
@@ -25,6 +25,9 @@ export default function Header() {
 
     if (isHomePage) {
       window.addEventListener('scroll', handleScroll);
+    } else {
+      // Not on home page, so header should not be transparent
+      setIsScrolled(true);
     }
 
     return () => {
@@ -32,9 +35,13 @@ export default function Header() {
         window.removeEventListener('scroll', handleScroll);
       }
     };
-  }, [isHomePage, isScrolled]);
+  }, [isHomePage, isScrolled, pathname]);
 
   const useTransparentHeader = isHomePage && !isScrolled;
+
+  if (isAuthPage) {
+    return null; // Don't render header on login/signup pages
+  }
 
   const headerClasses = cn(
     'sticky top-0 z-50 w-full border-b transition-colors duration-300',
@@ -74,20 +81,20 @@ export default function Header() {
         </Link>
         
         <div className="hidden md:flex flex-1 justify-center px-8 lg:px-16">
-           {isHomePage && (
+           {!isHomePage && (
             <div className="relative w-full max-w-lg">
               <Input
                 type="search"
                 placeholder="ค้นหาทนาย, ความเชี่ยวชาญ, หรือปัญหา..."
-                className="w-full rounded-full bg-gray-100 border-transparent focus:border-primary focus:bg-white focus:ring-primary pl-4 pr-12 h-12"
+                className="w-full rounded-full bg-background/20 border-transparent focus:border-primary focus:bg-background/30 focus:ring-primary pl-4 pr-12 h-12 text-white placeholder:text-white/70"
               />
               <Button
                 type="submit"
                 size="icon"
                 variant="secondary"
-                className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-gray-200 hover:bg-gray-300"
+                className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full bg-white/20 hover:bg-white/30"
               >
-                <Search className="h-4 w-4 text-gray-600" />
+                <Search className="h-4 w-4 text-white/80" />
               </Button>
             </div>
            )}

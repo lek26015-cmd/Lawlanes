@@ -1,11 +1,19 @@
+'use client';
+
 import Link from 'next/link';
 import Logo from '@/components/logo';
+import { usePathname } from 'next/navigation';
+import { cn } from '@/lib/utils';
+
 
 export default function Footer() {
+  const pathname = usePathname();
+  const isAuthPage = pathname === '/login' || pathname === '/signup';
+
   const quickLinks = [
     { href: '/', label: 'หน้าแรก' },
     { href: '/#features', label: 'บริการ' },
-    { href: '/#articles', label: 'บทความ' },
+    { href: '/articles', label: 'บทความ' },
     { href: '/lawyers', label: 'ค้นหาทนาย' },
     { href: '#', label: 'Dashboard Admin' },
   ];
@@ -21,6 +29,11 @@ export default function Footer() {
     { href: '#', label: 'ข้อกำหนดการใช้งาน' },
     { href: '#', label: 'ศูนย์ช่วยเหลือ' },
   ];
+  
+  if (isAuthPage) {
+    return null; // Don't render footer on login/signup pages
+  }
+
 
   return (
     <footer className="bg-gray-900 text-gray-300">

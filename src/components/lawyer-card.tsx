@@ -52,9 +52,11 @@ export default function LawyerCard({ lawyer }: LawyerCardProps) {
             ดูโปรไฟล์
           </Button>
         </Link>
+        <Link href="/login" className="w-full">
          <Button variant="outline" className="w-full">
           นัดปรึกษา
         </Button>
+        </Link>
       </div>
     </div>
   );

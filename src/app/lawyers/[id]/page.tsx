@@ -91,12 +91,16 @@ export default async function LawyerProfilePage({ params }: { params: { id: stri
                             </div>
                         </div>
                          <div className="flex-shrink-0 flex flex-col items-center justify-center gap-3 w-full md:w-40 md:ml-auto">
-                            <Button className="w-full bg-foreground text-background hover:bg-foreground/90">
-                                <Phone className="mr-2 h-4 w-4" /> นัดปรึกษา
-                            </Button>
-                            <Button variant="outline" className="w-full">
-                                <Mail className="mr-2 h-4 w-4" /> ส่งข้อความ
-                            </Button>
+                            <Link href="/login" className="w-full">
+                                <Button className="w-full bg-foreground text-background hover:bg-foreground/90">
+                                    <Phone className="mr-2 h-4 w-4" /> นัดปรึกษา
+                                </Button>
+                            </Link>
+                            <Link href="/login" className="w-full">
+                                <Button variant="outline" className="w-full">
+                                    <Mail className="mr-2 h-4 w-4" /> ส่งข้อความ
+                                </Button>
+                            </Link>
                         </div>
                     </div>
                 </div>
