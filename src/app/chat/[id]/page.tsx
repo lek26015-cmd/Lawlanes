@@ -193,41 +193,6 @@ function ChatPageContent() {
                                 </p>
                             )}
 
-                             <Dialog open={isReviewDialogOpen} onOpenChange={setIsReviewDialogOpen}>
-                                    <DialogContent className="sm:max-w-[425px]">
-                                        <DialogHeader>
-                                            <DialogTitle>ให้คะแนนทนายความ</DialogTitle>
-                                            <DialogDescription>
-                                                โปรดให้คะแนนความพึงพอใจและแสดงความคิดเห็นเพื่อการพัฒนา
-                                            </DialogDescription>
-                                        </DialogHeader>
-                                        <div className="py-4 space-y-4">
-                                            <div className="space-y-2">
-                                                <Label>คะแนนความพึงพอใจ</Label>
-                                                <div className="flex items-center gap-2">
-                                                    {[1, 2, 3, 4, 5].map((star) => (
-                                                        <button key={star} onClick={() => setRating(star)}>
-                                                            <StarIcon className={`w-8 h-8 cursor-pointer transition-colors ${rating >= star ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300 hover:text-yellow-300'}`} />
-                                                        </button>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                             <div className="space-y-2">
-                                                <Label htmlFor="review-text">ความคิดเห็นเพิ่มเติม (ถ้ามี)</Label>
-                                                <Textarea 
-                                                    id="review-text"
-                                                    placeholder="เล่าประสบการณ์ของคุณ..."
-                                                    value={reviewText}
-                                                    onChange={(e) => setReviewText(e.target.value)}
-                                                />
-                                            </div>
-                                        </div>
-                                        <DialogFooter>
-                                            <Button type="button" onClick={handleSubmitReview}>ส่งรีวิว</Button>
-                                        </DialogFooter>
-                                    </DialogContent>
-                                </Dialog>
-
                             <Button variant="link" className="text-muted-foreground text-xs mt-2">
                                 <AlertTriangle className="mr-1 h-3 w-3" /> รายงานปัญหา
                             </Button>
@@ -270,6 +235,42 @@ function ChatPageContent() {
                     </Card>
                 </div>
             </div>
+
+            <Dialog open={isReviewDialogOpen} onOpenChange={setIsReviewDialogOpen}>
+                <DialogContent className="sm:max-w-[425px]">
+                    <DialogHeader>
+                        <DialogTitle>ให้คะแนนทนายความ</DialogTitle>
+                        <DialogDescription>
+                            โปรดให้คะแนนความพึงพอใจและแสดงความคิดเห็นเพื่อการพัฒนา
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="py-4 space-y-4">
+                        <div className="space-y-2">
+                            <Label>คะแนนความพึงพอใจ</Label>
+                            <div className="flex items-center gap-2">
+                                {[1, 2, 3, 4, 5].map((star) => (
+                                    <button key={star} onClick={() => setRating(star)}>
+                                        <StarIcon className={`w-8 h-8 cursor-pointer transition-colors ${rating >= star ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300 hover:text-yellow-300'}`} />
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                            <div className="space-y-2">
+                            <Label htmlFor="review-text">ความคิดเห็นเพิ่มเติม (ถ้ามี)</Label>
+                            <Textarea 
+                                id="review-text"
+                                placeholder="เล่าประสบการณ์ของคุณ..."
+                                value={reviewText}
+                                onChange={(e) => setReviewText(e.target.value)}
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button type="button" onClick={handleSubmitReview}>ส่งรีวิว</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
         </div>
     )
 }
