@@ -398,7 +398,7 @@ export default function Home() {
                 </div>
             </section>
             
-            <section className="w-full py-12 md:py-24 lg:py-32 bg-blue-50">
+            <section className="w-full py-16 bg-blue-50">
               <div className="container mx-auto px-4 md:px-6">
                   <div className='text-center mb-8'>
                       <h2 className='text-3xl font-bold tracking-tight text-foreground font-headline'>ทนายที่แนะนำ</h2>
