@@ -7,14 +7,14 @@ import { usePathname } from 'next/navigation';
 
 export default function Footer() {
   const pathname = usePathname();
-  const isAuthPage = pathname === '/signup';
+  const isAuthPage = pathname === '/lawyer-signup';
 
   const quickLinks = [
     { href: '/', label: 'หน้าแรก' },
     { href: '/#features', label: 'บริการ' },
     { href: '/articles', label: 'บทความ' },
     { href: '/lawyers', label: 'ค้นหาทนาย' },
-    { href: '/verify-lawyer', label: 'ตรวจสอบสถานะทนาย' },
+    { href: '/#verify-lawyer-cta', label: 'ตรวจสอบสถานะทนาย' },
     { href: '/dashboard', label: 'แดชบอร์ดลูกค้า' },
   ];
 

@@ -5,10 +5,10 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { CheckCircle, MessageSquare, Users, Sparkles, Scale, ArrowRight, Newspaper, Loader2, Briefcase, UserCheck, ShieldCheck } from 'lucide-react';
+import { CheckCircle, MessageSquare, Users, Sparkles, Scale, ArrowRight, Newspaper, Loader2, Briefcase, UserCheck, ShieldCheck, ShieldAlert } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { getApprovedLawyers, getAllArticles } from '@/lib/data';
+import { getApprovedLawyers, getAllArticles, getLawyerById } from '@/lib/data';
 import LawyerCard from '@/components/lawyer-card';
 import type { LawyerProfile, Article } from '@/lib/types';
 import { findLawyerSpecialties } from '@/ai/flows/find-lawyers-flow';
@@ -43,6 +43,12 @@ export default function Home() {
   const [analysisText, setAnalysisText] = useState('');
   const { setAiChatOpen, setInitialPrompt } = useChat();
 
+  // State for lawyer verification
+  const [licenseNumber, setLicenseNumber] = useState('');
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [verificationResult, setVerificationResult] = useState<'found' | 'not_found' | 'error' | null>(null);
+  const [verifiedLawyer, setVerifiedLawyer] = useState<LawyerProfile | null>(null);
+
   useEffect(() => {
     async function fetchData() {
       const lawyers = await getApprovedLawyers();
@@ -59,6 +65,88 @@ export default function Home() {
     setInitialPrompt(analysisText);
     setAiChatOpen(true);
   };
+
+  const handleVerify = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const targetLicenseNumber = licenseNumber;
+    if (!targetLicenseNumber) return;
+
+    setIsVerifying(true);
+    setVerificationResult(null);
+    setVerifiedLawyer(null);
+
+    // Simulate API call and verification logic
+    setTimeout(async () => {
+      try {
+        if (targetLicenseNumber === '12345/2550') {
+          const lawyer = await getLawyerById('1'); // Get a mock lawyer
+          if (lawyer) {
+            setVerifiedLawyer(lawyer);
+            setVerificationResult('found');
+          } else {
+            setVerificationResult('not_found');
+          }
+        } else {
+          setVerificationResult('not_found');
+        }
+      } catch (error) {
+        setVerificationResult('error');
+      } finally {
+        setIsVerifying(false);
+      }
+    }, 1500);
+  };
+
+  const ResultCard = () => {
+      if (isVerifying) {
+        return (
+          <div className="text-center text-muted-foreground mt-6">
+            <Loader2 className="w-8 h-8 mx-auto animate-spin mb-2" />
+            <p>กำลังตรวจสอบข้อมูลจากสภาทนายความ (จำลอง)...</p>
+          </div>
+        );
+      }
+      
+      if (!verificationResult) return null;
+
+      switch(verificationResult) {
+          case 'found':
+              if (!verifiedLawyer) return null;
+              return (
+                  <Card className="border-green-500 bg-green-50/50 mt-6 animate-in fade-in-50">
+                      <CardHeader className="text-center">
+                          <ShieldCheck className="w-12 h-12 mx-auto text-green-600"/>
+                          <CardTitle className="text-green-800">ตรวจสอบพบข้อมูล</CardTitle>
+                          <CardDescription>ทนายความนี้ได้รับการยืนยันในระบบ Lawlane</CardDescription>
+                      </CardHeader>
+                      <CardContent className="flex flex-col items-center text-center">
+                          <Image
+                            src={verifiedLawyer.imageUrl}
+                            alt={verifiedLawyer.name}
+                            width={100}
+                            height={100}
+                            className="rounded-full border-4 border-white shadow-lg"
+                           />
+                          <p className="font-bold text-xl mt-4">{verifiedLawyer.name}</p>
+                          <p className="text-muted-foreground">เลขที่ใบอนุญาต: 12345/2550 (ข้อมูลจำลอง)</p>
+                          <p className="text-primary font-semibold mt-1">{verifiedLawyer.specialty.join(', ')}</p>
+                      </CardContent>
+                  </Card>
+              );
+          case 'not_found':
+              return (
+                   <Card className="border-yellow-500 bg-yellow-50/50 mt-6 animate-in fade-in-50">
+                      <CardHeader className="text-center">
+                          <ShieldAlert className="w-12 h-12 mx-auto text-yellow-600"/>
+                          <CardTitle className="text-yellow-800">ไม่พบข้อมูล</CardTitle>
+                          <CardDescription>ไม่พบข้อมูลทนายความตามข้อมูลที่ระบุ<br/>กรุณาตรวจสอบความถูกต้อง หรือติดต่อเจ้าหน้าที่</CardDescription>
+                      </CardHeader>
+                  </Card>
+              );
+          default:
+              return null;
+      }
+  }
   
   return (
     <>
@@ -153,12 +241,12 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="w-full py-12 md:py-24 lg:py-32 bg-gray-50">
+        <section id="verify-lawyer-cta" className="w-full py-12 md:py-24 lg:py-32 bg-gray-50">
           <div className="container mx-auto px-4 md:px-6">
             
-            <div className="mb-16">
+            <div className="max-w-4xl mx-auto">
                  <Card className="bg-foreground text-background rounded-2xl overflow-hidden">
-                    <div className="flex flex-col md:flex-row items-center justify-between p-8 gap-6 text-center md:text-left">
+                    <div className="flex flex-col items-center p-8 gap-6 text-center">
                         <div className="flex items-center gap-5">
                             <ShieldCheck className="w-12 h-12 text-green-400 flex-shrink-0" />
                             <div>
@@ -166,35 +254,31 @@ export default function Home() {
                                 <p className="text-background/80 mt-1">สร้างความมั่นใจก่อนเริ่มจ้างงาน ด้วยการตรวจสอบข้อมูลใบอนุญาตว่าความ</p>
                             </div>
                         </div>
-                        <div className="w-full md:w-auto flex-shrink-0 mt-4 md:mt-0">
+                        <div className="w-full max-w-lg">
                            <form 
-                             className="flex flex-col sm:flex-row items-center gap-2 w-full md:w-96"
-                             onSubmit={(e) => {
-                                e.preventDefault();
-                                const licenseNumber = (e.currentTarget.elements.namedItem('licenseNumber') as HTMLInputElement).value;
-                                if(licenseNumber) {
-                                  router.push(`/verify-lawyer?licenseNumber=${encodeURIComponent(licenseNumber)}`);
-                                } else {
-                                  router.push('/verify-lawyer');
-                                }
-                             }}
+                             className="flex flex-col sm:flex-row items-center gap-2 w-full"
+                             onSubmit={handleVerify}
                            >
                               <Input
                                   name="licenseNumber"
                                   type="text"
                                   placeholder="กรอกเลขใบอนุญาต"
                                   className="h-12 bg-white/20 text-white placeholder:text-white/70 border-white/30 rounded-full"
+                                  value={licenseNumber}
+                                  onChange={(e) => setLicenseNumber(e.target.value)}
+                                  disabled={isVerifying}
                               />
-                              <Button type="submit" size="lg" variant="secondary" className="w-full sm:w-auto font-bold h-12">
-                                  ตรวจสอบเลย
+                              <Button type="submit" size="lg" variant="secondary" className="w-full sm:w-auto font-bold h-12" disabled={isVerifying}>
+                                  {isVerifying ? <Loader2 className="animate-spin" /> : 'ตรวจสอบเลย'}
                               </Button>
                            </form>
                         </div>
                     </div>
                  </Card>
+                 <ResultCard />
             </div>
 
-            <div className="text-center mb-12">
+            <div className="text-center mt-24 mb-12">
               <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline text-foreground">
                 ทนายที่แนะนำ
               </h2>
