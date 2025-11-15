@@ -29,6 +29,24 @@
       "description": "Portrait of a female lawyer with books",
       "imageUrl": "https://images.unsplash.com/photo-1659869764315-dc3d188141fe?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwzfHxsYXd5ZXIlMjBib29rc3xlbnwwfHx8fDE3NjMxOTgwNDl8MA&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "lawyer books"
+    },
+    {
+      "id": "article-1",
+      "description": "Signing a contract",
+      "imageUrl": "https://images.unsplash.com/photo-1739430630591-9380bdf1c798?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxjb250cmFjdCUyMGRvY3VtZW50fGVufDB8fHx8MTc2MzE5ODg2OHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "contract document"
+    },
+    {
+      "id": "article-2",
+      "description": "Data privacy concept",
+      "imageUrl": "https://images.unsplash.com/photo-1667453466805-75bbf36e8707?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxkYXRhJTIwcHJpdmFjeXxlbnwwfHx8fDE3NjMxMTQ0MzZ8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "data privacy"
+    },
+    {
+      "id": "article-3",
+      "description": "Trademark logo",
+      "imageUrl": "https://images.unsplash.com/photo-1608241611705-fa1853e69b91?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8dHJhZGVtYXJrJTIwbG9nb3xlbnwwfHx8fDE3NjMxOTg4Njh8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "trademark logo"
     }
   ]
 }

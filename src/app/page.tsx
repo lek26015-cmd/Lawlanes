@@ -1,11 +1,12 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { CheckCircle, MessageSquare, Users, Sparkles, Scale, ArrowRight } from 'lucide-react';
+import { CheckCircle, MessageSquare, Users, Sparkles, Scale, ArrowRight, Newspaper } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { getApprovedLawyers } from '@/lib/data';
 import LawyerCard from '@/components/lawyer-card';
+import { PlaceHolderImages } from '@/lib/placeholder-images';
 
 export default async function Home() {
   const features = [
@@ -27,6 +28,30 @@ export default async function Home() {
   ];
 
   const recommendedLawyers = (await getApprovedLawyers()).slice(0, 3);
+  
+  const articles = [
+    {
+      id: 'article-1',
+      title: '5 สิ่งต้องรู้ก่อนเซ็นสัญญาจ้างงาน',
+      description: 'สัญญาจ้างงานเป็นเอกสารสำคัญที่มีผลผูกพันทางกฎหมายระหว่างนายจ้างและลูกจ้าง การทำความเข้าใจ...',
+      imageUrl: PlaceHolderImages.find(img => img.id === 'article-1')?.imageUrl ?? '',
+      imageHint: 'contract document',
+    },
+    {
+      id: 'article-2',
+      title: 'กฎหมาย PDPA สำหรับ SME ที่ต้องรู้',
+      description: 'PDPA หรือ พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล มีผลบังคับใช้แล้ว ธุรกิจ SME ต้องปรับตัวอย่างไรบ้าง...',
+      imageHint: 'data privacy',
+      imageUrl: PlaceHolderImages.find(img => img.id === 'article-2')?.imageUrl ?? '',
+    },
+    {
+      id: 'article-3',
+      title: 'การจดทะเบียนเครื่องหมายการค้า สำคัญอย่างไร?',
+      description: 'เครื่องหมายการค้าเปรียบเสมือนหน้าตาของธุรกิจ การจดทะเบียนจึงเป็นสิ่งสำคัญเพื่อป้องกันการลอกเลียนแบบ...',
+      imageHint: 'trademark logo',
+      imageUrl: PlaceHolderImages.find(img => img.id === 'article-3')?.imageUrl ?? '',
+    }
+  ];
 
   return (
     <div className="flex flex-col">
@@ -140,6 +165,60 @@ export default async function Home() {
             <Link href="/lawyers">
                 <Button variant="outline">
                     ดูทนายทั้งหมด <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      <section id="articles" className="w-full py-12 md:py-24 lg:py-32 bg-secondary/20">
+        <div className="container mx-auto px-4 md:px-6">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">
+              บทความกฎหมายน่ารู้
+            </h2>
+            <p className="max-w-2xl mx-auto mt-4 text-muted-foreground md:text-xl">
+              อัปเดตความรู้ทางกฎหมายสำหรับธุรกิจของคุณ
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {articles.map((article) => (
+              <Card key={article.id} className="overflow-hidden h-full flex flex-col">
+                <Link href="#" className="block">
+                  <div className="relative h-48 w-full">
+                    <Image
+                      src={article.imageUrl}
+                      alt={article.title}
+                      fill
+                      className="object-cover"
+                      data-ai-hint={article.imageHint}
+                    />
+                  </div>
+                </Link>
+                <CardHeader>
+                  <CardTitle>
+                    <Link href="#" className="hover:text-primary transition-colors">
+                      {article.title}
+                    </Link>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="flex-grow">
+                  <CardDescription>{article.description}</CardDescription>
+                </CardContent>
+                <div className="p-6 pt-0">
+                  <Link href="#">
+                    <Button variant="link" className="p-0">
+                      อ่านต่อ <ArrowRight className="ml-2 h-4 w-4" />
+                    </Button>
+                  </Link>
+                </div>
+              </Card>
+            ))}
+          </div>
+          <div className="text-center mt-12">
+            <Link href="#">
+                <Button variant="outline">
+                    ดูบทความทั้งหมด <Newspaper className="ml-2 h-4 w-4" />
                 </Button>
             </Link>
           </div>
