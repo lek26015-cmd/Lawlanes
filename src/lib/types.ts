@@ -18,3 +18,13 @@ export interface ChatMessage {
   needsLawyer?: boolean;
   handoffMessage?: string;
 }
+
+export interface Article {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  imageUrl: string;
+  imageHint: string;
+  content: string;
+}

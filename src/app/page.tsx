@@ -8,10 +8,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { CheckCircle, MessageSquare, Users, Sparkles, Scale, ArrowRight, Newspaper, Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { getApprovedLawyers } from '@/lib/data';
+import { getApprovedLawyers, getAllArticles } from '@/lib/data';
 import LawyerCard from '@/components/lawyer-card';
-import { PlaceHolderImages } from '@/lib/placeholder-images';
-import type { LawyerProfile } from '@/lib/types';
+import type { LawyerProfile, Article } from '@/lib/types';
 import { findLawyerSpecialties } from '@/ai/flows/find-lawyers-flow';
 import ChatModal from '@/components/chat/chat-modal';
 
@@ -36,29 +35,7 @@ export default function Home() {
   ]);
   
   const [recommendedLawyers, setRecommendedLawyers] = useState<LawyerProfile[]>([]);
-  const [articles] = useState([
-    {
-      id: 'article-1',
-      title: '5 สิ่งต้องรู้ก่อนเซ็นสัญญาจ้างงาน',
-      description: 'สัญญาจ้างงานเป็นเอกสารสำคัญที่มีผลผูกพันทางกฎหมายระหว่างนายจ้างและลูกจ้าง การทำความเข้าใจ...',
-      imageUrl: PlaceHolderImages.find(img => img.id === 'article-1')?.imageUrl ?? '',
-      imageHint: 'contract document',
-    },
-    {
-      id: 'article-2',
-      title: 'กฎหมาย PDPA สำหรับ SME ที่ต้องรู้',
-      description: 'PDPA หรือ พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล มีผลบังคับใช้แล้ว ธุรกิจ SME ต้องปรับตัวอย่างไรบ้าง...',
-      imageHint: 'data privacy',
-      imageUrl: PlaceHolderImages.find(img => img.id === 'article-2')?.imageUrl ?? '',
-    },
-    {
-      id: 'article-3',
-      title: 'การจดทะเบียนเครื่องหมายการค้า สำคัญอย่างไร?',
-      description: 'เครื่องหมายการค้าเปรียบเสมือนหน้าตาของธุรกิจ การจดทะเบียนจึงเป็นสิ่งสำคัญเพื่อป้องกันการลอกเลียนแบบ...',
-      imageHint: 'trademark logo',
-      imageUrl: PlaceHolderImages.find(img => img.id === 'article-3')?.imageUrl ?? '',
-    }
-  ]);
+  const [articles, setArticles] = useState<Article[]>([]);
   
   const [isFindingLawyers, setIsFindingLawyers] = useState(false);
   const [analysisText, setAnalysisText] = useState('');
@@ -66,11 +43,13 @@ export default function Home() {
   const [initialPrompt, setInitialPrompt] = useState('');
 
   useEffect(() => {
-    async function fetchLawyers() {
+    async function fetchData() {
       const lawyers = await getApprovedLawyers();
       setRecommendedLawyers(lawyers.slice(0, 3));
+      const allArticles = await getAllArticles();
+      setArticles(allArticles);
     }
-    fetchLawyers();
+    fetchData();
   }, []);
 
   const handleAnalysis = async () => {
@@ -233,7 +212,7 @@ export default function Home() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {articles.map((article) => (
                 <Card key={article.id} className="overflow-hidden h-full flex flex-col">
-                  <Link href="#" className="block">
+                  <Link href={`/articles/${article.slug}`} className="block">
                     <div className="relative h-48 w-full">
                       <Image
                         src={article.imageUrl}
@@ -246,7 +225,7 @@ export default function Home() {
                   </Link>
                   <CardHeader>
                     <CardTitle>
-                      <Link href="#" className="hover:text-primary transition-colors">
+                      <Link href={`/articles/${article.slug}`} className="hover:text-primary transition-colors">
                         {article.title}
                       </Link>
                     </CardTitle>
@@ -255,7 +234,7 @@ export default function Home() {
                     <CardDescription>{article.description}</CardDescription>
                   </CardContent>
                   <div className="p-6 pt-0">
-                    <Link href="#">
+                    <Link href={`/articles/${article.slug}`}>
                       <Button variant="link" className="p-0">
                         อ่านต่อ <ArrowRight className="ml-2 h-4 w-4" />
                       </Button>
@@ -265,7 +244,7 @@ export default function Home() {
               ))}
             </div>
             <div className="text-center mt-12">
-              <Link href="#">
+              <Link href="/articles">
                   <Button variant="outline">
                       ดูบทความทั้งหมด <Newspaper className="ml-2 h-4 w-4" />
                   </Button>
