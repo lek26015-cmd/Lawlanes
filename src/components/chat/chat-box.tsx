@@ -50,7 +50,9 @@ export function ChatBox({
     // This effect ensures the chat document exists in Firestore.
     // In a real app, this would be created upon successful payment.
     const chatRef = doc(firestore, 'chats', chatId);
-    getDocs(query(collection(firestore, 'chats'), where('__name__', '==', chatId)))
+    const chatQuery = query(collection(firestore, 'chats'), where('__name__', '==', chatId));
+
+    getDocs(chatQuery)
         .then(snapshot => {
             if (snapshot.empty) {
                 const newChatData = {
@@ -70,8 +72,9 @@ export function ChatBox({
             }
         })
         .catch(error => {
+            // This might be a permission error on the 'list' operation itself.
             const permissionError = new FirestorePermissionError({
-                path: 'chats',
+                path: (chatQuery as Query)._query?.path?.canonicalString() || 'chats',
                 operation: 'list',
             });
             errorEmitter.emit('permission-error', permissionError);
@@ -189,7 +192,7 @@ export function ChatBox({
                         <div className="p-4 rounded-lg bg-yellow-50 border border-yellow-200">
                              <p className="font-semibold text-sm text-yellow-800">AI: สรุปข้อเท็จจริงเบื้องต้นจากลูกความ</p>
                              <p className="text-sm text-yellow-700 mt-1">
-                               {firstUserMessage ? `(AI สรุปข้อเท็จจริง) ลูกค้าแจ้งว่า: "${firstUserMessage.text}" (นี่คือข้อมูลจำลองที่ AI ช่วยสรุปให้ทนายครับ)` : "กำลังรอข้อความแรกจากผู้ใช้..."}
+                               {firstUserMessage ? `(AI สรุปข้อเท็จจริง) ลูกค้าแจ้งว่า: "${firstUserMessage.text}"` : "กำลังรอข้อความแรกจากผู้ใช้..."}
                              </p>
                         </div>
                     </div>
