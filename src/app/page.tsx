@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Textarea } from '@/components/ui/textarea';
 import { CheckCircle, Gavel, MessageSquare, Users } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
@@ -25,30 +26,46 @@ export default function Home() {
 
   return (
     <div className="flex flex-col">
-      <section className="w-full py-20 md:py-32 lg:py-40 bg-card/50">
-        <div className="container mx-auto px-4 md:px-6">
-          <div className="grid gap-6 lg:grid-cols-2 lg:gap-16">
-            <div className="flex flex-col justify-center space-y-4">
-              <div className="inline-block rounded-lg bg-secondary px-3 py-1 text-sm text-secondary-foreground">AI-Powered Legal Guidance</div>
-              <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none font-headline">
-                Your Trusted AI Legal Advisor for SME
-              </h1>
-              <p className="max-w-[600px] text-muted-foreground md:text-xl">
-                Lawlane provides preliminary legal assessments for SMEs in Thailand, specializing in fraud and contract law. Get clarity and connect with experts.
-              </p>
-              <p className="text-xs text-muted-foreground">*The AI chat bubble is at the bottom right of your screen.</p>
-            </div>
-            <div className="flex items-center justify-center">
-               <Image
-                src="https://picsum.photos/seed/law-hero/600/400"
-                width={600}
-                height={400}
-                alt="Hero"
-                className="overflow-hidden rounded-xl object-cover"
-                data-ai-hint="legal abstract"
-              />
+      <section className="w-full py-20 md:py-32 lg:py-40 bg-primary text-primary-foreground">
+        <div className="container mx-auto px-4 md:px-6 text-center">
+          <div className="flex flex-col items-center space-y-4">
+            <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none font-headline">
+              ค้นหาทนายความ... ที่ใช่สำหรับคุณ
+            </h1>
+            <p className="max-w-[700px] text-primary-foreground/80 md:text-xl">
+              Lawlane คือตลาดกลางทนายความออนไลน์ที่เชื่อมต่อคุณกับผู้เชี่ยวชาญกฎหมายทั่วประเทศ
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 mt-6">
+              <Link href="/lawyers">
+                <Button size="lg" variant="secondary">ดูรายชื่อทนายทั้งหมด</Button>
+              </Link>
+              <Link href="#features">
+                <Button size="lg" variant="outline" className="text-primary-foreground border-primary-foreground hover:bg-primary-foreground hover:text-primary">ดูบริการของเรา</Button>
+              </Link>
             </div>
           </div>
+        </div>
+      </section>
+
+      <section className="w-full -mt-20">
+        <div className="container mx-auto px-4 md:px-6">
+            <Card className="max-w-3xl mx-auto shadow-lg">
+                <CardHeader className="text-center">
+                    <CardTitle>ไม่แน่ใจว่าต้องการทนายด้านไหน?</CardTitle>
+                    <CardContent className="text-muted-foreground pt-2">ให้ AI ช่วยวิเคราะห์ปัญหาเบื้องต้นและแนะนำทนายที่ตรงจุด</CardContent>
+                </CardHeader>
+                <CardContent>
+                    <div className="flex flex-col gap-4">
+                        <Textarea 
+                            placeholder='อธิบายปัญหาของคุณที่นี่ เช่น "โดนโกงแชร์", "ต้องการจดทะเบียนบริษัท", "ปัญหาที่ดินกับเพื่อนบ้าน"'
+                            rows={3}
+                        />
+                        <Button className="w-full">
+                           วิเคราะห์และแนะนำทนายความ
+                        </Button>
+                    </div>
+                </CardContent>
+            </Card>
         </div>
       </section>
       
