@@ -1,6 +1,6 @@
 import type { LawyerProfile } from '@/lib/types';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import type { Article } from '@/lib/types';
+import type { Article, Case, UpcomingAppointment } from '@/lib/types';
 
 
 const getImageUrl = (id: string) => PlaceHolderImages.find(img => img.id === id)?.imageUrl ?? '';
@@ -169,5 +169,60 @@ export async function getArticleBySlug(slug: string): Promise<Article | undefine
     setTimeout(() => {
       resolve(mockArticles.find(a => a.slug === slug));
     }, 200);
+  });
+}
+
+// Mock data for Dashboard
+const lawyerForCase1 = mockLawyers.find(l => l.id === '2');
+const lawyerForCase2 = mockLawyers.find(l => l.id === '3');
+
+const mockCases: Case[] = [
+  {
+    id: 'case-001',
+    title: 'คดีผิดสัญญาเช่าซื้อ',
+    lawyer: {
+      name: lawyerForCase1!.name,
+      imageUrl: lawyerForCase1!.imageUrl,
+      imageHint: lawyerForCase1!.imageHint,
+    },
+    lastMessage: 'ผมได้ส่งร่างเอกสารให้ตรวจสอบแล้วนะครับ',
+    lastMessageTimestamp: '2 ชั่วโมงที่แล้ว',
+    status: 'active',
+  },
+  {
+    id: 'case-002',
+    title: 'ปรึกษาเรื่องสัญญาจ้างพนักงาน',
+    lawyer: {
+      name: lawyerForCase2!.name,
+      imageUrl: lawyerForCase2!.imageUrl,
+      imageHint: lawyerForCase2!.imageHint,
+    },
+    lastMessage: 'คุณ: ขอบคุณสำหรับคำแนะนำครับ',
+    lastMessageTimestamp: 'เมื่อวาน',
+    status: 'active',
+  },
+];
+
+const mockAppointments: UpcomingAppointment[] = [
+  {
+    id: 'appt-001',
+    lawyer: {
+        name: lawyerForCase1!.name,
+        imageUrl: lawyerForCase1!.imageUrl,
+        imageHint: lawyerForCase1!.imageHint,
+    },
+    date: new Date(new Date().setDate(new Date().getDate() + 3)),
+    description: 'ปรึกษาเรื่องการฟ้องร้องคดีฉ้อโกง'
+  }
+];
+
+export async function getDashboardData(): Promise<{ cases: Case[], appointments: UpcomingAppointment[] }> {
+  return new Promise(resolve => {
+    setTimeout(() => {
+      resolve({
+        cases: mockCases,
+        appointments: mockAppointments,
+      });
+    }, 500);
   });
 }

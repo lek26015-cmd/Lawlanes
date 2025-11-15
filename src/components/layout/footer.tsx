@@ -13,7 +13,7 @@ export default function Footer() {
     { href: '/#features', label: 'บริการ' },
     { href: '/articles', label: 'บทความ' },
     { href: '/lawyers', label: 'ค้นหาทนาย' },
-    { href: '#', label: 'Dashboard Admin' },
+    { href: '/dashboard', label: 'แดชบอร์ดลูกค้า' },
   ];
 
   const forLawyersLinks = [

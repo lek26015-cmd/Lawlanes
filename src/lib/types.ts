@@ -37,3 +37,19 @@ export interface Article {
   imageHint: string;
   content: string;
 }
+
+export interface Case {
+  id: string;
+  title: string;
+  lawyer: Pick<LawyerProfile, 'name' | 'imageUrl' | 'imageHint'>;
+  lastMessage: string;
+  lastMessageTimestamp: string;
+  status: 'active' | 'closed';
+}
+
+export interface UpcomingAppointment {
+    id: string;
+    lawyer: Pick<LawyerProfile, 'name' | 'imageUrl' | 'imageHint'>;
+    date: Date;
+    description: string;
+}
