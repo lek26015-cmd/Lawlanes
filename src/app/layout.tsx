@@ -7,6 +7,7 @@ import React from 'react';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { ChatProvider } from '@/context/chat-context';
 import ChatModal from '@/components/chat/chat-modal';
+import FloatingChatButton from '@/components/chat/floating-chat-button';
 
 export const metadata: Metadata = {
   title: 'Lawlane AI Legal Advisor',
@@ -35,7 +36,7 @@ export default function RootLayout({
               <main className="flex-1 bg-gray-50/50">{children}</main>
               <Footer />
             </div>
-            {/* FloatingChatButton and LawyerChatDialog are removed to favor the new full-page chat */}
+            <FloatingChatButton />
             <ChatModal />
           </ChatProvider>
         </FirebaseClientProvider>
