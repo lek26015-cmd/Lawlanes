@@ -3,15 +3,11 @@
 import {
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Send, Sparkles, X } from 'lucide-react';
-import { Badge } from '../ui/badge';
-import { Separator } from '../ui/separator';
 
 interface ChatModalProps {
   isOpen: boolean;
@@ -30,7 +26,7 @@ export default function ChatModal({ isOpen, onOpenChange }: ChatModalProps) {
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent 
         hideCloseButton={true}
-        className="fixed inset-0 w-full h-full rounded-none sm:inset-auto sm:bottom-6 sm:right-6 sm:w-96 sm:h-auto sm:max-h-[80vh] sm:rounded-2xl bg-white shadow-2xl border z-50 p-0 flex flex-col"
+        className="fixed inset-0 w-full h-full rounded-none sm:inset-auto sm:bottom-6 sm:right-6 sm:w-96 sm:h-[70vh] sm:rounded-2xl bg-white shadow-2xl border z-50 p-0 flex flex-col"
       >
         <div className="flex justify-between items-center p-4 border-b bg-primary text-primary-foreground sm:rounded-t-2xl">
             <h3 className="text-xl font-bold">Lawlane AI Assistant</h3>
