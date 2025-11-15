@@ -389,7 +389,7 @@ export default function Home() {
             </div>
           </div>
         </section>
-
+        
         <section id="articles" className="w-full py-12 md:py-24 lg:py-32 bg-white">
           <div className="container mx-auto px-4 md:px-6">
             <div className="flex justify-between items-center mb-8">
@@ -458,7 +458,7 @@ export default function Home() {
 
           </div>
         </section>
-
+        
         <section className="w-full py-12 md:py-24 lg:py-32 bg-gray-50">
           <div className="container mx-auto px-4 md:px-6 text-center">
              <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl font-headline text-foreground mb-4">
@@ -489,7 +489,7 @@ export default function Home() {
               </Carousel>
           </div>
         </section>
-        
+
         <section className="w-full py-12 md:py-24 lg:py-32 bg-foreground text-background">
           <div className="container mx-auto px-4 md:px-6">
             <div className="text-center">
