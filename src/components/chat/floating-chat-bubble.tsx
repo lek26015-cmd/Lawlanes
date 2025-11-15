@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { MessageSquare } from 'lucide-react';
+import { MessageCircle } from 'lucide-react';
 import ChatModal from './chat-modal';
+import { cn } from '@/lib/utils';
 
 export default function FloatingChatBubble() {
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -11,14 +12,22 @@ export default function FloatingChatBubble() {
   return (
     <>
       <div className="fixed bottom-6 right-6 z-50">
-        <Button
-          size="icon"
-          className="rounded-full w-16 h-16 shadow-lg"
-          onClick={() => setIsChatOpen(true)}
-          aria-label="Open AI Legal Advisor"
-        >
-          <MessageSquare className="h-8 w-8" />
-        </Button>
+        <div className="relative group">
+          <div
+            className={cn(
+              "absolute -inset-0.5 bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 rounded-full blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-[rainbow-border-spin_2s_linear_infinite]",
+            )}
+          />
+          <Button
+            size="lg"
+            className="relative rounded-full px-6 h-14 shadow-lg text-lg"
+            onClick={() => setIsChatOpen(true)}
+            aria-label="Open AI Legal Advisor"
+          >
+            <MessageCircle className="h-6 w-6 mr-3" />
+            <span className="font-semibold">แชทกับ AI</span>
+          </Button>
+        </div>
       </div>
       <ChatModal isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
     </>
