@@ -40,11 +40,6 @@ export default function DashboardPage() {
     gray: 'border-l-4 border-gray-400',
   };
   
-  const caseButtonColors: { [key:string]: string } = {
-    blue: 'bg-blue-900 hover:bg-blue-800',
-    yellow: 'bg-yellow-600 hover:bg-yellow-500',
-  }
-
   const quickServices = [
     { icon: <Search />, text: 'ค้นหาทนายความ', color: 'bg-gray-100', href: '/lawyers' },
     { icon: <MessageSquare />, text: 'นัดหมายปรึกษาทนาย', color: 'bg-green-100', href: '/lawyers' },
@@ -113,7 +108,7 @@ export default function DashboardPage() {
                                         <p className="font-semibold">{caseItem.title} <span className="font-mono text-xs text-muted-foreground">({caseItem.id})</span></p>
                                         <p className="text-sm text-muted-foreground">{caseItem.lastMessage}</p>
                                     </div>
-                                    <Button size="sm" className={`${caseButtonColors[caseItem.color!]}`}>ดูรายละเอียด</Button>
+                                    <Button size="sm" className="bg-foreground hover:bg-foreground/90 text-background rounded-md">ดูรายละเอียด</Button>
                                     </div>
                                 </Link>
                                 ))}
