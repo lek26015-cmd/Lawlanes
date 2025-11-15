@@ -19,17 +19,17 @@ export default function Home() {
   const router = useRouter();
   const [features] = useState([
     {
-      icon: <MessageSquare className="h-8 w-8 text-primary" />,
+      icon: <MessageSquare className="h-8 w-8 text-primary-foreground" />,
       title: 'AI Legal Advisor',
       description: 'รับการประเมินปัญหาทางกฎหมายเบื้องต้นได้ทันที',
     },
     {
-      icon: <Users className="h-8 w-8 text-primary" />,
+      icon: <Users className="h-8 w-8 text-primary-foreground" />,
       title: 'Expert Lawyer Marketplace',
       description: 'เชื่อมต่อกับทนายความผู้เชี่ยวชาญที่ผ่านการคัดเลือก',
     },
     {
-      icon: <CheckCircle className="h-8 w-8 text-primary" />,
+      icon: <CheckCircle className="h-8 w-8 text-primary-foreground" />,
       title: 'Streamlined Case Hand-off',
       description: 'ให้ AI ช่วยแนะนำและส่งต่อเคสของคุณไปยังทนายที่เหมาะสม',
     },
@@ -167,11 +167,11 @@ export default function Home() {
             </div>
         </section>
 
-        <section id="features" className="w-full py-12 md:py-24 lg:py-20 bg-primary">
+        <section id="features" className="w-full py-12 md:py-24 lg:py-20 bg-primary text-primary-foreground">
           <div className="container mx-auto px-4 md:px-6">
             <div className="flex flex-col items-center justify-center space-y-4 text-center">
               <div className="space-y-2">
-                <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline text-primary-foreground">How Lawlane Works</h2>
+                <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">How Lawlane Works</h2>
                 <p className="max-w-[900px] text-primary-foreground/80 md:text-xl/relaxed lg:text-base/relaxed xl:text-xl/relaxed">
                   A simple, three-step process to get legal clarity for your business.
                 </p>
@@ -179,7 +179,7 @@ export default function Home() {
             </div>
             <div className="mx-auto grid max-w-5xl items-start gap-8 sm:grid-cols-2 md:gap-12 lg:grid-cols-3 lg:max-w-none mt-12">
               {features.map((feature, index) => (
-                <Card key={index} className="h-full bg-card/80 backdrop-blur-sm hover:shadow-lg transition-shadow duration-300 border-border/50">
+                <Card key={index} className="h-full bg-card/80 backdrop-blur-sm hover:shadow-lg transition-shadow duration-300 border-border/50 text-foreground">
                   <CardHeader className="flex flex-col items-center text-center">
                     {feature.icon}
                     <CardTitle className="mt-4 text-lg font-semibold">{feature.title}</CardTitle>
