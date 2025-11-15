@@ -67,16 +67,16 @@ service cloud.firestore {
        * @path /chats/{chatId}/messages/{messageId}
        */
       match /messages/{messageId} {
-        // Re-use the isParticipant function from the parent scope, but check against the *existing* document in Firestore
+        // Function to check if the requester is part of the parent chat document.
         function isChatParticipant() {
-          return isSignedIn() && request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
+          return request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.participants;
         }
 
         // Allow participants to read all messages in the chat.
-        allow get, list: if isChatParticipant();
+        allow get, list: if isSignedIn() && isChatParticipant();
 
         // Allow a participant to create a new message, ensuring the senderId is their own.
-        allow create: if isChatParticipant() && request.resource.data.senderId == request.auth.uid;
+        allow create: if isSignedIn() && isChatParticipant() && request.resource.data.senderId == request.auth.uid;
         
         // Generally, messages are immutable.
         allow update, delete: if false;
