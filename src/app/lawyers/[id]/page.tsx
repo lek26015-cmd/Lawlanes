@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import { ArrowLeft, Mail, Phone } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Separator } from '@/components/ui/separator';
 
 export default async function LawyerProfilePage({ params }: { params: { id: string } }) {
   const lawyer = await getLawyerById(params.id);
@@ -17,6 +19,33 @@ export default async function LawyerProfilePage({ params }: { params: { id: stri
 
   const rating = (Number(lawyer.id) % 2) + 3.5;
   const reviewCount = Number(lawyer.id) * 7 + 5;
+
+  const mockReviews = [
+    {
+      id: 1,
+      author: 'คุณสมศักดิ์',
+      avatar: `https://picsum.photos/seed/rev1-${lawyer.id}/40/40`,
+      rating: 5,
+      comment: `คุณ ${lawyer.name.split(' ')[1]} ให้คำปรึกษาดีมากครับ เข้าใจง่ายและเป็นกันเอง ช่วยแก้ปัญหาเรื่องสัญญาที่ซับซ้อนของบริษัทผมได้อย่างมืออาชีพ แนะนำเลยครับ`,
+      date: 'กรกฎาคม 2024',
+    },
+    {
+      id: 2,
+      author: 'SME เจ้าของกิจการ',
+      avatar: `https://picsum.photos/seed/rev2-${lawyer.id}/40/40`,
+      rating: 4,
+      comment: 'ดำเนินการรวดเร็ว ติดต่อง่าย อธิบายข้อกฎหมายได้ชัดเจน แต่บางครั้งอาจจะตอบช้าไปบ้าง โดยรวมถือว่าประทับใจครับ',
+      date: 'มิถุนายน 2024',
+    },
+     {
+      id: 3,
+      author: 'คุณวิภา',
+      avatar: `https://picsum.photos/seed/rev3-${lawyer.id}/40/40`,
+      rating: 5,
+      comment: 'ยอดเยี่ยมมากค่ะ ช่วยเหลือเรื่องคดีฉ้อโกงได้อย่างเต็มที่ ทำให้ได้รับความเป็นธรรมกลับคืนมา ขอบคุณมากๆ ค่ะ',
+      date: 'พฤษภาคม 2024',
+    },
+  ];
 
   return (
     <div className="bg-gray-50 min-h-screen">
@@ -97,6 +126,39 @@ export default async function LawyerProfilePage({ params }: { params: { id: stri
                              </CardContent>
                         </Card>
                     </div>
+
+                    <Card className="mt-6">
+                        <CardHeader>
+                            <CardTitle>รีวิวจากผู้ใช้บริการ ({mockReviews.length})</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="space-y-6">
+                                {mockReviews.map((review, index) => (
+                                    <React.Fragment key={review.id}>
+                                        <div className="flex gap-4">
+                                            <Avatar>
+                                                <AvatarImage src={review.avatar} alt={review.author} />
+                                                <AvatarFallback>{review.author.charAt(0)}</AvatarFallback>
+                                            </Avatar>
+                                            <div className="flex-1">
+                                                <div className="flex items-center justify-between">
+                                                    <p className="font-semibold">{review.author}</p>
+                                                    <span className="text-xs text-muted-foreground">{review.date}</span>
+                                                </div>
+                                                <div className="flex items-center gap-1 my-1">
+                                                    {[...Array(5)].map((_, i) => (
+                                                        <StarIcon key={i} className={`w-4 h-4 ${i < review.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} />
+                                                    ))}
+                                                </div>
+                                                <p className="text-sm text-muted-foreground">{review.comment}</p>
+                                            </div>
+                                        </div>
+                                        {index < mockReviews.length - 1 && <Separator />}
+                                    </React.Fragment>
+                                ))}
+                            </div>
+                        </CardContent>
+                    </Card>
                 </div>
 
             </Card>
