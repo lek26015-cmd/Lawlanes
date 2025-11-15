@@ -4,6 +4,8 @@ import React from 'react';
 import {
   Dialog,
   DialogContent,
+  DialogHeader,
+  DialogTitle,
 } from '@/components/ui/dialog';
 import { useChat } from '@/context/chat-context';
 import { LawyerChatBox } from '@/components/chat/lawyer-chat-box';
@@ -25,6 +27,9 @@ export default function LawyerChatDialog() {
         className="fixed inset-0 w-full h-full rounded-none sm:inset-auto sm:bottom-6 sm:right-[calc(4rem+24px+1rem)] sm:w-96 sm:h-[70vh] sm:rounded-2xl bg-white shadow-2xl border z-50 p-0 flex flex-col"
         hideCloseButton={true}
         >
+         <DialogHeader className="sr-only">
+          <DialogTitle>Chat with {activeLawyer.name}</DialogTitle>
+        </DialogHeader>
         <LawyerChatBox 
           firestore={firestore}
           currentUser={user}

@@ -6,6 +6,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -140,6 +141,9 @@ export default function ChatModal() {
             <DialogTitle asChild>
                 <h3 className="text-xl font-bold">Lawlane AI Assistant</h3>
             </DialogTitle>
+             <DialogDescription className="sr-only">
+                Chat with the AI assistant to get legal advice.
+            </DialogDescription>
             <button onClick={() => setAiChatOpen(false)} className="text-background/70 hover:text-white">
                 <X className="w-6 h-6" />
             </button>
