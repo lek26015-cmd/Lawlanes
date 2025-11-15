@@ -59,7 +59,7 @@ export default function ForLawyersPage() {
                   เพียงไม่กี่ขั้นตอน
                 </p>
                 <Button asChild size="lg" className="w-full">
-                  <Link href="/signup">สมัครเข้าร่วมทันที</Link>
+                  <Link href="/lawyer-signup">สมัครเข้าร่วมทันที</Link>
                 </Button>
               </CardContent>
             </Card>
