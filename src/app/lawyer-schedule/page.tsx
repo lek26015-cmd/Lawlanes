@@ -141,7 +141,7 @@ export default function LawyerSchedulePage() {
                     <Input 
                         value={overrideReason}
                         onChange={(e) => setOverrideReason(e.target.value)}
-                        placeholder="เหตุผลการหยุด (เช่น ลาพักร้อน)"
+                        placeholder="เหตุผล (เช่น ลาพักร้อน, มีงานนอกแพลตฟอร์ม)"
                     />
                     <Button onClick={handleAddOverride}><PlusCircle/> เพิ่มวันหยุด</Button>
                 </div>
