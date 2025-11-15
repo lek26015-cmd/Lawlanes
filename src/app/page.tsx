@@ -18,6 +18,13 @@ import { useChat } from '@/context/chat-context';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import Logo from '@/components/logo';
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+} from "@/components/ui/carousel";
 
 
 export default function Home() {
@@ -53,6 +60,15 @@ export default function Home() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [verificationResult, setVerificationResult] = useState<'found' | 'not_found' | 'error' | null>(null);
   const [verifiedLawyer, setVerifiedLawyer] = useState<LawyerProfile | null>(null);
+  
+  const partners = [
+    { name: 'depa' },
+    { name: 'SCG HOME' },
+    { name: 'Q-CHANG' },
+    { name: 'DESIGN CONNEXT' },
+    { name: 'KHON KAEN UNIVERSITY SCIENCE PARK' },
+    { name: 'Krungthai Bank' },
+  ];
 
   useEffect(() => {
     async function fetchData() {
@@ -194,7 +210,7 @@ export default function Home() {
                             <Button size="lg" variant="secondary">ดูรายชื่อทนายทั้งหมด</Button>
                             </Link>
                             <Button size="lg" variant="outline" className="bg-transparent text-background border-background hover:bg-background hover:text-foreground" onClick={() => setAiChatOpen(true)}>
-                                ปรึกษากฎหมายเบื้องต้น
+                                คลิกแล้วเปิด แชท AI
                             </Button>
                         </div>
                     </div>
@@ -212,7 +228,7 @@ export default function Home() {
                                 </h2>
                             </div>
                             <p className="text-muted-foreground mb-6">
-                                ให้ AI ช่วยวิเคราะห์ปัญหาเบื้องต้นและแนะนำทนายที่ตรงจุดให้คุณ
+                                อันนี้ไม่ได้เปิดแชท อันนี้คือส่วนตัวกรองอัจฉริยะ หาทนายในระบบให้ตรงกับสิ่งที่พิมพ์อธิบาย
                             </p>
                             <div className="space-y-4">
                                 <Textarea
@@ -327,76 +343,6 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="w-full py-12 md:py-16 lg:py-20 bg-gray-50">
-            <div className="container mx-auto px-4 md:px-6">
-                <Card className="bg-gradient-to-br from-gray-100 to-blue-50 text-foreground p-8 rounded-2xl shadow-lg text-center border-t-4 border-primary">
-                    <CardHeader className="p-0">
-                        <Award className="mx-auto h-12 w-12 text-primary mb-3" />
-                        <CardTitle className="text-2xl font-bold">โฆษณาสำนักกฎหมายของคุณที่นี่</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-0 mt-4">
-                        <p className="text-muted-foreground mb-6 max-w-lg mx-auto">
-                            เข้าถึงลูกค้ากลุ่มเป้าหมายได้โดยตรง โปรโมตบริการของคุณบน Lawlane เพื่อเพิ่มการมองเห็นและสร้างความน่าเชื่อถือ
-                        </p>
-                    </CardContent>
-                    <CardFooter className="p-0 mt-6 justify-center">
-                         <Button asChild size="lg">
-                            <Link href="#">ติดต่อลงโฆษณา</Link>
-                        </Button>
-                    </CardFooter>
-                </Card>
-            </div>
-        </section>
-
-        <section className="w-full py-12 md:py-24 lg:py-32 bg-gray-50">
-          <div className="container mx-auto px-4 md:px-6">
-            <h2 className="text-3xl font-bold text-center mb-12 sm:text-4xl">URGENT JOBS</h2>
-            <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-8">
-              {urgentJobs.map((job) => (
-                <div key={job.id} className="flex items-center gap-6 py-4 border-b">
-                   <div className="flex-shrink-0">
-                      <Image 
-                        src={job.logoUrl} 
-                        alt={`${job.companyName} logo`}
-                        width={90}
-                        height={60}
-                        className="rounded-lg object-contain border bg-white p-1.5"
-                        data-ai-hint={job.logoHint}
-                      />
-                   </div>
-                   <div>
-                      <h3 className="font-semibold text-lg">{job.companyName}</h3>
-                      <p className="text-base text-muted-foreground">{job.description}</p>
-                   </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="w-full py-12 md:py-24 lg:py-32 bg-foreground text-background">
-          <div className="container mx-auto px-4 md:px-6">
-            <div className="text-center">
-                <div className="inline-block bg-background text-foreground p-3 rounded-full mb-4">
-                    <Briefcase className="h-8 w-8" />
-                </div>
-              <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">
-                คุณเป็นทนายความใช่ไหม?
-              </h2>
-              <p className="max-w-3xl mx-auto mt-4 text-background/80 md:text-xl">
-                เข้าร่วมเครือข่ายทนายความคุณภาพของเราเพื่อเข้าถึงลูกค้ากลุ่มใหม่ๆ และใช้เครื่องมือที่ทันสมัยในการจัดการเคสของคุณ
-              </p>
-              <div className="mt-8">
-                <Link href="/for-lawyers">
-                    <Button size="lg" variant="secondary" className="text-lg">
-                        <UserCheck className="mr-2 h-5 w-5" /> เข้าร่วมกับ Lawlane
-                    </Button>
-                </Link>
-              </div>
-            </div>
-          </div>
-        </section>
-
         <section id="articles" className="w-full py-12 md:py-24 lg:py-32 bg-white">
           <div className="container mx-auto px-4 md:px-6">
             <div className="flex justify-between items-center mb-8">
@@ -463,6 +409,107 @@ export default function Home() {
                 <p>Loading articles...</p>
             )}
 
+          </div>
+        </section>
+
+        <section className="w-full py-12 md:py-24 lg:py-32 bg-gray-50">
+          <div className="container mx-auto px-4 md:px-6 text-center">
+             <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl font-headline text-foreground mb-4">
+                Partnership ขอนแก่นน่าอยู่
+              </h2>
+              <Carousel
+                opts={{
+                  align: "start",
+                  loop: true,
+                }}
+                className="w-full max-w-4xl mx-auto"
+              >
+                <CarouselContent>
+                  {partners.map((partner, index) => (
+                    <CarouselItem key={index} className="basis-1/3 md:basis-1/4 lg:basis-1/6">
+                      <div className="p-1">
+                        <Card>
+                          <CardContent className="flex aspect-square items-center justify-center p-2">
+                            <span className="text-sm font-semibold text-center">{partner.name}</span>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                <CarouselPrevious />
+                <CarouselNext />
+              </Carousel>
+          </div>
+        </section>
+
+        <section className="w-full py-12 md:py-16 lg:py-20 bg-gray-50">
+            <div className="container mx-auto px-4 md:px-6">
+                <Card className="bg-gradient-to-br from-gray-100 to-blue-50 text-foreground p-8 rounded-2xl shadow-lg text-center border-t-4 border-primary">
+                    <CardHeader className="p-0">
+                        <Award className="mx-auto h-12 w-12 text-primary mb-3" />
+                        <CardTitle className="text-2xl font-bold">โฆษณาสำนักกฎหมายของคุณที่นี่</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0 mt-4">
+                        <p className="text-muted-foreground mb-6 max-w-lg mx-auto">
+                            เข้าถึงลูกค้ากลุ่มเป้าหมายได้โดยตรง โปรโมตบริการของคุณบน Lawlane เพื่อเพิ่มการมองเห็นและสร้างความน่าเชื่อถือ
+                        </p>
+                    </CardContent>
+                    <CardFooter className="p-0 mt-6 justify-center">
+                         <Button asChild size="lg">
+                            <Link href="#">ติดต่อลงโฆษณา</Link>
+                        </Button>
+                    </CardFooter>
+                </Card>
+            </div>
+        </section>
+
+        <section className="w-full py-12 md:py-24 lg:py-32 bg-gray-50">
+          <div className="container mx-auto px-4 md:px-6">
+            <h2 className="text-3xl font-bold text-center mb-12 sm:text-5xl font-headline">URGENT JOBS</h2>
+            <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-8">
+              {urgentJobs.map((job) => (
+                <div key={job.id} className="flex items-center gap-6 py-4 border-b">
+                   <div className="flex-shrink-0">
+                      <Image 
+                        src={job.logoUrl} 
+                        alt={`${job.companyName} logo`}
+                        width={120}
+                        height={80}
+                        className="rounded-lg object-contain border bg-white p-1.5"
+                        data-ai-hint={job.logoHint}
+                      />
+                   </div>
+                   <div>
+                      <h3 className="font-semibold text-xl">{job.companyName}</h3>
+                      <p className="text-lg text-muted-foreground">{job.description}</p>
+                   </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="w-full py-12 md:py-24 lg:py-32 bg-foreground text-background">
+          <div className="container mx-auto px-4 md:px-6">
+            <div className="text-center">
+                <div className="inline-block bg-background text-foreground p-3 rounded-full mb-4">
+                    <Briefcase className="h-8 w-8" />
+                </div>
+              <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">
+                คุณเป็นทนายความใช่ไหม?
+              </h2>
+              <p className="max-w-3xl mx-auto mt-4 text-background/80 md:text-xl">
+                เข้าร่วมเครือข่ายทนายความคุณภาพของเราเพื่อเข้าถึงลูกค้ากลุ่มใหม่ๆ และใช้เครื่องมือที่ทันสมัยในการจัดการเคสของคุณ
+              </p>
+              <div className="mt-8">
+                <Link href="/for-lawyers">
+                    <Button size="lg" variant="secondary" className="text-lg">
+                        <UserCheck className="mr-2 h-5 w-5" /> เข้าร่วมกับ Lawlane
+                    </Button>
+                </Link>
+              </div>
+            </div>
           </div>
         </section>
 
