@@ -31,6 +31,18 @@ import { format } from 'date-fns';
 import { th } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { v4 as uuidv4 } from 'uuid';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+
 
 function RequestDetailPageContent() {
   const params = useParams();
@@ -166,9 +178,30 @@ function RequestDetailPageContent() {
 
           </CardContent>
           <CardFooter className="flex flex-col gap-3 bg-gray-50 p-6 sm:flex-row sm:justify-end">
-            <Button variant="destructive" size="lg" onClick={handleRejectCase}>
-              <X className="mr-2" /> ปฏิเสธเคส
-            </Button>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="lg">
+                  <X className="mr-2" /> ปฏิเสธเคส
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>คุณแน่ใจหรือไม่ที่จะปฏิเสธเคสนี้?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    การกระทำนี้จะแจ้งให้ผู้ขอรับคำปรึกษาทราบว่าคุณไม่สะดวกรับเคสนี้ และพวกเขาจะต้องหาทนายความท่านอื่นต่อไป
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleRejectCase}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    ยืนยันการปฏิเสธ
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
             <Button size="lg" className="bg-green-600 hover:bg-green-700" onClick={handleAcceptCase}>
               <Check className="mr-2" /> รับเคสนี้
             </Button>
