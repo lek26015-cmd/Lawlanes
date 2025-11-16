@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, DollarSign, Banknote, Landmark, Plus, Trash2, History } from 'lucide-react';
+import { ArrowLeft, DollarSign, Banknote, Landmark, Plus, Trash2, History, Hourglass } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -45,6 +45,7 @@ export default function LawyerEarningsPage() {
 
   // Mock Data
   const currentBalance = 75000;
+  const pendingBalance = 8500;
   const transactions: Transaction[] = [
     { id: 'txn1', date: '25 ก.ค. 2567', description: 'รายรับจากเคส #lcase-001', amount: 3500, type: 'credit' },
     { id: 'txn2', date: '24 ก.ค. 2567', description: 'รายรับจากเคส #lcase-002', amount: 5000, type: 'credit' },
@@ -85,48 +86,65 @@ export default function LawyerEarningsPage() {
             <p className="text-muted-foreground">จัดการรายรับและช่องทางการเงินของคุณ</p>
           </div>
 
-          <Card className="bg-gradient-to-br from-green-500 to-emerald-600 text-white shadow-lg">
-            <CardHeader>
-                <CardTitle className="flex items-center justify-between">
-                    <span>ยอดเงินคงเหลือที่ถอนได้</span>
-                    <DollarSign />
-                </CardTitle>
-            </CardHeader>
-            <CardContent>
-                <p className="text-5xl font-bold tracking-tight">฿{currentBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
-            </CardContent>
-             <CardFooter>
-                 <AlertDialog>
-                    <AlertDialogTrigger asChild>
-                        <Button variant="secondary" className="w-full sm:w-auto bg-white/20 hover:bg-white/30 text-white">
-                           <Banknote className="mr-2"/> ถอนเงิน
-                        </Button>
-                    </AlertDialogTrigger>
-                    <AlertDialogContent>
-                        <AlertDialogHeader>
-                        <AlertDialogTitle>คำขอถอนเงิน</AlertDialogTitle>
-                        <AlertDialogDescription>
-                            กรอกจำนวนเงินที่ต้องการถอน (สูงสุด ฿{currentBalance.toLocaleString()})
-                        </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <div className="space-y-2">
-                            <Label htmlFor="withdraw-amount">จำนวนเงิน (บาท)</Label>
-                            <Input 
-                                id="withdraw-amount" 
-                                type="number" 
-                                value={withdrawalAmount}
-                                onChange={(e) => setWithdrawalAmount(e.target.value)}
-                                placeholder="เช่น 5000"
-                            />
-                        </div>
-                        <AlertDialogFooter>
-                        <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
-                        <AlertDialogAction onClick={handleWithdraw}>ยืนยันการถอนเงิน</AlertDialogAction>
-                        </AlertDialogFooter>
-                    </AlertDialogContent>
-                </AlertDialog>
-            </CardFooter>
-          </Card>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card className="bg-gradient-to-br from-green-500 to-emerald-600 text-white shadow-lg">
+                <CardHeader>
+                    <CardTitle className="flex items-center justify-between text-base font-semibold">
+                        <span>ยอดเงินคงเหลือที่ถอนได้</span>
+                        <DollarSign />
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-4xl font-bold tracking-tight">฿{currentBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+                </CardContent>
+                <CardFooter>
+                    <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                            <Button variant="secondary" className="w-full sm:w-auto bg-white/20 hover:bg-white/30 text-white">
+                            <Banknote className="mr-2"/> ถอนเงิน
+                            </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                            <AlertDialogHeader>
+                            <AlertDialogTitle>คำขอถอนเงิน</AlertDialogTitle>
+                            <AlertDialogDescription>
+                                กรอกจำนวนเงินที่ต้องการถอน (สูงสุด ฿{currentBalance.toLocaleString()})
+                            </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <div className="space-y-2">
+                                <Label htmlFor="withdraw-amount">จำนวนเงิน (บาท)</Label>
+                                <Input 
+                                    id="withdraw-amount" 
+                                    type="number" 
+                                    value={withdrawalAmount}
+                                    onChange={(e) => setWithdrawalAmount(e.target.value)}
+                                    placeholder="เช่น 5000"
+                                />
+                            </div>
+                            <AlertDialogFooter>
+                            <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+                            <AlertDialogAction onClick={handleWithdraw}>ยืนยันการถอนเงิน</AlertDialogAction>
+                            </AlertDialogFooter>
+                        </AlertDialogContent>
+                    </AlertDialog>
+                </CardFooter>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-blue-400 to-indigo-500 text-white shadow-lg">
+                <CardHeader>
+                    <CardTitle className="flex items-center justify-between text-base font-semibold">
+                        <span>ยอดเงินรอเคลียร์ (จากเคสที่กำลังทำ)</span>
+                        <Hourglass />
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-4xl font-bold tracking-tight">฿{pendingBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+                </CardContent>
+                 <CardFooter>
+                    <p className="text-xs text-blue-100">ยอดเงินจะถูกโอนเข้าสู่ยอดที่ถอนได้เมื่อเคสเสร็จสิ้น</p>
+                </CardFooter>
+            </Card>
+          </div>
           
           <Tabs defaultValue="history">
             <TabsList className="grid w-full grid-cols-2">
