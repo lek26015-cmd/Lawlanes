@@ -1,7 +1,6 @@
 
 import type { Metadata } from 'next';
 import './globals.css';
-import { Toaster } from '@/components/ui/toaster';
 import React from 'react';
 import { ClientProviders } from './client-providers';
 
@@ -27,7 +26,6 @@ export default function RootLayout({
         <ClientProviders>
           {children}
         </ClientProviders>
-        <Toaster />
       </body>
     </html>
   );
