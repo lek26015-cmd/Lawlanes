@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { CheckCircle, MessageSquare, Users, Sparkles, Scale, ArrowRight, Newspaper, Loader2, Briefcase, UserCheck, ShieldCheck, ShieldAlert, Phone, Mail, Award, FileText } from 'lucide-react';
+import { CheckCircle, MessageSquare, Users, Sparkles, Scale, ArrowRight, Newspaper, Loader2, Briefcase, UserCheck, ShieldCheck, ShieldAlert, Phone, Mail, Award } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { getApprovedLawyers, getAllArticles, getLawyerById, getUrgentJobs, getImageUrl, getImageHint } from '@/lib/data';
@@ -92,7 +92,7 @@ export default function Home() {
       title: "บริการด้านสัญญาครบวงจร",
       description: "ทีมงานของเราเชี่ยวชาญการร่างและตรวจสอบสัญญาทุกประเภทสำหรับธุรกิจ SME เพื่อความรัดกุมและปลอดภัย",
       buttonText: "ดูรายละเอียดบริการ",
-      icon: <FileText className="mx-auto h-12 w-12 text-green-600 mb-3" />,
+      icon: <Newspaper className="mx-auto h-12 w-12 text-green-600 mb-3" />,
       href: "/services/contracts",
       gradient: "from-green-50 to-blue-50"
     },
@@ -277,7 +277,7 @@ export default function Home() {
                                 </h2>
                             </div>
                             <p className="text-muted-foreground mb-6">
-                                อันนี้ไม่ได้เปิดแชท อันนี้คือส่วนตัวกรองอัจฉริยะ หาทนายในระบบให้ตรงกับสิ่งที่พิมพ์อธิบาย
+                                ให้ AI ช่วยวิเคราะห์ปัญหาเบื้องต้นและแนะนำทนายที่ตรงจุด
                             </p>
                             <div className="space-y-4">
                                 <Textarea
@@ -393,7 +393,7 @@ export default function Home() {
                                 <span>ทนายความที่ผ่านการตรวจสอบและยืนยันตัวตน</span>
                             </div>
                              <div className="flex items-center gap-4 text-muted-foreground">
-                                <FileText className="w-6 h-6 text-primary" />
+                                <Newspaper className="w-6 h-6 text-primary" />
                                 <span>เชี่ยวชาญหลากหลาย ทั้งคดีแพ่ง ฉ้อโกง และสัญญา</span>
                             </div>
                             <div className="pt-4">
