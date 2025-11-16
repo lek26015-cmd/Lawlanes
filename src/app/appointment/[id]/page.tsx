@@ -174,8 +174,10 @@ export default function AppointmentDetailPage() {
             </div>
           </CardContent>
           <CardFooter className="flex flex-col gap-3 bg-gray-50 p-6 sm:flex-row sm:justify-end">
-            <Button variant="outline">
-              <Mail className="mr-2" /> ติดต่อทนาย
+            <Button variant="outline" asChild>
+              <Link href={`/chat/case-from-${appointment.id}?lawyerId=${lawyer.id}`}>
+                 <Mail className="mr-2" /> ติดต่อทนาย
+              </Link>
             </Button>
             <AlertDialog>
               <AlertDialogTrigger asChild>
