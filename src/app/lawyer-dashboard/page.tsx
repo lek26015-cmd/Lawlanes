@@ -58,10 +58,10 @@ export default function LawyerDashboardPage() {
   };
 
   const stats = [
-    { icon: <DollarSign />, label: 'รายได้เดือนนี้', value: '฿75,000', color: 'text-green-500' },
-    { icon: <Star />, label: 'คะแนนเฉลี่ย', value: '4.8/5', color: 'text-yellow-500' },
-    { icon: <Percent />, label: 'อัตราการตอบรับ', value: '95%', color: 'text-blue-500' },
-    { icon: <Briefcase />, label: 'เคสที่เสร็จสิ้น', value: '12', color: 'text-purple-500' },
+    { icon: <DollarSign />, label: 'รายได้เดือนนี้', value: '฿75,000', color: 'text-green-500', href: '#' },
+    { icon: <Star />, label: 'คะแนนเฉลี่ย', value: '4.8/5', color: 'text-yellow-500', href: '#' },
+    { icon: <Percent />, label: 'อัตราการตอบรับ', value: '95%', color: 'text-blue-500', href: '#' },
+    { icon: <Briefcase />, label: 'เคสที่เสร็จสิ้น', value: '12', color: 'text-purple-500', href: '#' },
   ];
   
   const caseStatusBadge = {
@@ -232,11 +232,11 @@ export default function LawyerDashboardPage() {
                 </CardHeader>
                 <CardContent className="grid grid-cols-2 gap-4">
                     {stats.map(stat => (
-                        <div key={stat.label} className="p-3 bg-gray-100 rounded-lg text-center">
+                        <Link href={stat.href} key={stat.label} className="block p-3 bg-gray-100 rounded-lg text-center hover:bg-gray-200 hover:shadow-md transition-all">
                             <div className={`mx-auto h-8 w-8 flex items-center justify-center ${stat.color}`}>{stat.icon}</div>
                             <p className="text-xl font-bold mt-1">{stat.value}</p>
                             <p className="text-xs text-muted-foreground">{stat.label}</p>
-                        </div>
+                        </Link>
                     ))}
                 </CardContent>
              </Card>
