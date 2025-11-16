@@ -217,11 +217,13 @@ export default function AdminCustomersPage() {
                                 Export
                                 </span>
                             </Button>
-                            <Button size="sm" className="h-8 gap-1">
+                            <Button size="sm" className="h-8 gap-1" asChild>
+                              <Link href="/admin/customers/new">
                                 <PlusCircle className="h-3.5 w-3.5" />
                                 <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
                                 เพิ่มลูกค้า
                                 </span>
+                              </Link>
                             </Button>
                             </div>
                         </div>
