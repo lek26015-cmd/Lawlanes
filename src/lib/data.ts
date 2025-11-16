@@ -319,3 +319,11 @@ export async function getUrgentJobs(): Promise<UrgentJob[]> {
     }, 100);
   });
 }
+
+export async function getUrgentJobById(id: string): Promise<UrgentJob | undefined> {
+    return new Promise(resolve => {
+      setTimeout(() => {
+        resolve(mockUrgentJobs.find(job => job.id === id));
+      }, 100);
+    });
+  }

@@ -246,10 +246,7 @@ export default function Home() {
             <div className="container mx-auto px-4 md:px-6">
                 <div className="grid lg:grid-cols-2 gap-12 items-center">
                     <div className="flex flex-col items-center lg:items-start text-center lg:text-left space-y-6">
-                        <Link href="/dashboard" className="text-sm text-background/80 hover:text-background mb-4 inline-flex items-center gap-2">
-                            <ArrowRight className="w-4 h-4" />
-                            กลับไปหน้าแดชบอร์ด
-                        </Link>
+                        
                         <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none font-headline">
                             ค้นหาทนายความ...
                             <br />
@@ -488,7 +485,7 @@ export default function Home() {
             <h2 className="text-3xl font-bold text-center mb-12 sm:text-5xl font-headline">สำนักงานกฎหมายแนะนำ</h2>
             <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
               {urgentJobs.map((job) => (
-                <Link href="#" key={job.id} className="block cursor-pointer group">
+                <Link href={`/law-firm/${job.id}`} key={job.id} className="block cursor-pointer group">
                   <div className="flex items-center gap-6 py-4 border-b group-hover:bg-gray-50 p-4 rounded-lg">
                     <div className="flex-shrink-0">
                         <Image 
