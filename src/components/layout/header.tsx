@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Search, Menu } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from '@/components/ui/sheet';
 
 export default function Header() {
   const pathname = usePathname();
@@ -135,10 +135,13 @@ export default function Header() {
                         <span className="sr-only">เปิดเมนู</span>
                     </Button>
                 </SheetTrigger>
-                <SheetContent side="left">
+                <SheetContent side="left" className="p-0">
+                    <SheetHeader className="p-6 pb-0">
+                      <SheetTitle><Logo /></SheetTitle>
+                      <SheetDescription className="sr-only">Mobile navigation menu</SheetDescription>
+                    </SheetHeader>
                     <div className="flex flex-col gap-6 p-6">
-                        <Logo />
-                        <nav className="flex flex-col gap-4 text-lg">
+                        <nav className="flex flex-col gap-4 text-lg mt-6">
                             <Link href="/" className="hover:text-primary">หน้าแรก</Link>
                             <Link href="/articles" className="hover:text-primary">บทความ</Link>
                             <Link href="/for-lawyers" className="hover:text-primary">สำหรับทนายความ</Link>
