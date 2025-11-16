@@ -1,4 +1,3 @@
-
 'use client';
 import { useState, useEffect } from 'react';
 import { onAuthStateChanged, User, Auth, signInAnonymously as firebaseSignInAnonymously } from 'firebase/auth';
