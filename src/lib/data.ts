@@ -353,12 +353,12 @@ export async function getLawyerDashboardData(): Promise<{ newRequests: LawyerApp
 
 // Mock data for Urgent Jobs advertisement section
 export const mockUrgentJobs: UrgentJob[] = [
-  { id: 'job1', companyName: 'บริษัท เค.เลเซอร์ เทคโนโลยี (ไทยแลนด์) จำกัด', description: 'เปิดรับสมัครพนักงานหลายตำแหน่ง ดูรายละเอียดเพิ่มเติม Click', logoUrl: getImageUrl('ad-logo-1'), logoHint: getImageHint('ad-logo-1') },
-  { id: 'job2', companyName: 'บริษัท ไท้เส กรุ๊ป จำกัด', description: 'เปิดรับสมัครพนักงานด่วน! ดูรายละเอียดเพิ่มเติม Click!', logoUrl: getImageUrl('ad-logo-2'), logoHint: getImageHint('ad-logo-2') },
-  { id: 'job3', companyName: 'บริษัท พี.เจ.ชลบุรี พาราวู้ด จำกัด', description: 'เปิดรับสมัครพนักงานหลายตำแหน่ง สนใจ Click!', logoUrl: getImageUrl('ad-logo-3'), logoHint: getImageHint('ad-logo-3') },
-  { id: 'job4', companyName: 'Global Asia Pacific Co.,Ltd.', description: 'เปิดรับ Sales Executive ดูรายละเอียดเพิ่มเติม Click!!', logoUrl: getImageUrl('ad-logo-4'), logoHint: getImageHint('ad-logo-4') },
-  { id: 'job5', companyName: 'บริษัท ปัญจวัฒนาพลาสติก จำกัด (มหาชน)', description: 'เปิดรับสมัคร วิศวกร และ ช่างเทคนิค หลายอัตรา เพื่อรองรับการขยายกำลังการผลิต สนใจ Click!', logoUrl: getImageUrl('ad-logo-5'), logoHint: getImageHint('ad-logo-5') },
-  { id: 'job6', companyName: 'GDT MARKETING AND RETAIL CO.,LTD', description: 'ด่วน! รับสมัคร พนักงานไลฟ์สดขายสินค้า รายได้ดี 12,000-30,000+++ (รวมค่าคอมมิชชั่น) สนใจ Click!', logoUrl: getImageUrl('ad-logo-6'), logoHint: getImageHint('ad-logo-6') },
+  { id: 'job1', companyName: 'สำนักงานกฎหมาย ชัยชนะ', description: 'บริการให้คำปรึกษาด้านกฎหมายธุรกิจครบวงจร', logoUrl: getImageUrl('ad-logo-1'), logoHint: getImageHint('ad-logo-1') },
+  { id: 'job2', companyName: 'บริษัท สุจริต ลอว์ เฟิร์ม จำกัด', description: 'เชี่ยวชาญคดีฉ้อโกงและอาชญากรรมทางเศรษฐกิจ', logoUrl: getImageUrl('ad-logo-2'), logoHint: getImageHint('ad-logo-2') },
+  { id: 'job3', companyName: 'กลุ่มทนายความเพื่อประชาชน', description: 'ให้คำปรึกษาคดีแพ่งและพาณิชย์สำหรับ SME', logoUrl: getImageUrl('ad-logo-3'), logoHint: getImageHint('ad-logo-3') },
+  { id: 'job4', companyName: 'Legal Link and Partners', description: 'บริการด้านทรัพย์สินทางปัญญาและสัญญาทุกประเภท', logoUrl: getImageUrl('ad-logo-4'), logoHint: getImageHint('ad-logo-4') },
+  { id: 'job5', companyName: 'สำนักงานทนายความยุติธรรม', description: 'เชี่ยวชาญกฎหมายแรงงานและข้อพิพาทองค์กร', logoUrl: getImageUrl('ad-logo-5'), logoHint: getImageHint('ad-logo-5') },
+  { id: 'job6', companyName: 'The Law Office of International Trade', description: 'บริการกฎหมายเพื่อการค้าระหว่างประเทศ', logoUrl: getImageUrl('ad-logo-6'), logoHint: getImageHint('ad-logo-6') },
 ];
 
 export async function getUrgentJobs(): Promise<UrgentJob[]> {

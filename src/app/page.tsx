@@ -32,17 +32,17 @@ export default function Home() {
   const router = useRouter();
   const [features] = useState([
     {
-      icon: <CheckCircle className="w-6 h-6" />,
+      icon: <CheckCircle className="w-6 h-6 text-blue-600" />,
       title: 'AI Legal Advisor',
       description: 'Get a preliminary legal assessment of your issue instantly.',
     },
     {
-      icon: <CheckCircle className="w-6 h-6" />,
+      icon: <CheckCircle className="w-6 h-6 text-blue-600" />,
       title: 'Expert Lawyer Marketplace',
       description: 'Connect with a curated network of vetted, specialized lawyers.',
     },
     {
-      icon: <CheckCircle className="w-6 h-6" />,
+      icon: <CheckCircle className="w-6 h-6 text-blue-600" />,
       title: 'Streamlined Case Hand-off',
       description: 'Our AI analyzes your case to recommend and seamlessly connect you with the right legal expert.',
     },
@@ -101,6 +101,7 @@ export default function Home() {
       buttonText: "ลองใช้ AI เลย",
       icon: <Sparkles className="mx-auto h-12 w-12 text-purple-600 mb-3" />,
       href: "#",
+      action: () => setAiChatOpen(true),
       gradient: "from-purple-50 to-blue-50"
     }
   ];
@@ -114,7 +115,7 @@ export default function Home() {
       const lawyers = await getApprovedLawyers();
       setRecommendedLawyers(lawyers.slice(0, 3));
       const allArticles = await getAllArticles();
-      setArticles(allArticles);
+      setArticles(allArticles.slice(0, 5));
       const jobs = await getUrgentJobs();
       setUrgentJobs(jobs);
     }
@@ -420,9 +421,10 @@ export default function Home() {
 
         <section className="w-full bg-gray-50 py-12 md:py-24 lg:py-32">
           <div className="container mx-auto px-4 md:px-6">
-              <div className='text-center mb-8'>
-                  <h2 className='text-3xl font-bold tracking-tight text-foreground font-headline'>ทนายที่แนะนำ</h2>
-                  <Separator className='w-24 mx-auto mt-2 bg-gray-200' />
+              <div className='text-center mb-12'>
+                  <h2 className='text-3xl font-bold tracking-tight text-foreground font-headline sm:text-4xl'>ทนายที่แนะนำ</h2>
+                  <p className="mt-2 text-muted-foreground">ทนายความที่ผ่านการคัดเลือกและมีความเชี่ยวชาญเฉพาะทาง</p>
+                  <Separator className='w-24 mx-auto mt-4 bg-border' />
               </div>
               <div className="max-w-5xl mx-auto flex flex-col gap-4">
                   {recommendedLawyers.map((lawyer) => (
@@ -431,7 +433,7 @@ export default function Home() {
                   </div>
                   ))}
               </div>
-              <div className="mt-8 text-center">
+              <div className="mt-12 text-center">
                   <Button asChild size="lg" variant="outline" className="bg-white">
                       <Link href="/lawyers">ดูทนายทั้งหมด</Link>
                   </Button>
@@ -439,7 +441,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="w-full py-12 md:py-16 lg:py-20 bg-background">
+        <section className="w-full bg-background py-12 md:py-16 lg:py-20">
             <div className="container mx-auto px-4 md:px-6">
                 <Carousel
                   plugins={[carouselPlugin.current]}
@@ -462,7 +464,7 @@ export default function Home() {
                             </p>
                           </CardContent>
                           <CardFooter className="p-0 mt-6 justify-center">
-                            <Button asChild size="lg">
+                             <Button asChild size="lg" onClick={banner.action}>
                               <Link href={banner.href}>{banner.buttonText}</Link>
                             </Button>
                           </CardFooter>
@@ -478,7 +480,7 @@ export default function Home() {
         
         <section className="w-full py-12 md:py-24 lg:py-32 bg-white">
           <div className="container mx-auto px-4 md:px-6">
-            <h2 className="text-3xl font-bold text-center mb-12 sm:text-5xl font-headline">URGENT JOBS</h2>
+            <h2 className="text-3xl font-bold text-center mb-12 sm:text-5xl font-headline">สำนักงานกฎหมายแนะนำ</h2>
             <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
               {urgentJobs.map((job) => (
                 <div key={job.id} className="flex items-center gap-6 py-4 border-b">
@@ -627,3 +629,5 @@ export default function Home() {
     </>
   );
 }
+
+    
