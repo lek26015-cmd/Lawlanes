@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
-import { CheckCircle, MessageSquare, Users, Sparkles, Scale, ArrowRight, Newspaper, Loader2, Briefcase, UserCheck, ShieldCheck, ShieldAlert, Phone, Mail, Award } from 'lucide-react';
+import { CheckCircle, MessageSquare, Users, Sparkles, Scale, ArrowRight, Newspaper, Loader2, Briefcase, UserCheck, ShieldCheck, ShieldAlert, Phone, Mail, Award, FileText } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { getApprovedLawyers, getAllArticles, getLawyerById, getUrgentJobs, getImageUrl, getImageHint } from '@/lib/data';
@@ -34,26 +34,26 @@ export default function Home() {
   const [features] = useState([
     {
       icon: <CheckCircle className="w-6 h-6 text-blue-600" />,
-      title: 'AI Legal Advisor',
-      description: 'Get a preliminary legal assessment of your issue instantly.',
+      title: 'ที่ปรึกษากฎหมาย AI',
+      description: 'รับการประเมินปัญหาทางกฎหมายเบื้องต้นได้ทันทีจาก AI ผู้เชี่ยวชาญของเรา',
     },
     {
       icon: <CheckCircle className="w-6 h-6 text-blue-600" />,
-      title: 'Expert Lawyer Marketplace',
-      description: 'Connect with a curated network of vetted, specialized lawyers.',
+      title: 'ตลาดกลางทนายความ',
+      description: 'เชื่อมต่อกับเครือข่ายทนายความที่ผ่านการคัดเลือกและเชี่ยวชาญเฉพาะทาง',
     },
     {
       icon: <CheckCircle className="w-6 h-6 text-blue-600" />,
-      title: 'Streamlined Case Hand-off',
-      description: 'Our AI analyzes your case to recommend and seamlessly connect you with the right legal expert.',
+      title: 'ส่งต่องานให้ทนายอย่างราบรื่น',
+      description: 'ให้ AI วิเคราะห์เคสของคุณเพื่อแนะนำและเชื่อมต่อคุณกับทนายที่เหมาะสมที่สุด',
     },
   ]);
 
   const stats = [
-      { value: '10x', label: 'Faster initial assessment' },
-      { value: '50+', label: 'Vetted SME Lawyers' },
-      { value: '24/7', label: 'AI Availability' },
-      { value: '100%', label: 'Secure Platform' },
+      { value: '10x', label: 'ประเมินเบื้องต้นเร็วกว่า' },
+      { value: '50+', label: 'ทนายความ SME ที่ผ่านการคัดเลือก' },
+      { value: '24/7', label: 'AI พร้อมให้คำปรึกษา' },
+      { value: '100%', label: 'แพลตฟอร์มปลอดภัย' },
   ]
   
   const [recommendedLawyers, setRecommendedLawyers] = useState<LawyerProfile[]>([]);
@@ -309,9 +309,9 @@ export default function Home() {
             <div className="grid lg:grid-cols-2 gap-12 items-center">
                 <div className="space-y-8">
                     <div>
-                        <p className="text-sm font-semibold text-primary uppercase">How Lawlane Works</p>
+                        <p className="text-sm font-semibold text-primary uppercase">Lawlane ทำงานอย่างไร</p>
                         <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground font-headline mt-2">
-                            A Simple Process to <br /> Get Legal Clarity
+                            ขั้นตอนง่ายๆ เพื่อความชัดเจนทางกฎหมาย
                         </h2>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
