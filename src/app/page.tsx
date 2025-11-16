@@ -71,12 +71,12 @@ export default function Home() {
   const [verifiedLawyer, setVerifiedLawyer] = useState<LawyerProfile | null>(null);
   
   const partners = [
-    { name: 'depa' },
-    { name: 'SCG HOME' },
-    { name: 'Q-CHANG' },
-    { name: 'DESIGN CONNEXT' },
-    { name: 'KHON KAEN UNIVERSITY SCIENCE PARK' },
-    { name: 'Krungthai Bank' },
+    { name: 'สภาทนายความ' },
+    { name: 'ETDA Thailand' },
+    { name: 'DEPA' },
+    { name: 'NIA' },
+    { name: 'Techsauce' },
+    { name: 'Krungsri Finnovate' },
   ];
   
   const adBanners = [
@@ -500,7 +500,7 @@ export default function Home() {
                   <Link href={`/articles/${mainArticle.slug}`} className="group block">
                     <Card className="border-none shadow-none bg-transparent p-0">
                       <CardContent className="p-0">
-                        <div className="relative aspect-[16/10] mb-4 overflow-hidden rounded-lg">
+                        <div className="relative aspect-[4/3] mb-4 overflow-hidden rounded-lg">
                           <Image
                             src={mainArticle.imageUrl}
                             alt={mainArticle.title}
@@ -524,7 +524,7 @@ export default function Home() {
                     <Link key={article.id} href={`/articles/${article.slug}`} className="group block">
                       <Card className="border-none shadow-none bg-transparent p-0 h-full flex flex-col">
                         <CardContent className="p-0">
-                          <div className="relative aspect-video mb-3 overflow-hidden rounded-lg">
+                          <div className="relative aspect-[16/10] mb-3 overflow-hidden rounded-lg">
                             <Image
                               src={article.imageUrl}
                               alt={article.title}
@@ -551,25 +551,23 @@ export default function Home() {
         
         <section className="w-full py-12 md:py-24 lg:py-32 bg-white">
           <div className="container mx-auto px-4 md:px-6 text-center">
-             <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl font-headline text-foreground mb-4">
-                Partnership ขอนแก่นน่าอยู่
+             <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl font-headline text-foreground mb-8">
+                ได้รับความไว้วางใจจาก
               </h2>
               <Carousel
                 opts={{
                   align: "start",
                   loop: true,
                 }}
-                className="w-full max-w-4xl mx-auto"
+                className="w-full max-w-5xl mx-auto"
               >
                 <CarouselContent>
                   {partners.map((partner, index) => (
                     <CarouselItem key={index} className="basis-1/3 md:basis-1/4 lg:basis-1/6">
-                      <div className="p-1">
-                        <Card>
-                          <CardContent className="flex aspect-square items-center justify-center p-2">
-                            <span className="text-sm font-semibold text-center">{partner.name}</span>
-                          </CardContent>
-                        </Card>
+                      <div className="p-2">
+                         <div className="flex aspect-video items-center justify-center p-4 bg-gray-100 rounded-lg">
+                            <span className="text-sm font-semibold text-center text-muted-foreground">{partner.name}</span>
+                          </div>
                       </div>
                     </CarouselItem>
                   ))}
