@@ -36,7 +36,8 @@ export default function LawyerEarningsPage() {
   
   // Mock Data
   const currentBalance = 75000;
-  const pendingBalance = 8500;
+  const pendingClearanceBalance = 8500;
+  const pendingWithdrawalBalance = 10000;
   const transactions: Transaction[] = [
     { id: 'txn1', date: '25 ก.ค. 2567', description: 'รายรับจากเคส #lcase-001', amount: 3500, type: 'credit' },
     { id: 'txn2', date: '24 ก.ค. 2567', description: 'รายรับจากเคส #lcase-002', amount: 5000, type: 'credit' },
@@ -99,8 +100,8 @@ export default function LawyerEarningsPage() {
             <p className="text-muted-foreground">จัดการรายรับและช่องทางการเงินของคุณ</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card className="shadow-lg">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <Card className="shadow-lg lg:col-span-1">
                 <CardHeader>
                     <CardTitle className="flex items-center justify-between text-base font-semibold">
                         <span>ยอดเงินคงเหลือที่ถอนได้</span>
@@ -119,18 +120,33 @@ export default function LawyerEarningsPage() {
                 </CardFooter>
             </Card>
 
-            <Card className="bg-secondary text-secondary-foreground shadow-lg">
+            <Card className="bg-secondary text-secondary-foreground shadow-lg lg:col-span-1">
                 <CardHeader>
                     <CardTitle className="flex items-center justify-between text-base font-semibold text-muted-foreground">
-                        <span>ยอดเงินรอเคลียร์ (จากเคสที่กำลังทำ)</span>
+                        <span>ยอดเงินรอเคลียร์</span>
                         <Hourglass />
                     </CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <p className="text-4xl font-bold tracking-tight">฿{pendingBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+                    <p className="text-4xl font-bold tracking-tight">฿{pendingClearanceBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
                 </CardContent>
                  <CardFooter>
-                    <p className="text-xs text-muted-foreground">ยอดเงินจะถูกโอนเข้าสู่ยอดที่ถอนได้เมื่อเคสเสร็จสิ้น</p>
+                    <p className="text-xs text-muted-foreground">จากเคสที่กำลังดำเนินการ</p>
+                </CardFooter>
+            </Card>
+
+            <Card className="bg-secondary text-secondary-foreground shadow-lg lg:col-span-1">
+                <CardHeader>
+                    <CardTitle className="flex items-center justify-between text-base font-semibold text-muted-foreground">
+                        <span>ยอดเงินกำลังดำเนินการถอน</span>
+                        <Hourglass />
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-4xl font-bold tracking-tight">฿{pendingWithdrawalBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+                </CardContent>
+                 <CardFooter>
+                    <p className="text-xs text-muted-foreground">เงินจะเข้าบัญชีใน 1-2 วันทำการ</p>
                 </CardFooter>
             </Card>
           </div>
