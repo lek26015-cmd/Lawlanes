@@ -70,246 +70,197 @@ import {
   TabsList,
   TabsTrigger,
 } from '@/components/ui/tabs';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import Logo from '@/components/logo';
 import { Progress } from '@/components/ui/progress';
+import Logo from '@/components/logo';
 
 export default function AdminDashboard() {
   return (
-    <div className="flex min-h-screen w-full flex-col bg-muted/40">
-       <TooltipProvider>
-      <aside className="fixed inset-y-0 left-0 z-10 hidden w-14 flex-col border-r bg-background sm:flex">
-        <nav className="flex flex-col items-center gap-4 px-2 sm:py-5">
-          <Link
-            href="/"
-            className="group flex h-9 w-9 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:h-8 md:w-8 md:text-base"
-          >
-            <Gavel className="h-4 w-4 transition-all group-hover:scale-110" />
-            <span className="sr-only">Lawlanes Admin</span>
-          </Link>
-           <Tooltip>
-            <TooltipTrigger asChild>
+    <div className="grid min-h-screen w-full md:grid-cols-[280px_1fr] lg:grid-cols-[280px_1fr]">
+      <div className="hidden border-r bg-muted/40 md:block">
+        <div className="flex h-full max-h-screen flex-col gap-2">
+          <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
+            <Link href="/admin" className="flex items-center gap-2 font-semibold">
+              <Gavel className="h-6 w-6" />
+              <span className="">Lawlanes Admin</span>
+            </Link>
+          </div>
+          <div className="flex-1">
+            <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
               <Link
                 href="/"
-                className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
+                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
               >
-                <ArrowLeft className="h-5 w-5" />
-                <span className="sr-only">กลับไปหน้าแรก</span>
+                <ArrowLeft className="h-4 w-4" />
+                กลับไปหน้าแรก
               </Link>
-            </TooltipTrigger>
-            <TooltipContent side="right">กลับไปหน้าแรก</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
               <Link
                 href="/admin"
-                className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent text-accent-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
+                className="flex items-center gap-3 rounded-lg bg-muted px-3 py-2 text-primary transition-all hover:text-primary"
               >
-                <Home className="h-5 w-5" />
-                <span className="sr-only">แดชบอร์ด</span>
+                <Home className="h-4 w-4" />
+                แดชบอร์ด
               </Link>
-            </TooltipTrigger>
-            <TooltipContent side="right">แดชบอร์ด</TooltipContent>
-          </Tooltip>
-           <Tooltip>
-            <TooltipTrigger asChild>
               <Link
                 href="#"
-                className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
+                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
               >
-                <Users2 className="h-5 w-5" />
-                <span className="sr-only">ลูกค้า</span>
+                <Users2 className="h-4 w-4" />
+                ลูกค้า
               </Link>
-            </TooltipTrigger>
-            <TooltipContent side="right">ลูกค้า</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
               <Link
                 href="#"
-                className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
+                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
               >
-                <ShieldCheck className="h-5 w-5" />
-                <span className="sr-only">ทนายความ</span>
+                <ShieldCheck className="h-4 w-4" />
+                ทนายความ
               </Link>
-            </TooltipTrigger>
-            <TooltipContent side="right">ทนายความ</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
               <Link
                 href="#"
-                className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
+                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
               >
-                <Landmark className="h-5 w-5" />
-                <span className="sr-only">การเงิน</span>
+                <Landmark className="h-4 w-4" />
+                การเงิน
               </Link>
-            </TooltipTrigger>
-            <TooltipContent side="right">การเงิน</TooltipContent>
-          </Tooltip>
-           <Tooltip>
-            <TooltipTrigger asChild>
               <Link
                 href="#"
-                className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
+                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
               >
-                <Ticket className="h-5 w-5" />
-                <span className="sr-only">Ticket ช่วยเหลือ</span>
+                <Ticket className="h-4 w-4" />
+                Ticket ช่วยเหลือ
               </Link>
-            </TooltipTrigger>
-            <TooltipContent side="right">Ticket ช่วยเหลือ</TooltipContent>
-          </Tooltip>
-           <Tooltip>
-            <TooltipTrigger asChild>
-              <Link
+               <Link
                 href="#"
-                className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
+                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
               >
-                <Megaphone className="h-5 w-5" />
-                <span className="sr-only">จัดการโฆษณา</span>
+                <Megaphone className="h-4 w-4" />
+                จัดการโฆษณา
               </Link>
-            </TooltipTrigger>
-            <TooltipContent side="right">จัดการโฆษณา</TooltipContent>
-          </Tooltip>
-           <Tooltip>
-            <TooltipTrigger asChild>
-              <Link
+               <Link
                 href="#"
-                className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
+                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
               >
-                <FileText className="h-5 w-5" />
-                <span className="sr-only">เนื้อหาและ SEO</span>
+                <FileText className="h-4 w-4" />
+                เนื้อหาและ SEO
               </Link>
-            </TooltipTrigger>
-            <TooltipContent side="right">เนื้อหาและ SEO</TooltipContent>
-          </Tooltip>
-        </nav>
-        <nav className="mt-auto flex flex-col items-center gap-4 px-2 sm:py-5">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Link
+            </nav>
+          </div>
+          <div className="mt-auto p-4">
+             <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
+               <Link
                 href="#"
-                className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
+                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
               >
-                <Settings className="h-5 w-5" />
-                <span className="sr-only">ตั้งค่า</span>
+                <Settings className="h-4 w-4" />
+                ตั้งค่า
               </Link>
-            </TooltipTrigger>
-            <TooltipContent side="right">ตั้งค่า</TooltipContent>
-          </Tooltip>
-        </nav>
-      </aside>
-       </TooltipProvider>
-      <div className="flex flex-col sm:pl-14">
-        <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background px-4 sm:static sm:h-auto sm:border-0 sm:bg-transparent sm:px-6">
+            </nav>
+          </div>
+        </div>
+      </div>
+      <div className="flex flex-col">
+        <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
           <Sheet>
             <SheetTrigger asChild>
-              <Button size="icon" variant="outline" className="sm:hidden">
+              <Button
+                variant="outline"
+                size="icon"
+                className="shrink-0 md:hidden"
+              >
                 <PanelLeft className="h-5 w-5" />
                 <span className="sr-only">สลับเมนู</span>
               </Button>
             </SheetTrigger>
-            <SheetContent side="left" className="sm:max-w-xs">
-              <nav className="grid gap-6 text-lg font-medium">
-                <Link
-                  href="#"
-                  className="group flex h-10 w-10 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:text-base"
-                >
-                  <Gavel className="h-5 w-5 transition-all group-hover:scale-110" />
-                  <span className="sr-only">Lawlanes Admin</span>
-                </Link>
-                <Link
-                  href="/"
-                  className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
-                >
-                  <ArrowLeft className="h-5 w-5" />
-                  กลับไปหน้าแรก
-                </Link>
-                <Link
-                  href="/admin"
-                  className="flex items-center gap-4 px-2.5 text-foreground"
-                >
-                  <Home className="h-5 w-5" />
-                  แดชบอร์ด
-                </Link>
-                <Link
-                  href="#"
-                  className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
-                >
-                  <Users2 className="h-5 w-5" />
-                  ลูกค้า
-                </Link>
-                <Link
-                  href="#"
-                  className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
-                >
-                  <ShieldCheck className="h-5 w-5" />
-                  ทนายความ
-                </Link>
+            <SheetContent side="left" className="flex flex-col">
+              <nav className="grid gap-2 text-lg font-medium">
                  <Link
-                  href="#"
-                  className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
-                >
-                  <Landmark className="h-5 w-5" />
-                  การเงิน
-                </Link>
-                 <Link
-                  href="#"
-                  className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
-                >
-                  <Ticket className="h-5 w-5" />
-                  Ticket ช่วยเหลือ
-                </Link>
+                    href="/admin"
+                    className="flex items-center gap-2 text-lg font-semibold mb-4"
+                  >
+                    <Gavel className="h-6 w-6" />
+                    <span>Lawlanes Admin</span>
+                  </Link>
+                   <Link
+                    href="/"
+                    className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
+                  >
+                    <ArrowLeft className="h-5 w-5" />
+                    กลับไปหน้าแรก
+                  </Link>
                   <Link
-                  href="#"
-                  className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
-                >
-                  <Megaphone className="h-5 w-5" />
-                  โฆษณา
-                </Link>
+                    href="/admin"
+                    className="mx-[-0.65rem] flex items-center gap-4 rounded-xl bg-muted px-3 py-2 text-foreground hover:text-foreground"
+                  >
+                    <Home className="h-5 w-5" />
+                    แดชบอร์ด
+                  </Link>
                   <Link
-                  href="#"
-                  className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
-                >
-                  <FileText className="h-5 w-5" />
-                  เนื้อหา
-                </Link>
-                <Link
-                  href="#"
-                  className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
-                >
-                  <Settings className="h-5 w-5" />
-                  ตั้งค่า
-                </Link>
+                    href="#"
+                    className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
+                  >
+                    <Users2 className="h-5 w-5" />
+                    ลูกค้า
+                  </Link>
+                  <Link
+                    href="#"
+                    className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
+                  >
+                    <ShieldCheck className="h-5 w-5" />
+                    ทนายความ
+                  </Link>
+                   <Link
+                    href="#"
+                    className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
+                  >
+                    <Landmark className="h-5 w-5" />
+                    การเงิน
+                  </Link>
+                   <Link
+                    href="#"
+                    className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
+                  >
+                    <Ticket className="h-5 w-5" />
+                    Ticket ช่วยเหลือ
+                  </Link>
+                   <Link
+                    href="#"
+                    className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
+                  >
+                    <Megaphone className="h-5 w-5" />
+                    จัดการโฆษณา
+                  </Link>
+                   <Link
+                    href="#"
+                    className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
+                  >
+                    <FileText className="h-5 w-5" />
+                    เนื้อหาและ SEO
+                  </Link>
               </nav>
             </SheetContent>
           </Sheet>
-          <div className="relative ml-auto flex-1 md:grow-0">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              type="search"
-              placeholder="ค้นหา..."
-              className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[336px]"
-            />
+          <div className="w-full flex-1">
+            <form>
+              <div className="relative">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="search"
+                  placeholder="ค้นหา..."
+                  className="w-full appearance-none bg-background pl-8 shadow-none md:w-2/3 lg:w-1/3"
+                />
+              </div>
+            </form>
           </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                className="overflow-hidden rounded-full"
-              >
+              <Button variant="secondary" size="icon" className="rounded-full">
                 <img
-                  src="https://picsum.photos/seed/admin-avatar/36/36"
-                  width={36}
-                  height={36}
-                  alt="Admin Avatar"
+                    src="https://picsum.photos/seed/admin-avatar/36/36"
+                    width={36}
+                    height={36}
+                    alt="Admin Avatar"
+                    className="rounded-full"
                 />
+                <span className="sr-only">สลับเมนูผู้ใช้</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
@@ -322,229 +273,227 @@ export default function AdminDashboard() {
             </DropdownMenuContent>
           </DropdownMenu>
         </header>
-        <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-4 md:gap-8 lg:grid-cols-3 xl:grid-cols-3">
-          <div className="lg:col-span-2 grid auto-rows-max items-start gap-4 md:gap-8">
-             <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-4 lg:grid-cols-2 xl:grid-cols-4">
-              <Card
-                className="sm:col-span-2"
-                x-chunk="dashboard-05-chunk-0"
-              >
-                <CardHeader className="pb-3">
-                  <CardTitle>ยินดีต้อนรับ, แอดมิน!</CardTitle>
-                  <CardDescription className="max-w-lg text-balance leading-relaxed">
-                    นี่คือศูนย์กลางการจัดการ Lawlanes ที่นี่คุณสามารถดูแลผู้ใช้,
-                    อนุมัติทนายความ, ตรวจสอบการเงิน และจัดการเนื้อหา
-                  </CardDescription>
-                </CardHeader>
-                <CardFooter>
-                  <Button>สร้างบทความใหม่</Button>
-                </CardFooter>
-              </Card>
-              <Card x-chunk="dashboard-05-chunk-1">
-                <CardHeader className="pb-2">
-                  <CardDescription>รายได้รวม</CardDescription>
-                  <CardTitle className="text-4xl">฿1,259,345</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-xs text-muted-foreground">
-                    +25% จากเดือนที่แล้ว
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Progress value={25} aria-label="25% increase" />
-                </CardFooter>
-              </Card>
-              <Card x-chunk="dashboard-05-chunk-2">
-                <CardHeader className="pb-2">
-                  <CardDescription>ผู้ใช้ใหม่เดือนนี้</CardDescription>
-                  <CardTitle className="text-4xl">342</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-xs text-muted-foreground">
-                    +10% จากเดือนที่แล้ว
-                  </div>
-                </CardContent>
-                <CardFooter>
-                  <Progress value={10} aria-label="10% increase" />
-                </CardFooter>
-              </Card>
-            </div>
-            <Tabs defaultValue="pending_lawyers">
-              <div className="flex items-center">
-                <TabsList>
-                  <TabsTrigger value="pending_lawyers">ทนายความรออนุมัติ</TabsTrigger>
-                  <TabsTrigger value="open_tickets">Ticket ที่เปิดอยู่</TabsTrigger>
-                  <TabsTrigger value="recent_tx">ธุรกรรมล่าสุด</TabsTrigger>
-                </TabsList>
-                <div className="ml-auto flex items-center gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    className="h-7 gap-1 text-sm"
-                  >
-                    <ListFilter className="h-3.5 w-3.5" />
-                    <span className="sr-only sm:not-sr-only">ตัวกรอง</span>
-                  </Button>
-                  <Button size="sm" className="h-7 gap-1 text-sm">
-                    <PlusCircle className="h-3.5 w-3.5" />
-                    <span className="sr-only sm:not-sr-only">เพิ่ม</span>
-                  </Button>
-                </div>
-              </div>
-              <TabsContent value="pending_lawyers">
-                <Card>
-                  <CardHeader className="px-7">
-                    <CardTitle>ทนายความรอการอนุมัติ</CardTitle>
-                    <CardDescription>
-                      ตรวจสอบและอนุมัติใบสมัครทนายความใหม่
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>ทนายความ</TableHead>
-                          <TableHead className="hidden sm:table-cell">
-                            ความเชี่ยวชาญ
-                          </TableHead>
-                          <TableHead className="hidden md:table-cell">
-                            วันที่สมัคร
-                          </TableHead>
-                          <TableHead className="text-right">การดำเนินการ</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        <TableRow>
-                          <TableCell>
-                            <div className="font-medium">นริศรา เพชร</div >
-                            <div className="hidden text-sm text-muted-foreground md:inline">
-                              narisara.p@example.com
-                            </div>
-                          </TableCell>
-                          <TableCell className="hidden sm:table-cell">
-                            กฎหมายองค์กร
-                          </TableCell>
-                          <TableCell className="hidden md:table-cell">
-                            2024-07-28
-                          </TableCell>
-                          <TableCell className="text-right">
-                             <Button size="sm">ดูใบสมัคร</Button>
-                          </TableCell>
-                        </TableRow>
-                         <TableRow>
-                          <TableCell>
-                            <div className="font-medium">ชานนท์ ทวี</div >
-                            <div className="hidden text-sm text-muted-foreground md:inline">
-                              chanon.t@example.com
-                            </div>
-                          </TableCell>
-                          <TableCell className="hidden sm:table-cell">
-                            คดีฉ้อโกง SMEs
-                          </TableCell>
-                          <TableCell className="hidden md:table-cell">
-                            2024-07-27
-                          </TableCell>
-                          <TableCell className="text-right">
-                             <Button size="sm">ดูใบสมัคร</Button>
-                          </TableCell>
-                        </TableRow>
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-                <TabsContent value="open_tickets">
-                 <Card>
-                  <CardHeader className="px-7">
-                    <CardTitle>Ticket ช่วยเหลือที่เปิดอยู่</CardTitle>
-                    <CardDescription>
-                      ตอบกลับคำขอความช่วยเหลือจากลูกค้าและทนายความ
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>ผู้ใช้</TableHead>
-                          <TableHead className="hidden sm:table-cell">
-                            หัวข้อ
-                          </TableHead>
-                          <TableHead className="hidden md:table-cell">
-                            วันที่
-                          </TableHead>
-                          <TableHead className="text-right">การดำเนินการ</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        <TableRow>
-                          <TableCell>
-                            <div className="font-medium">สมหญิง ใจดี</div >
-                            <div className="hidden text-sm text-muted-foreground md:inline">
-                              TICKET-5891A
-                            </div>
-                          </TableCell>
-                          <TableCell className="hidden sm:table-cell">
-                             <Badge variant="destructive">ด่วน</Badge> ปัญหาการชำระเงิน
-                          </TableCell>
-                          <TableCell className="hidden md:table-cell">
-                            2024-07-29
-                          </TableCell>
-                          <TableCell className="text-right">
-                             <Button size="sm">ดู Ticket</Button>
-                          </TableCell>
-                        </TableRow>
-                      </TableBody>
-                    </Table>
-                  </CardContent>
-                </Card>
-              </TabsContent>
-            </Tabs>
-          </div>
-          <div className="lg:col-span-1 grid auto-rows-max items-start gap-4 md:gap-8">
-            <Card
-              className="overflow-hidden" x-chunk="dashboard-05-chunk-4"
-            >
-              <CardHeader className="flex flex-row items-start bg-muted/50">
-                <div className="grid gap-0.5">
-                  <CardTitle className="group flex items-center gap-2 text-lg">
-                    จัดการแคมเปญโฆษณา
-                  </CardTitle>
-                  <CardDescription>
-                    ตรวจสอบประสิทธิภาพและจัดการเนื้อหาสปอนเซอร์
-                  </CardDescription>
-                </div>
-                <div className="ml-auto flex items-center gap-1">
-                  <Button size="sm" variant="outline" className="h-8 gap-1">
-                    <PlusCircle className="h-3.5 w-3.5" />
-                    <span className="lg:sr-only xl:not-sr-only xl:whitespace-nowrap">
-                      โฆษณาใหม่
-                    </span>
-                  </Button>
-                </div>
+        <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
+          <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
+             <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  รายได้รวม
+                </CardTitle>
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
-              <CardContent className="p-6 text-sm">
+              <CardContent>
+                <div className="text-2xl font-bold">฿1,259,345.00</div>
+                <p className="text-xs text-muted-foreground">
+                  +20.1% จากเดือนที่แล้ว
+                </p>
+              </CardContent>
+            </Card>
+             <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  ผู้ใช้งานใหม่
+                </CardTitle>
+                <Users2 className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">+342</div>
+                <p className="text-xs text-muted-foreground">
+                  +10% จากเดือนที่แล้ว
+                </p>
+              </CardContent>
+            </Card>
+             <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Ticket ที่เปิดอยู่</CardTitle>
+                <Ticket className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">12</div>
+                <p className="text-xs text-muted-foreground">
+                  5 เรื่องเป็นปัญหาเร่งด่วน
+                </p>
+              </CardContent>
+            </Card>
+             <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">
+                  ทนายรออนุมัติ
+                </CardTitle>
+                <ShieldCheck className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">+2</div>
+                <p className="text-xs text-muted-foreground">
+                  รอการตรวจสอบคุณสมบัติ
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+          <div className="grid gap-4 md:gap-8 lg:grid-cols-2 xl:grid-cols-3">
+             <Card className="xl:col-span-2">
+              <CardHeader className="flex flex-row items-center">
+                <div className="grid gap-2">
+                  <CardTitle>ทนายความรอการอนุมัติ</CardTitle>
+                  <CardDescription>
+                    ตรวจสอบและอนุมัติใบสมัครทนายความใหม่
+                  </CardDescription>
+                </div>
+                <Button asChild size="sm" className="ml-auto gap-1">
+                  <Link href="#">
+                    ดูทั้งหมด
+                    <ArrowLeft className="h-4 w-4" />
+                  </Link>
+                </Button>
+              </CardHeader>
+              <CardContent>
                  <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>ลูกค้าโฆษณา</TableHead>
-                      <TableHead className="text-right">จำนวนคลิก</TableHead>
+                      <TableHead>ทนายความ</TableHead>
+                      <TableHead className="hidden xl:table-cell">
+                        ความเชี่ยวชาญ
+                      </TableHead>
+                       <TableHead className="hidden xl:table-cell">
+                        สถานะ
+                      </TableHead>
+                      <TableHead className="hidden md:table-cell">
+                        วันที่สมัคร
+                      </TableHead>
+                      <TableHead>
+                        <span className="sr-only">การดำเนินการ</span>
+                      </TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     <TableRow>
                       <TableCell>
-                        <div className="font-medium">สำนักงานกฎหมาย ชัยชนะ</div>
+                        <div className="font-medium">นริศรา เพชร</div>
+                        <div className="hidden text-sm text-muted-foreground md:inline">
+                          narisara.p@example.com
+                        </div>
                       </TableCell>
-                      <TableCell className="text-right">1,204</TableCell>
-                    </TableRow>
-                     <TableRow>
+                      <TableCell className="hidden xl:table-cell">
+                        กฎหมายองค์กร
+                      </TableCell>
+                       <TableCell className="hidden xl:table-cell">
+                        <Badge className="text-xs" variant="outline">
+                          รอตรวจสอบ
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        2024-07-28
+                      </TableCell>
                       <TableCell>
-                        <div className="font-medium">Legal Link and Partners</div>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              aria-haspopup="true"
+                              size="icon"
+                              variant="ghost"
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                              <span className="sr-only">สลับเมนู</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>การดำเนินการ</DropdownMenuLabel>
+                            <DropdownMenuItem>ดูใบสมัคร</DropdownMenuItem>
+                            <DropdownMenuItem>อนุมัติ</DropdownMenuItem>
+                            <DropdownMenuItem>ปฏิเสธ</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
-                      <TableCell className="text-right">893</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell>
+                        <div className="font-medium">ชานนท์ ทวี</div>
+                        <div className="hidden text-sm text-muted-foreground md:inline">
+                           chanon.t@example.com
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden xl:table-cell">
+                        คดีฉ้อโกง SMEs
+                      </TableCell>
+                      <TableCell className="hidden xl:table-cell">
+                        <Badge className="text-xs" variant="outline">
+                          รอตรวจสอบ
+                        </Badge>
+                      </TableCell>
+                       <TableCell className="hidden md:table-cell">
+                        2024-07-27
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              aria-haspopup="true"
+                              size="icon"
+                              variant="ghost"
+                            >
+                              <MoreHorizontal className="h-4 w-4" />
+                              <span className="sr-only">สลับเมนู</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                           <DropdownMenuLabel>การดำเนินการ</DropdownMenuLabel>
+                            <DropdownMenuItem>ดูใบสมัคร</DropdownMenuItem>
+                            <DropdownMenuItem>อนุมัติ</DropdownMenuItem>
+                            <DropdownMenuItem>ปฏิเสธ</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Ticket ช่วยเหลือล่าสุด</CardTitle>
+                <CardDescription>
+                  ตอบกลับคำขอความช่วยเหลือจากลูกค้าและทนายความ
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-8">
+                <div className="flex items-center gap-4">
+                  <Avatar className="hidden h-9 w-9 sm:flex">
+                    <img src="https://picsum.photos/seed/user1-avatar/36/36" alt="Avatar" className="rounded-full" />
+                  </Avatar>
+                  <div className="grid gap-1">
+                    <p className="text-sm font-medium leading-none">
+                      สมหญิง ใจดี
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      TICKET-5891A: ปัญหาการชำระเงิน
+                    </p>
+                  </div>
+                  <Button asChild size="sm" className="ml-auto gap-1">
+                    <Link href="#">
+                      ดู Ticket
+                      <ArrowLeft className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                </div>
+                 <div className="flex items-center gap-4">
+                  <Avatar className="hidden h-9 w-9 sm:flex">
+                     <img src="https://picsum.photos/seed/user2-avatar/36/36" alt="Avatar" className="rounded-full" />
+                  </Avatar>
+                  <div className="grid gap-1">
+                    <p className="text-sm font-medium leading-none">
+                      นายสมชาย กฎหมายดี
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      TICKET-5891B: ไม่สามารถอัปโหลดไฟล์ได้
+                    </p>
+                  </div>
+                  <Button asChild size="sm" className="ml-auto gap-1">
+                    <Link href="#">
+                      ดู Ticket
+                      <ArrowLeft className="h-4 w-4" />
+                    </Link>
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </div>
