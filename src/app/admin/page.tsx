@@ -83,6 +83,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import Logo from '@/components/logo';
+import { Progress } from '@/components/ui/progress';
 
 export default function AdminDashboard() {
   return (
