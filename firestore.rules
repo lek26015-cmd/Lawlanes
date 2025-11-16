@@ -1,6 +1,6 @@
 
 /**
- * @fileOverview Firestore Security Rules for Lawlane application.
+ * @fileOverview Firestore Security Rules for Lawlanes application.
  *
  * Core Philosophy:
  * This ruleset prioritizes secure access to lawyer profiles and chat functionality.

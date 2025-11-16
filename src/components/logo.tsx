@@ -9,7 +9,7 @@ export default function Logo({ className }: LogoProps) {
   return (
     <div className={cn('flex items-center gap-2 text-foreground', className)}>
       <Scale className="h-6 w-6" />
-      <span className="text-xl font-bold font-headline">Lawlane</span>
+      <span className="text-xl font-bold font-headline">Lawlanes</span>
     </div>
   );
 }

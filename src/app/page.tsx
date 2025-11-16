@@ -82,7 +82,7 @@ export default function Home() {
   const adBanners = [
     {
       title: "โปรโมตสำนักงานกฎหมายของคุณที่นี่",
-      description: "เข้าถึงลูกค้ากลุ่มเป้าหมายได้โดยตรง โปรโมตบริการของคุณบน Lawlane เพื่อเพิ่มการมองเห็นและสร้างความน่าเชื่อถือ",
+      description: "เข้าถึงลูกค้ากลุ่มเป้าหมายได้โดยตรง โปรโมตบริการของคุณบน Lawlanes เพื่อเพิ่มการมองเห็นและสร้างความน่าเชื่อถือ",
       buttonText: "ติดต่อลงโฆษณา",
       icon: <Award className="mx-auto h-12 w-12 text-primary mb-3" />,
       href: "#",
@@ -253,7 +253,7 @@ export default function Home() {
                             <span className="opacity-90">ที่ใช่สำหรับคุณ</span>
                         </h1>
                         <p className="max-w-[600px] text-background/80 md:text-xl">
-                            Lawlane คือตลาดกลางทนายความออนไลน์ ที่เชื่อมต่อคุณกับผู้เชี่ยวชาญกฎหมายทั่วประเทศได้อย่างมั่นใจ
+                            Lawlanes คือตลาดกลางทนายความออนไลน์ ที่เชื่อมต่อคุณกับผู้เชี่ยวชาญกฎหมายทั่วประเทศได้อย่างมั่นใจ
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4">
                             <Link href="/lawyers">
@@ -310,7 +310,7 @@ export default function Home() {
             <div className="grid lg:grid-cols-2 gap-12 items-center">
                 <div className="space-y-8">
                     <div>
-                        <p className="text-sm font-semibold text-primary uppercase">Lawlane ทำงานอย่างไร</p>
+                        <p className="text-sm font-semibold text-primary uppercase">Lawlanes ทำงานอย่างไร</p>
                         <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground font-headline mt-2">
                             ขั้นตอนง่ายๆ เพื่อความชัดเจนทางกฎหมาย
                         </h2>
@@ -595,7 +595,7 @@ export default function Home() {
               <div className="mt-8">
                 <Link href="/for-lawyers">
                     <Button size="lg" variant="secondary" className="text-lg">
-                        <UserCheck className="mr-2 h-5 w-5" /> เข้าร่วมกับ Lawlane
+                        <UserCheck className="mr-2 h-5 w-5" /> เข้าร่วมกับ Lawlanes
                     </Button>
                 </Link>
               </div>

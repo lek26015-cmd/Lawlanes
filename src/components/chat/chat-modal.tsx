@@ -45,7 +45,7 @@ export default function ChatModal() {
       id: '1',
       role: 'assistant',
       content:
-        'สวัสดีครับ! ผมคือผู้ช่วย AI ด้านกฎหมายจาก Lawlane มีอะไรให้ผมช่วยวิเคราะห์เบื้องต้นไหมครับ? (นี่คือเวอร์ชันสาธิต)',
+        'สวัสดีครับ! ผมคือผู้ช่วย AI ด้านกฎหมายจาก Lawlanes มีอะไรให้ผมช่วยวิเคราะห์เบื้องต้นไหมครับ? (นี่คือเวอร์ชันสาธิต)',
     },
   ]);
   const [input, setInput] = useState('');
@@ -139,7 +139,7 @@ export default function ChatModal() {
       >
         <DialogHeader className="flex flex-row justify-between items-center p-4 border-b bg-foreground text-background sm:rounded-t-2xl">
             <DialogTitle asChild>
-                <h3 className="text-xl font-bold">Lawlane AI Assistant</h3>
+                <h3 className="text-xl font-bold">Lawlanes AI Assistant</h3>
             </DialogTitle>
              <DialogDescription className="sr-only">
                 Chat with the AI assistant to get legal advice.

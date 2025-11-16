@@ -46,7 +46,7 @@ export function SupportChatBox({ ticket, isDisabled = false }: SupportChatBoxPro
             {
                 id: '1',
                 role: 'admin',
-                text: `สวัสดีครับคุณสมหญิง ผม 'แอดมินพัฒน์' จากฝ่ายสนับสนุนลูกค้า Lawlane ครับ ขอทราบรายละเอียดของปัญหาเกี่ยวกับเคส "${ticket.caseTitle}" เพิ่มเติมได้ไหมครับ`,
+                text: `สวัสดีครับคุณสมหญิง ผม 'แอดมินพัฒน์' จากฝ่ายสนับสนุนลูกค้า Lawlanes ครับ ขอทราบรายละเอียดของปัญหาเกี่ยวกับเคส "${ticket.caseTitle}" เพิ่มเติมได้ไหมครับ`,
                 senderName: adminProfile.name,
                 avatarUrl: adminProfile.avatar
             }

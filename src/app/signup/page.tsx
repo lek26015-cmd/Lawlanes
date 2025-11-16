@@ -47,7 +47,7 @@ export default function LawyerSignupPage() {
           <Card>
             <CardHeader className="text-center">
                 <UserPlus className="w-12 h-12 mx-auto text-foreground" />
-                <CardTitle className="text-3xl font-bold font-headline mt-2">สมัครเป็นทนายความ Lawlane</CardTitle>
+                <CardTitle className="text-3xl font-bold font-headline mt-2">สมัครเป็นทนายความ Lawlanes</CardTitle>
                 <CardDescription>กรอกข้อมูลเพื่อเข้าร่วมเครือข่ายทนายความคุณภาพกับเรา</CardDescription>
             </CardHeader>
             <CardContent>
@@ -109,7 +109,7 @@ export default function LawyerSignupPage() {
                     <div className="flex items-center space-x-2">
                         <Checkbox id="terms" required/>
                         <Label htmlFor="terms" className="text-sm font-normal">
-                           ฉันยอมรับ <Link href="/terms" className="underline hover:text-primary">ข้อกำหนดและเงื่อนไข</Link> และ <Link href="/privacy" className="underline hover:text-primary">นโยบายความเป็นส่วนตัว</Link> ของ Lawlane
+                           ฉันยอมรับ <Link href="/terms" className="underline hover:text-primary">ข้อกำหนดและเงื่อนไข</Link> และ <Link href="/privacy" className="underline hover:text-primary">นโยบายความเป็นส่วนตัว</Link> ของ Lawlanes
                         </Label>
                     </div>
 

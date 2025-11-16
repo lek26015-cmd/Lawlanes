@@ -18,7 +18,7 @@ export default function PrivacyPolicyPage() {
           
           <div className="prose prose-lg max-w-none text-foreground/90 space-y-6">
             <p>
-              Lawlane ("เรา", "พวกเรา", หรือ "ของเรา") ให้ความสำคัญกับการคุ้มครองข้อมูลส่วนบุคคลของคุณ
+              Lawlanes ("เรา", "พวกเรา", หรือ "ของเรา") ให้ความสำคัญกับการคุ้มครองข้อมูลส่วนบุคคลของคุณ
               นโยบายความเป็นส่วนตัวนี้อธิบายถึงวิธีที่เราเก็บรวบรวม, ใช้, เปิดเผย, และจัดการข้อมูลส่วนบุคคลของคุณเมื่อคุณใช้บริการเว็บไซต์และแอปพลิเคชันของเรา
             </p>
 
@@ -65,7 +65,7 @@ export default function PrivacyPolicyPage() {
             <h2 className="font-semibold text-xl">7. ติดต่อเรา</h2>
             <p>
               หากคุณมีคำถามหรือข้อกังวลเกี่ยวกับนโยบายความเป็นส่วนตัวนี้ โปรดติดต่อเราได้ที่:
-              อีเมล: <a href="mailto:support@lawlane.demo">support@lawlane.demo</a>
+              อีเมล: <a href="mailto:support@lawlanes.demo">support@lawlanes.demo</a>
             </p>
           </div>
         </div>

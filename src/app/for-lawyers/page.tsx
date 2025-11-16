@@ -38,7 +38,7 @@ export default function ForLawyersPage() {
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           <div className="space-y-6">
             <h1 className="text-4xl md:text-5xl font-bold tracking-tighter text-foreground font-headline">
-              เข้าร่วมเป็นส่วนหนึ่งของ Lawlane
+              เข้าร่วมเป็นส่วนหนึ่งของ Lawlanes
             </h1>
             <p className="text-lg text-muted-foreground">
               ขยายฐานลูกค้าและพัฒนาการทำงานของคุณไปกับแพลตฟอร์มกฎหมายสำหรับยุคดิจิทัล
@@ -62,7 +62,7 @@ export default function ForLawyersPage() {
               </CardHeader>
               <CardContent className="text-center">
                 <p className="text-muted-foreground mb-6">
-                  สมัครเข้าร่วมเป็นทนายความในเครือข่าย Lawlane ได้ง่ายๆ
+                  สมัครเข้าร่วมเป็นทนายความในเครือข่าย Lawlanes ได้ง่ายๆ
                   เพียงไม่กี่ขั้นตอน
                 </p>
                 <Button asChild size="lg" className="w-full">

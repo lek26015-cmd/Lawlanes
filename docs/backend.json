@@ -4,7 +4,7 @@
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "LawyerProfile",
       "type": "object",
-      "description": "Represents the profile of a lawyer in the Lawlane application.",
+      "description": "Represents the profile of a lawyer in the Lawlanes application.",
       "properties": {
         "id": {
           "type": "string",

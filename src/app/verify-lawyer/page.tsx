@@ -81,7 +81,7 @@ function VerifyLawyerContent() {
                       <CardHeader className="text-center">
                           <ShieldCheck className="w-12 h-12 mx-auto text-green-600"/>
                           <CardTitle className="text-green-800">ตรวจสอบพบข้อมูล</CardTitle>
-                          <CardDescription>ทนายความนี้ได้รับการยืนยันในระบบ Lawlane</CardDescription>
+                          <CardDescription>ทนายความนี้ได้รับการยืนยันในระบบ Lawlanes</CardDescription>
                       </CardHeader>
                       <CardContent className="flex flex-col items-center text-center">
                           <Image

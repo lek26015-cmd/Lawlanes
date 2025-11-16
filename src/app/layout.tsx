@@ -11,7 +11,7 @@ import FloatingChatButton from '@/components/chat/floating-chat-button';
 import CookieBanner from '@/components/cookie-banner';
 
 export const metadata: Metadata = {
-  title: 'Lawlane AI Legal Advisor',
+  title: 'Lawlanes AI Legal Advisor',
   description: 'Preliminary legal assessments for SMEs in Thailand.',
 };
 
