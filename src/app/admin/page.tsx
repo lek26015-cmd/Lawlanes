@@ -102,7 +102,7 @@ export default function AdminDashboard() {
                 แดชบอร์ด
               </Link>
               <Link
-                href="#"
+                href="/admin/customers"
                 className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
               >
                 <Users2 className="h-4 w-4" />
@@ -159,121 +159,6 @@ export default function AdminDashboard() {
         </div>
       </div>
       <div className="flex flex-col">
-        <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6">
-          <Sheet>
-            <SheetTrigger asChild>
-              <Button
-                variant="outline"
-                size="icon"
-                className="shrink-0 md:hidden"
-              >
-                <PanelLeft className="h-5 w-5" />
-                <span className="sr-only">สลับเมนู</span>
-              </Button>
-            </SheetTrigger>
-            <SheetContent side="left" className="flex flex-col">
-              <nav className="grid gap-2 text-lg font-medium">
-                 <Link
-                    href="/admin"
-                    className="flex items-center gap-2 text-lg font-semibold mb-4"
-                  >
-                    <Gavel className="h-6 w-6" />
-                    <span>Lawlanes Admin</span>
-                  </Link>
-                   <Link
-                    href="/"
-                    className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
-                  >
-                    <ArrowLeft className="h-5 w-5" />
-                    กลับไปหน้าแรก
-                  </Link>
-                  <Link
-                    href="/admin"
-                    className="mx-[-0.65rem] flex items-center gap-4 rounded-xl bg-muted px-3 py-2 text-foreground hover:text-foreground"
-                  >
-                    <Home className="h-5 w-5" />
-                    แดชบอร์ด
-                  </Link>
-                  <Link
-                    href="#"
-                    className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
-                  >
-                    <Users2 className="h-5 w-5" />
-                    ลูกค้า
-                  </Link>
-                  <Link
-                    href="#"
-                    className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
-                  >
-                    <ShieldCheck className="h-5 w-5" />
-                    ทนายความ
-                  </Link>
-                   <Link
-                    href="#"
-                    className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
-                  >
-                    <Landmark className="h-5 w-5" />
-                    การเงิน
-                  </Link>
-                   <Link
-                    href="#"
-                    className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
-                  >
-                    <Ticket className="h-5 w-5" />
-                    Ticket ช่วยเหลือ
-                  </Link>
-                   <Link
-                    href="#"
-                    className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
-                  >
-                    <Megaphone className="h-5 w-5" />
-                    จัดการโฆษณา
-                  </Link>
-                   <Link
-                    href="#"
-                    className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
-                  >
-                    <FileText className="h-5 w-5" />
-                    เนื้อหาและ SEO
-                  </Link>
-              </nav>
-            </SheetContent>
-          </Sheet>
-          <div className="w-full flex-1">
-            <form>
-              <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  type="search"
-                  placeholder="ค้นหา..."
-                  className="w-full appearance-none bg-background pl-8 shadow-none md:w-2/3 lg:w-1/3"
-                />
-              </div>
-            </form>
-          </div>
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="secondary" size="icon" className="rounded-full">
-                <img
-                    src="https://picsum.photos/seed/admin-avatar/36/36"
-                    width={36}
-                    height={36}
-                    alt="Admin Avatar"
-                    className="rounded-full"
-                />
-                <span className="sr-only">สลับเมนูผู้ใช้</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>บัญชีของฉัน</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>ตั้งค่า</DropdownMenuItem>
-              <DropdownMenuItem>ช่วยเหลือ</DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>ออกจากระบบ</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </header>
         <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
           <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
              <Card>
