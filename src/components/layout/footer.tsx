@@ -87,7 +87,7 @@ export default function Footer() {
         </div>
 
         <div className="border-t border-gray-800 mt-12 pt-6 text-center text-sm text-gray-500">
-          <p>&copy; {new Date().getFullYear()} Lawlanes. All rights reserved. (Demo Version)</p>
+          <p>&copy; {new Date().getFullYear()} Lawlanes. All rights reserved.</p>
         </div>
       </div>
     </footer>
