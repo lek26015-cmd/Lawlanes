@@ -87,7 +87,7 @@ export default function LawyerEarningsPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card className="bg-gradient-to-br from-green-500 to-emerald-600 text-white shadow-lg">
+            <Card className="bg-primary text-primary-foreground shadow-lg">
                 <CardHeader>
                     <CardTitle className="flex items-center justify-between text-base font-semibold">
                         <span>ยอดเงินคงเหลือที่ถอนได้</span>
@@ -100,7 +100,7 @@ export default function LawyerEarningsPage() {
                 <CardFooter>
                     <AlertDialog>
                         <AlertDialogTrigger asChild>
-                            <Button variant="secondary" className="w-full sm:w-auto bg-white/20 hover:bg-white/30 text-white">
+                            <Button variant="secondary" className="w-full sm:w-auto">
                             <Banknote className="mr-2"/> ถอนเงิน
                             </Button>
                         </AlertDialogTrigger>
@@ -130,9 +130,9 @@ export default function LawyerEarningsPage() {
                 </CardFooter>
             </Card>
 
-            <Card className="bg-gradient-to-br from-blue-400 to-indigo-500 text-white shadow-lg">
+            <Card className="bg-secondary text-secondary-foreground shadow-lg">
                 <CardHeader>
-                    <CardTitle className="flex items-center justify-between text-base font-semibold">
+                    <CardTitle className="flex items-center justify-between text-base font-semibold text-muted-foreground">
                         <span>ยอดเงินรอเคลียร์ (จากเคสที่กำลังทำ)</span>
                         <Hourglass />
                     </CardTitle>
@@ -141,7 +141,7 @@ export default function LawyerEarningsPage() {
                     <p className="text-4xl font-bold tracking-tight">฿{pendingBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
                 </CardContent>
                  <CardFooter>
-                    <p className="text-xs text-blue-100">ยอดเงินจะถูกโอนเข้าสู่ยอดที่ถอนได้เมื่อเคสเสร็จสิ้น</p>
+                    <p className="text-xs text-muted-foreground">ยอดเงินจะถูกโอนเข้าสู่ยอดที่ถอนได้เมื่อเคสเสร็จสิ้น</p>
                 </CardFooter>
             </Card>
           </div>
