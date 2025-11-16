@@ -57,8 +57,8 @@ export default function LawyerDashboardPage() {
     router.push(`/chat/${newChatId}?lawyerId=1&clientId=...&view=lawyer`);
   };
 
-  const stats = [
-    { icon: <DollarSign />, label: 'รายได้เดือนนี้', value: '฿75,000', color: 'text-green-500', href: '/lawyer-earnings' },
+  const incomeStat = { icon: <DollarSign className="w-10 h-10"/>, label: 'รายได้เดือนนี้', value: '฿75,000', color: 'text-green-500', href: '/lawyer-earnings' };
+  const otherStats = [
     { icon: <Star />, label: 'คะแนนเฉลี่ย', value: '4.8/5', color: 'text-yellow-500', href: '#' },
     { icon: <Percent />, label: 'อัตราการตอบรับ', value: '95%', color: 'text-blue-500', href: '#' },
     { icon: <Briefcase />, label: 'เคสที่เสร็จสิ้น', value: '12', color: 'text-purple-500', href: '#' },
@@ -225,16 +225,31 @@ export default function LawyerDashboardPage() {
                 </div>
               </CardContent>
             </Card>
+            
+            <Card className="bg-green-600 text-white shadow-lg">
+                <Link href={incomeStat.href} className="block p-6 hover:bg-green-700/50 rounded-lg transition-colors">
+                    <div className="flex items-center gap-4">
+                        <div className="flex-shrink-0">
+                           {incomeStat.icon}
+                        </div>
+                        <div>
+                           <p className="text-sm font-light">{incomeStat.label}</p>
+                           <p className="text-3xl font-bold">{incomeStat.value}</p>
+                        </div>
+                    </div>
+                     <p className="text-center text-xs mt-4 bg-black/20 p-2 rounded-full">คลิกเพื่อจัดการรายได้และถอนเงิน</p>
+                </Link>
+             </Card>
 
              <Card>
                 <CardHeader>
-                    <CardTitle className="font-bold">สถิติภาพรวม</CardTitle>
+                    <CardTitle className="font-bold text-base">สถิติอื่นๆ</CardTitle>
                 </CardHeader>
-                <CardContent className="grid grid-cols-2 gap-4">
-                    {stats.map(stat => (
-                        <Link href={stat.href} key={stat.label} className="block p-3 bg-gray-100 rounded-lg text-center hover:bg-gray-200 hover:shadow-md transition-all">
-                            <div className={`mx-auto h-8 w-8 flex items-center justify-center ${stat.color}`}>{stat.icon}</div>
-                            <p className="text-xl font-bold mt-1">{stat.value}</p>
+                <CardContent className="grid grid-cols-3 gap-2">
+                    {otherStats.map(stat => (
+                        <Link href={stat.href} key={stat.label} className="block p-2 bg-gray-100 rounded-lg text-center hover:bg-gray-200 hover:shadow-sm transition-all">
+                            <div className={`mx-auto h-6 w-6 flex items-center justify-center ${stat.color}`}>{stat.icon}</div>
+                            <p className="text-lg font-bold mt-1">{stat.value}</p>
                             <p className="text-xs text-muted-foreground">{stat.label}</p>
                         </Link>
                     ))}
