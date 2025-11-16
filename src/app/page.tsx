@@ -480,34 +480,6 @@ export default function Home() {
             </div>
         </section>
         
-        <section className="w-full py-12 md:py-24 lg:py-32 bg-white">
-          <div className="container mx-auto px-4 md:px-6">
-            <h2 className="text-3xl font-bold text-center mb-12 sm:text-5xl font-headline">สำนักงานกฎหมายแนะนำ</h2>
-            <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
-              {urgentJobs.map((job) => (
-                <Link href={`/law-firm/${job.id}`} key={job.id} className="block cursor-pointer group">
-                  <div className="flex items-center gap-6 py-4 border-b group-hover:bg-gray-50 p-4 rounded-lg">
-                    <div className="flex-shrink-0">
-                        <Image 
-                          src={job.logoUrl} 
-                          alt={`${job.companyName} logo`}
-                          width={120}
-                          height={80}
-                          className="rounded-lg object-contain border bg-white p-1.5"
-                          data-ai-hint={job.logoHint}
-                        />
-                    </div>
-                    <div>
-                        <h3 className="font-semibold text-xl group-hover:text-primary">{job.companyName}</h3>
-                        <p className="text-lg text-muted-foreground">{job.description}</p>
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        </section>
-
         <section id="articles" className="w-full py-12 md:py-24 lg:py-32 bg-gray-50">
           <div className="container mx-auto px-4 md:px-6">
             <div className="flex justify-between items-center mb-12">
