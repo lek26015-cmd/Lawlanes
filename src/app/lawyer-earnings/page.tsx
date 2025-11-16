@@ -22,7 +22,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts"
 
 
@@ -57,6 +57,13 @@ export default function LawyerEarningsPage() {
   const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([
     { id: 'ba1', bankName: 'ธนาคารกสิกรไทย', accountNumber: '...-X-X...-1234', accountName: 'นายสมชาย กฎหมายดี' }
   ]);
+  
+  // State for new bank account form
+  const [newBankName, setNewBankName] = useState('');
+  const [newAccountNumber, setNewAccountNumber] = useState('');
+  const [newAccountName, setNewAccountName] = useState('');
+  const [isAddAccountDialogOpen, setIsAddAccountDialogOpen] = useState(false);
+
 
   const monthlyData = [
     { month: "เม.ย.", total: 35000 },
@@ -81,6 +88,31 @@ export default function LawyerEarningsPage() {
     toast({ title: 'ส่งคำขอถอนเงินสำเร็จ', description: `ระบบกำลังดำเนินการถอนเงินจำนวน ${amount.toLocaleString()} บาท` });
     setWithdrawalAmount('');
   };
+  
+  const handleAddNewAccount = () => {
+    if (!newBankName || !newAccountNumber || !newAccountName) {
+      toast({ variant: 'destructive', title: 'ข้อมูลไม่ครบถ้วน', description: 'กรุณากรอกข้อมูลบัญชีธนาคารให้ครบถ้วน' });
+      return;
+    }
+    
+    const newAccount: BankAccount = {
+      id: `ba${bankAccounts.length + 1}`,
+      bankName: newBankName,
+      accountNumber: `...-X-X...-${newAccountNumber.slice(-4)}`, // Masking for display
+      accountName: newAccountName
+    };
+    
+    setBankAccounts([...bankAccounts, newAccount]);
+    
+    // Reset form and close dialog
+    setNewBankName('');
+    setNewAccountNumber('');
+    setNewAccountName('');
+    setIsAddAccountDialogOpen(false);
+    
+    toast({ title: 'เพิ่มบัญชีธนาคารสำเร็จ' });
+  };
+
 
   return (
     <div className="bg-gray-100/50 min-h-screen">
@@ -210,9 +242,47 @@ export default function LawyerEarningsPage() {
                                 </Button>
                             </div>
                         ))}
-                         <Button variant="outline" className="w-full border-dashed">
-                           <Plus className="mr-2"/> เพิ่มบัญชีธนาคารใหม่
-                        </Button>
+                        <Dialog open={isAddAccountDialogOpen} onOpenChange={setIsAddAccountDialogOpen}>
+                            <DialogTrigger asChild>
+                                <Button variant="outline" className="w-full border-dashed">
+                                    <Plus className="mr-2"/> เพิ่มบัญชีธนาคารใหม่
+                                </Button>
+                            </DialogTrigger>
+                            <DialogContent className="sm:max-w-[425px]">
+                                <DialogHeader>
+                                <DialogTitle>เพิ่มบัญชีธนาคารใหม่</DialogTitle>
+                                <DialogDescription>
+                                    กรอกข้อมูลบัญชีธนาคารสำหรับรับเงินค่าบริการ
+                                </DialogDescription>
+                                </DialogHeader>
+                                <div className="grid gap-4 py-4">
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="bank-name" className="text-right">
+                                    ชื่อธนาคาร
+                                    </Label>
+                                    <Input id="bank-name" value={newBankName} onChange={(e) => setNewBankName(e.target.value)} className="col-span-3" placeholder="เช่น ธนาคารกสิกรไทย" />
+                                </div>
+                                <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="account-number" className="text-right">
+                                    เลขที่บัญชี
+                                    </Label>
+                                    <Input id="account-number" value={newAccountNumber} onChange={(e) => setNewAccountNumber(e.target.value)} className="col-span-3" placeholder="xxxxxxxxxx" />
+                                </div>
+                                 <div className="grid grid-cols-4 items-center gap-4">
+                                    <Label htmlFor="account-name" className="text-right">
+                                    ชื่อบัญชี
+                                    </Label>
+                                    <Input id="account-name" value={newAccountName} onChange={(e) => setNewAccountName(e.target.value)} className="col-span-3" placeholder="นายสมชาย กฎหมายดี" />
+                                </div>
+                                </div>
+                                <DialogFooter>
+                                <DialogClose asChild>
+                                    <Button type="button" variant="secondary">ยกเลิก</Button>
+                                </DialogClose>
+                                <Button type="button" onClick={handleAddNewAccount}>ยืนยัน</Button>
+                                </DialogFooter>
+                            </DialogContent>
+                        </Dialog>
                     </CardContent>
                 </Card>
             </TabsContent>
