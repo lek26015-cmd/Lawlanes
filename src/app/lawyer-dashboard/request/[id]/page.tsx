@@ -202,9 +202,30 @@ function RequestDetailPageContent() {
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-            <Button size="lg" className="bg-green-600 hover:bg-green-700" onClick={handleAcceptCase}>
-              <Check className="mr-2" /> รับเคสนี้
-            </Button>
+            <AlertDialog>
+                <AlertDialogTrigger asChild>
+                    <Button size="lg" className="bg-green-600 hover:bg-green-700">
+                        <Check className="mr-2" /> รับเคสนี้
+                    </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>ยืนยันการรับเคส?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          การรับเคสนี้จะสร้างห้องสนทนาส่วนตัวระหว่างคุณและลูกค้า และจะถือว่าเป็นการเริ่มต้นการให้คำปรึกษาอย่างเป็นทางการ
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+                        <AlertDialogAction
+                         onClick={handleAcceptCase}
+                         className="bg-green-600 text-white hover:bg-green-700"
+                        >
+                        ยืนยันการรับเคส
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
           </CardFooter>
         </Card>
       </div>
