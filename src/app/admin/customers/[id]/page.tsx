@@ -105,6 +105,11 @@ const mockCases = [
 export default function AdminCustomerDetailPage() {
   const params = useParams()
   const { id } = params
+  const [currentDate, setCurrentDate] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    setCurrentDate(new Date().toISOString());
+  }, []);
 
   // In a real app, you would fetch customer data based on the id
   const customer = mockCustomer
@@ -221,7 +226,7 @@ export default function AdminCustomerDetailPage() {
             </CardContent>
             <CardFooter className="flex flex-row items-center border-t bg-muted/50 px-6 py-3">
               <div className="text-xs text-muted-foreground">
-                <time dateTime={new Date().toISOString()}>อัปเดตล่าสุดเมื่อสักครู่</time>
+                {currentDate && <time dateTime={currentDate}>อัปเดตล่าสุดเมื่อสักครู่</time>}
               </div>
                <div className="ml-auto flex items-center gap-1">
                 <Button size="sm" variant="ghost">
