@@ -28,7 +28,8 @@ import {
   Megaphone,
   BarChart3,
   DollarSign,
-  Gavel
+  Gavel,
+  ArrowLeft
 } from 'lucide-react';
 import {
   Breadcrumb,
@@ -92,16 +93,28 @@ export default function AdminDashboard() {
       <aside className="fixed inset-y-0 left-0 z-10 hidden w-14 flex-col border-r bg-background sm:flex">
         <nav className="flex flex-col items-center gap-4 px-2 sm:py-5">
           <Link
-            href="#"
+            href="/"
             className="group flex h-9 w-9 shrink-0 items-center justify-center gap-2 rounded-full bg-primary text-lg font-semibold text-primary-foreground md:h-8 md:w-8 md:text-base"
           >
             <Gavel className="h-4 w-4 transition-all group-hover:scale-110" />
             <span className="sr-only">Lawlanes Admin</span>
           </Link>
+           <Tooltip>
+            <TooltipTrigger asChild>
+              <Link
+                href="/"
+                className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
+              >
+                <ArrowLeft className="h-5 w-5" />
+                <span className="sr-only">กลับไปหน้าแรก</span>
+              </Link>
+            </TooltipTrigger>
+            <TooltipContent side="right">กลับไปหน้าแรก</TooltipContent>
+          </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
               <Link
-                href="#"
+                href="/admin"
                 className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8 bg-accent text-accent-foreground"
               >
                 <Home className="h-5 w-5" />
@@ -218,7 +231,14 @@ export default function AdminDashboard() {
                   <span className="sr-only">Lawlanes Admin</span>
                 </Link>
                 <Link
-                  href="#"
+                  href="/"
+                  className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                  กลับไปหน้าแรก
+                </Link>
+                <Link
+                  href="/admin"
                   className="flex items-center gap-4 px-2.5 text-foreground"
                 >
                   <Home className="h-5 w-5" />
