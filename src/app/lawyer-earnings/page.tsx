@@ -23,6 +23,8 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Badge } from '@/components/ui/badge';
+import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts"
+
 
 type Transaction = {
   id: string;
@@ -56,6 +58,13 @@ export default function LawyerEarningsPage() {
     { id: 'ba1', bankName: 'ธนาคารกสิกรไทย', accountNumber: '...-X-X...-1234', accountName: 'นายสมชาย กฎหมายดี' }
   ]);
 
+  const monthlyData = [
+    { month: "เม.ย.", total: 35000 },
+    { month: "พ.ค.", total: 42000 },
+    { month: "มิ.ย.", total: 68000 },
+    { month: "ก.ค.", total: 75000 },
+  ];
+
   const handleWithdraw = () => {
     const amount = parseFloat(withdrawalAmount);
     if (!amount || amount <= 0) {
@@ -87,7 +96,7 @@ export default function LawyerEarningsPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card className="bg-primary text-primary-foreground shadow-lg">
+            <Card className="shadow-lg">
                 <CardHeader>
                     <CardTitle className="flex items-center justify-between text-base font-semibold">
                         <span>ยอดเงินคงเหลือที่ถอนได้</span>
@@ -100,7 +109,7 @@ export default function LawyerEarningsPage() {
                 <CardFooter>
                     <AlertDialog>
                         <AlertDialogTrigger asChild>
-                            <Button variant="secondary" className="w-full sm:w-auto">
+                            <Button variant="default" className="w-full sm:w-auto">
                             <Banknote className="mr-2"/> ถอนเงิน
                             </Button>
                         </AlertDialogTrigger>
@@ -145,6 +154,43 @@ export default function LawyerEarningsPage() {
                 </CardFooter>
             </Card>
           </div>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>สถิติรายได้รายเดือน</CardTitle>
+              <CardDescription>ภาพรวมรายได้ในช่วง 4 เดือนที่ผ่านมา</CardDescription>
+            </CardHeader>
+            <CardContent className="pl-2">
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={monthlyData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis
+                    dataKey="month"
+                    stroke="#888888"
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis
+                    stroke="#888888"
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(value) => `฿${new Intl.NumberFormat('en-US', { notation: 'compact', compactDisplay: 'short' }).format(value as number)}`}
+                  />
+                   <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--background))',
+                      borderColor: 'hsl(var(--border))',
+                      borderRadius: 'var(--radius)'
+                    }}
+                    cursor={{ fill: 'hsl(var(--accent))' }}
+                  />
+                  <Bar dataKey="total" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
           
           <Tabs defaultValue="history">
             <TabsList className="grid w-full grid-cols-2">
