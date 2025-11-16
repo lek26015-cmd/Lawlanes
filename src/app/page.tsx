@@ -33,12 +33,12 @@ export default function Home() {
   const router = useRouter();
   const [features] = useState([
     {
-      icon: <CheckCircle className="w-6 h-6 text-blue-600" />,
+      icon: <MessageSquare className="w-6 h-6 text-blue-600" />,
       title: 'ที่ปรึกษากฎหมาย AI',
       description: 'รับการประเมินปัญหาทางกฎหมายเบื้องต้นได้ทันทีจาก AI ผู้เชี่ยวชาญของเรา',
     },
     {
-      icon: <CheckCircle className="w-6 h-6 text-blue-600" />,
+      icon: <Users className="w-6 h-6 text-blue-600" />,
       title: 'ตลาดกลางทนายความ',
       description: 'เชื่อมต่อกับเครือข่ายทนายความที่ผ่านการคัดเลือกและเชี่ยวชาญเฉพาะทาง',
     },
@@ -393,7 +393,7 @@ export default function Home() {
                                 <span>ทนายความที่ผ่านการตรวจสอบและยืนยันตัวตน</span>
                             </div>
                              <div className="flex items-center gap-4 text-muted-foreground">
-                                <Newspaper className="w-6 h-6 text-primary" />
+                                <FileText className="w-6 h-6 text-primary" />
                                 <span>เชี่ยวชาญหลากหลาย ทั้งคดีแพ่ง ฉ้อโกง และสัญญา</span>
                             </div>
                             <div className="pt-4">
