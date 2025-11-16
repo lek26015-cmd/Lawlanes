@@ -9,27 +9,18 @@ import FloatingChatButton from '@/components/chat/floating-chat-button';
 import ChatModal from '@/components/chat/chat-modal';
 import CookieBanner from '@/components/cookie-banner';
 
-function ConditionalChatComponents() {
-  const pathname = usePathname();
-  const isAdminPage = pathname.startsWith('/admin');
-
-  if (isAdminPage) {
-    return null;
-  }
-
-  return (
-    <>
-      <FloatingChatButton />
-      <ChatModal />
-    </>
-  );
-}
-
 export default function ClientLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const pathname = usePathname();
+  const isAdminPage = pathname.startsWith('/admin');
+
+  if (isAdminPage) {
+    return <main>{children}</main>;
+  }
+
   return (
     <>
       <div className="flex min-h-screen flex-col">
@@ -37,7 +28,8 @@ export default function ClientLayout({
         <main className="flex-1 bg-gray-50/50">{children}</main>
         <Footer />
       </div>
-      <ConditionalChatComponents />
+      <FloatingChatButton />
+      <ChatModal />
       <CookieBanner />
     </>
   );
