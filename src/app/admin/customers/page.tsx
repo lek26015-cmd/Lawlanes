@@ -285,7 +285,9 @@ export default function AdminCustomersPage() {
                                             </DropdownMenuTrigger>
                                             <DropdownMenuContent align="end">
                                                 <DropdownMenuLabel>การดำเนินการ</DropdownMenuLabel>
-                                                <DropdownMenuItem>ดูโปรไฟล์</DropdownMenuItem>
+                                                <DropdownMenuItem asChild>
+                                                  <Link href={`/admin/customers/${customer.id}`}>ดูโปรไฟล์</Link>
+                                                </DropdownMenuItem>
                                                 <DropdownMenuItem>แก้ไขข้อมูล</DropdownMenuItem>
                                                 <DropdownMenuSeparator />
                                                 <DropdownMenuItem className="text-destructive">
