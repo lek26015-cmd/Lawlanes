@@ -174,7 +174,7 @@ export default function AdminLawyersPage() {
               <Link href="/admin/lawyers" className="flex items-center gap-3 rounded-lg bg-muted px-3 py-2 text-primary transition-all hover:text-primary">
                 <ShieldCheck className="h-4 w-4" /> ทนายความ
               </Link>
-              <Link href="/lawyer-earnings" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
+              <Link href="/admin/financials" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">
                 <Landmark className="h-4 w-4" /> การเงิน
               </Link>
               <Link href="/admin/tickets" className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary">

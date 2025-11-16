@@ -57,7 +57,7 @@ export default function LawyerDashboardPage() {
     router.push(`/chat/${newChatId}?lawyerId=1&clientId=...&view=lawyer`);
   };
 
-  const incomeStat = { icon: <DollarSign className="w-10 h-10"/>, label: 'รายได้เดือนนี้', value: '฿75,000', color: 'text-green-500', href: '/lawyer-earnings' };
+  const incomeStat = { icon: <DollarSign className="w-10 h-10"/>, label: 'รายได้เดือนนี้', value: '฿75,000', color: 'text-green-500', href: '/admin/financials' };
   const otherStats = [
     { icon: <Star />, label: 'คะแนนเฉลี่ย', value: '4.8/5', color: 'text-yellow-500', href: '#' },
     { icon: <Percent />, label: 'อัตราการตอบรับ', value: '95%', color: 'text-blue-500', href: '#' },
@@ -237,7 +237,7 @@ export default function LawyerDashboardPage() {
                            <p className="text-3xl font-bold">{incomeStat.value}</p>
                         </div>
                     </div>
-                     <p className="text-center text-xs mt-4 bg-black/20 p-2 rounded-full">คลิกเพื่อจัดการรายได้และถอนเงิน</p>
+                     <p className="text-center text-xs mt-4 bg-black/20 p-2 rounded-full">คลิกเพื่อดูรายละเอียด</p>
                 </Link>
              </Card>
 

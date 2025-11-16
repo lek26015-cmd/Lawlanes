@@ -139,7 +139,7 @@ export default function AdminTicketsPage() {
                 ทนายความ
               </Link>
               <Link
-                href="/lawyer-earnings"
+                href="/admin/financials"
                 className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
               >
                 <Landmark className="h-4 w-4" />
