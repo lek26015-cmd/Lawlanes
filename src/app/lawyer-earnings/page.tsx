@@ -7,23 +7,18 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, DollarSign, Banknote, Landmark, Plus, Trash2, History, Hourglass } from 'lucide-react';
+import { ArrowLeft, DollarSign, Banknote, Landmark, Plus, Trash2, History, Hourglass, ShieldCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogTrigger, DialogClose } from '@/components/ui/dialog';
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+} from "@/components/ui/input-otp"
 
 
 type Transaction = {
@@ -41,9 +36,17 @@ type BankAccount = {
   accountName: string;
 };
 
+type WithdrawalStep = 'amount' | 'otp' | 'success';
+
+
 export default function LawyerEarningsPage() {
   const { toast } = useToast();
   const [withdrawalAmount, setWithdrawalAmount] = useState('');
+  const [selectedAccountId, setSelectedAccountId] = useState<string | undefined>();
+  const [isWithdrawalDialogOpen, setIsWithdrawalDialogOpen] = useState(false);
+  const [withdrawalStep, setWithdrawalStep] = useState<WithdrawalStep>('amount');
+  const [otp, setOtp] = useState('');
+
 
   // Mock Data
   const currentBalance = 75000;
@@ -72,7 +75,7 @@ export default function LawyerEarningsPage() {
     { month: "ก.ค.", total: 75000 },
   ];
 
-  const handleWithdraw = () => {
+  const handleProceedToOtp = () => {
     const amount = parseFloat(withdrawalAmount);
     if (!amount || amount <= 0) {
       toast({ variant: 'destructive', title: 'จำนวนเงินไม่ถูกต้อง', description: 'กรุณาระบุจำนวนเงินที่ต้องการถอน' });
@@ -82,13 +85,30 @@ export default function LawyerEarningsPage() {
       toast({ variant: 'destructive', title: 'ยอดเงินไม่เพียงพอ' });
       return;
     }
-    
-    // Logic to process withdrawal
-    console.log(`Withdrawing ${amount}`);
-    toast({ title: 'ส่งคำขอถอนเงินสำเร็จ', description: `ระบบกำลังดำเนินการถอนเงินจำนวน ${amount.toLocaleString()} บาท` });
-    setWithdrawalAmount('');
+    if (!selectedAccountId) {
+      toast({ variant: 'destructive', title: 'ยังไม่ได้เลือกบัญชี', description: 'กรุณาเลือกบัญชีธนาคารเพื่อรับเงิน' });
+      return;
+    }
+    setWithdrawalStep('otp');
   };
   
+  const handleVerifyOtp = () => {
+     if (otp.length !== 6) {
+      toast({ variant: 'destructive', title: 'รหัส OTP ไม่ถูกต้อง', description: 'กรุณากรอกรหัส 6 หลักให้ครบถ้วน' });
+      return;
+    }
+    // Simulate OTP verification
+    console.log(`Withdrawing ${withdrawalAmount} to account ${selectedAccountId} with OTP ${otp}`);
+    toast({ title: 'ส่งคำขอถอนเงินสำเร็จ', description: `ระบบกำลังดำเนินการถอนเงินจำนวน ${parseFloat(withdrawalAmount).toLocaleString()} บาท` });
+
+    // Reset state and close dialog
+    setWithdrawalAmount('');
+    setSelectedAccountId(undefined);
+    setOtp('');
+    setWithdrawalStep('amount');
+    setIsWithdrawalDialogOpen(false);
+  }
+
   const handleAddNewAccount = () => {
     if (!newBankName || !newAccountNumber || !newAccountName) {
       toast({ variant: 'destructive', title: 'ข้อมูลไม่ครบถ้วน', description: 'กรุณากรอกข้อมูลบัญชีธนาคารให้ครบถ้วน' });
@@ -112,6 +132,17 @@ export default function LawyerEarningsPage() {
     
     toast({ title: 'เพิ่มบัญชีธนาคารสำเร็จ' });
   };
+  
+  const resetAndCloseWithdrawal = () => {
+    setIsWithdrawalDialogOpen(false);
+    // Use a timeout to reset state after the dialog has closed to avoid visual glitches
+    setTimeout(() => {
+        setWithdrawalStep('amount');
+        setWithdrawalAmount('');
+        setSelectedAccountId(undefined);
+        setOtp('');
+    }, 300);
+  }
 
 
   return (
@@ -139,35 +170,84 @@ export default function LawyerEarningsPage() {
                     <p className="text-4xl font-bold tracking-tight">฿{currentBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
                 </CardContent>
                 <CardFooter>
-                    <AlertDialog>
-                        <AlertDialogTrigger asChild>
+                    <Dialog open={isWithdrawalDialogOpen} onOpenChange={setIsWithdrawalDialogOpen}>
+                        <DialogTrigger asChild>
                             <Button variant="default" className="w-full sm:w-auto">
-                            <Banknote className="mr-2"/> ถอนเงิน
+                                <Banknote className="mr-2"/> ถอนเงิน
                             </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                            <AlertDialogTitle>คำขอถอนเงิน</AlertDialogTitle>
-                            <AlertDialogDescription>
-                                กรอกจำนวนเงินที่ต้องการถอน (สูงสุด ฿{currentBalance.toLocaleString()})
-                            </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <div className="space-y-2">
-                                <Label htmlFor="withdraw-amount">จำนวนเงิน (บาท)</Label>
-                                <Input 
-                                    id="withdraw-amount" 
-                                    type="number" 
-                                    value={withdrawalAmount}
-                                    onChange={(e) => setWithdrawalAmount(e.target.value)}
-                                    placeholder="เช่น 5000"
-                                />
-                            </div>
-                            <AlertDialogFooter>
-                            <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
-                            <AlertDialogAction onClick={handleWithdraw}>ยืนยันการถอนเงิน</AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
+                        </DialogTrigger>
+                        <DialogContent onInteractOutside={(e) => e.preventDefault()} className="sm:max-w-md">
+                           {withdrawalStep === 'amount' && (
+                             <>
+                                <DialogHeader>
+                                    <DialogTitle>คำขอถอนเงิน</DialogTitle>
+                                    <DialogDescription>เลือกบัญชีและระบุจำนวนเงินที่ต้องการถอน</DialogDescription>
+                                </DialogHeader>
+                                <div className="space-y-4">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="bank-account">เลือกบัญชีธนาคาร</Label>
+                                        <Select value={selectedAccountId} onValueChange={setSelectedAccountId}>
+                                            <SelectTrigger id="bank-account">
+                                                <SelectValue placeholder="เลือกบัญชีที่จะรับเงิน" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {bankAccounts.map(acc => (
+                                                    <SelectItem key={acc.id} value={acc.id}>
+                                                        {acc.bankName} - {acc.accountNumber}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="withdraw-amount">จำนวนเงิน (สูงสุด ฿{currentBalance.toLocaleString()})</Label>
+                                        <Input 
+                                            id="withdraw-amount" 
+                                            type="number" 
+                                            value={withdrawalAmount}
+                                            onChange={(e) => setWithdrawalAmount(e.target.value)}
+                                            placeholder="เช่น 5000"
+                                        />
+                                    </div>
+                                </div>
+                                <DialogFooter>
+                                    <Button type="button" variant="secondary" onClick={resetAndCloseWithdrawal}>ยกเลิก</Button>
+                                    <Button type="button" onClick={handleProceedToOtp}>ดำเนินการต่อ</Button>
+                                </DialogFooter>
+                             </>
+                           )}
+                           {withdrawalStep === 'otp' && (
+                                <>
+                                 <DialogHeader>
+                                    <DialogTitle className="flex items-center gap-2"><ShieldCheck/> ยืนยันตัวตน (2FA)</DialogTitle>
+                                    <DialogDescription>
+                                        เราได้ส่งรหัส 6 หลักไปยังหมายเลขโทรศัพท์ที่ลงทะเบียนไว้ (xxx-xxx-1234) กรุณากรอกรหัสเพื่อยืนยันการถอนเงิน
+                                    </DialogDescription>
+                                </DialogHeader>
+                                <div className="flex flex-col items-center gap-4 py-4">
+                                     <InputOTP maxLength={6} value={otp} onChange={setOtp}>
+                                        <InputOTPGroup>
+                                            <InputOTPSlot index={0} />
+                                            <InputOTPSlot index={1} />
+                                            <InputOTPSlot index={2} />
+                                        </InputOTPGroup>
+                                        -
+                                        <InputOTPGroup>
+                                            <InputOTPSlot index={3} />
+                                            <InputOTPSlot index={4} />
+                                            <InputOTPSlot index={5} />
+                                        </InputOTPGroup>
+                                    </InputOTP>
+                                    <Button variant="link" size="sm" className="text-xs">ไม่ได้รับรหัส? ส่งอีกครั้ง</Button>
+                                </div>
+                                <DialogFooter>
+                                    <Button type="button" variant="secondary" onClick={() => setWithdrawalStep('amount')}>ย้อนกลับ</Button>
+                                    <Button type="button" onClick={handleVerifyOtp}>ยืนยันการถอนเงิน</Button>
+                                </DialogFooter>
+                               </>
+                           )}
+                        </DialogContent>
+                    </Dialog>
                 </CardFooter>
             </Card>
 
