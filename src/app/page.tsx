@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -508,10 +509,10 @@ export default function Home() {
           <div className="container mx-auto px-4 md:px-6">
             <div className="flex justify-between items-center mb-12">
               <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl font-headline text-foreground">
-                TIPS & UPDATES
+                สาระน่ารู้ทางกฎหมาย
               </h2>
               <Link href="/articles">
-                <Button variant="link" className="text-foreground text-orange-500 hover:text-orange-600">
+                <Button variant="link" className="text-foreground hover:text-primary">
                   ดูทั้งหมด <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </Link>
@@ -534,18 +535,20 @@ export default function Home() {
                                         />
                                     </div>
                                     <h3 className="text-xl font-semibold text-foreground mt-2 leading-tight group-hover:text-primary">{mainArticle.title}</h3>
+                                     <p className="text-muted-foreground text-sm mt-2">{mainArticle.description}</p>
+                                     <Badge variant="secondary" className="mt-3">{mainArticle.category}</Badge>
                                 </CardContent>
                             </Card>
                         </Link>
                     )}
                     
                     {/* Other Articles */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-8">
+                    <div className="space-y-6">
                         {otherArticles.map((article) => (
                            <Link key={article.id} href={`/articles/${article.slug}`} className="group block">
                              <Card className="overflow-hidden h-full flex flex-col border-none shadow-none rounded-lg bg-transparent">
-                                <CardContent className="p-0">
-                                <div className="relative aspect-video mb-3 overflow-hidden rounded-lg">
+                                <CardContent className="p-0 flex gap-4">
+                                <div className="relative w-1/3 aspect-square overflow-hidden rounded-lg">
                                      <Image
                                         src={article.imageUrl}
                                         alt={article.title}
@@ -553,11 +556,11 @@ export default function Home() {
                                         className="object-cover transition-transform duration-300 group-hover:scale-105"
                                         data-ai-hint={article.imageHint}
                                     />
-                                     <div className="absolute top-2 right-2">
-                                        <Badge variant="secondary" className="text-xs bg-orange-100 text-orange-800 border-orange-200">{article.category}</Badge>
-                                     </div>
                                 </div>
-                                <h4 className="font-semibold leading-snug group-hover:text-primary text-sm">{article.title}</h4>
+                                <div className="w-2/3">
+                                     <Badge variant="secondary" className="text-xs mb-2">{article.category}</Badge>
+                                     <h4 className="font-semibold leading-snug group-hover:text-primary">{article.title}</h4>
+                                </div>
                                 </CardContent>
                              </Card>
                            </Link>
