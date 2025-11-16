@@ -12,12 +12,29 @@ import { getLawyerDashboardData } from '@/lib/data';
 import type { LawyerCase, LawyerAppointmentRequest } from '@/lib/types';
 import { format } from 'date-fns';
 import { th } from 'date-fns/locale';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
+import { v4 as uuidv4 } from 'uuid';
 
 export default function LawyerDashboardPage() {
   const [requests, setRequests] = useState<LawyerAppointmentRequest[]>([]);
   const [activeCases, setActiveCases] = useState<LawyerCase[]>([]);
   const [completedCases, setCompletedCases] = useState<LawyerCase[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
+  const router = useRouter();
+
 
   useEffect(() => {
     async function fetchData() {
@@ -30,6 +47,15 @@ export default function LawyerDashboardPage() {
     }
     fetchData();
   }, []);
+  
+  const handleAcceptCase = (request: LawyerAppointmentRequest) => {
+    const newChatId = uuidv4();
+    toast({
+      title: 'รับเคสสำเร็จ!',
+      description: `เคส "${request.caseTitle}" ได้ถูกเพิ่มในรายการเคสที่กำลังดำเนินการ`,
+    });
+    router.push(`/chat/${newChatId}?lawyerId=1&clientId=...&view=lawyer`);
+  };
 
   const stats = [
     { icon: <DollarSign />, label: 'รายได้เดือนนี้', value: '฿75,000', color: 'text-green-500' },
@@ -80,7 +106,28 @@ export default function LawyerDashboardPage() {
                                 <Button size="sm" variant="outline" asChild>
                                     <Link href={`/lawyer-dashboard/request/${req.id}`}>ดูรายละเอียด</Link>
                                 </Button>
-                                <Button size="sm" className="bg-green-600 hover:bg-green-700">รับเคสนี้</Button>
+                                <AlertDialog>
+                                    <AlertDialogTrigger asChild>
+                                        <Button size="sm" className="bg-green-600 hover:bg-green-700">รับเคสนี้</Button>
+                                    </AlertDialogTrigger>
+                                    <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>ยืนยันการรับเคส?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                            การรับเคสนี้จะสร้างห้องสนทนาส่วนตัวระหว่างคุณและลูกค้า และจะถือว่าเป็นการเริ่มต้นการให้คำปรึกษาอย่างเป็นทางการ
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+                                            <AlertDialogAction
+                                            onClick={() => handleAcceptCase(req)}
+                                            className="bg-green-600 text-white hover:bg-green-700"
+                                            >
+                                            ยืนยันการรับเคส
+                                            </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
                             </div>
                         </div>
                         <Card className="mt-3 bg-background/50 p-3">
