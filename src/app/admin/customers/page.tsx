@@ -288,7 +288,9 @@ export default function AdminCustomersPage() {
                                                 <DropdownMenuItem asChild>
                                                   <Link href={`/admin/customers/${customer.id}`}>ดูโปรไฟล์</Link>
                                                 </DropdownMenuItem>
-                                                <DropdownMenuItem>แก้ไขข้อมูล</DropdownMenuItem>
+                                                <DropdownMenuItem asChild>
+                                                  <Link href={`/admin/customers/${customer.id}/edit`}>แก้ไขข้อมูล</Link>
+                                                </DropdownMenuItem>
                                                 <DropdownMenuSeparator />
                                                 <DropdownMenuItem className="text-destructive">
                                                 ระงับบัญชี

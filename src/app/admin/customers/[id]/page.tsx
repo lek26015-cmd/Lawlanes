@@ -132,9 +132,11 @@ export default function AdminCustomerDetailPage() {
               {customer.status === 'active' ? 'Active' : 'Suspended'}
             </Badge>
             <div className="hidden items-center gap-2 md:ml-auto md:flex">
-              <Button variant="outline" size="sm">
-                แก้ไขข้อมูล
-              </Button>
+              <Link href={`/admin/customers/${id}/edit`}>
+                <Button variant="outline" size="sm">
+                    แก้ไขข้อมูล
+                </Button>
+              </Link>
               <Button size="sm">ระงับบัญชี</Button>
             </div>
           </div>
