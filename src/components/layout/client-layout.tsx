@@ -1,7 +1,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import Header from '@/components/layout/header';
 import Footer from '@/components/layout/footer';
@@ -15,10 +15,26 @@ export default function ClientLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
   const isAdminPage = pathname.startsWith('/admin');
+  const isAuthPage = pathname === '/lawyer-signup';
+
+  if (!isClient) {
+    // On the server and during initial client render, render a neutral layout
+    return <div className="flex min-h-screen flex-col"><main className="flex-1">{children}</main></div>;
+  }
 
   if (isAdminPage) {
     return <main>{children}</main>;
+  }
+  
+  if (isAuthPage) {
+    return <div className="flex min-h-screen flex-col"><main className="flex-1">{children}</main></div>;
   }
 
   return (
