@@ -58,7 +58,7 @@ export default function LawyerDashboardPage() {
   };
 
   const stats = [
-    { icon: <DollarSign />, label: 'รายได้เดือนนี้', value: '฿75,000', color: 'text-green-500', href: '#' },
+    { icon: <DollarSign />, label: 'รายได้เดือนนี้', value: '฿75,000', color: 'text-green-500', href: '/lawyer-earnings' },
     { icon: <Star />, label: 'คะแนนเฉลี่ย', value: '4.8/5', color: 'text-yellow-500', href: '#' },
     { icon: <Percent />, label: 'อัตราการตอบรับ', value: '95%', color: 'text-blue-500', href: '#' },
     { icon: <Briefcase />, label: 'เคสที่เสร็จสิ้น', value: '12', color: 'text-purple-500', href: '#' },
