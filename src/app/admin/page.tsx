@@ -109,7 +109,7 @@ export default function AdminDashboard() {
                 ลูกค้า
               </Link>
               <Link
-                href="#"
+                href="/admin/lawyers"
                 className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
               >
                 <ShieldCheck className="h-4 w-4" />
@@ -226,7 +226,7 @@ export default function AdminDashboard() {
                   </CardDescription>
                 </div>
                 <Button asChild size="sm" className="ml-auto gap-1">
-                  <Link href="#">
+                  <Link href="/admin/lawyers?status=pending">
                     ดูทั้งหมด
                     <ArrowLeft className="h-4 w-4" />
                   </Link>

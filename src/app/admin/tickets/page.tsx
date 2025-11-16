@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import * as React from 'react';
@@ -131,7 +132,7 @@ export default function AdminTicketsPage() {
                 ลูกค้า
               </Link>
               <Link
-                href="#"
+                href="/admin/lawyers"
                 className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
               >
                 <ShieldCheck className="h-4 w-4" />
