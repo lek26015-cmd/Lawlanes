@@ -122,9 +122,6 @@ export default function LawFirmPage() {
                         </div>
                     </CardContent>
                  </Card>
-                 <Button size="lg" className="w-full">
-                    ติดต่อสอบถาม
-                 </Button>
               </div>
             </CardContent>
           </Card>
