@@ -302,6 +302,15 @@ export async function getLawyerDashboardData(): Promise<{ newRequests: LawyerApp
     });
 }
 
+export async function getLawyerAppointmentRequestById(id: string): Promise<LawyerAppointmentRequest | undefined> {
+    return new Promise(resolve => {
+        setTimeout(() => {
+            resolve(mockNewRequests.find(req => req.id === id));
+        }, 100);
+    });
+}
+
+
 // Mock data for Urgent Jobs advertisement section
 export const mockUrgentJobs: UrgentJob[] = [
   { id: 'job1', companyName: 'สำนักงานกฎหมาย ชัยชนะ', description: 'บริการให้คำปรึกษาด้านกฎหมายธุรกิจครบวงจร', logoUrl: getImageUrl('ad-logo-1'), logoHint: getImageHint('ad-logo-1') },

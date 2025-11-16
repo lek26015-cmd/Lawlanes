@@ -77,7 +77,9 @@ export default function LawyerDashboardPage() {
                                 </p>
                             </div>
                             <div className="flex gap-2 mt-3 sm:mt-0">
-                                <Button size="sm" variant="outline">ดูรายละเอียด</Button>
+                                <Button size="sm" variant="outline" asChild>
+                                    <Link href={`/lawyer-dashboard/request/${req.id}`}>ดูรายละเอียด</Link>
+                                </Button>
                                 <Button size="sm" className="bg-green-600 hover:bg-green-700">รับเคสนี้</Button>
                             </div>
                         </div>
