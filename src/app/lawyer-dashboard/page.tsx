@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Briefcase, CheckCircle, Clock, DollarSign, FileText, Inbox, Percent, Star, User, Settings, BarChart, CalendarPlus } from 'lucide-react';
+import { Briefcase, CheckCircle, Clock, DollarSign, FileText, Inbox, Percent, Star, User, Settings, BarChart, CalendarPlus, FileUp } from 'lucide-react';
 import { getLawyerDashboardData } from '@/lib/data';
 import type { LawyerCase, LawyerAppointmentRequest } from '@/lib/types';
 import { format } from 'date-fns';
@@ -162,7 +162,17 @@ export default function LawyerDashboardPage() {
                                 <p className="text-sm text-muted-foreground">ลูกค้า: {caseItem.clientName} | อัปเดตล่าสุด: {caseItem.lastUpdate}</p>
                             </div>
                             <div className="flex items-center gap-2">
-                                {caseItem.hasNewMessage && <Badge variant="destructive">ข้อความใหม่</Badge>}
+                                {caseItem.notifications && (
+                                  typeof caseItem.notifications === 'number' ? (
+                                    <Badge variant="destructive" className="flex items-center justify-center w-6 h-6 rounded-full p-0">
+                                      {caseItem.notifications}
+                                    </Badge>
+                                  ) : (
+                                    <Badge variant="outline" className="border-blue-500 bg-blue-50 text-blue-700">
+                                      <FileUp className="w-3 h-3" />
+                                    </Badge>
+                                  )
+                                )}
                                 <Button size="sm">เข้าสู่ห้องแชท</Button>
                             </div>
                         </div>

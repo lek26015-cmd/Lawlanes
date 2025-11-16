@@ -285,9 +285,9 @@ const mockNewRequests: LawyerAppointmentRequest[] = [
 ];
 
 const mockLawyerCases: LawyerCase[] = [
-    { id: 'lcase-001', title: 'คดีฉ้อโกงออนไลน์', clientName: 'คุณมานี', clientId: 'CLIENT_ID_1', status: 'กำลังดำเนินการ', lastUpdate: '2 วันที่แล้ว', hasNewMessage: true },
-    { id: 'lcase-002', title: 'ปัญหาข้อพิพาทที่ดิน', clientName: 'คุณวิชัย', clientId: 'CLIENT_ID_2', status: 'กำลังดำเนินการ', lastUpdate: '5 ชั่วโมงที่แล้ว', hasNewMessage: false },
-    { id: 'lcase-003', title: 'ร่างสัญญาแฟรนไชส์', clientName: 'ร้านชานมไข่มุก', clientId: 'CLIENT_ID_3', status: 'เสร็จสิ้น', lastUpdate: '15 ต.ค. 2567', hasNewMessage: false },
+    { id: 'lcase-001', title: 'คดีฉ้อโกงออนไลน์', clientName: 'คุณมานี', clientId: 'CLIENT_ID_1', status: 'กำลังดำเนินการ', lastUpdate: '2 วันที่แล้ว', notifications: 3 },
+    { id: 'lcase-002', title: 'ปัญหาข้อพิพาทที่ดิน', clientName: 'คุณวิชัย', clientId: 'CLIENT_ID_2', status: 'กำลังดำเนินการ', lastUpdate: '5 ชั่วโมงที่แล้ว', notifications: 'document' },
+    { id: 'lcase-003', title: 'ร่างสัญญาแฟรนไชส์', clientName: 'ร้านชานมไข่มุก', clientId: 'CLIENT_ID_3', status: 'เสร็จสิ้น', lastUpdate: '15 ต.ค. 2567' },
 ];
 
 export async function getLawyerDashboardData(): Promise<{ newRequests: LawyerAppointmentRequest[], activeCases: LawyerCase[], completedCases: LawyerCase[] }> {

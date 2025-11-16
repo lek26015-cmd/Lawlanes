@@ -92,7 +92,7 @@ export interface LawyerCase {
   clientId: string;
   status: 'รอการตอบรับ' | 'กำลังดำเนินการ' | 'เสร็จสิ้น';
   lastUpdate: string;
-  hasNewMessage: boolean;
+  notifications?: number | 'document';
 }
 
 export interface UrgentJob {
