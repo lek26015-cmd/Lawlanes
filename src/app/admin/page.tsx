@@ -116,7 +116,7 @@ export default function AdminDashboard() {
                 ทนายความ
               </Link>
               <Link
-                href="#"
+                href="/lawyer-earnings"
                 className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
               >
                 <Landmark className="h-4 w-4" />
