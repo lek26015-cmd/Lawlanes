@@ -1,3 +1,4 @@
+
 'use client';
 
 import Link from 'next/link';
@@ -5,23 +6,21 @@ import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import Logo from '@/components/logo';
 import { Input } from '@/components/ui/input';
-import { Search } from 'lucide-react';
+import { Search, Menu } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
+import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet';
 
 export default function Header() {
   const pathname = usePathname();
   const isAuthPage = false; // Placeholder, as signup page is removed
   const isHomePage = pathname === '/';
   
-  // Initialize isScrolled based on whether it's the home page or not.
-  // On non-home pages, the header is always "scrolled".
   const [isScrolled, setIsScrolled] = useState(!isHomePage);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
-    // Only add scroll listener if it's the home page
     if (!isHomePage) {
-        // Ensure isScrolled is true for non-home pages
         if (!isScrolled) setIsScrolled(true);
         return;
     }
@@ -31,22 +30,22 @@ export default function Header() {
       setIsScrolled(scrolled);
     };
 
-    // Add listener
     window.addEventListener('scroll', handleScroll, { passive: true });
-
-    // Set initial state on mount (client-side only)
     handleScroll();
 
-    // Cleanup listener
     return () => {
       window.removeEventListener('scroll', handleScroll);
     };
-  }, [pathname, isHomePage]); // Rerun effect if pathname changes
+  }, [isHomePage]);
+  
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [pathname])
 
   const useTransparentHeader = isHomePage && !isScrolled;
 
   if (isAuthPage) {
-    return null; // Don't render header on login/signup pages
+    return null;
   }
 
   const headerClasses = cn(
@@ -87,7 +86,7 @@ export default function Header() {
           <Logo className={cn(useTransparentHeader ? '' : 'text-background')} />
         </Link>
         
-        <div className="flex flex-1 justify-center px-8 lg:px-16">
+        <div className="hidden md:flex flex-1 justify-center px-8 lg:px-16">
             <div className="relative w-full max-w-lg">
               <Input
                 type="search"
@@ -127,6 +126,34 @@ export default function Header() {
             <Button variant="ghost" className={loginButtonClasses}>เข้าสู่ระบบ</Button>
           </Link>
         </div>
+        
+        <div className="md:hidden">
+            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+                <SheetTrigger asChild>
+                    <Button variant="ghost" size="icon" className={cn(useTransparentHeader ? 'text-foreground' : 'text-background')}>
+                        <Menu />
+                        <span className="sr-only">เปิดเมนู</span>
+                    </Button>
+                </SheetTrigger>
+                <SheetContent side="left">
+                    <div className="flex flex-col gap-6 p-6">
+                        <Logo />
+                        <nav className="flex flex-col gap-4 text-lg">
+                            <Link href="/" className="hover:text-primary">หน้าแรก</Link>
+                            <Link href="/articles" className="hover:text-primary">บทความ</Link>
+                            <Link href="/for-lawyers" className="hover:text-primary">สำหรับทนายความ</Link>
+                             <Link href="/lawyers" className="hover:text-primary">ค้นหาทนาย</Link>
+                        </nav>
+                         <div className="border-t pt-6">
+                           <Link href="/">
+                             <Button className="w-full">เข้าสู่ระบบ</Button>
+                           </Link>
+                        </div>
+                    </div>
+                </SheetContent>
+            </Sheet>
+        </div>
+
       </div>
     </header>
   );
