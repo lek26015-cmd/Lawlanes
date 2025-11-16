@@ -46,6 +46,17 @@ import { useParams, useRouter } from 'next/navigation'
 import { mockLawyers as allMockLawyers } from '@/lib/data'
 import type { LawyerProfile } from '@/lib/types'
 import { useToast } from '@/hooks/use-toast'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 export default function AdminLawyerDetailPage() {
   const params = useParams()
@@ -69,6 +80,8 @@ export default function AdminLawyerDetailPage() {
       title: 'เปลี่ยนสถานะสำเร็จ',
       description: `สถานะของ ${lawyer.name} ถูกเปลี่ยนเป็น "${newStatus}"`,
     });
+    // In a real app, this would also update the backend.
+    // For this mock, we just navigate away.
     router.push('/admin/lawyers');
   };
 
@@ -114,18 +127,40 @@ export default function AdminLawyerDetailPage() {
               <Link href={`/admin/lawyers/${id}/edit`}>
                 <Button variant="outline" size="sm">แก้ไขข้อมูล</Button>
               </Link>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm">การดำเนินการ</Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent>
-                  <DropdownMenuItem onClick={() => handleStatusChange('approved')}>อนุมัติ</DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleStatusChange('pending')}>ย้ายไปรอตรวจสอบ</DropdownMenuItem>
-                  <DropdownMenuItem className="text-destructive" onClick={() => handleStatusChange('rejected')}>ปฏิเสธ</DropdownMenuItem>
-                   <DropdownMenuSeparator />
-                  <DropdownMenuItem className="text-destructive">ระงับบัญชี</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <AlertDialog>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm">การดำเนินการ</Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent>
+                    <AlertDialogTrigger asChild>
+                        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>อนุมัติ</DropdownMenuItem>
+                    </AlertDialogTrigger>
+                     <AlertDialogTrigger asChild>
+                        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>ย้ายไปรอตรวจสอบ</DropdownMenuItem>
+                    </AlertDialogTrigger>
+                     <AlertDialogTrigger asChild>
+                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive">ปฏิเสธ</DropdownMenuItem>
+                    </AlertDialogTrigger>
+                    <DropdownMenuSeparator />
+                     <AlertDialogTrigger asChild>
+                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive">ระงับบัญชี</DropdownMenuItem>
+                    </AlertDialogTrigger>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+                 <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>ยืนยันการดำเนินการ</AlertDialogTitle>
+                        <AlertDialogDescription>
+                            คุณแน่ใจหรือไม่ที่จะเปลี่ยนสถานะของทนายความท่านนี้ การกระทำนี้สามารถเปลี่ยนแปลงได้ในภายหลัง
+                        </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => handleStatusChange('approved')}>ยืนยัน</AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           </div>
           <Card>

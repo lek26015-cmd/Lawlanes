@@ -56,18 +56,31 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { mockLawyers as allMockLawyers } from '@/lib/data';
 import type { LawyerProfile } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 // Extend mock data with more varied statuses and join dates for filtering
 const mockLawyers = allMockLawyers.map((lawyer, index) => ({
   ...lawyer,
   status: ['approved', 'pending', 'rejected'][index % 3] as 'approved' | 'pending' | 'rejected',
-  joinedAt: `2024-0${7 - index}-${28 - index * 2}`
+  joinedAt: `2024-07-${28 - index * 2}`
 }));
 
 export default function AdminLawyersPage() {
     const { toast } = useToast();
     const [filteredLawyers, setFilteredLawyers] = React.useState<LawyerProfile[]>(mockLawyers);
     const [activeTab, setActiveTab] = React.useState('all');
+    const [action, setAction] = React.useState<{ type: LawyerProfile['status']; lawyerId: string } | null>(null);
+
     
     // In a real app, specialties would be fetched or managed globally
     const specialties = ['คดีฉ้อโกง SMEs', 'คดีแพ่งและพาณิชย์', 'การผิดสัญญา', 'ทรัพย์สินทางปัญญา', 'กฎหมายแรงงาน'];
@@ -112,16 +125,23 @@ export default function AdminLawyersPage() {
         document.body.removeChild(link);
     };
 
-    const handleStatusChange = (lawyerId: string, newStatus: LawyerProfile['status']) => {
-        // This is a mock function. In a real app, you'd update the database.
+    const handleStatusChange = () => {
+        if (!action) return;
+        const { lawyerId, type: newStatus } = action;
+
         const lawyerName = mockLawyers.find(l => l.id === lawyerId)?.name;
         toast({
             title: `เปลี่ยนสถานะสำเร็จ`,
             description: `สถานะของ ${lawyerName} ถูกเปลี่ยนเป็น "${newStatus}" แล้ว`,
         });
-        // Refilter the list
-        setActiveTab('all'); // Go to all to see the change
+        
+        // This is where you would update the backend.
+        // For now, we'll just refilter the list to simulate the change.
+        const updatedLawyers = mockLawyers.map(l => l.id === lawyerId ? {...l, status: newStatus} : l);
+        // This is a hacky way to force re-render/re-filter, not for production
+        setActiveTab('all'); 
         setTimeout(() => setActiveTab(newStatus), 100);
+        setAction(null);
     };
     
     const statusBadges: Record<LawyerProfile['status'], React.ReactNode> = {
@@ -248,39 +268,59 @@ export default function AdminLawyersPage() {
                                         <TableCell className="hidden md:table-cell">{statusBadges[lawyer.status]}</TableCell>
                                         <TableCell className="hidden md:table-cell">{lawyer.joinedAt}</TableCell>
                                         <TableCell>
-                                            <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button aria-haspopup="true" size="icon" variant="ghost">
-                                                    <MoreHorizontal className="h-4 w-4" />
-                                                    <span className="sr-only">สลับเมนู</span>
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuLabel>การดำเนินการ</DropdownMenuLabel>
-                                                <DropdownMenuItem asChild>
-                                                  <Link href={`/admin/lawyers/${lawyer.id}`}>ดูโปรไฟล์</Link>
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem asChild>
-                                                  <Link href={`/admin/lawyers/${lawyer.id}/edit`}>แก้ไขข้อมูล</Link>
-                                                </DropdownMenuItem>
-                                                <DropdownMenuSeparator />
-                                                {lawyer.status !== 'approved' && (
-                                                    <DropdownMenuItem onClick={() => handleStatusChange(lawyer.id, 'approved')}>
-                                                        <UserCheck className="mr-2 h-4 w-4" /> อนุมัติ
-                                                    </DropdownMenuItem>
-                                                )}
-                                                {lawyer.status !== 'pending' && (
-                                                    <DropdownMenuItem onClick={() => handleStatusChange(lawyer.id, 'pending')}>
-                                                        <Clock className="mr-2 h-4 w-4" /> รอตรวจสอบ
-                                                    </DropdownMenuItem>
-                                                )}
-                                                {lawyer.status !== 'rejected' && (
-                                                    <DropdownMenuItem className="text-destructive" onClick={() => handleStatusChange(lawyer.id, 'rejected')}>
-                                                        <UserX className="mr-2 h-4 w-4" /> ปฏิเสธ
-                                                    </DropdownMenuItem>
-                                                )}
-                                            </DropdownMenuContent>
-                                            </DropdownMenu>
+                                            <AlertDialog>
+                                                <DropdownMenu>
+                                                    <DropdownMenuTrigger asChild>
+                                                        <Button aria-haspopup="true" size="icon" variant="ghost">
+                                                            <MoreHorizontal className="h-4 w-4" />
+                                                            <span className="sr-only">สลับเมนู</span>
+                                                        </Button>
+                                                    </DropdownMenuTrigger>
+                                                    <DropdownMenuContent align="end">
+                                                        <DropdownMenuLabel>การดำเนินการ</DropdownMenuLabel>
+                                                        <DropdownMenuItem asChild>
+                                                            <Link href={`/admin/lawyers/${lawyer.id}`}>ดูโปรไฟล์</Link>
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuItem asChild>
+                                                            <Link href={`/admin/lawyers/${lawyer.id}/edit`}>แก้ไขข้อมูล</Link>
+                                                        </DropdownMenuItem>
+                                                        <DropdownMenuSeparator />
+                                                        {lawyer.status !== 'approved' && (
+                                                            <AlertDialogTrigger asChild>
+                                                                <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setAction({ type: 'approved', lawyerId: lawyer.id }); }}>
+                                                                    <UserCheck className="mr-2 h-4 w-4" /> อนุมัติ
+                                                                </DropdownMenuItem>
+                                                            </AlertDialogTrigger>
+                                                        )}
+                                                        {lawyer.status !== 'pending' && (
+                                                            <AlertDialogTrigger asChild>
+                                                                <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setAction({ type: 'pending', lawyerId: lawyer.id }); }}>
+                                                                    <Clock className="mr-2 h-4 w-4" /> รอตรวจสอบ
+                                                                </DropdownMenuItem>
+                                                            </AlertDialogTrigger>
+                                                        )}
+                                                        {lawyer.status !== 'rejected' && (
+                                                             <AlertDialogTrigger asChild>
+                                                                <DropdownMenuItem className="text-destructive" onSelect={(e) => { e.preventDefault(); setAction({ type: 'rejected', lawyerId: lawyer.id }); }}>
+                                                                    <UserX className="mr-2 h-4 w-4" /> ปฏิเสธ
+                                                                </DropdownMenuItem>
+                                                             </AlertDialogTrigger>
+                                                        )}
+                                                    </DropdownMenuContent>
+                                                </DropdownMenu>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>ยืนยันการเปลี่ยนสถานะ?</AlertDialogTitle>
+                                                        <AlertDialogDescription>
+                                                            คุณแน่ใจหรือไม่ที่จะเปลี่ยนสถานะของ {mockLawyers.find(l => l.id === action?.lawyerId)?.name} เป็น "{action?.type}"?
+                                                        </AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel onClick={() => setAction(null)}>ยกเลิก</AlertDialogCancel>
+                                                        <AlertDialogAction onClick={handleStatusChange}>ยืนยัน</AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
                                         </TableCell>
                                     </TableRow>
                                 ))}
