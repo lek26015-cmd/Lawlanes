@@ -155,43 +155,6 @@ export default function LawyerEarningsPage() {
             </Card>
           </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>สถิติรายได้รายเดือน</CardTitle>
-              <CardDescription>ภาพรวมรายได้ในช่วง 4 เดือนที่ผ่านมา</CardDescription>
-            </CardHeader>
-            <CardContent className="pl-2">
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={monthlyData}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis
-                    dataKey="month"
-                    stroke="#888888"
-                    fontSize={12}
-                    tickLine={false}
-                    axisLine={false}
-                  />
-                  <YAxis
-                    stroke="#888888"
-                    fontSize={12}
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={(value) => `฿${new Intl.NumberFormat('en-US', { notation: 'compact', compactDisplay: 'short' }).format(value as number)}`}
-                  />
-                   <Tooltip
-                    contentStyle={{
-                      backgroundColor: 'hsl(var(--background))',
-                      borderColor: 'hsl(var(--border))',
-                      borderRadius: 'var(--radius)'
-                    }}
-                    cursor={{ fill: 'hsl(var(--accent))' }}
-                  />
-                  <Bar dataKey="total" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-          
           <Tabs defaultValue="history">
             <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="history"><History className="mr-2"/>ประวัติธุรกรรม</TabsTrigger>
@@ -254,6 +217,43 @@ export default function LawyerEarningsPage() {
                 </Card>
             </TabsContent>
           </Tabs>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>สถิติรายได้รายเดือน</CardTitle>
+              <CardDescription>ภาพรวมรายได้ในช่วง 4 เดือนที่ผ่านมา</CardDescription>
+            </CardHeader>
+            <CardContent className="pl-2">
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={monthlyData}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                  <XAxis
+                    dataKey="month"
+                    stroke="#888888"
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
+                  />
+                  <YAxis
+                    stroke="#888888"
+                    fontSize={12}
+                    tickLine={false}
+                    axisLine={false}
+                    tickFormatter={(value) => `฿${new Intl.NumberFormat('en-US', { notation: 'compact', compactDisplay: 'short' }).format(value as number)}`}
+                  />
+                   <Tooltip
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--background))',
+                      borderColor: 'hsl(var(--border))',
+                      borderRadius: 'var(--radius)'
+                    }}
+                    cursor={{ fill: 'hsl(var(--accent))' }}
+                  />
+                  <Bar dataKey="total" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
 
         </div>
       </div>
