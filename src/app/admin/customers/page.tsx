@@ -165,7 +165,7 @@ export default function AdminCustomersPage() {
                 การเงิน
               </Link>
                <Link
-                href="#"
+                href="/admin/tickets"
                 className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
               >
                 <Ticket className="h-4 w-4" />

@@ -23,7 +23,8 @@ import {
   Users2,
   Briefcase,
   DollarSign,
-  AlertCircle
+  AlertCircle,
+  Ticket
 } from 'lucide-react'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
