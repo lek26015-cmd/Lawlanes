@@ -32,17 +32,17 @@ export default function Home() {
   const router = useRouter();
   const [features] = useState([
     {
-      icon: <MessageSquare className="h-8 w-8 text-foreground" />,
+      icon: <CheckCircle className="w-6 h-6" />,
       title: 'AI Legal Advisor',
       description: 'Get a preliminary legal assessment of your issue instantly.',
     },
     {
-      icon: <Users className="h-8 w-8 text-foreground" />,
+      icon: <CheckCircle className="w-6 h-6" />,
       title: 'Expert Lawyer Marketplace',
       description: 'Connect with a curated network of vetted, specialized lawyers.',
     },
     {
-      icon: <CheckCircle className="h-8 w-8 text-foreground" />,
+      icon: <CheckCircle className="w-6 h-6" />,
       title: 'Streamlined Case Hand-off',
       description: 'Our AI analyzes your case to recommend and seamlessly connect you with the right legal expert.',
     },
@@ -244,6 +244,10 @@ export default function Home() {
             <div className="container mx-auto px-4 md:px-6">
                 <div className="grid lg:grid-cols-2 gap-12 items-center">
                     <div className="flex flex-col items-center lg:items-start text-center lg:text-left space-y-6">
+                        <Link href="/dashboard" className="text-sm text-background/80 hover:text-background mb-4 inline-flex items-center gap-2">
+                            <ArrowRight className="w-4 h-4" />
+                            กลับไปหน้าแดชบอร์ด
+                        </Link>
                         <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none font-headline">
                             ค้นหาทนายความ...
                             <br />
@@ -325,7 +329,7 @@ export default function Home() {
                   {features.map((feature, index) => (
                     <div key={index} className="flex items-start gap-4">
                         <div className="flex-shrink-0 w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
-                            <CheckCircle className="w-6 h-6" />
+                            {feature.icon}
                         </div>
                         <div>
                             <h3 className="text-lg font-semibold">{feature.title}</h3>
@@ -342,8 +346,8 @@ export default function Home() {
           <div className="container mx-auto px-4 md:px-6">
             
             <div className="max-w-4xl mx-auto">
-                 <Card className="bg-foreground text-background rounded-2xl overflow-hidden shadow-2xl">
-                    <div className="flex flex-col items-center p-12 md:p-16 gap-6 text-center">
+                 <Card className="bg-foreground text-background rounded-2xl overflow-hidden shadow-2xl p-4 md:p-8">
+                    <div className="flex flex-col items-center p-8 md:p-12 gap-6 text-center">
                         <div className="flex flex-col items-center gap-4 text-center">
                             <ShieldCheck className="w-20 h-20 text-green-400 flex-shrink-0" />
                             <div>
@@ -418,7 +422,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="w-full py-12 md:py-24 lg:py-32 bg-gray-50">
+        <section className="w-full bg-gray-50 py-12 md:py-24 lg:py-32">
           <div className="container mx-auto px-4 md:px-6">
               <div className='text-center mb-8'>
                   <h2 className='text-3xl font-bold tracking-tight text-foreground font-headline'>ทนายที่แนะนำ</h2>

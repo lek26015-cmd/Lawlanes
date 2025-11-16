@@ -1,8 +1,9 @@
+
 'use client';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Check } from 'lucide-react';
+import { ArrowLeft, Check } from 'lucide-react';
 import Link from 'next/link';
 
 export default function ForLawyersPage() {
@@ -28,6 +29,12 @@ export default function ForLawyersPage() {
   return (
     <div className="bg-background">
       <div className="container mx-auto px-4 md:px-6 py-12 md:py-24">
+        <div className="mb-8">
+            <Link href="/" className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-2">
+                <ArrowLeft className="w-4 h-4" />
+                กลับไปหน้าแรก
+            </Link>
+        </div>
         <div className="grid lg:grid-cols-2 gap-12 items-center">
           <div className="space-y-6">
             <h1 className="text-4xl md:text-5xl font-bold tracking-tighter text-foreground font-headline">

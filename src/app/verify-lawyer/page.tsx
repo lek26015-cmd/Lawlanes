@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Upload, Search, ShieldCheck, ShieldAlert, Loader2, FileCheck2 } from 'lucide-react';
+import { Upload, Search, ShieldCheck, ShieldAlert, Loader2, FileCheck2, ArrowLeft } from 'lucide-react';
 import Image from 'next/image';
 import { getLawyerById } from '@/lib/data';
 import type { LawyerProfile } from '@/lib/types';
@@ -121,6 +121,10 @@ function VerifyLawyerContent() {
     <div className="bg-gray-50 min-h-[calc(100vh-160px)] py-12">
       <div className="container mx-auto px-4 md:px-6">
         <div className="max-w-2xl mx-auto space-y-8">
+            <Link href="/" className="text-sm text-muted-foreground hover:text-foreground mb-4 inline-flex items-center gap-2">
+                <ArrowLeft className="w-4 h-4" />
+                กลับไปหน้าแรก
+            </Link>
           <div className="text-center">
             <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl font-headline">
               ตรวจสอบสถานะทนายความ
@@ -224,5 +228,3 @@ export default function VerifyLawyerPage() {
         </React.Suspense>
     )
 }
-
-    

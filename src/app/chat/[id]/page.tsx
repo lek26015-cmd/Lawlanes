@@ -29,7 +29,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, FileText, Check, Upload, Scale, Ticket, Briefcase, User as UserIcon, DollarSign } from 'lucide-react';
+import { AlertTriangle, FileText, Check, Upload, Scale, Ticket, Briefcase, User as UserIcon, DollarSign, ArrowLeft } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -170,6 +170,12 @@ function ChatPageContent() {
 
     return (
         <div className="container mx-auto px-4 md:px-6 py-8">
+            <div className="mb-4">
+                <Link href={isLawyerView ? "/lawyer-dashboard" : "/dashboard"} className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-2">
+                    <ArrowLeft className="w-4 h-4" />
+                    กลับไปที่แดชบอร์ด
+                </Link>
+            </div>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2">
                     <ChatBox firestore={firestore} currentUser={user} otherUser={otherUser} chatId={chatId} isDisabled={isChatDisabled} isLawyerView={isLawyerView} />

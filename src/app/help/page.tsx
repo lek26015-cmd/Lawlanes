@@ -1,3 +1,4 @@
+
 'use client';
 
 import React from 'react';
@@ -13,9 +14,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
-import { HelpCircle, Ticket } from "lucide-react"
+import { ArrowLeft, HelpCircle, Ticket } from "lucide-react"
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import Link from 'next/link';
 
 function HelpPageContent() {
   const searchParams = useSearchParams();
@@ -68,6 +70,10 @@ function HelpPageContent() {
     <div className="bg-white">
       <div className="container mx-auto px-4 md:px-6 py-12 md:py-20">
         <div className="max-w-4xl mx-auto space-y-12">
+            <Link href="/" className="text-sm text-muted-foreground hover:text-foreground mb-4 inline-flex items-center gap-2">
+                <ArrowLeft className="w-4 h-4" />
+                กลับไปหน้าแรก
+            </Link>
           <div className="text-center">
             <HelpCircle className="mx-auto h-12 w-12 text-foreground mb-4" />
             <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl font-headline text-foreground">

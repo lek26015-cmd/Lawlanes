@@ -1,10 +1,11 @@
+
 'use client';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Upload, UserPlus } from 'lucide-react';
+import { ArrowLeft, Upload, UserPlus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -37,6 +38,12 @@ export default function LawyerSignupPage() {
     <div className="bg-gray-50 min-h-screen py-12">
       <div className="container mx-auto px-4 md:px-6">
         <div className="max-w-3xl mx-auto">
+            <div className="mb-4">
+                <Link href="/" className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-2">
+                    <ArrowLeft className="w-4 h-4" />
+                    กลับไปหน้าแรก
+                </Link>
+            </div>
           <Card>
             <CardHeader className="text-center">
                 <UserPlus className="w-12 h-12 mx-auto text-foreground" />

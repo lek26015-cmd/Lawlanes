@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -7,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { getAllArticles } from '@/lib/data';
 import type { Article } from '@/lib/types';
-import { ArrowRight, Search, FileText } from 'lucide-react';
+import { ArrowRight, Search, FileText, ArrowLeft } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
@@ -43,13 +44,19 @@ export default function ArticlesPage() {
 
   return (
     <div className="container mx-auto px-4 md:px-6 py-12">
-      <div className="text-center mb-12">
-        <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl font-headline text-foreground">
-          บทความหน้ารู้
-        </h1>
-        <p className="max-w-2xl mx-auto mt-4 text-muted-foreground md:text-xl">
-          สาระความรู้ทางกฎหมายที่น่าสนใจสำหรับ SME และบุคคลทั่วไป
-        </p>
+      <div className="mb-12">
+        <Link href="/" className="text-sm text-muted-foreground hover:text-foreground mb-4 inline-flex items-center gap-2">
+            <ArrowLeft className="w-4 h-4" />
+            กลับไปหน้าแรก
+        </Link>
+        <div className="text-center">
+            <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl font-headline text-foreground">
+            บทความหน้ารู้
+            </h1>
+            <p className="max-w-2xl mx-auto mt-4 text-muted-foreground md:text-xl">
+            สาระความรู้ทางกฎหมายที่น่าสนใจสำหรับ SME และบุคคลทั่วไป
+            </p>
+        </div>
       </div>
 
       <div className="max-w-3xl mx-auto mb-12">

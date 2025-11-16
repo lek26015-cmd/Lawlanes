@@ -86,9 +86,9 @@ function ReviewPageContent() {
     <div className="bg-gray-50 min-h-screen">
       <div className="container mx-auto px-4 md:px-6 py-12">
         <div className="max-w-2xl mx-auto">
-            <Link href={`/chat/${chatId}?lawyerId=${lawyerId}`} className="text-sm text-muted-foreground hover:text-foreground mb-6 inline-flex items-center gap-2">
+            <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground mb-6 inline-flex items-center gap-2">
                 <ArrowLeft className="w-4 h-4" />
-                กลับไปที่แชท
+                กลับไปที่แดชบอร์ด
             </Link>
 
             <Card>
@@ -148,5 +148,3 @@ export default function ReviewPage() {
         </Suspense>
     )
 }
-
-    
