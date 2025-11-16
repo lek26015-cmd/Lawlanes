@@ -99,14 +99,18 @@ export default function LawyerEarningsPage() {
     }
     // Simulate OTP verification
     console.log(`Withdrawing ${withdrawalAmount} to account ${selectedAccountId} with OTP ${otp}`);
-    toast({ title: 'ส่งคำขอถอนเงินสำเร็จ', description: `ระบบกำลังดำเนินการถอนเงินจำนวน ${parseFloat(withdrawalAmount).toLocaleString()} บาท` });
-
+    
     // Reset state and close dialog
-    setWithdrawalAmount('');
-    setSelectedAccountId(undefined);
-    setOtp('');
-    setWithdrawalStep('amount');
     setIsWithdrawalDialogOpen(false);
+
+    // Use a timeout to allow the dialog to close before showing the toast and resetting state
+    setTimeout(() => {
+        toast({ title: 'ส่งคำขอถอนเงินสำเร็จ', description: `ระบบกำลังดำเนินการถอนเงินจำนวน ${parseFloat(withdrawalAmount).toLocaleString()} บาท` });
+        setWithdrawalAmount('');
+        setSelectedAccountId(undefined);
+        setOtp('');
+        setWithdrawalStep('amount');
+    }, 500);
   }
 
   const handleAddNewAccount = () => {
@@ -176,14 +180,17 @@ export default function LawyerEarningsPage() {
                                 <Banknote className="mr-2"/> ถอนเงิน
                             </Button>
                         </DialogTrigger>
-                        <DialogContent onInteractOutside={(e) => e.preventDefault()} className="sm:max-w-md">
+                        <DialogContent onInteractOutside={(e) => {
+                             if (e.defaultPrevented) return;
+                             resetAndCloseWithdrawal();
+                        }} className="sm:max-w-md">
                            {withdrawalStep === 'amount' && (
                              <>
                                 <DialogHeader>
                                     <DialogTitle>คำขอถอนเงิน</DialogTitle>
                                     <DialogDescription>เลือกบัญชีและระบุจำนวนเงินที่ต้องการถอน</DialogDescription>
                                 </DialogHeader>
-                                <div className="space-y-4">
+                                <div className="space-y-4 py-4">
                                     <div className="space-y-2">
                                         <Label htmlFor="bank-account">เลือกบัญชีธนาคาร</Label>
                                         <Select value={selectedAccountId} onValueChange={setSelectedAccountId}>
