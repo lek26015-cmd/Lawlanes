@@ -71,6 +71,7 @@ import {
   TabsTrigger,
 } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import Logo from '@/components/logo';
 
 export default function AdminDashboard() {
