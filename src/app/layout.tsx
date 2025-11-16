@@ -1,14 +1,12 @@
+
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
-import Header from '@/components/layout/header';
-import Footer from '@/components/layout/footer';
 import React from 'react';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { ChatProvider } from '@/context/chat-context';
-import ChatModal from '@/components/chat/chat-modal';
-import FloatingChatButton from '@/components/chat/floating-chat-button';
-import CookieBanner from '@/components/cookie-banner';
+import ClientLayout from '@/components/layout/client-layout';
+
 
 export const metadata: Metadata = {
   title: 'Lawlanes AI Legal Advisor',
@@ -20,7 +18,6 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
@@ -31,14 +28,7 @@ export default function RootLayout({
       <body className="font-body antialiased">
         <FirebaseClientProvider>
           <ChatProvider>
-            <div className="flex min-h-screen flex-col">
-              <Header />
-              <main className="flex-1 bg-gray-50/50">{children}</main>
-              <Footer />
-            </div>
-            <FloatingChatButton />
-            <ChatModal />
-            <CookieBanner />
+            <ClientLayout>{children}</ClientLayout>
           </ChatProvider>
         </FirebaseClientProvider>
         <Toaster />
