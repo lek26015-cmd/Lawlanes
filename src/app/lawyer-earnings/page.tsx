@@ -100,16 +100,22 @@ export default function LawyerEarningsPage() {
             <p className="text-muted-foreground">จัดการรายรับและช่องทางการเงินของคุณ</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <Card className="shadow-lg lg:col-span-1">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card className="shadow-lg">
                 <CardHeader>
                     <CardTitle className="flex items-center justify-between text-base font-semibold">
                         <span>ยอดเงินคงเหลือที่ถอนได้</span>
                         <DollarSign />
                     </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="space-y-4">
                     <p className="text-4xl font-bold tracking-tight">฿{currentBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+                    {pendingWithdrawalBalance > 0 && (
+                        <div className="text-xs text-muted-foreground pt-2 border-t">
+                            <p>ยอดกำลังดำเนินการถอน: ฿{pendingWithdrawalBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
+                             <p>(เงินจะเข้าบัญชีใน 1-2 วันทำการ)</p>
+                        </div>
+                    )}
                 </CardContent>
                 <CardFooter>
                     <Button asChild variant="default" className="w-full sm:w-auto">
@@ -120,7 +126,7 @@ export default function LawyerEarningsPage() {
                 </CardFooter>
             </Card>
 
-            <Card className="bg-secondary text-secondary-foreground shadow-lg lg:col-span-1">
+            <Card className="bg-secondary text-secondary-foreground shadow-lg">
                 <CardHeader>
                     <CardTitle className="flex items-center justify-between text-base font-semibold text-muted-foreground">
                         <span>ยอดเงินรอเคลียร์</span>
@@ -132,21 +138,6 @@ export default function LawyerEarningsPage() {
                 </CardContent>
                  <CardFooter>
                     <p className="text-xs text-muted-foreground">จากเคสที่กำลังดำเนินการ</p>
-                </CardFooter>
-            </Card>
-
-            <Card className="bg-secondary text-secondary-foreground shadow-lg lg:col-span-1">
-                <CardHeader>
-                    <CardTitle className="flex items-center justify-between text-base font-semibold text-muted-foreground">
-                        <span>ยอดเงินกำลังดำเนินการถอน</span>
-                        <Hourglass />
-                    </CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <p className="text-4xl font-bold tracking-tight">฿{pendingWithdrawalBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</p>
-                </CardContent>
-                 <CardFooter>
-                    <p className="text-xs text-muted-foreground">เงินจะเข้าบัญชีใน 1-2 วันทำการ</p>
                 </CardFooter>
             </Card>
           </div>
