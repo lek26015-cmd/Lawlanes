@@ -105,10 +105,10 @@ export default function AdminDashboard() {
                 className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8 bg-accent text-accent-foreground"
               >
                 <Home className="h-5 w-5" />
-                <span className="sr-only">Dashboard</span>
+                <span className="sr-only">แดชบอร์ด</span>
               </Link>
             </TooltipTrigger>
-            <TooltipContent side="right">Dashboard</TooltipContent>
+            <TooltipContent side="right">แดชบอร์ด</TooltipContent>
           </Tooltip>
            <Tooltip>
             <TooltipTrigger asChild>
@@ -117,10 +117,10 @@ export default function AdminDashboard() {
                 className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
               >
                 <Users2 className="h-5 w-5" />
-                <span className="sr-only">Customers</span>
+                <span className="sr-only">ลูกค้า</span>
               </Link>
             </TooltipTrigger>
-            <TooltipContent side="right">Customers</TooltipContent>
+            <TooltipContent side="right">ลูกค้า</TooltipContent>
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -129,10 +129,10 @@ export default function AdminDashboard() {
                 className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
               >
                 <ShieldCheck className="h-5 w-5" />
-                <span className="sr-only">Lawyers</span>
+                <span className="sr-only">ทนายความ</span>
               </Link>
             </TooltipTrigger>
-            <TooltipContent side="right">Lawyers</TooltipContent>
+            <TooltipContent side="right">ทนายความ</TooltipContent>
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
@@ -141,10 +141,10 @@ export default function AdminDashboard() {
                 className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
               >
                 <Landmark className="h-5 w-5" />
-                <span className="sr-only">Finances</span>
+                <span className="sr-only">การเงิน</span>
               </Link>
             </TooltipTrigger>
-            <TooltipContent side="right">Finances</TooltipContent>
+            <TooltipContent side="right">การเงิน</TooltipContent>
           </Tooltip>
            <Tooltip>
             <TooltipTrigger asChild>
@@ -153,10 +153,10 @@ export default function AdminDashboard() {
                 className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
               >
                 <Ticket className="h-5 w-5" />
-                <span className="sr-only">Support Tickets</span>
+                <span className="sr-only">Ticket ช่วยเหลือ</span>
               </Link>
             </TooltipTrigger>
-            <TooltipContent side="right">Support Tickets</TooltipContent>
+            <TooltipContent side="right">Ticket ช่วยเหลือ</TooltipContent>
           </Tooltip>
            <Tooltip>
             <TooltipTrigger asChild>
@@ -165,10 +165,10 @@ export default function AdminDashboard() {
                 className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
               >
                 <Megaphone className="h-5 w-5" />
-                <span className="sr-only">Ads Management</span>
+                <span className="sr-only">จัดการโฆษณา</span>
               </Link>
             </TooltipTrigger>
-            <TooltipContent side="right">Ads Management</TooltipContent>
+            <TooltipContent side="right">จัดการโฆษณา</TooltipContent>
           </Tooltip>
            <Tooltip>
             <TooltipTrigger asChild>
@@ -177,10 +177,10 @@ export default function AdminDashboard() {
                 className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 mdW-8"
               >
                 <FileText className="h-5 w-5" />
-                <span className="sr-only">Content & SEO</span>
+                <span className="sr-only">เนื้อหาและ SEO</span>
               </Link>
             </TooltipTrigger>
-            <TooltipContent side="right">Content & SEO</TooltipContent>
+            <TooltipContent side="right">เนื้อหาและ SEO</TooltipContent>
           </Tooltip>
         </nav>
         <nav className="mt-auto flex flex-col items-center gap-4 px-2 sm:py-5">
@@ -191,10 +191,10 @@ export default function AdminDashboard() {
                 className="flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:text-foreground md:h-8 md:w-8"
               >
                 <Settings className="h-5 w-5" />
-                <span className="sr-only">Settings</span>
+                <span className="sr-only">ตั้งค่า</span>
               </Link>
             </TooltipTrigger>
-            <TooltipContent side="right">Settings</TooltipContent>
+            <TooltipContent side="right">ตั้งค่า</TooltipContent>
           </Tooltip>
         </nav>
       </aside>
@@ -205,7 +205,7 @@ export default function AdminDashboard() {
             <SheetTrigger asChild>
               <Button size="icon" variant="outline" className="sm:hidden">
                 <PanelLeft className="h-5 w-5" />
-                <span className="sr-only">Toggle Menu</span>
+                <span className="sr-only">สลับเมนู</span>
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="sm:max-w-xs">
@@ -222,56 +222,56 @@ export default function AdminDashboard() {
                   className="flex items-center gap-4 px-2.5 text-foreground"
                 >
                   <Home className="h-5 w-5" />
-                  Dashboard
+                  แดชบอร์ด
                 </Link>
                 <Link
                   href="#"
                   className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
                 >
                   <Users2 className="h-5 w-5" />
-                  Customers
+                  ลูกค้า
                 </Link>
                 <Link
                   href="#"
                   className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
                 >
                   <ShieldCheck className="h-5 w-5" />
-                  Lawyers
+                  ทนายความ
                 </Link>
                  <Link
                   href="#"
                   className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
                 >
                   <Landmark className="h-5 w-5" />
-                  Finances
+                  การเงิน
                 </Link>
                  <Link
                   href="#"
                   className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
                 >
                   <Ticket className="h-5 w-5" />
-                  Support Tickets
+                  Ticket ช่วยเหลือ
                 </Link>
                   <Link
                   href="#"
                   className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
                 >
                   <Megaphone className="h-5 w-5" />
-                  Ads
+                  โฆษณา
                 </Link>
                   <Link
                   href="#"
                   className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
                 >
                   <FileText className="h-5 w-5" />
-                  Content
+                  เนื้อหา
                 </Link>
                 <Link
                   href="#"
                   className="flex items-center gap-4 px-2.5 text-muted-foreground hover:text-foreground"
                 >
                   <Settings className="h-5 w-5" />
-                  Settings
+                  ตั้งค่า
                 </Link>
               </nav>
             </SheetContent>
@@ -280,7 +280,7 @@ export default function AdminDashboard() {
             <BreadcrumbList>
               <BreadcrumbItem>
                 <BreadcrumbLink asChild>
-                  <Link href="#">Dashboard</Link>
+                  <Link href="#">แดชบอร์ด</Link>
                 </BreadcrumbLink>
               </BreadcrumbItem>
             </BreadcrumbList>
@@ -289,7 +289,7 @@ export default function AdminDashboard() {
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input
               type="search"
-              placeholder="Search..."
+              placeholder="ค้นหา..."
               className="w-full rounded-lg bg-background pl-8 md:w-[200px] lg:w-[336px]"
             />
           </div>
@@ -309,12 +309,12 @@ export default function AdminDashboard() {
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
-              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuLabel>บัญชีของฉัน</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>Settings</DropdownMenuItem>
-              <DropdownMenuItem>Support</DropdownMenuItem>
+              <DropdownMenuItem>ตั้งค่า</DropdownMenuItem>
+              <DropdownMenuItem>ช่วยเหลือ</DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>Logout</DropdownMenuItem>
+              <DropdownMenuItem>ออกจากระบบ</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         </header>
@@ -326,25 +326,24 @@ export default function AdminDashboard() {
                 x-chunk="dashboard-05-chunk-0"
               >
                 <CardHeader className="pb-3">
-                  <CardTitle>Welcome, Admin!</CardTitle>
+                  <CardTitle>ยินดีต้อนรับ, แอดมิน!</CardTitle>
                   <CardDescription className="max-w-lg text-balance leading-relaxed">
-                    This is the central hub for managing Lawlanes. Here you can
-                    oversee users, approve lawyers, monitor financials, and
-                    manage content.
+                    นี่คือศูนย์กลางการจัดการ Lawlanes ที่นี่คุณสามารถดูแลผู้ใช้,
+                    อนุมัติทนายความ, ตรวจสอบการเงิน และจัดการเนื้อหา
                   </CardDescription>
                 </CardHeader>
                 <CardFooter>
-                  <Button>Create New Article</Button>
+                  <Button>สร้างบทความใหม่</Button>
                 </CardFooter>
               </Card>
               <Card x-chunk="dashboard-05-chunk-1">
                 <CardHeader className="pb-2">
-                  <CardDescription>Total Revenue</CardDescription>
+                  <CardDescription>รายได้รวม</CardDescription>
                   <CardTitle className="text-4xl">฿1,259,345</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-xs text-muted-foreground">
-                    +25% from last month
+                    +25% จากเดือนที่แล้ว
                   </div>
                 </CardContent>
                 <CardFooter>
@@ -353,12 +352,12 @@ export default function AdminDashboard() {
               </Card>
               <Card x-chunk="dashboard-05-chunk-2">
                 <CardHeader className="pb-2">
-                  <CardDescription>New Users This Month</CardDescription>
+                  <CardDescription>ผู้ใช้ใหม่เดือนนี้</CardDescription>
                   <CardTitle className="text-4xl">342</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="text-xs text-muted-foreground">
-                    +10% from last month
+                    +10% จากเดือนที่แล้ว
                   </div>
                 </CardContent>
                 <CardFooter>
@@ -369,9 +368,9 @@ export default function AdminDashboard() {
             <Tabs defaultValue="pending_lawyers">
               <div className="flex items-center">
                 <TabsList>
-                  <TabsTrigger value="pending_lawyers">Pending Lawyers</TabsTrigger>
-                  <TabsTrigger value="open_tickets">Open Tickets</TabsTrigger>
-                  <TabsTrigger value="recent_tx">Recent Transactions</TabsTrigger>
+                  <TabsTrigger value="pending_lawyers">ทนายความรออนุมัติ</TabsTrigger>
+                  <TabsTrigger value="open_tickets">Ticket ที่เปิดอยู่</TabsTrigger>
+                  <TabsTrigger value="recent_tx">ธุรกรรมล่าสุด</TabsTrigger>
                 </TabsList>
                 <div className="ml-auto flex items-center gap-2">
                   <Button
@@ -380,69 +379,69 @@ export default function AdminDashboard() {
                     className="h-7 gap-1 text-sm"
                   >
                     <ListFilter className="h-3.5 w-3.5" />
-                    <span className="sr-only sm:not-sr-only">Filter</span>
+                    <span className="sr-only sm:not-sr-only">ตัวกรอง</span>
                   </Button>
                   <Button size="sm" className="h-7 gap-1 text-sm">
                     <PlusCircle className="h-3.5 w-3.5" />
-                    <span className="sr-only sm:not-sr-only">Add</span>
+                    <span className="sr-only sm:not-sr-only">เพิ่ม</span>
                   </Button>
                 </div>
               </div>
               <TabsContent value="pending_lawyers">
                 <Card>
                   <CardHeader className="px-7">
-                    <CardTitle>Pending Lawyer Approvals</CardTitle>
+                    <CardTitle>ทนายความรอการอนุมัติ</CardTitle>
                     <CardDescription>
-                      Review and approve new lawyer applications.
+                      ตรวจสอบและอนุมัติใบสมัครทนายความใหม่
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Lawyer</TableHead>
+                          <TableHead>ทนายความ</TableHead>
                           <TableHead className="hidden sm:table-cell">
-                            Specialty
+                            ความเชี่ยวชาญ
                           </TableHead>
                           <TableHead className="hidden md:table-cell">
-                            Applied On
+                            วันที่สมัคร
                           </TableHead>
-                          <TableHead className="text-right">Actions</TableHead>
+                          <TableHead className="text-right">การดำเนินการ</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         <TableRow>
                           <TableCell>
-                            <div className="font-medium">Narisara Petch</div >
+                            <div className="font-medium">นริศรา เพชร</div >
                             <div className="hidden text-sm text-muted-foreground md:inline">
                               narisara.p@example.com
                             </div>
                           </TableCell>
                           <TableCell className="hidden sm:table-cell">
-                            Corporate Law
+                            กฎหมายองค์กร
                           </TableCell>
                           <TableCell className="hidden md:table-cell">
                             2024-07-28
                           </TableCell>
                           <TableCell className="text-right">
-                             <Button size="sm">View Application</Button>
+                             <Button size="sm">ดูใบสมัคร</Button>
                           </TableCell>
                         </TableRow>
                          <TableRow>
                           <TableCell>
-                            <div className="font-medium">Chanon T.</div >
+                            <div className="font-medium">ชานนท์ ทวี</div >
                             <div className="hidden text-sm text-muted-foreground md:inline">
                               chanon.t@example.com
                             </div>
                           </TableCell>
                           <TableCell className="hidden sm:table-cell">
-                            SME Fraud Cases
+                            คดีฉ้อโกง SMEs
                           </TableCell>
                           <TableCell className="hidden md:table-cell">
                             2024-07-27
                           </TableCell>
                           <TableCell className="text-right">
-                             <Button size="sm">View Application</Button>
+                             <Button size="sm">ดูใบสมัคร</Button>
                           </TableCell>
                         </TableRow>
                       </TableBody>
@@ -453,41 +452,41 @@ export default function AdminDashboard() {
                 <TabsContent value="open_tickets">
                  <Card>
                   <CardHeader className="px-7">
-                    <CardTitle>Open Support Tickets</CardTitle>
+                    <CardTitle>Ticket ช่วยเหลือที่เปิดอยู่</CardTitle>
                     <CardDescription>
-                      Respond to customer and lawyer support requests.
+                      ตอบกลับคำขอความช่วยเหลือจากลูกค้าและทนายความ
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>User</TableHead>
+                          <TableHead>ผู้ใช้</TableHead>
                           <TableHead className="hidden sm:table-cell">
-                            Subject
+                            หัวข้อ
                           </TableHead>
                           <TableHead className="hidden md:table-cell">
-                            Date
+                            วันที่
                           </TableHead>
-                          <TableHead className="text-right">Actions</TableHead>
+                          <TableHead className="text-right">การดำเนินการ</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         <TableRow>
                           <TableCell>
-                            <div className="font-medium">Somying J.</div >
+                            <div className="font-medium">สมหญิง ใจดี</div >
                             <div className="hidden text-sm text-muted-foreground md:inline">
                               TICKET-5891A
                             </div>
                           </TableCell>
                           <TableCell className="hidden sm:table-cell">
-                             <Badge variant="destructive">Urgent</Badge> Payment Issue
+                             <Badge variant="destructive">ด่วน</Badge> ปัญหาการชำระเงิน
                           </TableCell>
                           <TableCell className="hidden md:table-cell">
                             2024-07-29
                           </TableCell>
                           <TableCell className="text-right">
-                             <Button size="sm">View Ticket</Button>
+                             <Button size="sm">ดู Ticket</Button>
                           </TableCell>
                         </TableRow>
                       </TableBody>
@@ -504,17 +503,17 @@ export default function AdminDashboard() {
               <CardHeader className="flex flex-row items-start bg-muted/50">
                 <div className="grid gap-0.5">
                   <CardTitle className="group flex items-center gap-2 text-lg">
-                    Manage Ad Campaigns
+                    จัดการแคมเปญโฆษณา
                   </CardTitle>
                   <CardDescription>
-                    Review performance and manage sponsored content.
+                    ตรวจสอบประสิทธิภาพและจัดการเนื้อหาสปอนเซอร์
                   </CardDescription>
                 </div>
                 <div className="ml-auto flex items-center gap-1">
                   <Button size="sm" variant="outline" className="h-8 gap-1">
                     <PlusCircle className="h-3.5 w-3.5" />
                     <span className="lg:sr-only xl:not-sr-only xl:whitespace-nowrap">
-                      New Ad
+                      โฆษณาใหม่
                     </span>
                   </Button>
                 </div>
@@ -523,8 +522,8 @@ export default function AdminDashboard() {
                  <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Ad Client</TableHead>
-                      <TableHead className="text-right">Clicks</TableHead>
+                      <TableHead>ลูกค้าโฆษณา</TableHead>
+                      <TableHead className="text-right">จำนวนคลิก</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
