@@ -244,10 +244,6 @@ export default function Home() {
             <div className="container mx-auto px-4 md:px-6">
                 <div className="grid lg:grid-cols-2 gap-12 items-center">
                     <div className="flex flex-col items-center lg:items-start text-center lg:text-left space-y-6">
-                        <Link href="/dashboard" className="text-sm text-background/80 hover:text-background mb-4 inline-flex items-center gap-2">
-                            <ArrowRight className="w-4 h-4" />
-                            กลับไปหน้าแดชบอร์ด
-                        </Link>
                         <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none font-headline">
                             ค้นหาทนายความ...
                             <br />
