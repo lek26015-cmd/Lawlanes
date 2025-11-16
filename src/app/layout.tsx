@@ -3,9 +3,7 @@ import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
 import React from 'react';
-import { FirebaseClientProvider } from '@/firebase/client-provider';
-import { ChatProvider } from '@/context/chat-context';
-import ClientLayout from '@/components/layout/client-layout';
+import { ClientProviders } from './client-providers';
 
 
 export const metadata: Metadata = {
@@ -26,11 +24,9 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
-        <FirebaseClientProvider>
-          <ChatProvider>
-            <ClientLayout>{children}</ClientLayout>
-          </ChatProvider>
-        </FirebaseClientProvider>
+        <ClientProviders>
+          {children}
+        </ClientProviders>
         <Toaster />
       </body>
     </html>
