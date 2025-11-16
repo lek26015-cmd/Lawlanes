@@ -246,6 +246,10 @@ export default function Home() {
             <div className="container mx-auto px-4 md:px-6">
                 <div className="grid lg:grid-cols-2 gap-12 items-center">
                     <div className="flex flex-col items-center lg:items-start text-center lg:text-left space-y-6">
+                        <Link href="/dashboard" className="text-sm text-background/80 hover:text-background mb-4 inline-flex items-center gap-2">
+                            <ArrowRight className="w-4 h-4" />
+                            กลับไปหน้าแดชบอร์ด
+                        </Link>
                         <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none font-headline">
                             ค้นหาทนายความ...
                             <br />
@@ -484,22 +488,24 @@ export default function Home() {
             <h2 className="text-3xl font-bold text-center mb-12 sm:text-5xl font-headline">สำนักงานกฎหมายแนะนำ</h2>
             <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
               {urgentJobs.map((job) => (
-                <div key={job.id} className="flex items-center gap-6 py-4 border-b">
-                   <div className="flex-shrink-0">
-                      <Image 
-                        src={job.logoUrl} 
-                        alt={`${job.companyName} logo`}
-                        width={120}
-                        height={80}
-                        className="rounded-lg object-contain border bg-white p-1.5"
-                        data-ai-hint={job.logoHint}
-                      />
-                   </div>
-                   <div>
-                      <h3 className="font-semibold text-xl">{job.companyName}</h3>
-                      <p className="text-lg text-muted-foreground">{job.description}</p>
-                   </div>
-                </div>
+                <Link href="#" key={job.id} className="block cursor-pointer group">
+                  <div className="flex items-center gap-6 py-4 border-b group-hover:bg-gray-50 p-4 rounded-lg">
+                    <div className="flex-shrink-0">
+                        <Image 
+                          src={job.logoUrl} 
+                          alt={`${job.companyName} logo`}
+                          width={120}
+                          height={80}
+                          className="rounded-lg object-contain border bg-white p-1.5"
+                          data-ai-hint={job.logoHint}
+                        />
+                    </div>
+                    <div>
+                        <h3 className="font-semibold text-xl group-hover:text-primary">{job.companyName}</h3>
+                        <p className="text-lg text-muted-foreground">{job.description}</p>
+                    </div>
+                  </div>
+                </Link>
               ))}
             </div>
           </div>
