@@ -39,10 +39,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         const unsubscribe = onAuthStateChanged(auth, (user) => {
             if (user) {
                 // In a real app, you'd check user roles from Firestore or custom claims.
-                // For this demo, we check if the email belongs to the admin domain.
-                const mockIsAdmin = user.email?.includes('@lawlanes.com');
+                // For this demo, we check if the email belongs to the admin domain or if it's the Super Admin UID.
+                const isSuperAdmin = user.uid === 'wS9w7ysNYUajNsBYZ6C7n2Afe9H3';
+                const mockIsAdminByEmail = user.email?.includes('@lawlanes.com');
                 
-                if (mockIsAdmin) {
+                if (isSuperAdmin || mockIsAdminByEmail) {
                     setIsAdmin(true);
                 } else {
                     setIsAdmin(false);
