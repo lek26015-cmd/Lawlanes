@@ -113,7 +113,9 @@ export default function AdminContentPage() {
                                         </DropdownMenuTrigger>
                                         <DropdownMenuContent align="end">
                                             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                            <DropdownMenuItem>แก้ไข</DropdownMenuItem>
+                                            <DropdownMenuItem asChild>
+                                              <Link href={`/admin/content/${article.id}/edit`}>แก้ไข</Link>
+                                            </DropdownMenuItem>
                                             <DropdownMenuItem className="text-destructive">ลบ</DropdownMenuItem>
                                         </DropdownMenuContent>
                                         </DropdownMenu>
