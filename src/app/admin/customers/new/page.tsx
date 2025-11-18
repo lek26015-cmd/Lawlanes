@@ -27,6 +27,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
+import AdminLayout from '../../layout'
 
 
 export default function AdminCustomerCreatePage() {
@@ -44,7 +45,7 @@ export default function AdminCustomerCreatePage() {
   }
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-muted/40">
+    <AdminLayout>
       <main className="flex-1 p-4 sm:px-6 sm:py-0 md:p-8">
         <div className="mx-auto grid max-w-2xl flex-1 auto-rows-max gap-4">
           <div className="flex items-center gap-4">
@@ -151,6 +152,6 @@ export default function AdminCustomerCreatePage() {
             </div>
         </div>
       </main>
-    </div>
+    </AdminLayout>
   )
 }

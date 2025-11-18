@@ -59,6 +59,7 @@ import {
   TabsList,
   TabsTrigger,
 } from '@/components/ui/tabs';
+import AdminLayout from '../layout';
 
 
 const mockTickets = [
@@ -99,64 +100,7 @@ export default function AdminTicketsPage() {
     }
 
   return (
-    <div className="grid min-h-screen w-full md:grid-cols-[280px_1fr] lg:grid-cols-[280px_1fr]">
-      <div className="hidden border-r bg-muted/40 md:block">
-        <div className="flex h-full max-h-screen flex-col gap-2">
-          <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
-            <Link href="/admin" className="flex items-center gap-2 font-semibold">
-              <Gavel className="h-6 w-6" />
-              <span className="">Lawlanes Admin</span>
-            </Link>
-          </div>
-          <div className="flex-1">
-            <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
-              <Link
-                href="/"
-                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                กลับไปหน้าแรก
-              </Link>
-              <Link
-                href="/admin"
-                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-              >
-                <Home className="h-4 w-4" />
-                แดชบอร์ด
-              </Link>
-              <Link
-                href="/admin/customers"
-                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-              >
-                <Users2 className="h-4 w-4" />
-                ลูกค้า
-              </Link>
-              <Link
-                href="/admin/lawyers"
-                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-              >
-                <ShieldCheck className="h-4 w-4" />
-                ทนายความ
-              </Link>
-              <Link
-                href="/admin/financials"
-                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-              >
-                <Landmark className="h-4 w-4" />
-                การเงิน
-              </Link>
-               <Link
-                href="/admin/tickets"
-                className="flex items-center gap-3 rounded-lg bg-muted px-3 py-2 text-primary transition-all hover:text-primary"
-              >
-                <Ticket className="h-4 w-4" />
-                Ticket ช่วยเหลือ
-              </Link>
-            </nav>
-          </div>
-        </div>
-      </div>
-      <div className="flex flex-col">
+    <AdminLayout>
         <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
             <Card>
                 <CardHeader>
@@ -240,7 +184,6 @@ export default function AdminTicketsPage() {
                 </CardFooter>
             </Card>
         </main>
-      </div>
-    </div>
+    </AdminLayout>
   )
 }

@@ -30,7 +30,7 @@ export default function ClientLayout({
   }
 
   if (isAdminPage) {
-    return <main>{children}</main>;
+    return <>{children}</>;
   }
   
   if (isAuthPage) {

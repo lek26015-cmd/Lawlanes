@@ -31,6 +31,7 @@ import { mockLawyers as allMockLawyers } from '@/lib/data'
 import type { LawyerProfile } from '@/lib/types';
 import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
+import AdminLayout from '../../layout'
 
 export default function AdminLawyerEditPage() {
   const params = useParams()
@@ -62,7 +63,7 @@ export default function AdminLawyerEditPage() {
 
 
   return (
-    <div className="flex min-h-screen w-full flex-col bg-muted/40">
+    <AdminLayout>
       <main className="flex-1 p-4 sm:px-6 sm:py-0 md:p-8">
         <div className="mx-auto grid max-w-2xl flex-1 auto-rows-max gap-4">
           <div className="flex items-center gap-4">
@@ -149,6 +150,6 @@ export default function AdminLawyerEditPage() {
           </Card>
         </div>
       </main>
-    </div>
+    </AdminLayout>
   )
 }

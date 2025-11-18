@@ -18,6 +18,7 @@ import { FileText, Ticket, Upload, ChevronLeft, User, Briefcase, CheckCircle, Cl
 import { useToast } from '@/hooks/use-toast';
 import { SupportChatBox } from '@/components/chat/support-chat-box';
 import { Separator } from '@/components/ui/separator';
+import AdminLayout from '../../layout';
 
 const mockTickets = [
     {
@@ -95,7 +96,8 @@ function AdminTicketDetailPageContent() {
     }
 
     return (
-        <div className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8 lg:grid-cols-3 xl:grid-cols-3">
+      <AdminLayout>
+        <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8 lg:grid-cols-3 xl:grid-cols-3">
              <div className="grid auto-rows-max items-start gap-4 md:gap-8 lg:col-span-2">
                  <div className="flex items-center gap-4">
                     <Link href="/admin/tickets">
@@ -158,20 +160,16 @@ function AdminTicketDetailPageContent() {
                     </CardContent>
                 </Card>
             </div>
-        </div>
+        </main>
+      </AdminLayout>
     )
 }
 
 
 export default function AdminTicketDetailPage() {
     return (
-        <div className="flex min-h-screen w-full flex-col bg-muted/40">
-            <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-                 <Suspense fallback={<div>Loading...</div>}>
-                    <AdminTicketDetailPageContent />
-                </Suspense>
-            </main>
-        </div>
+        <Suspense fallback={<div>Loading...</div>}>
+            <AdminTicketDetailPageContent />
+        </Suspense>
     )
 }
-
