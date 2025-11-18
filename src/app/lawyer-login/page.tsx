@@ -30,6 +30,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import Logo from '@/components/logo';
+import { Separator } from '@/components/ui/separator';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'รูปแบบอีเมลไม่ถูกต้อง' }),
@@ -126,18 +127,22 @@ export default function LawyerLoginPage() {
                 </Button>
               </form>
             </Form>
-            <div className="mt-4 text-center text-sm space-y-2">
+            <div className="mt-4 text-center text-sm">
               <p>
                 ยังไม่มีบัญชีทนายความ?{' '}
                 <Link href="/lawyer-signup" className="underline hover:text-primary">
                   สมัครเข้าร่วมที่นี่
                 </Link>
               </p>
-              <p>
-                <Link href="/login" className="text-muted-foreground underline text-xs">
-                  เข้าสู่ระบบสำหรับลูกค้า
-                </Link>
-              </p>
+            </div>
+            <Separator className="my-6" />
+            <div className="text-center">
+                <p className="text-sm text-muted-foreground mb-3">คุณเป็นลูกค้าใช่หรือไม่?</p>
+                 <Button variant="outline" asChild className="w-full">
+                    <Link href="/login">
+                      เข้าสู่ระบบสำหรับลูกค้า
+                    </Link>
+                </Button>
             </div>
           </CardContent>
         </Card>

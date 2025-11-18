@@ -189,18 +189,22 @@ export default function LoginPage() {
                 </Button>
               </form>
             </Form>
-            <div className="mt-4 text-center text-sm space-y-2">
+            <div className="mt-4 text-center text-sm">
                <p>
                   ยังไม่มีบัญชี?{' '}
                   <Link href="/signup" className="underline hover:text-primary">
                     สมัครสมาชิกที่นี่
                   </Link>
                </p>
-               <p>
-                <Link href="/lawyer-login" className="text-muted-foreground underline text-xs">
-                  สำหรับทนายความ
-                </Link>
-              </p>
+            </div>
+             <Separator className="my-6" />
+             <div className="text-center">
+                <p className="text-sm text-muted-foreground mb-3">คุณเป็นทนายความใช่หรือไม่?</p>
+                 <Button variant="outline" asChild className="w-full">
+                    <Link href="/lawyer-login">
+                      เข้าสู่ระบบสำหรับทนายความ
+                    </Link>
+                </Button>
             </div>
           </CardContent>
         </Card>
