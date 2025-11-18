@@ -9,7 +9,7 @@ import { ArrowLeft, DollarSign, Banknote, Landmark, Gavel, Home, Users2, ShieldC
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import { Badge } from '@/components/ui/badge';
 import React, { useState, useEffect, useMemo } from 'react';
-import { format, getMonth, getYear, isWithinInterval, parse } from 'date-fns';
+import { format, getMonth, getYear, isWithinInterval, parse, startOfMonth, endOfMonth } from 'date-fns';
 import { th } from 'date-fns/locale';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -62,25 +62,53 @@ const parseThaiDate = (thaiDate: string): Date => {
 };
 
 export default function AdminFinancialsPage() {
-  const [selectedYear, setSelectedYear] = useState<string>(getYear(new Date()).toString());
-  const [selectedMonth, setSelectedMonth] = useState<string>(getMonth(new Date()).toString());
-  const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>(allTransactions);
+    const defaultYear = getYear(new Date()).toString();
+    const defaultMonth = getMonth(new Date()).toString();
 
-  const years = useMemo(() => {
-    const allYears = allTransactions.map(tx => getYear(parseThaiDate(tx.date)));
-    return Array.from(new Set(allYears)).sort((a,b) => b - a).map(String);
-  }, []);
+    const [startYear, setStartYear] = useState<string>(defaultYear);
+    const [startMonth, setStartMonth] = useState<string>(defaultMonth);
+    const [endYear, setEndYear] = useState<string>(defaultYear);
+    const [endMonth, setEndMonth] = useState<string>(defaultMonth);
+    
+    const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>(allTransactions);
 
-  useEffect(() => {
-      const yearNum = parseInt(selectedYear);
-      const monthNum = parseInt(selectedMonth);
+    const availableMonths = useMemo(() => {
+        const monthSet = new Set<string>();
+        allTransactions.forEach(tx => {
+            const date = parseThaiDate(tx.date);
+            if (!isNaN(date.getTime())) {
+                monthSet.add(`${getYear(date)}-${getMonth(date)}`);
+            }
+        });
+        return Array.from(monthSet).map(my => {
+            const [year, month] = my.split('-');
+            return {
+                value: my,
+                label: `${thaiMonthNames[parseInt(month)]} ${parseInt(year) + 543}`
+            };
+        }).sort((a,b) => b.value.localeCompare(a.value)); // Sort descending
+    }, []);
 
-      const filtered = allTransactions.filter(tx => {
-        const txDate = parseThaiDate(tx.date);
-        return getYear(txDate) === yearNum && getMonth(txDate) === monthNum;
-      });
-      setFilteredTransactions(filtered);
-  }, [selectedYear, selectedMonth]);
+    const defaultMonthYear = `${defaultYear}-${defaultMonth}`;
+
+    useEffect(() => {
+        const [sYear, sMonth] = (startMonth || defaultMonthYear).split('-');
+        const [eYear, eMonth] = (endMonth || defaultMonthYear).split('-');
+        
+        const startDate = startOfMonth(new Date(parseInt(sYear), parseInt(sMonth)));
+        const endDate = endOfMonth(new Date(parseInt(eYear), parseInt(eMonth)));
+        
+        if (startDate > endDate) {
+            setFilteredTransactions([]);
+            return;
+        }
+
+        const filtered = allTransactions.filter(tx => {
+            const txDate = parseThaiDate(tx.date);
+            return isWithinInterval(txDate, { start: startDate, end: endDate });
+        });
+        setFilteredTransactions(filtered);
+    }, [startMonth, endMonth, defaultMonthYear]);
 
   // Mock Data
   const totalServiceValue = 1259345;
@@ -115,7 +143,7 @@ export default function AdminFinancialsPage() {
     const blob = new Blob([`\uFEFF${csvString}`], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.setAttribute('download', `transactions-${selectedYear}-${parseInt(selectedMonth)+1}.csv`);
+    link.setAttribute('download', `transactions-export.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -204,32 +232,33 @@ export default function AdminFinancialsPage() {
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                             <div className="flex-1">
                                 <CardTitle>รายการธุรกรรมล่าสุด</CardTitle>
-                                <CardDescription>แสดงธุรกรรมทั้งหมดตามเดือนและปีที่เลือก</CardDescription>
+                                <CardDescription>แสดงธุรกรรมทั้งหมดตามช่วงเดือนที่เลือก</CardDescription>
                             </div>
                             <div className="flex items-center gap-2">
-                                <Select value={selectedYear} onValueChange={setSelectedYear}>
-                                    <SelectTrigger className="w-[120px]">
-                                        <SelectValue placeholder="เลือกปี" />
+                                <Select value={startMonth || defaultMonthYear} onValueChange={setStartMonth}>
+                                    <SelectTrigger className="w-[180px]">
+                                        <SelectValue placeholder="เลือกเดือนเริ่มต้น" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {years.map(year => (
-                                            <SelectItem key={year} value={year}>พ.ศ. {parseInt(year) + 543}</SelectItem>
+                                        {availableMonths.map(month => (
+                                            <SelectItem key={month.value} value={month.value}>{month.label}</SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
-                                 <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                                    <SelectTrigger className="w-[150px]">
-                                        <SelectValue placeholder="เลือกเดือน" />
+                                 <span className="text-muted-foreground">-</span>
+                                 <Select value={endMonth || defaultMonthYear} onValueChange={setEndMonth}>
+                                    <SelectTrigger className="w-[180px]">
+                                        <SelectValue placeholder="เลือกเดือนสิ้นสุด" />
                                     </SelectTrigger>
                                     <SelectContent>
-                                        {thaiMonthNames.map((month, index) => (
-                                            <SelectItem key={month} value={index.toString()}>{month}</SelectItem>
+                                        {availableMonths.map(month => (
+                                            <SelectItem key={month.value} value={month.value}>{month.label}</SelectItem>
                                         ))}
                                     </SelectContent>
                                 </Select>
                                 <Button variant="outline" onClick={handleExport} disabled={filteredTransactions.length === 0}>
                                     <FileDown className="w-4 h-4 mr-2" />
-                                    Export
+                                    Export to Excel
                                 </Button>
                             </div>
                         </div>
