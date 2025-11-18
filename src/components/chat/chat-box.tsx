@@ -57,24 +57,38 @@ export function ChatBox({
     const chatRef = doc(firestore, 'chats', chatId);
     
     const ensureChatExists = async () => {
-      try {
-        const chatDoc = await getDocs(query(collection(firestore, 'chats'), where('__name__', '==', chatId)));
-        if (chatDoc.empty) {
-          const newChatData = {
-            participants: [currentUser.uid, otherUser.userId],
-            createdAt: serverTimestamp(),
-            caseTitle: 'คดี: มรดก', // Mock data
-          };
-          await setDoc(chatRef, newChatData);
+        const chatDocQuery = query(collection(firestore, 'chats'), where('__name__', '==', chatId));
+        
+        try {
+            const chatDoc = await getDocs(chatDocQuery);
+            if (chatDoc.empty) {
+                const newChatData = {
+                    participants: [currentUser.uid, otherUser.userId],
+                    createdAt: serverTimestamp(),
+                    caseTitle: 'คดี: มรดก', // Mock data
+                };
+                setDoc(chatRef, newChatData)
+                    .then(() => {
+                        setIsChatReady(true);
+                    })
+                    .catch(serverError => {
+                        const permissionError = new FirestorePermissionError({
+                            path: chatRef.path,
+                            operation: 'create',
+                            requestResourceData: newChatData,
+                        });
+                        errorEmitter.emit('permission-error', permissionError);
+                    });
+            } else {
+                setIsChatReady(true);
+            }
+        } catch (error) {
+             const permissionError = new FirestorePermissionError({
+                path: 'chats',
+                operation: 'list',
+            });
+            errorEmitter.emit('permission-error', permissionError);
         }
-        setIsChatReady(true);
-      } catch (error) {
-        const permissionError = new FirestorePermissionError({
-          path: 'chats',
-          operation: 'list',
-        });
-        errorEmitter.emit('permission-error', permissionError);
-      }
     };
     
     ensureChatExists();
