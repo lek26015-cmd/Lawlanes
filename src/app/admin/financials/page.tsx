@@ -8,11 +8,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ArrowLeft, DollarSign, Banknote, Landmark, Gavel, Home, Users2, ShieldCheck, Ticket, TrendingUp, HandCoins, FileDown, Calendar as CalendarIcon } from 'lucide-react';
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import { Badge } from '@/components/ui/badge';
-import React, { useState, useEffect } from 'react';
-import { format, getMonth, getYear, isWithinInterval } from 'date-fns';
+import React, { useState, useEffect, useMemo } from 'react';
+import { format, getMonth, getYear, isWithinInterval, parse } from 'date-fns';
 import { th } from 'date-fns/locale';
-import { DateRange } from "react-day-picker"
-import { DatePickerWithRange } from '@/components/ui/date-range-picker';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 
 type Transaction = {
@@ -50,6 +49,7 @@ const thaiMonthMap: { [key: string]: number } = {
   'ม.ค.': 0, 'ก.พ.': 1, 'มี.ค.': 2, 'เม.ย.': 3, 'พ.ค.': 4, 'มิ.ย.': 5,
   'ก.ค.': 6, 'ส.ค.': 7, 'ก.ย.': 8, 'ต.ค.': 9, 'พ.ย.': 10, 'ธ.ค.': 11
 };
+const thaiMonthNames = Object.keys(thaiMonthMap);
 
 const parseThaiDate = (thaiDate: string): Date => {
     const parts = thaiDate.split(' ');
@@ -62,21 +62,25 @@ const parseThaiDate = (thaiDate: string): Date => {
 };
 
 export default function AdminFinancialsPage() {
-  const [dateRange, setDateRange] = React.useState<DateRange | undefined>();
+  const [selectedYear, setSelectedYear] = useState<string>(getYear(new Date()).toString());
+  const [selectedMonth, setSelectedMonth] = useState<string>(getMonth(new Date()).toString());
   const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>(allTransactions);
 
+  const years = useMemo(() => {
+    const allYears = allTransactions.map(tx => getYear(parseThaiDate(tx.date)));
+    return Array.from(new Set(allYears)).sort((a,b) => b - a).map(String);
+  }, []);
+
   useEffect(() => {
-    if (!dateRange || !dateRange.from || !dateRange.to) {
-      setFilteredTransactions(allTransactions);
-    } else {
-      const { from, to } = dateRange;
+      const yearNum = parseInt(selectedYear);
+      const monthNum = parseInt(selectedMonth);
+
       const filtered = allTransactions.filter(tx => {
         const txDate = parseThaiDate(tx.date);
-        return isWithinInterval(txDate, { start: from, end: to });
+        return getYear(txDate) === yearNum && getMonth(txDate) === monthNum;
       });
       setFilteredTransactions(filtered);
-    }
-  }, [dateRange]);
+  }, [selectedYear, selectedMonth]);
 
   // Mock Data
   const totalServiceValue = 1259345;
@@ -111,7 +115,7 @@ export default function AdminFinancialsPage() {
     const blob = new Blob([`\uFEFF${csvString}`], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.setAttribute('download', `transactions-export.csv`);
+    link.setAttribute('download', `transactions-${selectedYear}-${parseInt(selectedMonth)+1}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -200,13 +204,32 @@ export default function AdminFinancialsPage() {
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                             <div className="flex-1">
                                 <CardTitle>รายการธุรกรรมล่าสุด</CardTitle>
-                                <CardDescription>แสดงธุรกรรมทั้งหมดตามช่วงวันที่เลือก</CardDescription>
+                                <CardDescription>แสดงธุรกรรมทั้งหมดตามเดือนและปีที่เลือก</CardDescription>
                             </div>
                             <div className="flex items-center gap-2">
-                                <DatePickerWithRange date={dateRange} setDate={setDateRange} />
+                                <Select value={selectedYear} onValueChange={setSelectedYear}>
+                                    <SelectTrigger className="w-[120px]">
+                                        <SelectValue placeholder="เลือกปี" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {years.map(year => (
+                                            <SelectItem key={year} value={year}>พ.ศ. {parseInt(year) + 543}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                 <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                                    <SelectTrigger className="w-[150px]">
+                                        <SelectValue placeholder="เลือกเดือน" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        {thaiMonthNames.map((month, index) => (
+                                            <SelectItem key={month} value={index.toString()}>{month}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                                 <Button variant="outline" onClick={handleExport} disabled={filteredTransactions.length === 0}>
                                     <FileDown className="w-4 h-4 mr-2" />
-                                    Export to Excel
+                                    Export
                                 </Button>
                             </div>
                         </div>
