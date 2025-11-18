@@ -14,46 +14,51 @@ import {
   FileText,
   ArrowLeftCircle
 } from 'lucide-react';
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { useUser } from '@/firebase'; // Using the main useUser hook
+import { useFirebase } from '@/firebase';
 import AdminLoginPage from './login/page';
-
+import { onAuthStateChanged } from 'firebase/auth';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const router = useRouter();
 
-    const { data: user, isLoading, areServicesAvailable } = useUser();
-    const [isAdmin, setIsAdmin] = useState(false); // Mock admin check
+    const { auth, areServicesAvailable } = useFirebase();
+    const [isAdmin, setIsAdmin] = useState(false);
     const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
-    React.useEffect(() => {
-        if (!isLoading) {
-            // In a real app, you'd check user roles from Firestore or custom claims
-            // For this demo, we'll just check if a user is logged in.
-            // A more robust check would be: user && user.customClaims.role === 'admin'
+    useEffect(() => {
+        if (!auth) {
+            setIsCheckingAuth(false);
+            return;
+        }
+
+        const unsubscribe = onAuthStateChanged(auth, (user) => {
             if (user) {
-                // Mock: Let's assume any logged-in user is an admin for demo purposes.
-                // In a real app, you would have a list of admin UIDs or a custom claim.
-                const adminUsers = ['admin-1', 'admin-2', 'admin-3']; // From mockAdmins in data.ts
+                // In a real app, you'd check user roles from Firestore or custom claims.
+                // For this demo, we check if the email belongs to the admin domain.
                 const mockIsAdmin = user.email?.includes('@lawlanes.com');
                 
                 if (mockIsAdmin) {
-                     setIsAdmin(true);
+                    setIsAdmin(true);
                 } else {
-                     setIsAdmin(false);
-                     // If user is logged in but not an admin, redirect them
-                     router.push('/');
+                    setIsAdmin(false);
+                    // If user is logged in but not an admin, redirect them from admin pages.
+                    if (pathname.startsWith('/admin')) {
+                         router.push('/');
+                    }
                 }
             } else {
                 setIsAdmin(false);
             }
             setIsCheckingAuth(false);
-        }
-    }, [user, isLoading, router]);
+        });
+
+        return () => unsubscribe();
+    }, [auth, router, pathname]);
 
     const navItems = [
         { href: "/admin", icon: <Home className="h-4 w-4" />, label: "แดชบอร์ด" },
