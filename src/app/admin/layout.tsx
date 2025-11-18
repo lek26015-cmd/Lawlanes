@@ -12,7 +12,9 @@ import {
   Users2,
   Megaphone,
   FileText,
-  ArrowLeftCircle
+  ArrowLeftCircle,
+  LogOut,
+  ChevronDown
 } from 'lucide-react';
 import React, { useState, useEffect, useContext } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
@@ -20,7 +22,17 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { FirebaseContext, FirebaseContextState } from '@/firebase';
 import AdminLoginPage from './login/page';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, signOut, User } from 'firebase/auth';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
@@ -32,6 +44,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
     const [isAdmin, setIsAdmin] = useState(false);
     const [isCheckingAuth, setIsCheckingAuth] = useState(true);
+    const [currentUser, setCurrentUser] = useState<User | null>(null);
+    const [userRole, setUserRole] = useState<string | null>(null);
 
     useEffect(() => {
         if (!areServicesAvailable) {
@@ -49,20 +63,33 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 
                 if (isSuperAdmin || mockIsAdminByEmail) {
                     setIsAdmin(true);
+                    setCurrentUser(user);
+                    setUserRole(isSuperAdmin ? 'Super Admin' : 'Administrator');
                 } else {
                     setIsAdmin(false);
+                    setCurrentUser(null);
+                    setUserRole(null);
                     if (pathname.startsWith('/admin') && pathname !== '/admin/login') {
                          router.push('/');
                     }
                 }
             } else {
                 setIsAdmin(false);
+                setCurrentUser(null);
+                 setUserRole(null);
             }
             setIsCheckingAuth(false);
         });
 
         return () => unsubscribe();
     }, [auth, areServicesAvailable]);
+
+    const handleLogout = async () => {
+        if (auth) {
+            await signOut(auth);
+            router.push('/admin/login');
+        }
+    };
 
     const navItems = [
         { href: "/admin", icon: <Home className="h-4 w-4" />, label: "แดชบอร์ด" },
@@ -113,24 +140,54 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 ))}
             </nav>
           </div>
-          <div className="mt-auto p-4 space-y-2">
-             <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
-                 <Link
-                    href="/admin/settings"
-                    className={cn("flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
-                        isActive("/admin/settings") && "bg-muted text-primary"
-                    )}
-                    >
-                    <Settings className="h-4 w-4" />
-                    ตั้งค่า
-                </Link>
-             </nav>
-             <Button variant="ghost" className="w-full justify-start" asChild>
-                <Link href="/">
-                    <ArrowLeftCircle className="mr-2 h-4 w-4" />
-                    กลับไปหน้าเว็บไซต์
-                </Link>
-             </Button>
+          <div className="mt-auto p-4 space-y-4">
+             <div className="border-t pt-4">
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="w-full justify-start px-2 h-auto">
+                            <div className="flex items-center gap-3">
+                                <Avatar className="h-9 w-9">
+                                    <AvatarImage src={currentUser?.photoURL || ''} />
+                                    <AvatarFallback>{currentUser?.displayName?.charAt(0) || currentUser?.email?.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                                <div className="flex-1 text-left">
+                                    <p className="text-sm font-semibold">{currentUser?.displayName || currentUser?.email}</p>
+                                    <p className="text-xs text-muted-foreground">{userRole}</p>
+                                </div>
+                                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                            </div>
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-64" align="end" forceMount>
+                        <DropdownMenuLabel className="font-normal">
+                        <div className="flex flex-col space-y-1">
+                            <p className="text-sm font-medium leading-none">{currentUser?.displayName}</p>
+                            <p className="text-xs leading-none text-muted-foreground">
+                            {currentUser?.email}
+                            </p>
+                        </div>
+                        </DropdownMenuLabel>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem asChild>
+                             <Link href="/admin/settings">
+                                <Settings className="mr-2 h-4 w-4" />
+                                <span>ตั้งค่า</span>
+                             </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem asChild>
+                             <Link href="/">
+                                <ArrowLeftCircle className="mr-2 h-4 w-4" />
+                                <span>กลับไปหน้าเว็บไซต์</span>
+                             </Link>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem onClick={handleLogout} className="text-destructive">
+                            <LogOut className="mr-2 h-4 w-4" />
+                            <span>ออกจากระบบ</span>
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+             </div>
           </div>
         </div>
       </div>
