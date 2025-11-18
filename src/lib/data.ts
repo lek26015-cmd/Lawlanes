@@ -61,6 +61,12 @@ export const mockLawyers: LawyerProfile[] = [
   },
 ];
 
+export const mockAdmins = [
+    { id: 'admin-1', name: 'แอดมินหลัก', email: 'admin@lawlanes.com', role: 'Super Admin' },
+    { id: 'admin-2', name: 'สมศรี มีชัย', email: 'somsri.m@lawlanes.com', role: 'Content Manager' },
+    { id: 'admin-3', name: 'วิชัย รักดี', email: 'wichai.r@lawlanes.com', role: 'Support Lead' },
+];
+
 export async function getApprovedLawyers(): Promise<LawyerProfile[]> {
   // In a real app, this would fetch from Firestore
   // e.g., await db.collection('lawyerProfiles').where('status', '==', 'approved').get();
