@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -25,18 +26,13 @@ function LawyersPageContent() {
   const [isSorting, setIsSorting] = useState(false);
   const [recommendedLawyerIds, setRecommendedLawyerIds] = useState<string[]>([]);
   const [progress, setProgress] = React.useState(10);
-  const [sidebarAds, setSidebarAds] = useState<Ad[]>([]);
 
   useEffect(() => {
     async function fetchData() {
       setIsLoading(true);
-      const [lawyers, ads] = await Promise.all([
-        getApprovedLawyers(),
-        getAdsByPlacement('Lawyer Page Sidebar')
-      ]);
+      const lawyers = await getApprovedLawyers();
       setAllLawyers(lawyers);
       setFilteredLawyers(lawyers);
-      setSidebarAds(ads);
       setIsLoading(false);
     }
     fetchData();
@@ -98,33 +94,6 @@ function LawyersPageContent() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
         <div className="col-span-1 space-y-6">
           <LawyerFilterSidebar />
-          <Card>
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                    <Award className="w-5 h-5 text-yellow-500"/>
-                    สำนักงานแนะนำ
-                </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-                {sidebarAds.slice(0, 3).map(ad => (
-                    <Link href={`/law-firm/${ad.id}`} key={ad.id} className="group block">
-                        <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100">
-                             <Image 
-                                src={ad.imageUrl}
-                                alt={`${ad.title} logo`}
-                                width={40}
-                                height={40}
-                                className="object-contain rounded-md bg-white p-1 border"
-                             />
-                            <div>
-                                <p className="font-semibold text-sm group-hover:text-primary">{ad.title}</p>
-                                <p className="text-xs text-muted-foreground">{ad.description}</p>
-                            </div>
-                        </div>
-                    </Link>
-                ))}
-            </CardContent>
-          </Card>
         </div>
         
         <div className="md:col-span-3">
@@ -165,5 +134,3 @@ export default function LawyersPage() {
         </React.Suspense>
     )
 }
-
-    

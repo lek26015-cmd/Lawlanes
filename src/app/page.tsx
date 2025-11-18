@@ -59,6 +59,7 @@ export default function Home() {
   const [recommendedLawyers, setRecommendedLawyers] = useState<LawyerProfile[]>([]);
   const [articles, setArticles] = useState<Article[]>([]);
   const [homepageBanners, setHomepageBanners] = useState<Ad[]>([]);
+  const [sidebarAds, setSidebarAds] = useState<Ad[]>([]);
   
   const [isFindingLawyers, setIsFindingLawyers] = useState(false);
   const [analysisText, setAnalysisText] = useState('');
@@ -85,12 +86,17 @@ export default function Home() {
 
   useEffect(() => {
     async function fetchData() {
-      const lawyers = await getApprovedLawyers();
+      const [lawyers, allArticles, banners, sidebarAdsData] = await Promise.all([
+        getApprovedLawyers(),
+        getAllArticles(),
+        getAdsByPlacement('Homepage Carousel'),
+        getAdsByPlacement('Lawyer Page Sidebar')
+      ]);
+
       setRecommendedLawyers(lawyers.slice(0, 3));
-      const allArticles = await getAllArticles();
       setArticles(allArticles.slice(0, 5));
-      const banners = await getAdsByPlacement('Homepage Carousel');
       setHomepageBanners(banners);
+      setSidebarAds(sidebarAdsData);
     }
     fetchData();
   }, []);
@@ -415,47 +421,37 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="w-full bg-gray-50 py-12 md:py-16 lg:py-20">
+        <section className="w-full bg-gray-50 py-12 md:py-24 lg:py-32">
             <div className="container mx-auto px-4 md:px-6">
-                <Carousel
-                  plugins={[carouselPlugin.current]}
-                  opts={{ align: "start", loop: true }}
-                  className="w-full"
-                  onMouseEnter={carouselPlugin.current.stop}
-                  onMouseLeave={carouselPlugin.current.reset}
-                >
-                  <CarouselContent>
-                    {homepageBanners.map((banner, index) => (
-                      <CarouselItem key={index}>
-                        <Card className={`bg-gradient-to-br from-gray-100 to-blue-50 text-foreground p-8 rounded-2xl shadow-lg text-center border-t-4 border-primary`}>
-                          <CardHeader className="p-0">
-                            <div className="mx-auto text-4xl mb-3">{
-                                {
-                                    'Homepage Carousel': <Award className="mx-auto h-12 w-12 text-primary mb-3" />,
-                                }[banner.placement] || <Sparkles className="mx-auto h-12 w-12 text-purple-600 mb-3" />
-                            }</div>
-                            <CardTitle className="text-2xl font-bold">{banner.title}</CardTitle>
-                          </CardHeader>
-                          <CardContent className="p-0 mt-4">
-                            <p className="text-muted-foreground mb-6 max-w-lg mx-auto">
-                              {banner.description}
-                            </p>
-                          </CardContent>
-                          <CardFooter className="p-0 mt-6 justify-center">
-                             <Button asChild size="lg" onClick={banner.action}>
-                              <Link href={banner.href || '#'}>{'ดูรายละเอียด'}</Link>
-                            </Button>
-                          </CardFooter>
+                <div className='text-center mb-12'>
+                    <h2 className='text-3xl font-bold tracking-tight text-foreground font-headline sm:text-4xl'>สำนักงานกฎหมายแนะนำ</h2>
+                     <p className="mt-2 text-muted-foreground">พาร์ทเนอร์ที่เชื่อถือได้ พร้อมให้คำปรึกษาธุรกิจของคุณ</p>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {sidebarAds.slice(0, 3).map(ad => (
+                    <Link href={`/law-firm/${ad.id}`} key={ad.id} className="group block">
+                        <Card className="h-full overflow-hidden transition-shadow duration-300 hover:shadow-xl hover:-translate-y-1">
+                            <CardHeader className="items-center text-center">
+                                <div className="relative h-24 w-24">
+                                     <Image 
+                                        src={ad.imageUrl}
+                                        alt={`${ad.title} logo`}
+                                        fill
+                                        className="object-contain rounded-md bg-white p-2 border"
+                                     />
+                                </div>
+                                <CardTitle className="pt-4 group-hover:text-primary">{ad.title}</CardTitle>
+                            </CardHeader>
+                            <CardContent className="text-center">
+                                <p className="text-muted-foreground">{ad.description}</p>
+                            </CardContent>
                         </Card>
-                      </CarouselItem>
-                    ))}
-                  </CarouselContent>
-                  <CarouselPrevious className="hidden sm:flex" />
-                  <CarouselNext className="hidden sm:flex" />
-                </Carousel>
+                    </Link>
+                ))}
+                </div>
             </div>
         </section>
-        
+
         <section id="articles" className="w-full py-12 md:py-24 lg:py-32 bg-white">
           <div className="container mx-auto px-4 md:px-6">
             <div className="flex justify-between items-center mb-12">
