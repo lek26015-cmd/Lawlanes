@@ -235,7 +235,8 @@ export default function LawyerSignupPage() {
                 />
                 
                 <div>
-                  <Label>เอกสารประกอบการสมัคร (ไฟล์ PDF หรือรูปภาพ)</Label>
+                  <Label>เอกสารประกอบการสมัคร</Label>
+                  <p className="text-sm text-muted-foreground">กรุณาอัปโหลดเอกสารต่อไปนี้: 1. สำเนาใบอนุญาตให้ว่าความ 2. สำเนาบัตรประชาชน 3. รูปถ่ายหน้าตรง</p>
                   <div className="mt-2 flex justify-center rounded-lg border border-dashed border-gray-900/25 px-6 py-10">
                     <div className="text-center">
                       <Upload className="mx-auto h-12 w-12 text-gray-300" />
@@ -249,7 +250,7 @@ export default function LawyerSignupPage() {
                         </label>
                         <p className="pl-1">หรือลากและวาง</p>
                       </div>
-                      <p className="text-xs leading-5 text-gray-600">PNG, JPG, PDF ขนาดไม่เกิน 10MB ต่อไฟล์</p>
+                      <p className="text-xs leading-5 text-gray-600">ไฟล์ PDF, PNG, JPG ขนาดไม่เกิน 10MB ต่อไฟล์</p>
                     </div>
                   </div>
                    {uploadedFiles.length > 0 && (
@@ -278,7 +279,7 @@ export default function LawyerSignupPage() {
             </Form>
             <div className="mt-6 text-center text-sm">
               เป็นสมาชิกอยู่แล้ว?{' '}
-              <Link href="/login" className="underline hover:text-primary">
+              <Link href="/lawyer-login" className="underline hover:text-primary">
                 เข้าสู่ระบบสำหรับทนาย
               </Link>
             </div>
