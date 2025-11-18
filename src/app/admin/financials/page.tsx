@@ -30,7 +30,12 @@ export default function AdminFinancialsPage() {
     { id: 'txn2', date: '27 ก.ค. 2567', description: 'ส่วนแบ่งรายได้แพลตฟอร์ม #case-001', amount: 525, type: 'fee', status: 'completed' },
     { id: 'txn3', date: '27 ก.ค. 2567', description: 'จ่ายเงินให้ทนาย #l-payout-012', amount: -2975, type: 'payout', status: 'completed' },
     { id: 'txn4', date: '26 ก.ค. 2567', description: 'ค่าบริการเคส #case-002', amount: 5000, type: 'revenue', status: 'completed' },
-    { id: 'txn5', date: '25 ก.ค. 2567', description: 'ค่าบริการเคส #case-003', amount: 8000, type: 'revenue', status: 'pending' },
+    { id: 'txn5', date: '25 ก.ค. 2567', description: 'ส่วนแบ่งรายได้แพลตฟอร์ม #case-002', amount: 750, type: 'fee', status: 'completed' },
+    { id: 'txn6', date: '25 ก.ค. 2567', description: 'จ่ายเงินให้ทนาย #l-payout-013', amount: -4250, type: 'payout', status: 'completed' },
+    { id: 'txn7', date: '25 ก.ค. 2567', description: 'ค่าบริการเคส #case-003', amount: 8000, type: 'revenue', status: 'pending' },
+    { id: 'txn8', date: '24 ก.ค. 2567', description: 'ค่าบริการเคส #case-004', amount: 2500, type: 'revenue', status: 'completed' },
+    { id: 'txn9', date: '23 ก.ค. 2567', description: 'ส่วนแบ่งรายได้แพลตฟอร์ม #case-004', amount: 375, type: 'fee', status: 'completed' },
+    { id: 'txn10', date: '23 ก.ค. 2567', description: 'จ่ายเงินให้ทนาย #l-payout-014', amount: -2125, type: 'payout', status: 'completed' },
   ];
   
   const monthlyData = [
