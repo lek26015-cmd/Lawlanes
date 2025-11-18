@@ -31,6 +31,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
     useEffect(() => {
+        if (!areServicesAvailable) {
+            // Firebase services are not ready, still "loading" from a user perspective
+            return;
+        }
         if (!auth) {
             setIsCheckingAuth(false);
             return;
@@ -59,7 +63,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         });
 
         return () => unsubscribe();
-    }, [auth, router, pathname]);
+    }, [auth, areServicesAvailable, router]);
 
     const navItems = [
         { href: "/admin", icon: <Home className="h-4 w-4" />, label: "แดชบอร์ด" },
@@ -76,7 +80,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         return pathname.startsWith(href);
     }
 
-    if (isCheckingAuth || !areServicesAvailable) {
+    if (isCheckingAuth) {
         return <div className="flex h-screen items-center justify-center">Loading...</div>;
     }
 
