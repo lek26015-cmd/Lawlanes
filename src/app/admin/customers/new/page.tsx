@@ -80,7 +80,7 @@ export default function AdminCustomerCreatePage() {
                   <Label htmlFor="picture">รูปโปรไฟล์</Label>
                   <div className="flex items-center gap-4">
                     <Avatar className="h-16 w-16">
-                      <AvatarImage src={undefined} />
+                      <AvatarImage />
                       <AvatarFallback>ลค</AvatarFallback>
                     </Avatar>
                     <Button variant="outline">
