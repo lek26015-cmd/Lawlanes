@@ -52,6 +52,14 @@ export default function ForLawyersPage() {
                 </div>
               ))}
             </div>
+             <div className="pt-6">
+                <Button asChild size="lg">
+                  <Link href="/lawyer-signup">สมัครเข้าร่วมทันที</Link>
+                </Button>
+                 <Button asChild size="lg" variant="ghost">
+                  <Link href="/lawyer-login">เข้าสู่ระบบสำหรับทนาย</Link>
+                </Button>
+            </div>
           </div>
           <div>
             <Card className="shadow-xl">

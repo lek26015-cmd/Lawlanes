@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation';
 
 export default function Footer() {
   const pathname = usePathname();
-  const isAuthPage = pathname === '/login' || pathname === '/signup' || pathname === '/lawyer-signup';
+  const isAuthPage = pathname === '/login' || pathname === '/signup' || pathname === '/lawyer-signup' || pathname === '/lawyer-login';
 
   const quickLinks = [
     { href: '/', label: 'หน้าแรก' },
@@ -20,7 +20,7 @@ export default function Footer() {
 
   const forLawyersLinks = [
     { href: '/for-lawyers', label: 'เข้าร่วมเป็นทนาย Lawlanes' },
-    { href: '/', label: 'เข้าสู่ระบบทนาย' },
+    { href: '/lawyer-login', label: 'เข้าสู่ระบบทนาย' },
     { href: '/lawyer-dashboard', label: 'Dashboard ทนาย' },
     { href: '/admin', label: 'แดชบอร์ดผู้ดูแล' },
   ];
@@ -32,7 +32,7 @@ export default function Footer() {
   ];
   
   if (isAuthPage) {
-    return null; // Don't render footer on login/signup pages
+    return null; // Don't render footer on auth pages
   }
 
 
