@@ -7,12 +7,10 @@ import {
   Gavel,
   Home,
   Landmark,
-  Megaphone,
   Settings,
   ShieldCheck,
   Ticket,
   Users2,
-  FileText
 } from 'lucide-react';
 import React from 'react';
 import { usePathname } from 'next/navigation';
@@ -29,11 +27,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         { href: "/admin/tickets", icon: <Ticket className="h-4 w-4" />, label: "Ticket ช่วยเหลือ" },
     ];
     
-    const secondaryNavItems = [
-         { href: "#", icon: <Megaphone className="h-4 w-4" />, label: "จัดการโฆษณา" },
-         { href: "#", icon: <FileText className="h-4 w-4" />, label: "เนื้อหาและ SEO" },
-    ];
-
     const isActive = (href: string) => {
         if (href === '/admin') return pathname === href;
         return pathname.startsWith(href);
@@ -70,29 +63,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         {item.label}
                     </Link>
                 ))}
-                 {secondaryNavItems.map((item) => (
-                    <Link
-                        key={item.label}
-                        href={item.href}
-                        className={cn("flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
-                         isActive(item.href) && "bg-muted text-primary"
-                        )}
-                    >
-                        {item.icon}
-                        {item.label}
-                    </Link>
-                 ))}
-            </nav>
-          </div>
-          <div className="mt-auto p-4">
-             <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
-               <Link
-                href="#"
-                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-              >
-                <Settings className="h-4 w-4" />
-                ตั้งค่า
-              </Link>
             </nav>
           </div>
         </div>
