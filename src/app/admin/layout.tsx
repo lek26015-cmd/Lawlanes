@@ -11,6 +11,8 @@ import {
   ShieldCheck,
   Ticket,
   Users2,
+  Megaphone,
+  FileText
 } from 'lucide-react';
 import React from 'react';
 import { usePathname } from 'next/navigation';
@@ -25,6 +27,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         { href: "/admin/lawyers", icon: <ShieldCheck className="h-4 w-4" />, label: "ทนายความ" },
         { href: "/admin/financials", icon: <Landmark className="h-4 w-4" />, label: "การเงิน" },
         { href: "/admin/tickets", icon: <Ticket className="h-4 w-4" />, label: "Ticket ช่วยเหลือ" },
+        { href: "/admin/ads", icon: <Megaphone className="h-4 w-4" />, label: "จัดการโฆษณา" },
+        { href: "/admin/content", icon: <FileText className="h-4 w-4" />, label: "จัดการเนื้อหา" },
     ];
     
     const isActive = (href: string) => {
@@ -53,7 +57,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </Link>
                {navItems.map((item) => (
                     <Link
-                        key={item.href}
+                        key={item.label}
                         href={item.href}
                         className={cn("flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
                          isActive(item.href) && "bg-muted text-primary"
@@ -64,6 +68,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     </Link>
                 ))}
             </nav>
+          </div>
+          <div className="mt-auto p-4">
+             <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
+                 <Link
+                    href="/admin/settings"
+                    className={cn("flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
+                        isActive("/admin/settings") && "bg-muted text-primary"
+                    )}
+                    >
+                    <Settings className="h-4 w-4" />
+                    ตั้งค่า
+                </Link>
+             </nav>
           </div>
         </div>
       </div>
