@@ -9,7 +9,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { createUserWithEmailAndPassword, updateProfile, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { useFirebase } from '@/firebase';
+import { useFirebase, errorEmitter, FirestorePermissionError } from '@/firebase';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -55,12 +55,22 @@ export default function SignupPage() {
 
       // 3. Create user profile document in Firestore
       const userRef = doc(firestore, 'users', user.uid);
-      await setDoc(userRef, {
+      const userProfileData = {
         uid: user.uid,
         name: values.name,
         email: values.email,
         role: 'customer', // Default role for general signup
-      });
+      };
+      
+      setDoc(userRef, userProfileData)
+        .catch(error => {
+            const permissionError = new FirestorePermissionError({
+              path: userRef.path,
+              operation: 'create',
+              requestResourceData: userProfileData,
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        });
       
       toast({
         title: 'สมัครสมาชิกสำเร็จ',
@@ -98,13 +108,22 @@ export default function SignupPage() {
       const userSnap = await getDoc(userRef);
 
       if (!userSnap.exists()) {
-        // Create a new user profile if it doesn't exist
-        await setDoc(userRef, {
+        const userProfileData = {
           uid: user.uid,
           name: user.displayName,
           email: user.email,
           role: 'customer',
-        });
+        };
+        // Create a new user profile if it doesn't exist
+        setDoc(userRef, userProfileData)
+          .catch(error => {
+              const permissionError = new FirestorePermissionError({
+                path: userRef.path,
+                operation: 'create',
+                requestResourceData: userProfileData,
+              });
+              errorEmitter.emit('permission-error', permissionError);
+          });
       }
 
       toast({
