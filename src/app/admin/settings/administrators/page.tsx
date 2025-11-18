@@ -111,7 +111,9 @@ export default function AdminAdministratorsPage() {
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
                                     <DropdownMenuLabel>การดำเนินการ</DropdownMenuLabel>
-                                    <DropdownMenuItem>แก้ไขสิทธิ์</DropdownMenuItem>
+                                    <DropdownMenuItem asChild>
+                                        <Link href={`/admin/settings/administrators/${admin.id}/edit`}>แก้ไขสิทธิ์</Link>
+                                    </DropdownMenuItem>
                                     <DropdownMenuSeparator />
                                     <DropdownMenuItem className="text-destructive">
                                         ลบออกจากระบบ
