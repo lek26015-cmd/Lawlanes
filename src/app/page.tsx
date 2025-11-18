@@ -283,6 +283,37 @@ export default function Home() {
             </div>
         </section>
 
+        {homepageBanners.length > 0 && (
+          <section className="w-full py-12 md:py-16 bg-background">
+            <div className="container mx-auto px-4 md:px-6">
+              <Carousel
+                plugins={[carouselPlugin.current]}
+                className="w-full"
+                onMouseEnter={carouselPlugin.current.stop}
+                onMouseLeave={carouselPlugin.current.reset}
+              >
+                <CarouselContent>
+                  {homepageBanners.map((ad) => (
+                    <CarouselItem key={ad.id}>
+                      <div className="p-1">
+                        <Card className="bg-secondary border-none">
+                          <CardContent className="flex flex-col md:flex-row items-center justify-center p-6 md:p-12 gap-6">
+                            <h3 className="text-2xl font-semibold text-center md:text-left">{ad.title}</h3>
+                            <p className="text-muted-foreground text-center md:text-left">{ad.description}</p>
+                            <Button>เรียนรู้เพิ่มเติม</Button>
+                          </CardContent>
+                        </Card>
+                      </div>
+                    </CarouselItem>
+                  ))}
+                </CarouselContent>
+                <CarouselPrevious className="hidden md:flex" />
+                <CarouselNext className="hidden md:flex" />
+              </Carousel>
+            </div>
+          </section>
+        )}
+
         <section id="features" className="w-full py-12 md:py-24 lg:py-32 bg-background">
           <div className="container mx-auto px-4 md:px-6">
             <div className="grid lg:grid-cols-2 gap-12 items-center">
