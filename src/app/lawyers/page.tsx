@@ -3,16 +3,17 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { getApprovedLawyers } from '@/lib/data';
+import { getApprovedLawyers, getUrgentJobs } from '@/lib/data';
 import LawyerCard from '@/components/lawyer-card';
-import type { LawyerProfile } from '@/lib/types';
+import type { LawyerProfile, UrgentJob } from '@/lib/types';
 import { Loader2, Award } from 'lucide-react';
 import React from 'react';
 import { Progress } from '@/components/ui/progress';
 import LawyerFilterSidebar from '@/components/lawyer-filter';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
+import Image from 'next/image';
 
 function LawyersPageContent() {
   const searchParams = useSearchParams();
@@ -24,16 +25,21 @@ function LawyersPageContent() {
   const [isSorting, setIsSorting] = useState(false);
   const [recommendedLawyerIds, setRecommendedLawyerIds] = useState<string[]>([]);
   const [progress, setProgress] = React.useState(10);
+  const [urgentJobs, setUrgentJobs] = useState<UrgentJob[]>([]);
 
   useEffect(() => {
-    async function fetchLawyers() {
+    async function fetchData() {
       setIsLoading(true);
-      const lawyers = await getApprovedLawyers();
+      const [lawyers, jobs] = await Promise.all([
+        getApprovedLawyers(),
+        getUrgentJobs()
+      ]);
       setAllLawyers(lawyers);
       setFilteredLawyers(lawyers);
+      setUrgentJobs(jobs);
       setIsLoading(false);
     }
-    fetchLawyers();
+    fetchData();
   }, []);
   
   const specialtyArray = useMemo(() => specialties ? specialties.split(',') : [], [specialties]);
@@ -92,14 +98,31 @@ function LawyersPageContent() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
         <div className="col-span-1 space-y-6">
           <LawyerFilterSidebar />
-          <Card className="bg-gradient-to-br from-gray-900 to-blue-900 text-white p-6 rounded-lg text-center shadow-lg">
-            <CardContent className="p-0">
-                <Award className="mx-auto h-10 w-10 text-yellow-400 mb-3" />
-                <h3 className="font-bold text-lg">สำนักงานกฎหมายแนะนำ</h3>
-                <p className="text-sm text-gray-300 mt-1 mb-4">บริการครบวงจรสำหรับธุรกิจ SME โดยทีมทนายมืออาชีพ</p>
-                <Button asChild variant="secondary">
-                    <Link href="#">ดูรายละเอียด</Link>
-                </Button>
+          <Card>
+            <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                    <Award className="w-5 h-5 text-yellow-500"/>
+                    สำนักงานแนะนำ
+                </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+                {urgentJobs.slice(0, 3).map(job => (
+                    <Link href={`/law-firm/${job.id}`} key={job.id} className="group block">
+                        <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100">
+                             <Image 
+                                src={job.logoUrl}
+                                alt={`${job.companyName} logo`}
+                                width={40}
+                                height={40}
+                                className="object-contain rounded-md bg-white p-1 border"
+                             />
+                            <div>
+                                <p className="font-semibold text-sm group-hover:text-primary">{job.companyName}</p>
+                                <p className="text-xs text-muted-foreground">{job.description}</p>
+                            </div>
+                        </div>
+                    </Link>
+                ))}
             </CardContent>
           </Card>
         </div>
