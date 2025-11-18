@@ -60,7 +60,6 @@ export default function AdminLawyerCreatePage() {
                   <Label htmlFor="picture">รูปโปรไฟล์</Label>
                   <div className="flex items-center gap-4">
                     <Avatar className="h-16 w-16">
-                      <AvatarImage />
                       <AvatarFallback>ทน</AvatarFallback>
                     </Avatar>
                     <Button variant="outline">
