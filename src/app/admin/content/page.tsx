@@ -39,8 +39,32 @@ import {
 } from '@/components/ui/tabs';
 import Image from 'next/image';
 import { mockArticles } from '@/lib/data';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useToast } from '@/hooks/use-toast';
+import { Article } from '@/lib/types';
+
 
 export default function AdminContentPage() {
+    const { toast } = useToast();
+
+    const handleDelete = (article: Article) => {
+        toast({
+            variant: "destructive",
+            title: "ลบบทความสำเร็จ (จำลอง)",
+            description: `บทความ "${article.title}" ได้ถูกลบออกจากระบบแล้ว`,
+        });
+    };
+
   return (
     <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
         <Card>
@@ -65,65 +89,83 @@ export default function AdminContentPage() {
                         </div>
                     </div>
                     <TabsContent value="all">
-                         <Table>
-                            <TableHeader>
-                            <TableRow>
-                                <TableHead className="hidden w-[100px] sm:table-cell">
-                                    รูปภาพ
-                                </TableHead>
-                                <TableHead>หัวข้อ</TableHead>
-                                <TableHead>หมวดหมู่</TableHead>
-                                <TableHead>
-                                <span className="sr-only">Actions</span>
-                                </TableHead>
-                            </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                            {mockArticles.map((article) => (
-                                <TableRow key={article.id}>
-                                    <TableCell className="hidden sm:table-cell">
-                                        <Image
-                                        alt={article.title}
-                                        className="aspect-square rounded-md object-cover"
-                                        height="64"
-                                        src={article.imageUrl}
-                                        width="64"
-                                        />
-                                    </TableCell>
-                                    <TableCell className="font-medium">
-                                        {article.title}
-                                        <div className="text-xs text-muted-foreground md:hidden">
-                                            {article.category}
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="hidden md:table-cell">
-                                         <Badge variant="outline">{article.category}</Badge>
-                                    </TableCell>
-                                    <TableCell>
-                                        <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button
-                                            aria-haspopup="true"
-                                            size="icon"
-                                            variant="ghost"
-                                            >
-                                            <MoreHorizontal className="h-4 w-4" />
-                                            <span className="sr-only">Toggle menu</span>
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
-                                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                                            <DropdownMenuItem asChild>
-                                              <Link href={`/admin/content/${article.id}/edit`}>แก้ไข</Link>
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem className="text-destructive">ลบ</DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </TableCell>
+                        <AlertDialog>
+                            <Table>
+                                <TableHeader>
+                                <TableRow>
+                                    <TableHead className="hidden w-[100px] sm:table-cell">
+                                        รูปภาพ
+                                    </TableHead>
+                                    <TableHead>หัวข้อ</TableHead>
+                                    <TableHead>หมวดหมู่</TableHead>
+                                    <TableHead>
+                                    <span className="sr-only">Actions</span>
+                                    </TableHead>
                                 </TableRow>
-                            ))}
-                            </TableBody>
-                        </Table>
+                                </TableHeader>
+                                <TableBody>
+                                {mockArticles.map((article) => (
+                                    <TableRow key={article.id}>
+                                        <TableCell className="hidden sm:table-cell">
+                                            <Image
+                                            alt={article.title}
+                                            className="aspect-square rounded-md object-cover"
+                                            height="64"
+                                            src={article.imageUrl}
+                                            width="64"
+                                            />
+                                        </TableCell>
+                                        <TableCell className="font-medium">
+                                            {article.title}
+                                            <div className="text-xs text-muted-foreground md:hidden">
+                                                {article.category}
+                                            </div>
+                                        </TableCell>
+                                        <TableCell className="hidden md:table-cell">
+                                            <Badge variant="outline">{article.category}</Badge>
+                                        </TableCell>
+                                        <TableCell>
+                                            <DropdownMenu>
+                                            <DropdownMenuTrigger asChild>
+                                                <Button
+                                                aria-haspopup="true"
+                                                size="icon"
+                                                variant="ghost"
+                                                >
+                                                <MoreHorizontal className="h-4 w-4" />
+                                                <span className="sr-only">Toggle menu</span>
+                                                </Button>
+                                            </DropdownMenuTrigger>
+                                            <DropdownMenuContent align="end">
+                                                <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                                                <DropdownMenuItem asChild>
+                                                <Link href={`/admin/content/${article.id}/edit`}>แก้ไข</Link>
+                                                </DropdownMenuItem>
+                                                <AlertDialogTrigger asChild>
+                                                    <DropdownMenuItem className="text-destructive" onSelect={(e) => e.preventDefault()}>ลบ</DropdownMenuItem>
+                                                </AlertDialogTrigger>
+                                            </DropdownMenuContent>
+                                            </DropdownMenu>
+                                        </TableCell>
+                                        <AlertDialogContent>
+                                            <AlertDialogHeader>
+                                                <AlertDialogTitle>คุณแน่ใจหรือไม่?</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                การกระทำนี้ไม่สามารถย้อนกลับได้ คุณกำลังจะลบบทความ "{article.title}" ออกจากระบบอย่างถาวร
+                                                </AlertDialogDescription>
+                                            </AlertDialogHeader>
+                                            <AlertDialogFooter>
+                                                <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+                                                <AlertDialogAction onClick={() => handleDelete(article)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                                    ยืนยันการลบ
+                                                </AlertDialogAction>
+                                            </AlertDialogFooter>
+                                        </AlertDialogContent>
+                                    </TableRow>
+                                ))}
+                                </TableBody>
+                            </Table>
+                         </AlertDialog>
                     </TabsContent>
                 </Tabs>
             </CardContent>
