@@ -393,7 +393,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="w-full bg-gray-50 py-12 md:py-24 lg:py-32">
+        <section className="w-full bg-background py-12 md:py-24 lg:py-32">
           <div className="container mx-auto px-4 md:px-6">
               <div className='text-center mb-12'>
                   <h2 className='text-3xl font-bold tracking-tight text-foreground font-headline sm:text-4xl'>ทนายที่แนะนำ</h2>
@@ -415,7 +415,7 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="w-full bg-background py-12 md:py-16 lg:py-20">
+        <section className="w-full bg-gray-50 py-12 md:py-16 lg:py-20">
             <div className="container mx-auto px-4 md:px-6">
                 <Carousel
                   plugins={[carouselPlugin.current]}
@@ -456,7 +456,7 @@ export default function Home() {
             </div>
         </section>
         
-        <section id="articles" className="w-full py-12 md:py-24 lg:py-32 bg-gray-50">
+        <section id="articles" className="w-full py-12 md:py-24 lg:py-32 bg-white">
           <div className="container mx-auto px-4 md:px-6">
             <div className="flex justify-between items-center mb-12">
               <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl font-headline text-foreground">
@@ -525,7 +525,7 @@ export default function Home() {
           </div>
         </section>
         
-        <section className="w-full py-12 md:py-24 lg:py-32 bg-white">
+        <section className="w-full py-12 md:py-24 lg:py-32 bg-gray-50">
           <div className="container mx-auto px-4 md:px-6 text-center">
              <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl font-headline text-foreground mb-8">
                 ได้รับความไว้วางใจจาก
@@ -581,5 +581,3 @@ export default function Home() {
     </>
   );
 }
-
-    
