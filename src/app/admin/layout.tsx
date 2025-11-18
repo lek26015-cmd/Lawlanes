@@ -63,7 +63,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         });
 
         return () => unsubscribe();
-    }, [auth, areServicesAvailable, router]);
+    }, [auth, areServicesAvailable, pathname]);
 
     const navItems = [
         { href: "/admin", icon: <Home className="h-4 w-4" />, label: "แดชบอร์ด" },
