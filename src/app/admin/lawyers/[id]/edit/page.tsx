@@ -146,6 +146,16 @@ export default function AdminLawyerEditPage() {
               </div>
             </CardContent>
           </Card>
+           <div className="flex items-center justify-end gap-2 md:hidden">
+              <Link href={`/admin/lawyers/${id}`}>
+                <Button variant="outline" size="sm">
+                    ยกเลิก
+                </Button>
+              </Link>
+              <Button size="sm" onClick={handleSaveChanges}>
+                บันทึกการเปลี่ยนแปลง
+              </Button>
+            </div>
         </div>
       </main>
   )

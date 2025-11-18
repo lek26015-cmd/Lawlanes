@@ -18,7 +18,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import Link from 'next/link'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
@@ -43,6 +43,7 @@ const mockCustomer = {
 
 export default function AdminCustomerEditPage() {
   const params = useParams()
+  const router = useRouter()
   const { id } = params
   const { toast } = useToast()
 
@@ -54,6 +55,7 @@ export default function AdminCustomerEditPage() {
         title: "บันทึกข้อมูลสำเร็จ",
         description: `ข้อมูลของลูกค้า ${customer.name} ได้รับการอัปเดตแล้ว`,
     })
+    router.push(`/admin/customers/${id}`)
   }
 
   return (
@@ -149,6 +151,16 @@ export default function AdminCustomerEditPage() {
               </div>
             </CardContent>
           </Card>
+           <div className="flex items-center justify-end gap-2 md:hidden">
+              <Link href={`/admin/customers/${id}`}>
+                <Button variant="outline" size="sm">
+                    ยกเลิก
+                </Button>
+              </Link>
+              <Button size="sm" onClick={handleSaveChanges}>
+                บันทึกการเปลี่ยนแปลง
+              </Button>
+            </div>
         </div>
       </main>
   )
