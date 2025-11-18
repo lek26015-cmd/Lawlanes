@@ -5,7 +5,8 @@ import * as React from 'react'
 import {
   ChevronLeft,
   Upload,
-  Info
+  Info,
+  PlusCircle
 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
@@ -36,6 +37,9 @@ export default function AdminArticleCreatePage() {
   
   const [title, setTitle] = React.useState('');
   const [slug, setSlug] = React.useState('');
+  const [categories, setCategories] = React.useState(['กฎหมายแรงงาน', 'กฎหมายธุรกิจ', 'ทรัพย์สินทางปัญญา', 'คดีฉ้อโกง', 'กฎหมายแพ่ง']);
+  const [newCategory, setNewCategory] = React.useState('');
+
 
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newTitle = e.target.value;
@@ -60,7 +64,22 @@ export default function AdminArticleCreatePage() {
     router.push('/admin/content');
   }
   
-  const categories = ['กฎหมายแรงงาน', 'กฎหมายธุรกิจ', 'ทรัพย์สินทางปัญญา', 'คดีฉ้อโกง', 'กฎหมายแพ่ง'];
+  const handleAddNewCategory = () => {
+    if (newCategory && !categories.includes(newCategory)) {
+        setCategories(prev => [...prev, newCategory]);
+        setNewCategory('');
+        toast({
+            title: 'เพิ่มหมวดหมู่สำเร็จ',
+            description: `หมวดหมู่ "${newCategory}" ได้ถูกเพิ่มในรายการแล้ว`,
+        });
+    } else {
+        toast({
+            variant: 'destructive',
+            title: 'ไม่สามารถเพิ่มหมวดหมู่ได้',
+            description: 'อาจเป็นเพราะช่องว่างหรือมีหมวดหมู่นี้อยู่แล้ว',
+        })
+    }
+  }
 
 
   return (
@@ -194,6 +213,20 @@ export default function AdminArticleCreatePage() {
                                     ))}
                                 </SelectContent>
                             </Select>
+                        </div>
+                         <div className="grid gap-3">
+                            <Label htmlFor="new-category">เพิ่มหมวดหมู่ใหม่</Label>
+                            <div className="flex gap-2">
+                                <Input 
+                                    id="new-category" 
+                                    placeholder="เช่น กฎหมายครอบครัว"
+                                    value={newCategory}
+                                    onChange={(e) => setNewCategory(e.target.value)}
+                                />
+                                <Button variant="outline" size="icon" onClick={handleAddNewCategory}>
+                                    <PlusCircle className="h-4 w-4" />
+                                </Button>
+                            </div>
                         </div>
                        </div>
                     </CardContent>
