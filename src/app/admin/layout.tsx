@@ -189,7 +189,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </div>
       </div>
       <div className="flex flex-col overflow-auto bg-muted/40">
-        {children}
+        {React.cloneElement(children as React.ReactElement, { userRole })}
       </div>
     </div>
   );

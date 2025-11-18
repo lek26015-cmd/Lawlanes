@@ -43,24 +43,30 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 
-export default function AdminDashboard() {
+interface AdminDashboardProps {
+  userRole?: string | null;
+}
+
+export default function AdminDashboard({ userRole }: AdminDashboardProps) {
   return (
     <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
       <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
-          <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              รายได้รวม
-            </CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">฿1,259,345.00</div>
-            <p className="text-xs text-muted-foreground">
-              +20.1% จากเดือนที่แล้ว
-            </p>
-          </CardContent>
-        </Card>
+          {userRole === 'Super Admin' && (
+            <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">
+                รายได้รวม
+              </CardTitle>
+              <DollarSign className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">฿1,259,345.00</div>
+              <p className="text-xs text-muted-foreground">
+                +20.1% จากเดือนที่แล้ว
+              </p>
+            </CardContent>
+          </Card>
+          )}
           <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
