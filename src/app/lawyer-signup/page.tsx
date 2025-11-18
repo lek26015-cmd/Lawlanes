@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -20,6 +21,7 @@ import { Loader2, Upload, FileText, X } from 'lucide-react';
 import Logo from '@/components/logo';
 import { errorEmitter } from '@/firebase/error-emitter';
 import { FirestorePermissionError } from '@/firebase/errors';
+import { Label } from '@/components/ui/label';
 
 const specialties = [
   'คดีฉ้อโกง SMEs',
@@ -128,7 +130,6 @@ export default function LawyerSignupPage() {
       });
       
       // In a real app, you would upload files to Firebase Storage here.
-      // For now, we just log them.
       console.log('Uploading files:', uploadedFiles.map(f => f.name));
 
       toast({
