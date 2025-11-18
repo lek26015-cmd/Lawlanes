@@ -68,9 +68,6 @@ export default function AdminLoginPage() {
         description: 'กำลังนำคุณไปยังแดชบอร์ดผู้ดูแลระบบ...',
       });
       // The layout will handle the redirect after auth state changes.
-      // No need for router.push here if layout handles it.
-      // To be safe, we can force a reload to trigger the layout's auth check.
-      window.location.reload();
 
     } catch (error: any) {
       console.error(error);
