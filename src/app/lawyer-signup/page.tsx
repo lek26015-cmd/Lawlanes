@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { createUserWithEmailAndPassword, updateProfile, signOut } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useFirebase } from '@/firebase';
 
@@ -18,6 +18,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, Upload, FileText, X } from 'lucide-react';
 import Logo from '@/components/logo';
+import { errorEmitter } from '@/firebase/error-emitter';
+import { FirestorePermissionError } from '@/firebase/errors';
 
 const specialties = [
   'คดีฉ้อโกง SMEs',
@@ -89,16 +91,24 @@ export default function LawyerSignupPage() {
 
       // 3. Create user profile document in Firestore (users collection)
       const userDocRef = doc(firestore, 'users', user.uid);
-      await setDoc(userDocRef, {
+      const userProfileData = {
         uid: user.uid,
         name: values.name,
         email: values.email,
         role: 'lawyer',
+      };
+      setDoc(userDocRef, userProfileData).catch(error => {
+        const permissionError = new FirestorePermissionError({
+          path: userDocRef.path,
+          operation: 'create',
+          requestResourceData: userProfileData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
       });
       
       // 4. Create lawyer profile document in Firestore (lawyerProfiles collection)
       const lawyerProfileRef = doc(firestore, 'lawyerProfiles', user.uid);
-      await setDoc(lawyerProfileRef, {
+      const lawyerProfileData = {
         userId: user.uid,
         name: values.name,
         licenseNumber: values.licenseNumber,
@@ -107,6 +117,14 @@ export default function LawyerSignupPage() {
         description: '', // Admin will fill this later
         imageUrl: '',
         joinedAt: serverTimestamp(),
+      };
+      setDoc(lawyerProfileRef, lawyerProfileData).catch(error => {
+        const permissionError = new FirestorePermissionError({
+          path: lawyerProfileRef.path,
+          operation: 'create',
+          requestResourceData: lawyerProfileData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
       });
       
       // In a real app, you would upload files to Firebase Storage here.
