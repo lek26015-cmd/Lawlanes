@@ -2,7 +2,7 @@
 'use client';
 
 import * as React from 'react';
-import { ChevronLeft } from 'lucide-react';
+import { ChevronLeft, PlusCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -22,6 +22,25 @@ export default function AdminCreateAdministratorPage() {
   const router = useRouter();
   const { toast } = useToast();
   const [name, setName] = React.useState('');
+  const [roles, setRoles] = React.useState(['Super Admin', 'Content Manager', 'Support Lead']);
+  const [newRole, setNewRole] = React.useState('');
+  
+  const handleAddNewRole = () => {
+    if (newRole && !roles.includes(newRole)) {
+        setRoles(prev => [...prev, newRole]);
+        setNewRole('');
+        toast({
+            title: 'เพิ่มตำแหน่งสำเร็จ',
+            description: `ตำแหน่ง "${newRole}" ได้ถูกเพิ่มในรายการแล้ว`,
+        });
+    } else {
+        toast({
+            variant: 'destructive',
+            title: 'ไม่สามารถเพิ่มตำแหน่งได้',
+            description: 'อาจเป็นเพราะช่องว่างหรือมีตำแหน่งนี้อยู่แล้ว',
+        })
+    }
+  }
 
   const handleSaveChanges = () => {
     toast({
@@ -90,18 +109,34 @@ export default function AdminCreateAdministratorPage() {
                   <Label htmlFor="password">รหัสผ่านชั่วคราว</Label>
                   <Input id="password" type="password" />
                 </div>
-              <div className="grid gap-3">
-                <Label htmlFor="role">ตำแหน่ง</Label>
-                <Select>
-                  <SelectTrigger id="role" aria-label="Select role">
-                    <SelectValue placeholder="เลือกตำแหน่ง" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="super-admin">Super Admin</SelectItem>
-                    <SelectItem value="content-manager">Content Manager</SelectItem>
-                    <SelectItem value="support-lead">Support Lead</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-3">
+                    <Label htmlFor="role">ตำแหน่ง</Label>
+                    <Select>
+                    <SelectTrigger id="role" aria-label="Select role">
+                        <SelectValue placeholder="เลือกตำแหน่ง" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {roles.map(role => (
+                            <SelectItem key={role} value={role}>{role}</SelectItem>
+                        ))}
+                    </SelectContent>
+                    </Select>
+                </div>
+                 <div className="grid gap-3">
+                    <Label htmlFor="new-role">สร้างตำแหน่งใหม่</Label>
+                    <div className="flex gap-2">
+                        <Input 
+                            id="new-role" 
+                            placeholder="เช่น Marketing"
+                            value={newRole}
+                            onChange={(e) => setNewRole(e.target.value)}
+                        />
+                        <Button variant="outline" size="icon" onClick={handleAddNewRole}>
+                            <PlusCircle className="h-4 w-4" />
+                        </Button>
+                    </div>
+                </div>
               </div>
             </div>
           </CardContent>
