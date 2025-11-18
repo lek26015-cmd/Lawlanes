@@ -29,7 +29,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
-import AdminLayout from '../../layout'
 
 const mockCustomer = {
     id: "cus_001",
@@ -58,7 +57,6 @@ export default function AdminCustomerEditPage() {
   }
 
   return (
-    <AdminLayout>
       <main className="flex-1 p-4 sm:px-6 sm:py-0 md:p-8">
         <div className="mx-auto grid max-w-2xl flex-1 auto-rows-max gap-4">
           <div className="flex items-center gap-4">
@@ -153,6 +151,5 @@ export default function AdminCustomerEditPage() {
           </Card>
         </div>
       </main>
-    </AdminLayout>
   )
 }

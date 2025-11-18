@@ -18,7 +18,6 @@ import { FileText, Ticket, Upload, ChevronLeft, User, Briefcase, CheckCircle, Cl
 import { useToast } from '@/hooks/use-toast';
 import { SupportChatBox } from '@/components/chat/support-chat-box';
 import { Separator } from '@/components/ui/separator';
-import AdminLayout from '../../layout';
 
 const mockTickets = [
     {
@@ -96,72 +95,70 @@ function AdminTicketDetailPageContent() {
     }
 
     return (
-      <AdminLayout>
-        <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8 lg:grid-cols-3 xl:grid-cols-3">
-             <div className="grid auto-rows-max items-start gap-4 md:gap-8 lg:col-span-2">
-                 <div className="flex items-center gap-4">
-                    <Link href="/admin/tickets">
-                      <Button variant="outline" size="icon" className="h-7 w-7">
-                        <ChevronLeft className="h-4 w-4" />
-                        <span className="sr-only">กลับ</span>
-                      </Button>
-                    </Link>
-                    <h1 className="flex-1 shrink-0 whitespace-nowrap text-xl font-semibold tracking-tight sm:grow-0">
-                      Ticket: {ticket.id}
-                    </h1>
-                     <div className="ml-auto">
-                        {statusBadges[ticket.status]}
-                     </div>
-                  </div>
-                 <SupportChatBox ticket={reportedTicket} isDisabled={isResolved} />
-            </div>
+      <main className="grid flex-1 items-start gap-4 p-4 sm:px-6 sm:py-0 md:gap-8 lg:grid-cols-3 xl:grid-cols-3">
+           <div className="grid auto-rows-max items-start gap-4 md:gap-8 lg:col-span-2">
+               <div className="flex items-center gap-4">
+                  <Link href="/admin/tickets">
+                    <Button variant="outline" size="icon" className="h-7 w-7">
+                      <ChevronLeft className="h-4 w-4" />
+                      <span className="sr-only">กลับ</span>
+                    </Button>
+                  </Link>
+                  <h1 className="flex-1 shrink-0 whitespace-nowrap text-xl font-semibold tracking-tight sm:grow-0">
+                    Ticket: {ticket.id}
+                  </h1>
+                   <div className="ml-auto">
+                      {statusBadges[ticket.status]}
+                   </div>
+                </div>
+               <SupportChatBox ticket={reportedTicket} isDisabled={isResolved} />
+          </div>
 
-            <div className="space-y-6">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>สรุปข้อมูล</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4 text-sm">
-                        <div className="flex justify-between">
-                            <span className="text-muted-foreground">หัวข้อปัญหา:</span>
-                            <span className="font-semibold">{ticket.problemType}</span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span className="text-muted-foreground">วันที่แจ้ง:</span>
-                            <span>{ticket.reportedAt}</span>
-                        </div>
-                        <Separator />
-                         <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground flex items-center gap-2"><User /> ผู้แจ้งปัญหา</span>
-                            <Link href={`/admin/customers/cus_001`} className="font-semibold text-primary hover:underline">{ticket.clientName}</Link>
-                        </div>
-                         <div className="flex justify-between items-center">
-                            <span className="text-muted-foreground flex items-center gap-2"><Briefcase /> เคสที่เกี่ยวข้อง</span>
-                            <span className="font-mono">{ticket.caseId}</span>
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle>การดำเนินการ</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        {isResolved ? (
-                             <div className="text-center p-4 bg-green-50 rounded-md border border-green-200">
-                                <CheckCircle className="mx-auto w-8 h-8 text-green-600 mb-2"/>
-                                <p className="font-semibold text-green-800">Ticket นี้ได้รับการแก้ไขแล้ว</p>
-                            </div>
-                        ) : (
-                             <Button className="w-full" onClick={handleResolveTicket}>
-                                <CheckCircle className="mr-2" />
-                                Mark as Resolved
-                            </Button>
-                        )}
-                    </CardContent>
-                </Card>
-            </div>
-        </main>
-      </AdminLayout>
+          <div className="space-y-6">
+              <Card>
+                  <CardHeader>
+                      <CardTitle>สรุปข้อมูล</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4 text-sm">
+                      <div className="flex justify-between">
+                          <span className="text-muted-foreground">หัวข้อปัญหา:</span>
+                          <span className="font-semibold">{ticket.problemType}</span>
+                      </div>
+                      <div className="flex justify-between">
+                          <span className="text-muted-foreground">วันที่แจ้ง:</span>
+                          <span>{ticket.reportedAt}</span>
+                      </div>
+                      <Separator />
+                       <div className="flex justify-between items-center">
+                          <span className="text-muted-foreground flex items-center gap-2"><User /> ผู้แจ้งปัญหา</span>
+                          <Link href={`/admin/customers/cus_001`} className="font-semibold text-primary hover:underline">{ticket.clientName}</Link>
+                      </div>
+                       <div className="flex justify-between items-center">
+                          <span className="text-muted-foreground flex items-center gap-2"><Briefcase /> เคสที่เกี่ยวข้อง</span>
+                          <span className="font-mono">{ticket.caseId}</span>
+                      </div>
+                  </CardContent>
+              </Card>
+              <Card>
+                  <CardHeader>
+                      <CardTitle>การดำเนินการ</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                      {isResolved ? (
+                           <div className="text-center p-4 bg-green-50 rounded-md border border-green-200">
+                              <CheckCircle className="mx-auto w-8 h-8 text-green-600 mb-2"/>
+                              <p className="font-semibold text-green-800">Ticket นี้ได้รับการแก้ไขแล้ว</p>
+                          </div>
+                      ) : (
+                           <Button className="w-full" onClick={handleResolveTicket}>
+                              <CheckCircle className="mr-2" />
+                              Mark as Resolved
+                          </Button>
+                      )}
+                  </CardContent>
+              </Card>
+          </div>
+      </main>
     )
 }
 

@@ -42,7 +42,6 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import AdminLayout from './layout';
 
 export default function AdminDashboard() {
   return (

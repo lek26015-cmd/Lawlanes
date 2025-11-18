@@ -8,7 +8,6 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { toast } from '@/hooks/use-toast';
-import AdminLayout from '../layout';
 import { Separator } from '@/components/ui/separator';
 
 export default function AdminSettingsPage() {
@@ -21,7 +20,6 @@ export default function AdminSettingsPage() {
     }
 
   return (
-    <AdminLayout>
       <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
         <div className="mx-auto grid w-full max-w-4xl gap-2">
           <h1 className="text-3xl font-semibold">ตั้งค่าระบบ</h1>
@@ -83,6 +81,5 @@ export default function AdminSettingsPage() {
           </div>
         </div>
       </main>
-    </AdminLayout>
   );
 }

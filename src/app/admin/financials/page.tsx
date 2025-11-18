@@ -8,7 +8,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { ArrowLeft, DollarSign, Banknote, Landmark, Gavel, Home, Users2, ShieldCheck, Ticket } from 'lucide-react';
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import { Badge } from '@/components/ui/badge';
-import AdminLayout from '../layout';
 
 type Transaction = {
   id: string;
@@ -48,7 +47,6 @@ export default function AdminFinancialsPage() {
   };
 
   return (
-    <AdminLayout>
       <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
           <Card>
               <CardHeader>
@@ -160,6 +158,5 @@ export default function AdminFinancialsPage() {
               </CardContent>
           </Card>
       </main>
-    </AdminLayout>
   );
 }
