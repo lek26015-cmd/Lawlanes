@@ -14,11 +14,11 @@ import {
   FileText,
   ArrowLeftCircle
 } from 'lucide-react';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { useFirebase } from '@/firebase';
+import { FirebaseContext, FirebaseContextState } from '@/firebase';
 import AdminLoginPage from './login/page';
 import { onAuthStateChanged } from 'firebase/auth';
 
@@ -26,13 +26,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const pathname = usePathname();
     const router = useRouter();
 
-    const { auth, areServicesAvailable } = useFirebase();
+    const firebaseContext = useContext(FirebaseContext);
+    const auth = firebaseContext?.auth ?? null;
+    const areServicesAvailable = firebaseContext?.areServicesAvailable ?? false;
+
     const [isAdmin, setIsAdmin] = useState(false);
     const [isCheckingAuth, setIsCheckingAuth] = useState(true);
 
     useEffect(() => {
         if (!areServicesAvailable) {
-            // Firebase services are not ready, still "loading" from a user perspective
             return;
         }
         if (!auth) {
@@ -42,8 +44,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
         const unsubscribe = onAuthStateChanged(auth, (user) => {
             if (user) {
-                // In a real app, you'd check user roles from Firestore or custom claims.
-                // For this demo, we check if the email belongs to the admin domain or if it's the Super Admin UID.
                 const isSuperAdmin = user.uid === 'wS9w7ysNYUajNsBYZ6C7n2Afe9H3';
                 const mockIsAdminByEmail = user.email?.includes('@lawlanes.com');
                 
@@ -51,8 +51,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     setIsAdmin(true);
                 } else {
                     setIsAdmin(false);
-                    // If user is logged in but not an admin, redirect them from admin pages.
-                    if (pathname.startsWith('/admin')) {
+                    if (pathname.startsWith('/admin') && pathname !== '/admin/login') {
                          router.push('/');
                     }
                 }
@@ -63,7 +62,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         });
 
         return () => unsubscribe();
-    }, [auth, areServicesAvailable, pathname]);
+    }, [auth, areServicesAvailable]);
 
     const navItems = [
         { href: "/admin", icon: <Home className="h-4 w-4" />, label: "แดชบอร์ด" },
