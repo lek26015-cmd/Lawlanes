@@ -10,9 +10,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { CheckCircle, MessageSquare, Users, Sparkles, Scale, ArrowRight, Newspaper, Loader2, Briefcase, UserCheck, ShieldCheck, ShieldAlert, Phone, Mail, Award, FileText } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { getApprovedLawyers, getAllArticles, getLawyerById, getUrgentJobs, getImageUrl, getImageHint } from '@/lib/data';
+import { getApprovedLawyers, getAllArticles, getLawyerById, getAdsByPlacement, getImageUrl, getImageHint } from '@/lib/data';
 import LawyerCard from '@/components/lawyer-card';
-import type { LawyerProfile, Article, UrgentJob, ImagePlaceholder } from '@/lib/types';
+import type { LawyerProfile, Article, Ad, ImagePlaceholder } from '@/lib/types';
 import { findLawyerSpecialties } from '@/ai/flows/find-lawyers-flow';
 import { useChat } from '@/context/chat-context';
 import { Input } from '@/components/ui/input';
@@ -58,7 +58,7 @@ export default function Home() {
   
   const [recommendedLawyers, setRecommendedLawyers] = useState<LawyerProfile[]>([]);
   const [articles, setArticles] = useState<Article[]>([]);
-  const [urgentJobs, setUrgentJobs] = useState<UrgentJob[]>([]);
+  const [homepageBanners, setHomepageBanners] = useState<Ad[]>([]);
   
   const [isFindingLawyers, setIsFindingLawyers] = useState(false);
   const [analysisText, setAnalysisText] = useState('');
@@ -79,34 +79,6 @@ export default function Home() {
     { name: 'Krungsri Finnovate' },
   ];
   
-  const adBanners = [
-    {
-      title: "โปรโมตสำนักงานกฎหมายของคุณที่นี่",
-      description: "เข้าถึงลูกค้ากลุ่มเป้าหมายได้โดยตรง โปรโมตบริการของคุณบน Lawlanes เพื่อเพิ่มการมองเห็นและสร้างความน่าเชื่อถือ",
-      buttonText: "ติดต่อลงโฆษณา",
-      icon: <Award className="mx-auto h-12 w-12 text-primary mb-3" />,
-      href: "#",
-      gradient: "from-gray-100 to-blue-50"
-    },
-    {
-      title: "บริการด้านสัญญาครบวงจร",
-      description: "ทีมงานของเราเชี่ยวชาญการร่างและตรวจสอบสัญญาทุกประเภทสำหรับธุรกิจ SME เพื่อความรัดกุมและปลอดภัย",
-      buttonText: "ดูรายละเอียดบริการ",
-      icon: <Newspaper className="mx-auto h-12 w-12 text-green-600 mb-3" />,
-      href: "/services/contracts",
-      gradient: "from-green-50 to-blue-50"
-    },
-    {
-      title: "ปรึกษาด่วนกับ AI",
-      description: "ไม่แน่ใจเรื่องข้อกฎหมาย? ลองใช้ AI Legal Advisor ของเราเพื่อรับการประเมินเบื้องต้นได้ทันที 24 ชั่วโมง",
-      buttonText: "ลองใช้ AI เลย",
-      icon: <Sparkles className="mx-auto h-12 w-12 text-purple-600 mb-3" />,
-      href: "#",
-      action: () => setAiChatOpen(true),
-      gradient: "from-purple-50 to-blue-50"
-    }
-  ];
-
   const carouselPlugin = React.useRef(
     Autoplay({ delay: 5000, stopOnInteraction: true })
   );
@@ -117,8 +89,8 @@ export default function Home() {
       setRecommendedLawyers(lawyers.slice(0, 3));
       const allArticles = await getAllArticles();
       setArticles(allArticles.slice(0, 5));
-      const jobs = await getUrgentJobs();
-      setUrgentJobs(jobs);
+      const banners = await getAdsByPlacement('Homepage Carousel');
+      setHomepageBanners(banners);
     }
     fetchData();
   }, []);
@@ -453,11 +425,15 @@ export default function Home() {
                   onMouseLeave={carouselPlugin.current.reset}
                 >
                   <CarouselContent>
-                    {adBanners.map((banner, index) => (
+                    {homepageBanners.map((banner, index) => (
                       <CarouselItem key={index}>
-                        <Card className={`bg-gradient-to-br ${banner.gradient} text-foreground p-8 rounded-2xl shadow-lg text-center border-t-4 border-primary`}>
+                        <Card className={`bg-gradient-to-br from-gray-100 to-blue-50 text-foreground p-8 rounded-2xl shadow-lg text-center border-t-4 border-primary`}>
                           <CardHeader className="p-0">
-                            {banner.icon}
+                            <div className="mx-auto text-4xl mb-3">{
+                                {
+                                    'Homepage Carousel': <Award className="mx-auto h-12 w-12 text-primary mb-3" />,
+                                }[banner.placement] || <Sparkles className="mx-auto h-12 w-12 text-purple-600 mb-3" />
+                            }</div>
                             <CardTitle className="text-2xl font-bold">{banner.title}</CardTitle>
                           </CardHeader>
                           <CardContent className="p-0 mt-4">
@@ -467,7 +443,7 @@ export default function Home() {
                           </CardContent>
                           <CardFooter className="p-0 mt-6 justify-center">
                              <Button asChild size="lg" onClick={banner.action}>
-                              <Link href={banner.href}>{banner.buttonText}</Link>
+                              <Link href={banner.href || '#'}>{'ดูรายละเอียด'}</Link>
                             </Button>
                           </CardFooter>
                         </Card>

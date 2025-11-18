@@ -3,9 +3,9 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { getApprovedLawyers, getUrgentJobs } from '@/lib/data';
+import { getApprovedLawyers, getAdsByPlacement } from '@/lib/data';
 import LawyerCard from '@/components/lawyer-card';
-import type { LawyerProfile, UrgentJob } from '@/lib/types';
+import type { LawyerProfile, Ad } from '@/lib/types';
 import { Loader2, Award } from 'lucide-react';
 import React from 'react';
 import { Progress } from '@/components/ui/progress';
@@ -25,18 +25,18 @@ function LawyersPageContent() {
   const [isSorting, setIsSorting] = useState(false);
   const [recommendedLawyerIds, setRecommendedLawyerIds] = useState<string[]>([]);
   const [progress, setProgress] = React.useState(10);
-  const [urgentJobs, setUrgentJobs] = useState<UrgentJob[]>([]);
+  const [sidebarAds, setSidebarAds] = useState<Ad[]>([]);
 
   useEffect(() => {
     async function fetchData() {
       setIsLoading(true);
-      const [lawyers, jobs] = await Promise.all([
+      const [lawyers, ads] = await Promise.all([
         getApprovedLawyers(),
-        getUrgentJobs()
+        getAdsByPlacement('Lawyer Page Sidebar')
       ]);
       setAllLawyers(lawyers);
       setFilteredLawyers(lawyers);
-      setUrgentJobs(jobs);
+      setSidebarAds(ads);
       setIsLoading(false);
     }
     fetchData();
@@ -106,19 +106,19 @@ function LawyersPageContent() {
                 </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-                {urgentJobs.slice(0, 3).map(job => (
-                    <Link href={`/law-firm/${job.id}`} key={job.id} className="group block">
+                {sidebarAds.slice(0, 3).map(ad => (
+                    <Link href={`/law-firm/${ad.id}`} key={ad.id} className="group block">
                         <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-100">
                              <Image 
-                                src={job.logoUrl}
-                                alt={`${job.companyName} logo`}
+                                src={ad.imageUrl}
+                                alt={`${ad.title} logo`}
                                 width={40}
                                 height={40}
                                 className="object-contain rounded-md bg-white p-1 border"
                              />
                             <div>
-                                <p className="font-semibold text-sm group-hover:text-primary">{job.companyName}</p>
-                                <p className="text-xs text-muted-foreground">{job.description}</p>
+                                <p className="font-semibold text-sm group-hover:text-primary">{ad.title}</p>
+                                <p className="text-xs text-muted-foreground">{ad.description}</p>
                             </div>
                         </div>
                     </Link>
@@ -165,3 +165,5 @@ export default function LawyersPage() {
         </React.Suspense>
     )
 }
+
+    

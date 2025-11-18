@@ -1,6 +1,7 @@
 
 
 import { ChatResponse } from "@/ai/flows/chat-flow";
+import { ReactElement } from "react";
 
 export interface LawyerProfile {
   id: string;
@@ -95,12 +96,17 @@ export interface LawyerCase {
   notifications?: number | 'document';
 }
 
-export interface UrgentJob {
+export interface Ad {
   id: string;
-  companyName: string;
+  title: string;
   description: string;
-  logoUrl: string;
-  logoHint: string;
+  placement: 'Homepage Carousel' | 'Lawyer Page Sidebar';
+  status: 'active' | 'draft' | 'expired';
+  imageUrl: string;
+  imageHint: string;
+  href?: string;
+  action?: () => void;
+  icon?: ReactElement;
 }
 
 export type ImagePlaceholder = {
@@ -109,3 +115,5 @@ export type ImagePlaceholder = {
   imageUrl: string;
   imageHint: string;
 };
+
+    

@@ -1,8 +1,8 @@
 
 
-import type { LawyerProfile, ImagePlaceholder } from '@/lib/types';
+import type { LawyerProfile, ImagePlaceholder, Ad } from '@/lib/types';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import type { Article, Case, UpcomingAppointment, Document, ReportedTicket, LawyerAppointmentRequest, LawyerCase, UrgentJob } from '@/lib/types';
+import type { Article, Case, UpcomingAppointment, Document, ReportedTicket, LawyerAppointmentRequest, LawyerCase } from '@/lib/types';
 
 
 export const getImageUrl = (id: string) => PlaceHolderImages.find(img => img.id === id)?.imageUrl ?? '';
@@ -311,28 +311,35 @@ export async function getLawyerAppointmentRequestById(id: string): Promise<Lawye
 }
 
 
-// Mock data for Urgent Jobs advertisement section
-export const mockUrgentJobs: UrgentJob[] = [
-  { id: 'job1', companyName: 'สำนักงานกฎหมาย ชัยชนะ', description: 'บริการให้คำปรึกษาด้านกฎหมายธุรกิจครบวงจร', logoUrl: getImageUrl('ad-logo-1'), logoHint: getImageHint('ad-logo-1') },
-  { id: 'job2', companyName: 'บริษัท สุจริต ลอว์ เฟิร์ม จำกัด', description: 'เชี่ยวชาญคดีฉ้อโกงและอาชญากรรมทางเศรษฐกิจ', logoUrl: getImageUrl('ad-logo-2'), logoHint: getImageHint('ad-logo-2') },
-  { id: 'job3', companyName: 'กลุ่มทนายความเพื่อประชาชน', description: 'ให้คำปรึกษาคดีแพ่งและพาณิชย์สำหรับ SME', logoUrl: getImageUrl('ad-logo-3'), logoHint: getImageHint('ad-logo-3') },
-  { id: 'job4', companyName: 'Legal Link and Partners', description: 'บริการด้านทรัพย์สินทางปัญญาและสัญญาทุกประเภท', logoUrl: getImageUrl('ad-logo-4'), logoHint: getImageHint('ad-logo-4') },
-  { id: 'job5', companyName: 'สำนักงานทนายความยุติธรรม', description: 'เชี่ยวชาญกฎหมายแรงงานและข้อพิพาทองค์กร', logoUrl: getImageUrl('ad-logo-5'), logoHint: getImageHint('ad-logo-5') },
-  { id: 'job6', companyName: 'The Law Office of International Trade', description: 'บริการกฎหมายเพื่อการค้าระหว่างประเทศ', logoUrl: getImageUrl('ad-logo-6'), logoHint: getImageHint('ad-logo-6') },
+// Mock data for Ads
+export const mockAds: Ad[] = [
+  // Homepage Banners
+  { id: 'ad-home-1', title: "โปรโมตสำนักงานกฎหมายของคุณที่นี่", description: "เข้าถึงลูกค้ากลุ่มเป้าหมายได้โดยตรง โปรโมตบริการของคุณบน Lawlanes เพื่อเพิ่มการมองเห็นและสร้างความน่าเชื่อถือ", placement: 'Homepage Carousel', status: 'active', imageUrl: '', imageHint: '' },
+  { id: 'ad-home-2', title: "บริการด้านสัญญาครบวงจร", description: "ทีมงานของเราเชี่ยวชาญการร่างและตรวจสอบสัญญาทุกประเภทสำหรับธุรกิจ SME เพื่อความรัดกุมและปลอดภัย", placement: 'Homepage Carousel', status: 'active', imageUrl: '', imageHint: '' },
+  { id: 'ad-home-3', title: "ปรึกษาด่วนกับ AI", description: "ไม่แน่ใจเรื่องข้อกฎหมาย? ลองใช้ AI Legal Advisor ของเราเพื่อรับการประเมินเบื้องต้นได้ทันที 24 ชั่วโมง", placement: 'Homepage Carousel', status: 'draft', imageUrl: '', imageHint: '' },
+  
+  // Lawyer Page Sidebar Ads
+  { id: 'ad-sidebar-1', title: 'สำนักงานกฎหมาย ชัยชนะ', description: 'บริการให้คำปรึกษาด้านกฎหมายธุรกิจครบวงจร', placement: 'Lawyer Page Sidebar', status: 'active', imageUrl: getImageUrl('ad-logo-1'), imageHint: getImageHint('ad-logo-1') },
+  { id: 'ad-sidebar-2', title: 'บริษัท สุจริต ลอว์ เฟิร์ม จำกัด', description: 'เชี่ยวชาญคดีฉ้อโกงและอาชญากรรมทางเศรษฐกิจ', placement: 'Lawyer Page Sidebar', status: 'active', imageUrl: getImageUrl('ad-logo-2'), imageHint: getImageHint('ad-logo-2') },
+  { id: 'ad-sidebar-3', title: 'กลุ่มทนายความเพื่อประชาชน', description: 'ให้คำปรึกษาคดีแพ่งและพาณิชย์สำหรับ SME', placement: 'Lawyer Page Sidebar', status: 'active', imageUrl: getImageUrl('ad-logo-3'), imageHint: getImageHint('ad-logo-3') },
+  { id: 'ad-sidebar-4', title: 'Legal Link and Partners', description: 'บริการด้านทรัพย์สินทางปัญญาและสัญญาทุกประเภท', placement: 'Lawyer Page Sidebar', status: 'draft', imageUrl: getImageUrl('ad-logo-4'), imageHint: getImageHint('ad-logo-4') },
 ];
 
-export async function getUrgentJobs(): Promise<UrgentJob[]> {
+export async function getAdsByPlacement(placement: 'Homepage Carousel' | 'Lawyer Page Sidebar'): Promise<Ad[]> {
   return new Promise(resolve => {
     setTimeout(() => {
-      resolve(mockUrgentJobs);
+      resolve(mockAds.filter(ad => ad.placement === placement && ad.status === 'active'));
     }, 100);
   });
 }
 
-export async function getUrgentJobById(id: string): Promise<UrgentJob | undefined> {
+
+export async function getAdById(id: string): Promise<Ad | undefined> {
     return new Promise(resolve => {
       setTimeout(() => {
-        resolve(mockUrgentJobs.find(job => job.id === id));
+        resolve(mockAds.find(job => job.id === id));
       }, 100);
     });
   }
+
+    
