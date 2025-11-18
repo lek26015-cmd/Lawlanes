@@ -5,13 +5,15 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, DollarSign, Banknote, Landmark, Gavel, Home, Users2, ShieldCheck, Ticket, TrendingUp, HandCoins, FileDown } from 'lucide-react';
+import { ArrowLeft, DollarSign, Banknote, Landmark, Gavel, Home, Users2, ShieldCheck, Ticket, TrendingUp, HandCoins, FileDown, Calendar as CalendarIcon } from 'lucide-react';
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import { Badge } from '@/components/ui/badge';
 import React, { useState, useEffect } from 'react';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { format, getMonth, getYear } from 'date-fns';
+import { format, getMonth, getYear, isWithinInterval } from 'date-fns';
 import { th } from 'date-fns/locale';
+import { DateRange } from "react-day-picker"
+import { DatePickerWithRange } from '@/components/ui/date-range-picker';
+
 
 type Transaction = {
   id: string;
@@ -60,21 +62,21 @@ const parseThaiDate = (thaiDate: string): Date => {
 };
 
 export default function AdminFinancialsPage() {
-  const [selectedMonth, setSelectedMonth] = useState<string>('all');
+  const [dateRange, setDateRange] = React.useState<DateRange | undefined>();
   const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>(allTransactions);
 
   useEffect(() => {
-    if (selectedMonth === 'all') {
+    if (!dateRange || !dateRange.from || !dateRange.to) {
       setFilteredTransactions(allTransactions);
     } else {
-      const [month, year] = selectedMonth.split('-');
+      const { from, to } = dateRange;
       const filtered = allTransactions.filter(tx => {
         const txDate = parseThaiDate(tx.date);
-        return txDate.getMonth() === parseInt(month) && txDate.getFullYear() === parseInt(year);
+        return isWithinInterval(txDate, { start: from, end: to });
       });
       setFilteredTransactions(filtered);
     }
-  }, [selectedMonth]);
+  }, [dateRange]);
 
   // Mock Data
   const totalServiceValue = 1259345;
@@ -93,27 +95,6 @@ export default function AdminFinancialsPage() {
     fee: <Badge variant="secondary" className="bg-green-100 text-green-800">รายได้แพลตฟอร์ม</Badge>,
     payout: <Badge variant="outline" className="text-orange-700 border-orange-500">จ่ายทนาย</Badge>,
   };
-
-  const getAvailableMonths = () => {
-    const months = new Set<string>();
-    allTransactions.forEach(tx => {
-      const date = parseThaiDate(tx.date);
-      if (!isNaN(date.getTime())) {
-        const monthYear = `${date.getMonth()}-${date.getFullYear()}`;
-        months.add(monthYear);
-      }
-    });
-    return Array.from(months).map(my => {
-      const [month, year] = my.split('-');
-      const date = new Date(parseInt(year), parseInt(month));
-      return {
-        value: my,
-        label: format(date, 'MMMM yyyy', { locale: th })
-      };
-    });
-  };
-  
-  const availableMonths = getAvailableMonths();
   
   const handleExport = () => {
     if (filteredTransactions.length === 0) return;
@@ -130,7 +111,7 @@ export default function AdminFinancialsPage() {
     const blob = new Blob([`\uFEFF${csvString}`], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.setAttribute('download', `transactions-export-${selectedMonth}.csv`);
+    link.setAttribute('download', `transactions-export.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -219,23 +200,13 @@ export default function AdminFinancialsPage() {
                         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                             <div className="flex-1">
                                 <CardTitle>รายการธุรกรรมล่าสุด</CardTitle>
-                                <CardDescription>แสดงธุรกรรมทั้งหมดตามเดือนที่เลือก</CardDescription>
+                                <CardDescription>แสดงธุรกรรมทั้งหมดตามช่วงวันที่เลือก</CardDescription>
                             </div>
                             <div className="flex items-center gap-2">
-                                <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-                                    <SelectTrigger className="w-[180px]">
-                                        <SelectValue placeholder="เลือกเดือน" />
-                                    </SelectTrigger>
-                                    <SelectContent>
-                                        <SelectItem value="all">ทั้งหมด</SelectItem>
-                                        {availableMonths.map(month => (
-                                            <SelectItem key={month.value} value={month.value}>{month.label}</SelectItem>
-                                        ))}
-                                    </SelectContent>
-                                </Select>
+                                <DatePickerWithRange date={dateRange} setDate={setDateRange} />
                                 <Button variant="outline" onClick={handleExport} disabled={filteredTransactions.length === 0}>
                                     <FileDown className="w-4 h-4 mr-2" />
-                                    Export
+                                    Export to Excel
                                 </Button>
                             </div>
                         </div>
@@ -271,7 +242,7 @@ export default function AdminFinancialsPage() {
                           </Table>
                           {filteredTransactions.length === 0 && (
                             <div className="text-center py-8 text-muted-foreground">
-                                ไม่พบข้อมูลธุรกรรมสำหรับเดือนที่เลือก
+                                ไม่พบข้อมูลธุรกรรมสำหรับช่วงวันที่ที่เลือก
                             </div>
                           )}
                       </CardContent>
