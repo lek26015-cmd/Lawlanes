@@ -48,10 +48,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const [userRole, setUserRole] = useState<string | null>(null);
 
     useEffect(() => {
-        if (!areServicesAvailable) {
-            return;
-        }
-        if (!auth) {
+        if (!areServicesAvailable || !auth) {
             setIsCheckingAuth(false);
             return;
         }
@@ -82,7 +79,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         });
 
         return () => unsubscribe();
-    }, [auth, areServicesAvailable]);
+    }, [areServicesAvailable, auth]);
 
     const handleLogout = async () => {
         if (auth) {
