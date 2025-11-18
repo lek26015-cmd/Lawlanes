@@ -7,75 +7,68 @@ import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useFirebase } from '@/firebase';
 
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import Logo from '@/components/logo';
 
 const formSchema = z.object({
-  name: z.string().min(2, { message: 'ชื่อต้องมีอย่างน้อย 2 ตัวอักษร' }),
   email: z.string().email({ message: 'รูปแบบอีเมลไม่ถูกต้อง' }),
-  password: z.string().min(6, { message: 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร' }),
+  password: z.string().min(1, { message: 'กรุณากรอกรหัสผ่าน' }),
 });
 
-export default function SignupPage() {
+export default function LoginPage() {
   const router = useRouter();
-  const { auth, firestore } = useFirebase();
+  const { auth } = useFirebase();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: '',
       email: '',
       password: '',
     },
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!auth || !firestore) return;
+    if (!auth) return;
     setIsLoading(true);
     try {
-      // 1. Create user in Firebase Auth
-      const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
-      const user = userCredential.user;
-
-      // 2. Update user profile in Firebase Auth
-      await updateProfile(user, { displayName: values.name });
-
-      // 3. Create user profile document in Firestore
-      const userRef = doc(firestore, 'users', user.uid);
-      await setDoc(userRef, {
-        uid: user.uid,
-        name: values.name,
-        email: values.email,
-        role: 'customer', // Default role for general signup
-      });
-      
+      await signInWithEmailAndPassword(auth, values.email, values.password);
       toast({
-        title: 'สมัครสมาชิกสำเร็จ',
+        title: 'เข้าสู่ระบบสำเร็จ',
         description: 'กำลังนำคุณไปยังแดชบอร์ด...',
       });
-      
       router.push('/dashboard');
-
     } catch (error: any) {
       console.error(error);
       let errorMessage = 'เกิดข้อผิดพลาดที่ไม่รู้จัก';
-      if (error.code === 'auth/email-already-in-use') {
-        errorMessage = 'อีเมลนี้ถูกใช้งานแล้ว กรุณาใช้อีเมลอื่น';
+       if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+        errorMessage = 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
       }
       toast({
         variant: 'destructive',
-        title: 'สมัครสมาชิกไม่สำเร็จ',
+        title: 'เข้าสู่ระบบไม่สำเร็จ',
         description: errorMessage,
       });
     } finally {
@@ -88,32 +81,19 @@ export default function SignupPage() {
       <div className="container mx-auto flex justify-center p-4">
         <Card className="w-full max-w-md shadow-xl">
           <CardHeader className="text-center space-y-4">
-             <Link href="/" className="flex justify-center">
+            <Link href="/" className="flex justify-center">
               <Logo />
             </Link>
             <CardTitle className="text-2xl font-bold font-headline">
-              สร้างบัญชีใหม่
+              เข้าสู่ระบบ
             </CardTitle>
             <CardDescription>
-              เข้าร่วม Lawlanes เพื่อเข้าถึงบริการด้านกฎหมาย
+              ยินดีต้อนรับกลับสู่ Lawlanes
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>ชื่อ-นามสกุล</FormLabel>
-                      <FormControl>
-                        <Input placeholder="สมหญิง ใจดี" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
                 <FormField
                   control={form.control}
                   name="email"
@@ -134,7 +114,7 @@ export default function SignupPage() {
                     <FormItem>
                       <FormLabel>รหัสผ่าน</FormLabel>
                       <FormControl>
-                        <Input type="password" placeholder="อย่างน้อย 6 ตัวอักษร" {...field} />
+                        <Input type="password" placeholder="********" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -142,14 +122,14 @@ export default function SignupPage() {
                 />
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  สมัครสมาชิก
+                  เข้าสู่ระบบ
                 </Button>
               </form>
             </Form>
             <div className="mt-4 text-center text-sm">
-              มีบัญชีอยู่แล้ว?{' '}
-              <Link href="/login" className="underline hover:text-primary">
-                เข้าสู่ระบบที่นี่
+              ยังไม่มีบัญชี?{' '}
+              <Link href="/signup" className="underline hover:text-primary">
+                สมัครสมาชิกที่นี่
               </Link>
             </div>
           </CardContent>

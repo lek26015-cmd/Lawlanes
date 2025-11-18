@@ -6,18 +6,32 @@ import { usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import Logo from '@/components/logo';
 import { Input } from '@/components/ui/input';
-import { Search, Menu } from 'lucide-react';
+import { Search, Menu, User, ChevronDown, LogOut, LayoutDashboard } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription, SheetTrigger } from '@/components/ui/sheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { useUser, useFirebase } from '@/firebase';
+import { signOut } from 'firebase/auth';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+
 
 export default function Header() {
   const pathname = usePathname();
-  const isAuthPage = false; // Placeholder, as signup page is removed
   const isHomePage = pathname === '/';
   
   const [isScrolled, setIsScrolled] = useState(!isHomePage);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const { auth } = useFirebase();
+  const { data: user, isLoading } = useUser(auth);
 
   useEffect(() => {
     if (!isHomePage) {
@@ -44,8 +58,10 @@ export default function Header() {
 
   const useTransparentHeader = isHomePage && !isScrolled;
 
-  if (isAuthPage) {
-    return null;
+  const handleLogout = async () => {
+    if (auth) {
+        await signOut(auth);
+    }
   }
 
   const headerClasses = cn(
@@ -122,9 +138,38 @@ export default function Header() {
         </nav>
 
         <div className="hidden items-center gap-2 md:flex ml-4 whitespace-nowrap">
-          <Link href="/">
-            <Button variant="ghost" className={loginButtonClasses}>เข้าสู่ระบบ</Button>
-          </Link>
+          {isLoading ? null : user ? (
+             <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" className={cn("flex items-center gap-2", loginButtonClasses)}>
+                         <Avatar className="w-8 h-8">
+                            <AvatarImage src={user.photoURL || "https://picsum.photos/seed/user-avatar/100/100"} />
+                            <AvatarFallback>{user.displayName?.charAt(0) || user.email?.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <span className="hidden lg:inline">{user.displayName || user.email}</span>
+                        <ChevronDown className="w-4 h-4" />
+                    </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>บัญชีของฉัน</DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                        <Link href="/dashboard"><LayoutDashboard className="mr-2" />แดชบอร์ด</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                        <Link href="/account"><User className="mr-2" />จัดการบัญชี</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={handleLogout} className="text-destructive">
+                        <LogOut className="mr-2" />ออกจากระบบ
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+             </DropdownMenu>
+          ) : (
+            <Link href="/login">
+                <Button variant="ghost" className={loginButtonClasses}>เข้าสู่ระบบ</Button>
+            </Link>
+          )}
         </div>
         
         <div className="md:hidden">
@@ -138,7 +183,6 @@ export default function Header() {
                 <SheetContent side="left" className="p-0">
                     <SheetHeader className="p-6 pb-0">
                       <SheetTitle><Logo /></SheetTitle>
-                      <SheetDescription className="sr-only">Mobile navigation menu</SheetDescription>
                     </SheetHeader>
                     <div className="flex flex-col gap-6 p-6">
                         <nav className="flex flex-col gap-4 text-lg mt-6">
@@ -148,9 +192,13 @@ export default function Header() {
                              <Link href="/lawyers" className="hover:text-primary">ค้นหาทนาย</Link>
                         </nav>
                          <div className="border-t pt-6">
-                           <Link href="/">
-                             <Button className="w-full">เข้าสู่ระบบ</Button>
-                           </Link>
+                           {user ? (
+                                <Button onClick={handleLogout} className="w-full" variant="destructive">ออกจากระบบ</Button>
+                           ) : (
+                                <Link href="/login">
+                                    <Button className="w-full">เข้าสู่ระบบ</Button>
+                                </Link>
+                           )}
                         </div>
                     </div>
                 </SheetContent>

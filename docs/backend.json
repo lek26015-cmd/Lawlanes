@@ -1,5 +1,32 @@
 {
   "entities": {
+    "UserProfile": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "UserProfile",
+      "description": "Represents a user's profile information.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "The user's unique ID from Firebase Authentication."
+        },
+        "name": {
+          "type": "string",
+          "description": "The user's full name."
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "The user's email address."
+        },
+        "role": {
+          "type": "string",
+          "enum": ["customer", "lawyer", "admin"],
+          "description": "The role of the user within the application."
+        }
+      },
+      "required": ["uid", "name", "email", "role"]
+    },
     "LawyerProfile": {
       "$schema": "http://json-schema.org/draft-07/schema#",
       "title": "LawyerProfile",
@@ -138,17 +165,28 @@
   },
   "auth": {
     "providers": [
+      "emailPassword",
       "anonymous"
     ]
   },
   "firestore": {
     "structure": [
       {
+        "path": "/users/{userId}",
+        "definition": {
+            "entityName": "UserProfile",
+            "schema": {
+                "$ref": "#/entities/UserProfile"
+            },
+            "description": "Stores user profile information, including their role."
+        }
+      },
+      {
         "path": "/lawyerProfiles/{lawyerProfileId}",
         "definition": {
           "entityName": "LawyerProfile",
           "schema": {
-            "$ref": "#/backend/entities/LawyerProfile"
+            "$ref": "#/entities/LawyerProfile"
           },
           "description": "Stores lawyer profiles, accessible for reading by all users if status is 'approved'. Includes the userId field for owner-based rules.",
           "params": [
@@ -164,7 +202,7 @@
         "definition": {
           "entityName": "Chat",
           "schema": {
-            "$ref": "#/backend/entities/Chat"
+            "$ref": "#/entities/Chat"
           },
           "description": "Stores chat sessions between users and lawyers.",
           "params": [
@@ -179,7 +217,7 @@
               "definition": {
                 "entityName": "ChatMessage",
                 "schema": {
-                  "$ref": "#/backend/entities/ChatMessage"
+                  "$ref": "#/entities/ChatMessage"
                 },
                 "description": "Stores individual messages within a chat session.",
                 "params": [
