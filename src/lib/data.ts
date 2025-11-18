@@ -314,9 +314,9 @@ export async function getLawyerAppointmentRequestById(id: string): Promise<Lawye
 // Mock data for Ads
 export const mockAds: Ad[] = [
   // Homepage Banners
-  { id: 'ad-home-1', title: "โปรโมตสำนักงานกฎหมายของคุณที่นี่", description: "เข้าถึงลูกค้ากลุ่มเป้าหมายได้โดยตรง โปรโมตบริการของคุณบน Lawlanes เพื่อเพิ่มการมองเห็นและสร้างความน่าเชื่อถือ", placement: 'Homepage Carousel', status: 'active', imageUrl: '', imageHint: '' },
-  { id: 'ad-home-2', title: "บริการด้านสัญญาครบวงจร", description: "ทีมงานของเราเชี่ยวชาญการร่างและตรวจสอบสัญญาทุกประเภทสำหรับธุรกิจ SME เพื่อความรัดกุมและปลอดภัย", placement: 'Homepage Carousel', status: 'active', imageUrl: '', imageHint: '' },
-  { id: 'ad-home-3', title: "ปรึกษาด่วนกับ AI", description: "ไม่แน่ใจเรื่องข้อกฎหมาย? ลองใช้ AI Legal Advisor ของเราเพื่อรับการประเมินเบื้องต้นได้ทันที 24 ชั่วโมง", placement: 'Homepage Carousel', status: 'draft', imageUrl: '', imageHint: '' },
+  { id: 'ad-home-1', title: "โปรโมตสำนักงานกฎหมายของคุณที่นี่", description: "เข้าถึงลูกค้ากลุ่มเป้าหมายได้โดยตรง โปรโมตบริการของคุณบน Lawlanes เพื่อเพิ่มการมองเห็นและสร้างความน่าเชื่อถือ", placement: 'Homepage Carousel', status: 'active', imageUrl: getImageUrl('ad-banner-2'), imageHint: getImageHint('ad-banner-2') },
+  { id: 'ad-home-2', title: "บริการด้านสัญญาครบวงจร", description: "ทีมงานของเราเชี่ยวชาญการร่างและตรวจสอบสัญญาทุกประเภทสำหรับธุรกิจ SME เพื่อความรัดกุมและปลอดภัย", placement: 'Homepage Carousel', status: 'active', imageUrl: getImageUrl('article-1'), imageHint: getImageHint('article-1') },
+  { id: 'ad-home-3', title: "ปรึกษาด่วนกับ AI", description: "ไม่แน่ใจเรื่องข้อกฎหมาย? ลองใช้ AI Legal Advisor ของเราเพื่อรับการประเมินเบื้องต้นได้ทันที 24 ชั่วโมง", placement: 'Homepage Carousel', status: 'draft', imageUrl: getImageUrl('article-2'), imageHint: getImageHint('article-2') },
   
   // Lawyer Page Sidebar Ads
   { id: 'ad-sidebar-1', title: 'สำนักงานกฎหมาย ชัยชนะ', description: 'บริการให้คำปรึกษาด้านกฎหมายธุรกิจครบวงจร', placement: 'Lawyer Page Sidebar', status: 'active', imageUrl: getImageUrl('ad-logo-1'), imageHint: getImageHint('ad-logo-1') },
