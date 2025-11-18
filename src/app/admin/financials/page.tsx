@@ -126,7 +126,7 @@ export default function AdminFinancialsPage() {
 
                   <Card className="mt-8">
                       <CardHeader>
-                          <CardTitle>ประวัติธุรกรรมล่าสุด</CardTitle>
+                          <CardTitle>รายการธุรกรรมล่าสุด</CardTitle>
                       </CardHeader>
                       <CardContent>
                           <Table>
