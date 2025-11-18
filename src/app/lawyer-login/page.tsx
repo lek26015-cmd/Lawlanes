@@ -30,7 +30,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import Logo from '@/components/logo';
-import { Separator } from '@/components/ui/separator';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'รูปแบบอีเมลไม่ถูกต้อง' }),
@@ -85,7 +85,17 @@ export default function LawyerLoginPage() {
             <Link href="/" className="flex justify-center">
               <Logo />
             </Link>
-            <CardTitle className="text-2xl font-bold font-headline">
+             <Tabs defaultValue="lawyer" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="customer" asChild>
+                    <Link href="/login">ลูกค้า</Link>
+                </TabsTrigger>
+                <TabsTrigger value="lawyer" asChild>
+                    <Link href="/lawyer-login">ทนายความ</Link>
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
+            <CardTitle className="text-2xl font-bold font-headline pt-4">
               เข้าสู่ระบบสำหรับทนายความ
             </CardTitle>
             <CardDescription>
@@ -134,15 +144,6 @@ export default function LawyerLoginPage() {
                   สมัครเข้าร่วมที่นี่
                 </Link>
               </p>
-            </div>
-            <Separator className="my-6" />
-            <div className="text-center">
-                <p className="text-sm text-muted-foreground mb-3">คุณเป็นลูกค้าใช่หรือไม่?</p>
-                 <Button variant="outline" asChild className="w-full">
-                    <Link href="/login">
-                      เข้าสู่ระบบสำหรับลูกค้า
-                    </Link>
-                </Button>
             </div>
           </CardContent>
         </Card>
