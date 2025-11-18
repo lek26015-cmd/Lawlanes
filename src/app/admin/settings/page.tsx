@@ -34,7 +34,7 @@ export default function AdminSettingsPage() {
               ทั่วไป
             </Link>
             <Link href="/admin/settings/financials">การเงิน</Link>
-            <a href="#">ผู้ดูแลระบบ</a>
+            <Link href="/admin/settings/administrators">ผู้ดูแลระบบ</Link>
             <a href="#">การแจ้งเตือน</a>
           </nav>
           <div className="grid gap-6">
