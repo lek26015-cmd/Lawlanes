@@ -17,7 +17,6 @@ import {
 import React from 'react';
 import { usePathname } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import Footer from '@/components/layout/footer';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
@@ -100,7 +99,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </div>
       <div className="flex flex-col">
         {children}
-        <Footer />
       </div>
     </div>
   );
