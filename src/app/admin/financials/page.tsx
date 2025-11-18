@@ -130,7 +130,7 @@ export default function AdminFinancialsPage() {
     const blob = new Blob([`\uFEFF${csvString}`], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.setAttribute('download', `transactions-${selectedMonth}.csv`);
+    link.setAttribute('download', `transactions-export-${selectedMonth}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -235,7 +235,7 @@ export default function AdminFinancialsPage() {
                                 </Select>
                                 <Button variant="outline" onClick={handleExport} disabled={filteredTransactions.length === 0}>
                                     <FileDown className="w-4 h-4 mr-2" />
-                                    Export CSV
+                                    Export
                                 </Button>
                             </div>
                         </div>
