@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation';
 
 export default function Footer() {
   const pathname = usePathname();
-  const isAuthPage = pathname === '/lawyer-signup';
+  const isAuthPage = pathname === '/login' || pathname === '/signup' || pathname === '/lawyer-signup';
 
   const quickLinks = [
     { href: '/', label: 'หน้าแรก' },

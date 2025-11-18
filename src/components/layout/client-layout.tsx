@@ -22,7 +22,7 @@ export default function ClientLayout({
   }, []);
 
   const isAdminPage = pathname.startsWith('/admin');
-  const isAuthPage = pathname === '/lawyer-signup';
+  const isAuthPage = pathname === '/login' || pathname === '/signup' || pathname === '/lawyer-signup';
 
   if (!isClient) {
     // On the server and during initial client render, render a neutral layout
