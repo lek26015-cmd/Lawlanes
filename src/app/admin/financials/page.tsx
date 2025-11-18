@@ -5,9 +5,13 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ArrowLeft, DollarSign, Banknote, Landmark, Gavel, Home, Users2, ShieldCheck, Ticket, TrendingUp, HandCoins } from 'lucide-react';
+import { ArrowLeft, DollarSign, Banknote, Landmark, Gavel, Home, Users2, ShieldCheck, Ticket, TrendingUp, HandCoins, FileDown } from 'lucide-react';
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts";
 import { Badge } from '@/components/ui/badge';
+import React, { useState, useEffect } from 'react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { format, getMonth, getYear } from 'date-fns';
+import { th } from 'date-fns/locale';
 
 type Transaction = {
   id: string;
@@ -18,14 +22,8 @@ type Transaction = {
   status: 'completed' | 'pending';
 };
 
-export default function AdminFinancialsPage() {
-
-  // Mock Data
-  const totalServiceValue = 1259345;
-  const platformRevenueThisMonth = 18802.50;
-  const platformTotalRevenue = totalServiceValue * 0.15; // Assuming 15% platform fee
-  
-  const transactions: Transaction[] = [
+// Expanded mock data for multiple months
+const allTransactions: Transaction[] = [
     { id: 'txn1', date: '28 ก.ค. 2567', description: 'ค่าบริการเคส #case-001', amount: 3500, type: 'revenue', status: 'completed' },
     { id: 'txn2', date: '27 ก.ค. 2567', description: 'ส่วนแบ่งรายได้แพลตฟอร์ม #case-001', amount: 525, type: 'fee', status: 'completed' },
     { id: 'txn3', date: '27 ก.ค. 2567', description: 'จ่ายเงินให้ทนาย #l-payout-012', amount: -2975, type: 'payout', status: 'completed' },
@@ -36,7 +34,52 @@ export default function AdminFinancialsPage() {
     { id: 'txn8', date: '24 ก.ค. 2567', description: 'ค่าบริการเคส #case-004', amount: 2500, type: 'revenue', status: 'completed' },
     { id: 'txn9', date: '23 ก.ค. 2567', description: 'ส่วนแบ่งรายได้แพลตฟอร์ม #case-004', amount: 375, type: 'fee', status: 'completed' },
     { id: 'txn10', date: '23 ก.ค. 2567', description: 'จ่ายเงินให้ทนาย #l-payout-014', amount: -2125, type: 'payout', status: 'completed' },
-  ];
+    // June
+    { id: 'txn11', date: '20 มิ.ย. 2567', description: 'ค่าบริการเคส #case-jun-01', amount: 12000, type: 'revenue', status: 'completed' },
+    { id: 'txn12', date: '20 มิ.ย. 2567', description: 'ส่วนแบ่งรายได้แพลตฟอร์ม #case-jun-01', amount: 1800, type: 'fee', status: 'completed' },
+    { id: 'txn13', date: '15 มิ.ย. 2567', description: 'ค่าบริการเคส #case-jun-02', amount: 4500, type: 'revenue', status: 'completed' },
+    { id: 'txn14', date: '15 มิ.ย. 2567', description: 'ส่วนแบ่งรายได้แพลตฟอร์ม #case-jun-02', amount: 675, type: 'fee', status: 'completed' },
+    // May
+    { id: 'txn15', date: '18 พ.ค. 2567', description: 'ค่าบริการเคส #case-may-01', amount: 7000, type: 'revenue', status: 'completed' },
+    { id: 'txn16', date: '18 พ.ค. 2567', description: 'ส่วนแบ่งรายได้แพลตฟอร์ม #case-may-01', amount: 1050, type: 'fee', status: 'completed' },
+];
+
+const thaiMonthMap: { [key: string]: number } = {
+  'ม.ค.': 0, 'ก.พ.': 1, 'มี.ค.': 2, 'เม.ย.': 3, 'พ.ค.': 4, 'มิ.ย.': 5,
+  'ก.ค.': 6, 'ส.ค.': 7, 'ก.ย.': 8, 'ต.ค.': 9, 'พ.ย.': 10, 'ธ.ค.': 11
+};
+
+const parseThaiDate = (thaiDate: string): Date => {
+    const parts = thaiDate.split(' ');
+    if (parts.length !== 3) return new Date(NaN);
+    const day = parseInt(parts[0], 10);
+    const month = thaiMonthMap[parts[1]];
+    const year = parseInt(parts[2], 10) - 543;
+    if (isNaN(day) || month === undefined || isNaN(year)) return new Date(NaN);
+    return new Date(year, month, day);
+};
+
+export default function AdminFinancialsPage() {
+  const [selectedMonth, setSelectedMonth] = useState<string>('all');
+  const [filteredTransactions, setFilteredTransactions] = useState<Transaction[]>(allTransactions);
+
+  useEffect(() => {
+    if (selectedMonth === 'all') {
+      setFilteredTransactions(allTransactions);
+    } else {
+      const [month, year] = selectedMonth.split('-');
+      const filtered = allTransactions.filter(tx => {
+        const txDate = parseThaiDate(tx.date);
+        return txDate.getMonth() === parseInt(month) && txDate.getFullYear() === parseInt(year);
+      });
+      setFilteredTransactions(filtered);
+    }
+  }, [selectedMonth]);
+
+  // Mock Data
+  const totalServiceValue = 1259345;
+  const platformRevenueThisMonth = 18802.50;
+  const platformTotalRevenue = totalServiceValue * 0.15; // Assuming 15% platform fee
   
   const monthlyData = [
     { month: "เม.ย.", total: 52500 },
@@ -49,6 +92,48 @@ export default function AdminFinancialsPage() {
     revenue: <Badge variant="secondary" className="bg-blue-100 text-blue-800">เงินเข้า</Badge>,
     fee: <Badge variant="secondary" className="bg-green-100 text-green-800">รายได้แพลตฟอร์ม</Badge>,
     payout: <Badge variant="outline" className="text-orange-700 border-orange-500">จ่ายทนาย</Badge>,
+  };
+
+  const getAvailableMonths = () => {
+    const months = new Set<string>();
+    allTransactions.forEach(tx => {
+      const date = parseThaiDate(tx.date);
+      if (!isNaN(date.getTime())) {
+        const monthYear = `${date.getMonth()}-${date.getFullYear()}`;
+        months.add(monthYear);
+      }
+    });
+    return Array.from(months).map(my => {
+      const [month, year] = my.split('-');
+      const date = new Date(parseInt(year), parseInt(month));
+      return {
+        value: my,
+        label: format(date, 'MMMM yyyy', { locale: th })
+      };
+    });
+  };
+  
+  const availableMonths = getAvailableMonths();
+  
+  const handleExport = () => {
+    if (filteredTransactions.length === 0) return;
+    
+    const headers = ["ID", "Date", "Description", "Type", "Status", "Amount"];
+    const csvRows = [
+      headers.join(','),
+      ...filteredTransactions.map(tx => 
+        [tx.id, tx.date, `"${tx.description}"`, tx.type, tx.status, tx.amount].join(',')
+      )
+    ];
+    
+    const csvString = csvRows.join('\n');
+    const blob = new Blob([`\uFEFF${csvString}`], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute('download', `transactions-${selectedMonth}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   return (
@@ -131,7 +216,29 @@ export default function AdminFinancialsPage() {
 
                   <Card className="mt-8">
                       <CardHeader>
-                          <CardTitle>รายการธุรกรรมล่าสุด</CardTitle>
+                        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                            <div className="flex-1">
+                                <CardTitle>รายการธุรกรรมล่าสุด</CardTitle>
+                                <CardDescription>แสดงธุรกรรมทั้งหมดตามเดือนที่เลือก</CardDescription>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+                                    <SelectTrigger className="w-[180px]">
+                                        <SelectValue placeholder="เลือกเดือน" />
+                                    </SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">ทั้งหมด</SelectItem>
+                                        {availableMonths.map(month => (
+                                            <SelectItem key={month.value} value={month.value}>{month.label}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <Button variant="outline" onClick={handleExport} disabled={filteredTransactions.length === 0}>
+                                    <FileDown className="w-4 h-4 mr-2" />
+                                    Export CSV
+                                </Button>
+                            </div>
+                        </div>
                       </CardHeader>
                       <CardContent>
                           <Table>
@@ -145,7 +252,7 @@ export default function AdminFinancialsPage() {
                                   </TableRow>
                               </TableHeader>
                               <TableBody>
-                                  {transactions.map(tx => (
+                                  {filteredTransactions.map(tx => (
                                       <TableRow key={tx.id}>
                                           <TableCell className="text-muted-foreground">{tx.date}</TableCell>
                                           <TableCell>{tx.description}</TableCell>
@@ -162,7 +269,17 @@ export default function AdminFinancialsPage() {
                                   ))}
                               </TableBody>
                           </Table>
+                          {filteredTransactions.length === 0 && (
+                            <div className="text-center py-8 text-muted-foreground">
+                                ไม่พบข้อมูลธุรกรรมสำหรับเดือนที่เลือก
+                            </div>
+                          )}
                       </CardContent>
+                      <CardFooter>
+                          <div className="text-xs text-muted-foreground">
+                            แสดง <strong>{filteredTransactions.length}</strong> รายการ
+                          </div>
+                      </CardFooter>
                   </Card>
               </CardContent>
           </Card>
