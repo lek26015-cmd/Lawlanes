@@ -23,6 +23,18 @@ import {
 import { MoreHorizontal, PlusCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { useToast } from '@/hooks/use-toast';
 
 
 const mockAdmins = [
@@ -32,6 +44,15 @@ const mockAdmins = [
 ];
 
 export default function AdminAdministratorsPage() {
+    const { toast } = useToast();
+
+    const handleDelete = (adminName: string) => {
+        toast({
+            title: "ลบผู้ดูแลระบบสำเร็จ",
+            description: `"${adminName}" ได้ถูกลบออกจากระบบแล้ว (จำลอง)`,
+            variant: "destructive"
+        })
+    }
 
   return (
       <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
@@ -102,24 +123,45 @@ export default function AdminAdministratorsPage() {
                                 <Badge variant={admin.role === 'Super Admin' ? 'destructive' : 'secondary'}>{admin.role}</Badge>
                             </TableCell>
                             <TableCell>
-                                <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                    <Button aria-haspopup="true" size="icon" variant="ghost">
-                                    <MoreHorizontal className="h-4 w-4" />
-                                    <span className="sr-only">สลับเมนู</span>
-                                    </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                    <DropdownMenuLabel>การดำเนินการ</DropdownMenuLabel>
-                                    <DropdownMenuItem asChild>
-                                        <Link href={`/admin/settings/administrators/${admin.id}/edit`}>แก้ไขสิทธิ์</Link>
-                                    </DropdownMenuItem>
-                                    <DropdownMenuSeparator />
-                                    <DropdownMenuItem className="text-destructive">
-                                        ลบออกจากระบบ
-                                    </DropdownMenuItem>
-                                </DropdownMenuContent>
-                                </DropdownMenu>
+                                <AlertDialog>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button aria-haspopup="true" size="icon" variant="ghost">
+                                            <MoreHorizontal className="h-4 w-4" />
+                                            <span className="sr-only">สลับเมนู</span>
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                            <DropdownMenuLabel>การดำเนินการ</DropdownMenuLabel>
+                                            <DropdownMenuItem asChild>
+                                                <Link href={`/admin/settings/administrators/${admin.id}/edit`}>แก้ไขสิทธิ์</Link>
+                                            </DropdownMenuItem>
+                                            <DropdownMenuSeparator />
+                                            <AlertDialogTrigger asChild>
+                                                <DropdownMenuItem className="text-destructive" onSelect={(e) => e.preventDefault()}>
+                                                    ลบออกจากระบบ
+                                                </DropdownMenuItem>
+                                            </AlertDialogTrigger>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
+                                     <AlertDialogContent>
+                                        <AlertDialogHeader>
+                                            <AlertDialogTitle>คุณแน่ใจหรือไม่?</AlertDialogTitle>
+                                            <AlertDialogDescription>
+                                                การกระทำนี้ไม่สามารถย้อนกลับได้ คุณกำลังจะลบผู้ดูแลระบบ "{admin.name}" ออกจากระบบอย่างถาวร
+                                            </AlertDialogDescription>
+                                        </AlertDialogHeader>
+                                        <AlertDialogFooter>
+                                            <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+                                            <AlertDialogAction
+                                                className="bg-destructive hover:bg-destructive/90 text-destructive-foreground"
+                                                onClick={() => handleDelete(admin.name)}
+                                            >
+                                                ยืนยันการลบ
+                                            </AlertDialogAction>
+                                        </AlertDialogFooter>
+                                    </AlertDialogContent>
+                                </AlertDialog>
                             </TableCell>
                         </TableRow>
                         ))}
