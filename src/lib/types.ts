@@ -107,6 +107,21 @@ export interface Ad {
   href?: string;
   action?: () => void;
   icon?: ReactElement;
+  analytics?: {
+    clicks: number;
+    gender: {
+      male: number;
+      female: number;
+      other: number;
+    };
+    age: {
+      '18-24': number;
+      '25-34': number;
+      '35-44': number;
+      '45-54': number;
+      '55+': number;
+    };
+  };
 }
 
 export type ImagePlaceholder = {
