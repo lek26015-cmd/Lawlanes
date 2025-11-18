@@ -64,9 +64,11 @@ export default function AdminAdministratorsPage() {
                         เพิ่ม, ลบ, หรือแก้ไขสิทธิ์ของผู้ดูแลระบบ
                         </CardDescription>
                     </div>
-                    <Button size="sm" className="gap-1">
+                    <Button size="sm" className="gap-1" asChild>
+                       <Link href="/admin/settings/administrators/new">
                         <PlusCircle className="h-3.5 w-3.5" />
                         เพิ่มผู้ดูแลใหม่
+                       </Link>
                     </Button>
                 </div>
               </CardHeader>
