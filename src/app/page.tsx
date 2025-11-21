@@ -220,8 +220,19 @@ export default function Home() {
   return (
     <>
       <div className="flex flex-col">
-      <section className="w-full py-20 md:py-32 lg:py-40 bg-foreground text-background">
-            <div className="container mx-auto px-4 md:px-6">
+      <section className="relative w-full py-20 md:py-32 lg:py-40 text-background">
+            <div className="absolute inset-0 z-[-1]">
+                <Image
+                    src={getImageUrl('lawyer-team-working')}
+                    alt="Lawyers working"
+                    fill
+                    className="object-cover"
+                    data-ai-hint={getImageHint('lawyer-team-working')}
+                    priority
+                />
+                <div className="absolute inset-0 bg-foreground/70" />
+            </div>
+            <div className="container relative z-10 mx-auto px-4 md:px-6">
                 <div className="grid lg:grid-cols-2 gap-12 items-center">
                     <div className="flex flex-col items-center lg:items-start text-center lg:text-left space-y-6">
                         
