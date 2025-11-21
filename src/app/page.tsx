@@ -226,9 +226,7 @@ export default function Home() {
                     <div className="flex flex-col items-center lg:items-start text-center lg:text-left space-y-6">
                         
                         <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none font-headline">
-                            ค้นหาทนายความ...
-                            <br />
-                            <span className="opacity-90">ที่ใช่สำหรับคุณ</span>
+                            พันธมิตรกฎหมาย เคียงข้าง SMEs ไทย
                         </h1>
                         <p className="max-w-[600px] text-background/80 md:text-xl">
                             Lawlanes คือตลาดกลางทนายความออนไลน์ ที่เชื่อมต่อคุณกับผู้เชี่ยวชาญกฎหมายทั่วประเทศได้อย่างมั่นใจ
