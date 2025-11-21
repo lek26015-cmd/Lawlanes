@@ -236,7 +236,7 @@ export default function Home() {
                             <Button size="lg" variant="secondary">ดูรายชื่อทนายทั้งหมด</Button>
                             </Link>
                             <Button size="lg" variant="outline" className="bg-transparent text-background border-background hover:bg-background hover:text-foreground" onClick={() => setAiChatOpen(true)}>
-                                คลิกแล้วเปิด แชท AI
+                                ปรึกษาเบื้องต้นกับ AI
                             </Button>
                         </div>
                     </div>
