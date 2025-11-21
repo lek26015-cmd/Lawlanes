@@ -229,7 +229,7 @@ export default function Home() {
                             พันธมิตรกฎหมาย เคียงข้าง SMEs ไทย
                         </h1>
                         <p className="max-w-[600px] text-background/80 md:text-xl">
-                            Lawlanes คือตลาดกลางทนายความออนไลน์ ที่เชื่อมต่อคุณกับผู้เชี่ยวชาญกฎหมายทั่วประเทศได้อย่างมั่นใจ
+                            เชื่อมต่อทนายมืออาชีพ เพื่อความสำเร็จที่ยั่งยืน
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4">
                             <Link href="/lawyers">
