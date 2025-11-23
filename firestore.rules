@@ -37,7 +37,7 @@ service cloud.firestore {
       allow get: if isParticipant();
       allow list: if isSignedIn() && request.auth.uid in query.filters[0][2];
       allow create: if isSignedIn() && request.auth.uid in request.resource.data.participants;
-      allow update: if isParticipant();
+      allow update: if isParticipant() || request.resource.data.status == 'pending_payment';
 
       match /messages/{messageId} {
         function isChatParticipant() {

@@ -92,7 +92,15 @@
           "description": "An array containing the user IDs of the two participants in the chat."
         },
         "createdAt": { "type": "string", "format": "date-time" },
-        "caseTitle": { "type": "string" }
+        "caseTitle": { "type": "string" },
+        "status": {
+          "type": "string",
+          "enum": ["active", "closed", "pending_payment"]
+        },
+        "slipUrl": {
+          "type": "string",
+          "format": "uri"
+        }
       },
       "required": [ "participants", "createdAt" ]
     },
@@ -118,8 +126,12 @@
         "lawyerImageUrl": { "type": "string" },
         "appointmentDate": { "type": "string", "format": "date-time" },
         "description": { "type": "string" },
-        "status": { "type": "string", "enum": [ "pending", "confirmed", "cancelled" ] },
-        "createdAt": { "type": "string", "format": "date-time" }
+        "status": { "type": "string", "enum": [ "pending", "confirmed", "cancelled", "pending_payment" ] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "slipUrl": {
+          "type": "string",
+          "format": "uri"
+        }
       },
       "required": [ "userId", "lawyerId", "appointmentDate", "description", "status" ]
     },

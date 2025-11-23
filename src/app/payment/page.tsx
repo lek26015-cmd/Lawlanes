@@ -22,6 +22,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { v4 as uuidv4 } from 'uuid';
 import { useFirebase } from '@/firebase';
 import { addDoc, collection, doc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { errorEmitter, FirestorePermissionError } from '@/firebase';
 
 
 function PaymentPageContent() {
@@ -88,18 +89,34 @@ function PaymentPageContent() {
             const chatRef = doc(firestore, 'chats', newChatId);
             const messagesRef = collection(chatRef, 'messages');
 
-            await setDoc(chatRef, {
+            const chatPayload = {
                 participants: [user.uid, lawyer.userId],
                 createdAt: serverTimestamp(),
                 caseTitle: `Ticket สนทนา: ${initialMessage.substring(0, 30)}...`,
                 status: isManualTransfer ? 'pending_payment' : 'active',
+                ...(isManualTransfer && { slipUrl: 'simulated_slip_url.jpg' })
+            };
+
+            await setDoc(chatRef, chatPayload)
+             .catch(serverError => {
+                const permissionError = new FirestorePermissionError({ path: chatRef.path, operation: 'create', requestResourceData: chatPayload });
+                errorEmitter.emit('permission-error', permissionError);
+                throw serverError; // Re-throw to be caught by outer try-catch
             });
 
-            await addDoc(messagesRef, {
-                text: initialMessage,
-                senderId: user.uid,
-                timestamp: serverTimestamp(),
-            });
+            if (!isManualTransfer) {
+              const messagePayload = {
+                  text: initialMessage,
+                  senderId: user.uid,
+                  timestamp: serverTimestamp(),
+              };
+              await addDoc(messagesRef, messagePayload)
+                .catch(serverError => {
+                  const permissionError = new FirestorePermissionError({ path: messagesRef.path, operation: 'create', requestResourceData: messagePayload });
+                  errorEmitter.emit('permission-error', permissionError);
+                  throw serverError;
+              });
+            }
 
             if (isManualTransfer) {
                 setPaymentSuccess(true);
@@ -112,7 +129,7 @@ function PaymentPageContent() {
             }
         } else if (paymentType === 'appointment' && dateStr) {
             const appointmentRef = collection(firestore, 'appointments');
-            await addDoc(appointmentRef, {
+            const appointmentPayload = {
                 userId: user.uid,
                 lawyerId: lawyer.id,
                 lawyerName: lawyer.name,
@@ -120,8 +137,16 @@ function PaymentPageContent() {
                 appointmentDate: new Date(dateStr),
                 description: description,
                 status: isManualTransfer ? 'pending_payment' : 'pending',
-                createdAt: serverTimestamp()
+                createdAt: serverTimestamp(),
+                ...(isManualTransfer && { slipUrl: 'simulated_slip_url.jpg' })
+            };
+            await addDoc(appointmentRef, appointmentPayload)
+             .catch(serverError => {
+                const permissionError = new FirestorePermissionError({ path: appointmentRef.path, operation: 'create', requestResourceData: appointmentPayload });
+                errorEmitter.emit('permission-error', permissionError);
+                throw serverError;
             });
+
 
             setPaymentSuccess(true);
             if (!isManualTransfer) {
@@ -172,10 +197,7 @@ function PaymentPageContent() {
           toast({ variant: 'destructive', title: 'กรุณาแนบสลิปการโอนเงิน' });
           return;
       }
-      setIsProcessing(true);
-      setTimeout(() => {
-        processPayment(true);
-      }, 1500)
+      processPayment(true);
   }
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -402,5 +424,3 @@ export default function PaymentPage() {
         </div>
     )
 }
-
-    
