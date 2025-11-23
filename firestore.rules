@@ -36,8 +36,10 @@ service cloud.firestore {
       
       allow get: if isParticipant();
       allow list: if isSignedIn() && request.auth.uid in query.filters[0][2];
+      // Allow creation for any signed-in user, who must be one of the participants
       allow create: if isSignedIn() && request.auth.uid in request.resource.data.participants;
-      allow update: if isParticipant() || request.resource.data.status == 'pending_payment';
+      // Allow update by participants or admin
+      allow update: if isParticipant() || isAdmin();
 
       match /messages/{messageId} {
         function isChatParticipant() {
@@ -62,7 +64,9 @@ service cloud.firestore {
     }
 
     match /appointments/{appointmentId} {
+        // Allow creation for any signed-in user
         allow create: if isSignedIn();
+        // Allow read/update by user, lawyer, or admin
         allow read, update: if isOwner(resource.data.userId) || isOwner(resource.data.lawyerId) || isAdmin();
         allow list: if isSignedIn();
     }
