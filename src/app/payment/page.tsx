@@ -1,12 +1,12 @@
 
 'use client';
 
-import React, { useState, useEffect, Suspense } from 'react';
+import React, { useState, useEffect, Suspense, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getLawyerById } from '@/lib/data';
 import type { LawyerProfile } from '@/lib/types';
-import { ArrowLeft, CreditCard, Calendar, User, CheckCircle, QrCode, MessageSquare, Pencil, Loader2 } from 'lucide-react';
+import { ArrowLeft, CreditCard, Calendar, User, CheckCircle, QrCode, MessageSquare, Pencil, Loader2, Landmark, Upload } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -44,6 +44,8 @@ function PaymentPageContent() {
   const [initialMessage, setInitialMessage] = useState(description || '');
   const [activeTab, setActiveTab] = useState("credit-card");
   const [isWaitingForPayment, setIsWaitingForPayment] = useState(false);
+  const [slipFile, setSlipFile] = useState<File | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
 
   const appointmentFee = 3500;
@@ -73,7 +75,7 @@ function PaymentPageContent() {
     setPromptPayPayload(payload);
   }, [fee]);
 
-  const processPayment = async () => {
+  const processPayment = async (isManualTransfer = false) => {
     setIsProcessing(true);
     if (!firestore || !user || !lawyer) {
         toast({ variant: "destructive", title: "เกิดข้อผิดพลาด", description: "ไม่สามารถเชื่อมต่อฐานข้อมูลได้" });
@@ -90,7 +92,7 @@ function PaymentPageContent() {
                 participants: [user.uid, lawyer.userId],
                 createdAt: serverTimestamp(),
                 caseTitle: `Ticket สนทนา: ${initialMessage.substring(0, 30)}...`,
-                status: 'active',
+                status: isManualTransfer ? 'pending_payment' : 'active',
             });
 
             await addDoc(messagesRef, {
@@ -99,13 +101,15 @@ function PaymentPageContent() {
                 timestamp: serverTimestamp(),
             });
 
-            toast({
-                title: "ชำระเงินสำเร็จ!",
-                description: 'คุณสามารถเริ่มสนทนากับทนายความได้แล้ว',
-            });
-            
-            router.push(`/chat/${newChatId}?lawyerId=${lawyer.id}`);
-
+            if (isManualTransfer) {
+                setPaymentSuccess(true);
+            } else {
+                toast({
+                    title: "ชำระเงินสำเร็จ!",
+                    description: 'คุณสามารถเริ่มสนทนากับทนายความได้แล้ว',
+                });
+                router.push(`/chat/${newChatId}?lawyerId=${lawyer.id}`);
+            }
         } else if (paymentType === 'appointment' && dateStr) {
             const appointmentRef = collection(firestore, 'appointments');
             await addDoc(appointmentRef, {
@@ -115,18 +119,17 @@ function PaymentPageContent() {
                 lawyerImageUrl: lawyer.imageUrl,
                 appointmentDate: new Date(dateStr),
                 description: description,
-                status: 'pending',
+                status: isManualTransfer ? 'pending_payment' : 'pending',
                 createdAt: serverTimestamp()
             });
 
             setPaymentSuccess(true);
-            toast({
-                title: "ชำระเงินสำเร็จ!",
-                description: 'เราได้ส่งคำขอนัดหมายของคุณไปยังทนายความแล้ว',
-            });
-             setTimeout(() => {
-                router.push(`/dashboard`);
-            }, 3000);
+            if (!isManualTransfer) {
+              toast({
+                  title: "ชำระเงินสำเร็จ!",
+                  description: 'เราได้ส่งคำขอนัดหมายของคุณไปยังทนายความแล้ว',
+              });
+            }
         }
     } catch (error) {
         console.error("Payment processing error:", error);
@@ -163,6 +166,24 @@ function PaymentPageContent() {
       processPayment();
     }, 5000); // Simulate 5 second wait for user to scan and pay
   };
+  
+  const handleBankTransferSubmit = () => {
+      if (!slipFile) {
+          toast({ variant: 'destructive', title: 'กรุณาแนบสลิปการโอนเงิน' });
+          return;
+      }
+      setIsProcessing(true);
+      setTimeout(() => {
+        processPayment(true);
+      }, 1500)
+  }
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (event.target.files && event.target.files[0]) {
+      setSlipFile(event.target.files[0]);
+    }
+  };
+
 
   if (isLoading) {
     return <div className="flex items-center justify-center min-h-[50vh]">Loading...</div>;
@@ -179,16 +200,18 @@ function PaymentPageContent() {
     );
   }
   
-  if (paymentSuccess && paymentType === 'appointment') {
+  if (paymentSuccess) {
     return (
         <Card className="w-full max-w-2xl mx-auto">
             <CardContent className="pt-6 text-center">
                 <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-                <h2 className="text-2xl font-bold mb-2">การนัดหมายของคุณถูกส่งแล้ว</h2>
+                <h2 className="text-2xl font-bold mb-2">ส่งข้อมูลสำเร็จ!</h2>
                 <p className="text-muted-foreground mb-4">
-                    เราได้ส่งรายละเอียดการนัดหมายกับคุณ {lawyer.name} ในวันที่ {dateStr ? format(new Date(dateStr), 'd MMMM yyyy') : ''} ไปยังทนายความแล้ว (จำลอง)
+                    เราได้รับข้อมูลของคุณแล้ว เจ้าหน้าที่จะดำเนินการตรวจสอบและอนุมัติภายใน 24 ชั่วโมง
                 </p>
-                <p className="text-sm text-muted-foreground">กำลังนำคุณกลับไปที่แดชบอร์ด...</p>
+                 <Button asChild>
+                    <Link href="/dashboard">กลับไปที่แดชบอร์ด</Link>
+                </Button>
             </CardContent>
         </Card>
     )
@@ -267,9 +290,10 @@ function PaymentPageContent() {
         <div className="space-y-4">
             <h3 className="font-semibold text-lg">เลือกวิธีการชำระเงิน</h3>
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-2">
+                <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="credit-card" disabled={isWaitingForPayment}><CreditCard className="mr-2 h-4 w-4" /> บัตรเครดิต</TabsTrigger>
                     <TabsTrigger value="promptpay" disabled={isWaitingForPayment}><QrCode className="mr-2 h-4 w-4" /> PromptPay</TabsTrigger>
+                    <TabsTrigger value="bank-transfer" disabled={isWaitingForPayment}><Landmark className="mr-2 h-4 w-4" /> โอนเงิน</TabsTrigger>
                 </TabsList>
                 <TabsContent value="credit-card" className="mt-4">
                      <form onSubmit={handlePayment} className="space-y-4">
@@ -319,6 +343,46 @@ function PaymentPageContent() {
                         )}
                     </div>
                 </TabsContent>
+                 <TabsContent value="bank-transfer" className="mt-4">
+                    <div className="space-y-4 p-4 border rounded-md bg-white">
+                        <p className="font-semibold text-center">โอนเงินเพื่อชำระค่าบริการ</p>
+                        <div className="p-4 bg-gray-100 rounded-lg text-center space-y-1">
+                            <p className="text-sm text-muted-foreground">ธนาคารกสิกรไทย</p>
+                            <p className="font-bold text-lg tracking-widest">123-4-56789-0</p>
+                            <p className="font-semibold">บริษัท ลอว์เลนส์ จำกัด</p>
+                        </div>
+                        <div className="text-center font-bold text-lg">
+                           ยอดที่ต้องชำระ: {new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(fee)}
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="slip-upload">แนบสลิปการโอนเงิน</Label>
+                            <div 
+                                className="flex items-center justify-center w-full p-4 border-2 border-dashed rounded-lg cursor-pointer"
+                                onClick={() => fileInputRef.current?.click()}
+                            >
+                                {slipFile ? (
+                                    <span className="text-sm font-medium text-green-600">{slipFile.name}</span>
+                                ) : (
+                                    <div className="text-center text-muted-foreground text-sm">
+                                        <Upload className="mx-auto w-6 h-6 mb-1"/>
+                                        คลิกเพื่ออัปโหลด
+                                    </div>
+                                )}
+                            </div>
+                            <input 
+                                ref={fileInputRef}
+                                id="slip-upload"
+                                type="file"
+                                accept="image/*,.pdf"
+                                className="hidden"
+                                onChange={handleFileChange}
+                            />
+                        </div>
+                        <Button onClick={handleBankTransferSubmit} className="w-full" size="lg" disabled={isProcessing || !slipFile}>
+                            {isProcessing ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/>กำลังส่งข้อมูล...</> : 'แจ้งการชำระเงิน'}
+                        </Button>
+                    </div>
+                </TabsContent>
             </Tabs>
         </div>
       </CardContent>
@@ -338,3 +402,5 @@ export default function PaymentPage() {
         </div>
     )
 }
+
+    
