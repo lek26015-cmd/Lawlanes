@@ -30,51 +30,91 @@ import {
 import { useToast } from '@/hooks/use-toast'
 import { Textarea } from '@/components/ui/textarea'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { mockArticles } from '@/lib/data'
+import { getArticleById } from '@/lib/data'
 import type { Article } from '@/lib/types'
+import { useFirebase } from '@/firebase'
+import { doc, updateDoc, serverTimestamp } from 'firebase/firestore'
+import { errorEmitter, FirestorePermissionError } from '@/firebase'
+import Image from 'next/image'
 
 export default function AdminArticleEditPage() {
   const router = useRouter()
   const params = useParams()
+  const { id } = params
   const { toast } = useToast()
-  
-  const [article, setArticle] = React.useState<Article | null>(null)
-  const [title, setTitle] = React.useState('');
-  const [slug, setSlug] = React.useState('');
+  const { firestore } = useFirebase();
+
+  const [article, setArticle] = React.useState<Article | null>(null);
+  const [isLoading, setIsLoading] = React.useState(true);
+  const [isSaving, setIsSaving] = React.useState(false);
   const [categories, setCategories] = React.useState(['กฎหมายแรงงาน', 'กฎหมายธุรกิจ', 'ทรัพย์สินทางปัญญา', 'คดีฉ้อโกง', 'กฎหมายแพ่ง']);
   const [newCategory, setNewCategory] = React.useState('');
 
   React.useEffect(() => {
-    const articleId = params.id as string;
-    const foundArticle = mockArticles.find(a => a.id === articleId);
-    if (foundArticle) {
-      setArticle(foundArticle);
-      setTitle(foundArticle.title);
-      setSlug(foundArticle.slug);
+    if (!firestore || !id) return;
+    setIsLoading(true);
+    getArticleById(firestore, id as string).then(foundArticle => {
+      if (foundArticle) {
+        setArticle(foundArticle);
+      }
+      setIsLoading(false);
+    });
+  }, [id, firestore]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    if (!article) return;
+    const { id, value } = e.target;
+    
+    if (id === 'title') {
+        const newSlug = value.toString()
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase()
+            .trim()
+            .replace(/\s+/g, '-')
+            .replace(/[^\w-]+/g, '')
+            .replace(/--+/g, '-');
+        setArticle({ ...article, title: value, slug: newSlug });
+    } else {
+        setArticle({ ...article, [id]: value });
     }
-  }, [params.id]);
+  };
 
-
-  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newTitle = e.target.value;
-    setTitle(newTitle);
-    const newSlug = newTitle.toString()
-        .normalize('NFD')
-        .replace(/[\u0300-\u036f]/g, '')
-        .toLowerCase()
-        .trim()
-        .replace(/\s+/g, '-')
-        .replace(/[^\w-]+/g, '')
-        .replace(/--+/g, '-');
-    setSlug(newSlug);
+  const handleSelectChange = (value: string) => {
+      if (!article) return;
+      setArticle({ ...article, category: value });
   }
 
   const handleSaveChanges = () => {
-    toast({
-        title: "แก้ไขบทความสำเร็จ",
-        description: `บทความ "${title}" ได้รับการอัปเดตแล้ว`,
-    })
-    router.push('/admin/content');
+    if (!firestore || !article) return;
+    setIsSaving(true);
+    
+    const articleRef = doc(firestore, 'articles', article.id);
+    const updatedData = {
+        title: article.title,
+        slug: article.slug,
+        description: article.description,
+        content: article.content,
+        category: article.category,
+        authorName: article.authorName, // Assuming you might want to edit this too
+    };
+
+    updateDoc(articleRef, updatedData).then(() => {
+        toast({
+            title: "แก้ไขบทความสำเร็จ",
+            description: `บทความ "${article.title}" ได้รับการอัปเดตแล้ว`,
+        });
+        router.push('/admin/content');
+    }).catch(error => {
+        const permissionError = new FirestorePermissionError({
+            path: articleRef.path,
+            operation: 'update',
+            requestResourceData: updatedData,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    }).finally(() => {
+        setIsSaving(false);
+    });
   }
   
   const handleAddNewCategory = () => {
@@ -94,7 +134,7 @@ export default function AdminArticleEditPage() {
     }
   }
   
-  if (!article) {
+  if (isLoading || !article) {
       return <div>กำลังโหลด...</div>
   }
 
@@ -104,7 +144,7 @@ export default function AdminArticleEditPage() {
         <div className="mx-auto grid max-w-3xl flex-1 auto-rows-max gap-4">
           <div className="flex items-center gap-4">
             <Link href="/admin/content">
-                <Button variant="outline" size="icon" className="h-7 w-7">
+                <Button variant="outline" size="icon" className="h-7 w-7" disabled={isSaving}>
                 <ChevronLeft className="h-4 w-4" />
                 <span className="sr-only">กลับ</span>
                 </Button>
@@ -114,12 +154,12 @@ export default function AdminArticleEditPage() {
             </h1>
             <div className="hidden items-center gap-2 md:ml-auto md:flex">
               <Link href="/admin/content">
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" disabled={isSaving}>
                     ยกเลิก
                 </Button>
               </Link>
-              <Button size="sm" onClick={handleSaveChanges}>
-                บันทึกการเปลี่ยนแปลง
+              <Button size="sm" onClick={handleSaveChanges} disabled={isSaving}>
+                {isSaving ? 'กำลังบันทึก...' : 'บันทึกการเปลี่ยนแปลง'}
               </Button>
             </div>
           </div>
@@ -140,16 +180,20 @@ export default function AdminArticleEditPage() {
                                 id="title"
                                 type="text"
                                 className="w-full"
-                                value={title}
-                                onChange={handleTitleChange}
+                                value={article.title}
+                                onChange={handleInputChange}
                             />
                         </div>
                         <div className="grid gap-3">
                             <Label htmlFor="picture">รูปภาพหน้าปก</Label>
                             <div className="flex items-center gap-4">
-                                <div className="aspect-video w-48 rounded-md object-contain bg-muted border flex items-center justify-center">
-                                    <span className="text-muted-foreground text-xs">Preview</span>
-                                </div>
+                                <Image
+                                    alt={article.title}
+                                    className="aspect-video w-48 rounded-md object-contain bg-white p-1 border"
+                                    height="90"
+                                    src={article.imageUrl}
+                                    width="160"
+                                />
                                 <Button variant="outline">
                                 <Upload className="h-4 w-4 mr-2"/>
                                 เปลี่ยนรูป
@@ -160,7 +204,8 @@ export default function AdminArticleEditPage() {
                             <Label htmlFor="content">เนื้อหาบทความ</Label>
                             <Textarea
                                 id="content"
-                                defaultValue={article.content}
+                                value={article.content}
+                                onChange={handleInputChange}
                                 rows={15}
                             />
                         </div>
@@ -180,8 +225,8 @@ export default function AdminArticleEditPage() {
                             <Input
                                 id="slug"
                                 type="text"
-                                value={slug}
-                                onChange={(e) => setSlug(e.target.value)}
+                                value={article.slug}
+                                onChange={handleInputChange}
                             />
                              <Alert variant="default" className="bg-blue-50 border-blue-200 text-blue-800">
                                 <Info className="h-4 w-4 !text-blue-600" />
@@ -201,8 +246,9 @@ export default function AdminArticleEditPage() {
                          <div className="grid gap-3">
                             <Label htmlFor="meta-description">Meta Description</Label>
                             <Textarea
-                                id="meta-description"
-                                defaultValue={article.description}
+                                id="description"
+                                value={article.description}
+                                onChange={handleInputChange}
                                 rows={3}
                             />
                         </div>
@@ -218,7 +264,7 @@ export default function AdminArticleEditPage() {
                        <div className="grid gap-6">
                          <div className="grid gap-3">
                             <Label htmlFor="category">หมวดหมู่</Label>
-                            <Select defaultValue={article.category}>
+                            <Select value={article.category} onValueChange={handleSelectChange}>
                                 <SelectTrigger id="category">
                                     <SelectValue placeholder="เลือกหมวดหมู่" />
                                 </SelectTrigger>
@@ -251,12 +297,12 @@ export default function AdminArticleEditPage() {
 
            <div className="flex items-center justify-end gap-2 md:hidden">
               <Link href="/admin/content">
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" disabled={isSaving}>
                     ยกเลิก
                 </Button>
               </Link>
-              <Button size="sm" onClick={handleSaveChanges}>
-                บันทึกการเปลี่ยนแปลง
+              <Button size="sm" onClick={handleSaveChanges} disabled={isSaving}>
+                {isSaving ? 'กำลังบันทึก...' : 'บันทึกการเปลี่ยนแปลง'}
               </Button>
             </div>
         </div>

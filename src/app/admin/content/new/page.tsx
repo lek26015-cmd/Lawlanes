@@ -30,13 +30,23 @@ import {
 import { useToast } from '@/hooks/use-toast'
 import { Textarea } from '@/components/ui/textarea'
 import { Alert, AlertDescription } from '@/components/ui/alert'
+import { useFirebase } from '@/firebase'
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore'
+import { errorEmitter, FirestorePermissionError } from '@/firebase'
 
 export default function AdminArticleCreatePage() {
   const router = useRouter()
   const { toast } = useToast()
-  
+  const { firestore } = useFirebase();
+
   const [title, setTitle] = React.useState('');
   const [slug, setSlug] = React.useState('');
+  const [description, setDescription] = React.useState('');
+  const [content, setContent] = React.useState('');
+  const [category, setCategory] = React.useState('');
+  const [authorName, setAuthorName] = React.useState('ทีมงาน Lawlanes');
+  const [isSaving, setIsSaving] = React.useState(false);
+
   const [categories, setCategories] = React.useState(['กฎหมายแรงงาน', 'กฎหมายธุรกิจ', 'ทรัพย์สินทางปัญญา', 'คดีฉ้อโกง', 'กฎหมายแพ่ง']);
   const [newCategory, setNewCategory] = React.useState('');
 
@@ -57,16 +67,53 @@ export default function AdminArticleCreatePage() {
   }
 
   const handleSaveChanges = () => {
-    toast({
-        title: "สร้างบทความสำเร็จ",
-        description: `บทความใหม่ "${title || 'บทความใหม่'}" ได้ถูกเพิ่มเข้าสู่ระบบแล้ว`,
-    })
-    router.push('/admin/content');
+    if (!firestore) return;
+    if (!title || !slug || !content || !category) {
+        toast({
+            variant: "destructive",
+            title: "ข้อมูลไม่ครบถ้วน",
+            description: "กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน: หัวข้อ, slug, เนื้อหา, และหมวดหมู่",
+        });
+        return;
+    }
+    setIsSaving(true);
+
+    const newArticle = {
+        title,
+        slug,
+        description,
+        content,
+        category,
+        authorName,
+        imageUrl: `https://picsum.photos/seed/${slug}/600/400`,
+        imageHint: 'legal article',
+        publishedAt: serverTimestamp(),
+    };
+
+    const articlesCollection = collection(firestore, 'articles');
+    
+    addDoc(articlesCollection, newArticle).then(() => {
+        toast({
+            title: "สร้างบทความสำเร็จ",
+            description: `บทความใหม่ "${title}" ได้ถูกเพิ่มเข้าสู่ระบบแล้ว`,
+        })
+        router.push('/admin/content');
+    }).catch(error => {
+        const permissionError = new FirestorePermissionError({
+            path: 'articles',
+            operation: 'create',
+            requestResourceData: newArticle,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    }).finally(() => {
+        setIsSaving(false);
+    });
   }
   
   const handleAddNewCategory = () => {
     if (newCategory && !categories.includes(newCategory)) {
         setCategories(prev => [...prev, newCategory]);
+        setCategory(newCategory); // Auto-select the new category
         setNewCategory('');
         toast({
             title: 'เพิ่มหมวดหมู่สำเร็จ',
@@ -87,7 +134,7 @@ export default function AdminArticleCreatePage() {
         <div className="mx-auto grid max-w-3xl flex-1 auto-rows-max gap-4">
           <div className="flex items-center gap-4">
             <Link href="/admin/content">
-                <Button variant="outline" size="icon" className="h-7 w-7">
+                <Button variant="outline" size="icon" className="h-7 w-7" disabled={isSaving}>
                 <ChevronLeft className="h-4 w-4" />
                 <span className="sr-only">กลับ</span>
                 </Button>
@@ -97,12 +144,12 @@ export default function AdminArticleCreatePage() {
             </h1>
             <div className="hidden items-center gap-2 md:ml-auto md:flex">
               <Link href="/admin/content">
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" disabled={isSaving}>
                     ยกเลิก
                 </Button>
               </Link>
-              <Button size="sm" onClick={handleSaveChanges}>
-                บันทึกบทความ
+              <Button size="sm" onClick={handleSaveChanges} disabled={isSaving}>
+                {isSaving ? 'กำลังบันทึก...' : 'บันทึกบทความ'}
               </Button>
             </div>
           </div>
@@ -136,7 +183,7 @@ export default function AdminArticleCreatePage() {
                                 </div>
                                 <Button variant="outline">
                                 <Upload className="h-4 w-4 mr-2"/>
-                                อัปโหลดรูป
+                                อัปโหลดรูป (จำลอง)
                                 </Button>
                             </div>
                         </div>
@@ -146,6 +193,8 @@ export default function AdminArticleCreatePage() {
                                 id="content"
                                 placeholder="เนื้อหาฉบับเต็มของบทความ..."
                                 rows={15}
+                                value={content}
+                                onChange={(e) => setContent(e.target.value)}
                             />
                         </div>
                     </div>
@@ -181,6 +230,8 @@ export default function AdminArticleCreatePage() {
                                 id="meta-title"
                                 type="text"
                                 placeholder="หัวข้อที่จะแสดงบน Google"
+                                value={title}
+                                readOnly
                             />
                         </div>
                          <div className="grid gap-3">
@@ -189,6 +240,8 @@ export default function AdminArticleCreatePage() {
                                 id="meta-description"
                                 placeholder="คำอธิบายสั้นๆ ที่จะแสดงในผลการค้นหา (ไม่เกิน 160 ตัวอักษร)"
                                 rows={3}
+                                value={description}
+                                onChange={(e) => setDescription(e.target.value)}
                             />
                         </div>
                     </CardContent>
@@ -203,7 +256,7 @@ export default function AdminArticleCreatePage() {
                        <div className="grid gap-6">
                          <div className="grid gap-3">
                             <Label htmlFor="category">หมวดหมู่</Label>
-                            <Select>
+                            <Select value={category} onValueChange={setCategory}>
                                 <SelectTrigger id="category">
                                     <SelectValue placeholder="เลือกหมวดหมู่" />
                                 </SelectTrigger>
@@ -236,12 +289,12 @@ export default function AdminArticleCreatePage() {
 
            <div className="flex items-center justify-end gap-2 md:hidden">
               <Link href="/admin/content">
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" disabled={isSaving}>
                     ยกเลิก
                 </Button>
               </Link>
-              <Button size="sm" onClick={handleSaveChanges}>
-                บันทึกบทความ
+              <Button size="sm" onClick={handleSaveChanges} disabled={isSaving}>
+                {isSaving ? 'กำลังบันทึก...' : 'บันทึกบทความ'}
               </Button>
             </div>
         </div>

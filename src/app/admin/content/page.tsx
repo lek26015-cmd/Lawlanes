@@ -38,7 +38,7 @@ import {
   TabsContent,
 } from '@/components/ui/tabs';
 import Image from 'next/image';
-import { mockArticles } from '@/lib/data';
+import { getAllAdminArticles } from '@/lib/data';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -52,16 +52,39 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
 import { Article } from '@/lib/types';
+import { useFirebase } from '@/firebase';
+import { doc, deleteDoc } from 'firebase/firestore';
+import { errorEmitter, FirestorePermissionError } from '@/firebase';
 
 
 export default function AdminContentPage() {
     const { toast } = useToast();
+    const { firestore } = useFirebase();
+    const [articles, setArticles] = React.useState<Article[]>([]);
+
+    React.useEffect(() => {
+        if (!firestore) return;
+        getAllAdminArticles(firestore).then(setArticles);
+    }, [firestore]);
+
 
     const handleDelete = (article: Article) => {
-        toast({
-            variant: "destructive",
-            title: "ลบบทความสำเร็จ (จำลอง)",
-            description: `บทความ "${article.title}" ได้ถูกลบออกจากระบบแล้ว`,
+        if (!firestore) return;
+        const articleRef = doc(firestore, 'articles', article.id);
+        
+        deleteDoc(articleRef).then(() => {
+             toast({
+                variant: "destructive",
+                title: "ลบบทความสำเร็จ",
+                description: `บทความ "${article.title}" ได้ถูกลบออกจากระบบแล้ว`,
+            });
+            setArticles(prev => prev.filter(a => a.id !== article.id));
+        }).catch(error => {
+            const permissionError = new FirestorePermissionError({
+                path: articleRef.path,
+                operation: 'delete'
+            });
+            errorEmitter.emit('permission-error', permissionError);
         });
     };
 
@@ -104,7 +127,7 @@ export default function AdminContentPage() {
                                 </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                {mockArticles.map((article) => (
+                                {articles.map((article) => (
                                     <TableRow key={article.id}>
                                         <TableCell className="hidden sm:table-cell">
                                             <Image
@@ -146,21 +169,21 @@ export default function AdminContentPage() {
                                                 </AlertDialogTrigger>
                                             </DropdownMenuContent>
                                             </DropdownMenu>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>คุณแน่ใจหรือไม่?</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                    การกระทำนี้ไม่สามารถย้อนกลับได้ คุณกำลังจะลบบทความ "{article.title}" ออกจากระบบอย่างถาวร
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={() => handleDelete(article)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                                                        ยืนยันการลบ
+                                                    </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
                                         </TableCell>
-                                        <AlertDialogContent>
-                                            <AlertDialogHeader>
-                                                <AlertDialogTitle>คุณแน่ใจหรือไม่?</AlertDialogTitle>
-                                                <AlertDialogDescription>
-                                                การกระทำนี้ไม่สามารถย้อนกลับได้ คุณกำลังจะลบบทความ "{article.title}" ออกจากระบบอย่างถาวร
-                                                </AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <AlertDialogFooter>
-                                                <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
-                                                <AlertDialogAction onClick={() => handleDelete(article)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                                                    ยืนยันการลบ
-                                                </AlertDialogAction>
-                                            </AlertDialogFooter>
-                                        </AlertDialogContent>
                                     </TableRow>
                                 ))}
                                 </TableBody>
@@ -171,7 +194,7 @@ export default function AdminContentPage() {
             </CardContent>
              <CardFooter>
                 <div className="text-xs text-muted-foreground">
-                   แสดง <strong>{mockArticles.length}</strong> จาก <strong>{mockArticles.length}</strong> รายการ
+                   แสดง <strong>{articles.length}</strong> จาก <strong>{articles.length}</strong> รายการ
                 </div>
             </CardFooter>
         </Card>
