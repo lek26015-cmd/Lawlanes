@@ -20,13 +20,16 @@ import generatePayload from 'promptpay-qr';
 import { useChat } from '@/context/chat-context';
 import { Textarea } from '@/components/ui/textarea';
 import { v4 as uuidv4 } from 'uuid';
+import { useFirebase } from '@/firebase';
+import { addDoc, collection, doc, serverTimestamp, setDoc } from 'firebase/firestore';
 
 
 function PaymentPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { toast } = useToast();
-  const { openLawyerChat, setInitialChatMessage } = useChat();
+  const { setInitialChatMessage } = useChat();
+  const { firestore, user } = useFirebase();
 
   const paymentType = searchParams.get('type') || 'appointment';
   const lawyerId = searchParams.get('lawyerId');
@@ -38,7 +41,7 @@ function PaymentPageContent() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [promptPayPayload, setPromptPayPayload] = useState('');
-  const [initialMessage, setInitialMessage] = useState('');
+  const [initialMessage, setInitialMessage] = useState(description || '');
 
   const appointmentFee = 3500;
   const chatTicketFee = 500;
@@ -48,17 +51,17 @@ function PaymentPageContent() {
 
   useEffect(() => {
     async function fetchLawyer() {
-      if (!lawyerId) {
+      if (!lawyerId || !firestore) {
         setIsLoading(false);
         return;
       }
       setIsLoading(true);
-      const lawyerData = await getLawyerById(lawyerId);
+      const lawyerData = await getLawyerById(firestore, lawyerId);
       setLawyer(lawyerData || null);
       setIsLoading(false);
     }
     fetchLawyer();
-  }, [lawyerId]);
+  }, [lawyerId, firestore]);
   
   useEffect(() => {
     // This is a mock phone number for QR generation
@@ -67,8 +70,13 @@ function PaymentPageContent() {
     setPromptPayPayload(payload);
   }, [fee]);
 
-  const handlePayment = (e?: React.FormEvent) => {
+  const handlePayment = async (e?: React.FormEvent) => {
     e?.preventDefault();
+    if (!firestore || !user || !lawyer) {
+        toast({ variant: "destructive", title: "เกิดข้อผิดพลาด", description: "ไม่สามารถเชื่อมต่อฐานข้อมูลได้" });
+        return;
+    }
+
     if(paymentType === 'chat' && !initialMessage.trim()){
         toast({
             variant: "destructive",
@@ -79,27 +87,61 @@ function PaymentPageContent() {
     }
 
     setIsProcessing(true);
-    setTimeout(() => {
-      setIsProcessing(false);
-      
-      toast({
-        title: "ชำระเงินสำเร็จ!",
-        description: paymentType === 'chat' ? 'คุณสามารถเริ่มสนทนากับทนายความได้แล้ว' : 'เราได้ส่งคำขอนัดหมายของคุณไปยังทนายความแล้ว',
-      });
-      
-      if (paymentType === 'chat' && lawyer) {
-        // In a real app, this would create a chat session in the DB.
-        // For now, we generate a mock chat ID and navigate to the new chat page.
-        const newChatId = uuidv4();
-        setInitialChatMessage(initialMessage);
-        router.push(`/chat/${newChatId}?lawyerId=${lawyer.id}`);
-      } else if (paymentType === 'appointment') {
-        setPaymentSuccess(true);
-        setTimeout(() => {
-          router.push(`/lawyers/${lawyerId}`);
-        }, 3000);
-      }
-    }, 2000);
+    
+    try {
+        if (paymentType === 'chat') {
+            const newChatId = uuidv4();
+            const chatRef = doc(firestore, 'chats', newChatId);
+            const messagesRef = collection(chatRef, 'messages');
+
+            await setDoc(chatRef, {
+                participants: [user.uid, lawyer.userId],
+                createdAt: serverTimestamp(),
+                caseTitle: `Ticket สนทนา: ${initialMessage.substring(0, 30)}...`,
+                status: 'active',
+            });
+
+            await addDoc(messagesRef, {
+                text: initialMessage,
+                senderId: user.uid,
+                timestamp: serverTimestamp(),
+            });
+
+            toast({
+                title: "ชำระเงินสำเร็จ!",
+                description: 'คุณสามารถเริ่มสนทนากับทนายความได้แล้ว',
+            });
+            
+            router.push(`/chat/${newChatId}?lawyerId=${lawyer.id}`);
+
+        } else if (paymentType === 'appointment' && dateStr) {
+            const appointmentRef = collection(firestore, 'appointments');
+            await addDoc(appointmentRef, {
+                userId: user.uid,
+                lawyerId: lawyer.id,
+                lawyerName: lawyer.name,
+                lawyerImageUrl: lawyer.imageUrl,
+                appointmentDate: new Date(dateStr),
+                description: description,
+                status: 'pending',
+                createdAt: serverTimestamp()
+            });
+
+            setPaymentSuccess(true);
+            toast({
+                title: "ชำระเงินสำเร็จ!",
+                description: 'เราได้ส่งคำขอนัดหมายของคุณไปยังทนายความแล้ว',
+            });
+             setTimeout(() => {
+                router.push(`/dashboard`);
+            }, 3000);
+        }
+    } catch (error) {
+        console.error("Payment processing error:", error);
+        toast({ variant: "destructive", title: "เกิดข้อผิดพลาด", description: "ไม่สามารถดำเนินการได้ กรุณาลองใหม่อีกครั้ง" });
+    } finally {
+        setIsProcessing(false);
+    }
   };
 
   if (isLoading) {
@@ -122,11 +164,11 @@ function PaymentPageContent() {
         <Card className="w-full max-w-2xl mx-auto">
             <CardContent className="pt-6 text-center">
                 <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-                <h2 className="text-2xl font-bold mb-2">การนัดหมายของคุณถูกยืนยันแล้ว</h2>
+                <h2 className="text-2xl font-bold mb-2">การนัดหมายของคุณถูกส่งแล้ว</h2>
                 <p className="text-muted-foreground mb-4">
-                    เราได้ส่งรายละเอียดการนัดหมายกับคุณ {lawyer.name} ในวันที่ {dateStr ? format(new Date(dateStr), 'd MMMM yyyy') : ''} ไปยังอีเมลของคุณแล้ว (จำลอง)
+                    เราได้ส่งรายละเอียดการนัดหมายกับคุณ {lawyer.name} ในวันที่ {dateStr ? format(new Date(dateStr), 'd MMMM yyyy') : ''} ไปยังทนายความแล้ว (จำลอง)
                 </p>
-                <p className="text-sm text-muted-foreground">กำลังนำคุณกลับไปที่หน้าโปรไฟล์ทนาย...</p>
+                <p className="text-sm text-muted-foreground">กำลังนำคุณกลับไปที่แดชบอร์ด...</p>
             </CardContent>
         </Card>
     )
