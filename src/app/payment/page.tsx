@@ -6,7 +6,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { getLawyerById } from '@/lib/data';
 import type { LawyerProfile } from '@/lib/types';
-import { ArrowLeft, CreditCard, Calendar, User, CheckCircle, QrCode, MessageSquare, Pencil } from 'lucide-react';
+import { ArrowLeft, CreditCard, Calendar, User, CheckCircle, QrCode, MessageSquare, Pencil, Loader2 } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,6 +42,9 @@ function PaymentPageContent() {
   const [paymentSuccess, setPaymentSuccess] = useState(false);
   const [promptPayPayload, setPromptPayPayload] = useState('');
   const [initialMessage, setInitialMessage] = useState(description || '');
+  const [activeTab, setActiveTab] = useState("credit-card");
+  const [isWaitingForPayment, setIsWaitingForPayment] = useState(false);
+
 
   const appointmentFee = 3500;
   const chatTicketFee = 500;
@@ -70,25 +73,14 @@ function PaymentPageContent() {
     setPromptPayPayload(payload);
   }, [fee]);
 
-  const handlePayment = async (e?: React.FormEvent) => {
-    e?.preventDefault();
+  const processPayment = async () => {
+    setIsProcessing(true);
     if (!firestore || !user || !lawyer) {
         toast({ variant: "destructive", title: "เกิดข้อผิดพลาด", description: "ไม่สามารถเชื่อมต่อฐานข้อมูลได้" });
+        setIsProcessing(false);
         return;
     }
-
-    if(paymentType === 'chat' && !initialMessage.trim()){
-        toast({
-            variant: "destructive",
-            title: "ข้อมูลไม่ครบถ้วน",
-            description: "กรุณาพิมพ์คำถามแรกที่จะส่งถึงทนายความ",
-        });
-        return;
-    }
-
-    setIsProcessing(true);
-    
-    try {
+     try {
         if (paymentType === 'chat') {
             const newChatId = uuidv4();
             const chatRef = doc(firestore, 'chats', newChatId);
@@ -142,6 +134,34 @@ function PaymentPageContent() {
     } finally {
         setIsProcessing(false);
     }
+  }
+
+
+  const handlePayment = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if(paymentType === 'chat' && !initialMessage.trim()){
+        toast({
+            variant: "destructive",
+            title: "ข้อมูลไม่ครบถ้วน",
+            description: "กรุณาพิมพ์คำถามแรกที่จะส่งถึงทนายความ",
+        });
+        return;
+    }
+    
+    // Simulate API call to payment gateway
+    setIsProcessing(true);
+    setTimeout(() => {
+        processPayment();
+    }, 2000); // Simulate 2 second payment processing
+  };
+
+  const handlePromptPaySelect = () => {
+    setIsWaitingForPayment(true);
+    // Simulate waiting for payment confirmation webhook
+    setTimeout(() => {
+      setIsWaitingForPayment(false);
+      processPayment();
+    }, 5000); // Simulate 5 second wait for user to scan and pay
   };
 
   if (isLoading) {
@@ -246,10 +266,10 @@ function PaymentPageContent() {
 
         <div className="space-y-4">
             <h3 className="font-semibold text-lg">เลือกวิธีการชำระเงิน</h3>
-            <Tabs defaultValue="promptpay" className="w-full">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="credit-card"><CreditCard className="mr-2 h-4 w-4" /> บัตรเครดิต</TabsTrigger>
-                    <TabsTrigger value="promptpay"><QrCode className="mr-2 h-4 w-4" /> PromptPay</TabsTrigger>
+                    <TabsTrigger value="credit-card" disabled={isWaitingForPayment}><CreditCard className="mr-2 h-4 w-4" /> บัตรเครดิต</TabsTrigger>
+                    <TabsTrigger value="promptpay" disabled={isWaitingForPayment}><QrCode className="mr-2 h-4 w-4" /> PromptPay</TabsTrigger>
                 </TabsList>
                 <TabsContent value="credit-card" className="mt-4">
                      <form onSubmit={handlePayment} className="space-y-4">
@@ -272,21 +292,31 @@ function PaymentPageContent() {
                             <Input id="cardName" placeholder="สมชาย กฎหมายดี" disabled={isProcessing} />
                         </div>
                         <Button type="submit" className="w-full" size="lg" disabled={isProcessing}>
-                            {isProcessing ? 'กำลังดำเนินการ...' : `ยืนยันและชำระเงิน ${new Intl.NumberFormat('th-TH').format(fee)} บาท`}
+                            {isProcessing ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/>กำลังดำเนินการ...</> : `ยืนยันและชำระเงิน ${new Intl.NumberFormat('th-TH').format(fee)} บาท`}
                         </Button>
                      </form>
                 </TabsContent>
                 <TabsContent value="promptpay" className="mt-4">
                     <div className="flex flex-col items-center justify-center space-y-4 p-4 border rounded-md bg-white">
-                        <p className="font-semibold">สแกน QR Code เพื่อชำระเงิน</p>
-                        <div className="p-4 bg-white rounded-lg">
-                           <QRCode value={promptPayPayload} size={180} />
-                        </div>
-                        <p className="text-sm text-muted-foreground">ยอดชำระ: {new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(fee)}</p>
-                        <p className="text-xs text-muted-foreground text-center">ใช้แอปพลิเคชันธนาคารของคุณสแกน QR Code นี้เพื่อชำระเงิน</p>
-                         <Button onClick={() => handlePayment()} className="w-full mt-4" size="lg" disabled={isProcessing}>
-                            {isProcessing ? 'กำลังตรวจสอบ...' : `ตรวจสอบการชำระเงิน`}
-                        </Button>
+                        {isWaitingForPayment ? (
+                            <div className="flex flex-col items-center justify-center space-y-4 h-[300px]">
+                                <Loader2 className="w-12 h-12 animate-spin text-primary" />
+                                <p className="font-semibold text-lg">กำลังรอการชำระเงิน</p>
+                                <p className="text-sm text-muted-foreground text-center">กรุณาชำระเงินภายใน 5 นาที... (จำลอง)</p>
+                            </div>
+                        ) : (
+                            <>
+                                <p className="font-semibold">สแกน QR Code เพื่อชำระเงิน</p>
+                                <div className="p-4 bg-white rounded-lg border">
+                                <QRCode value={promptPayPayload} size={180} />
+                                </div>
+                                <p className="text-sm text-muted-foreground">ยอดชำระ: {new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(fee)}</p>
+                                <p className="text-xs text-muted-foreground text-center">ใช้แอปพลิเคชันธนาคารของคุณสแกน QR Code นี้เพื่อชำระเงิน เมื่อชำระเงินแล้ว ระบบจะตรวจสอบอัตโนมัติ</p>
+                                <Button onClick={handlePromptPaySelect} className="w-full mt-4" size="lg">
+                                    ฉันสแกนจ่ายเงินแล้ว
+                                </Button>
+                            </>
+                        )}
                     </div>
                 </TabsContent>
             </Tabs>
