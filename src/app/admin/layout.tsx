@@ -58,19 +58,32 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 const userDocRef = doc(firestore, "users", user.uid);
                 let userDoc = await getDoc(userDocRef);
                 
-                // If user document doesn't exist, this might be the first admin login
+                // If user document doesn't exist, check if they are the designated super admin
                 if (!userDoc.exists()) {
-                    // Create the user document and make them a super admin
-                    const newAdminData = {
-                        uid: user.uid,
-                        name: user.displayName || 'Admin',
-                        email: user.email,
-                        role: 'admin',
-                        superAdmin: true, // Grant super admin rights
-                        registeredAt: new Date(),
-                    };
-                    await setDoc(userDocRef, newAdminData);
-                    userDoc = await getDoc(userDocRef); // Re-fetch the document
+                    const designatedSuperAdminUID = 'wS9w7ysNYUajNsBYZ6C7n2Afe9H3';
+
+                    if (user.uid === designatedSuperAdminUID) {
+                        // This is the designated super admin, create their admin document
+                        const newAdminData = {
+                            uid: user.uid,
+                            name: user.displayName || 'Admin',
+                            email: user.email,
+                            role: 'admin',
+                            superAdmin: true, // Grant super admin rights
+                            registeredAt: new Date(),
+                        };
+                        await setDoc(userDocRef, newAdminData);
+                        userDoc = await getDoc(userDocRef); // Re-fetch the document
+                    } else {
+                        // This user is not the designated super admin and has no document, deny access
+                        setIsAdmin(false);
+                        setCurrentUser(null);
+                        setUserRole(null);
+                        await signOut(auth); // Sign them out
+                        router.push('/admin/login'); // Redirect to login
+                        setIsCheckingAuth(false);
+                        return;
+                    }
                 }
 
                 if (userDoc.exists() && userDoc.data().role === 'admin') {
