@@ -2,35 +2,56 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Calendar, Briefcase, FileText, Loader2, Search, MessageSquare, Building, FileUp, HelpCircle, CheckCircle, User, Ticket } from 'lucide-react';
 import { getDashboardData } from '@/lib/data';
-import type { Case, UpcomingAppointment, Document, ReportedTicket } from '@/lib/types';
+import type { Case, UpcomingAppointment, ReportedTicket } from '@/lib/types';
 import { format } from 'date-fns';
 import { th } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
+import { useUser, useFirebase } from '@/firebase';
 
 export default function DashboardPage() {
+  const router = useRouter();
+  const { auth, firestore } = useFirebase();
+  const { data: user, isLoading: isUserLoading } = useUser(auth);
+
   const [cases, setCases] = useState<Case[]>([]);
   const [appointments, setAppointments] = useState<UpcomingAppointment[]>([]);
   const [tickets, setTickets] = useState<ReportedTicket[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    if (isUserLoading) return;
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+    if (!firestore) return;
+
     async function fetchData() {
       setIsLoading(true);
-      const { cases, appointments, tickets } = await getDashboardData();
+      const { cases, appointments, tickets } = await getDashboardData(firestore, user!.uid);
       setCases(cases);
       setAppointments(appointments);
       setTickets(tickets);
       setIsLoading(false);
     }
     fetchData();
-  }, []);
+  }, [isUserLoading, user, router, firestore]);
   
+  if (isUserLoading || isLoading || !user) {
+    return (
+        <div className="flex justify-center items-center h-screen">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+    );
+  }
+
   const activeCases = cases.filter(c => c.status === 'active');
   const closedCases = cases.filter(c => c.status === 'closed');
 
@@ -49,12 +70,7 @@ export default function DashboardPage() {
   return (
     <div className="bg-gray-100/50">
         <div className="container mx-auto px-4 md:px-6 py-8">
-            {isLoading ? (
-                <div className="flex justify-center items-center h-screen">
-                    <Loader2 className="h-12 w-12 animate-spin text-primary" />
-                </div>
-            ) : (
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 
                 {/* Main Content */}
                 <div className="lg:col-span-2 space-y-6">
@@ -105,7 +121,7 @@ export default function DashboardPage() {
                             <div className="space-y-3">
                                 {activeCases.map((caseItem) => (
                                 <Link href={`/chat/${caseItem.id}?lawyerId=${caseItem.lawyer.id}`} key={caseItem.id}>
-                                    <div className={`flex items-center justify-between p-4 rounded-lg bg-card ${caseColors[caseItem.color!]}`}>
+                                    <div className={`flex items-center justify-between p-4 rounded-lg bg-card ${caseColors['blue']}`}>
                                     <div>
                                         <p className="font-semibold">{caseItem.title} <span className="font-mono text-xs text-muted-foreground">({caseItem.id})</span></p>
                                         <p className="text-sm text-muted-foreground">{caseItem.lastMessage}</p>
@@ -154,11 +170,11 @@ export default function DashboardPage() {
                     <Card>
                         <CardContent className="pt-6 flex flex-col items-center text-center">
                             <Avatar className="w-20 h-20 mb-4">
-                                <AvatarImage src="https://picsum.photos/seed/user-avatar/100/100" />
-                                <AvatarFallback>สใ</AvatarFallback>
+                                <AvatarImage src={user.photoURL || "https://picsum.photos/seed/user-avatar/100/100"} />
+                                <AvatarFallback>{user.displayName?.charAt(0) || user.email?.charAt(0)}</AvatarFallback>
                             </Avatar>
-                            <p className="font-semibold text-lg">สมหญิง ใจดี</p>
-                            <p className="text-sm text-muted-foreground mb-4">somying@example.com</p>
+                            <p className="font-semibold text-lg">{user.displayName || user.email}</p>
+                            <p className="text-sm text-muted-foreground mb-4">{user.email}</p>
                             <Link href="/account" className="w-full">
                                 <Button variant="outline" className="w-full">จัดการบัญชี / แก้ไขโปรไฟล์</Button>
                             </Link>
@@ -225,8 +241,7 @@ export default function DashboardPage() {
                         </CardContent>
                     </Card>
                 </div>
-                </div>
-            )}
+            </div>
         </div>
     </div>
   );

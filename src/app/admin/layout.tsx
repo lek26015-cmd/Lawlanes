@@ -68,13 +68,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     setCurrentUser(null);
                     setUserRole(null);
                      if (pathname.startsWith('/admin') && pathname !== '/admin/login') {
-                         router.push('/');
+                         router.push('/admin/login');
                     }
                 }
             } else {
                 setIsAdmin(false);
                 setCurrentUser(null);
                  setUserRole(null);
+                 if (pathname !== '/admin/login') {
+                    router.push('/admin/login');
+                 }
             }
             setIsCheckingAuth(false);
         });

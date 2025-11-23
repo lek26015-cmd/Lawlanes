@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { Briefcase, CheckCircle, Clock, DollarSign, FileText, Inbox, Percent, Star, User, Settings, BarChart, CalendarPlus, FileUp } from 'lucide-react';
+import { Briefcase, CheckCircle, Clock, DollarSign, FileText, Inbox, Percent, Star, User, Settings, BarChart, CalendarPlus, FileUp, Loader2 } from 'lucide-react';
 import { getLawyerDashboardData } from '@/lib/data';
 import type { LawyerCase, LawyerAppointmentRequest } from '@/lib/types';
 import { format } from 'date-fns';
@@ -26,28 +26,47 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
 import { v4 as uuidv4 } from 'uuid';
+import { useUser, useFirebase } from '@/firebase';
 
 export default function LawyerDashboardPage() {
+  const router = useRouter();
+  const { auth, firestore } = useFirebase();
+  const { data: user, isLoading: isUserLoading } = useUser(auth);
+
   const [requests, setRequests] = useState<LawyerAppointmentRequest[]>([]);
   const [activeCases, setActiveCases] = useState<LawyerCase[]>([]);
   const [completedCases, setCompletedCases] = useState<LawyerCase[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
-  const router = useRouter();
 
 
   useEffect(() => {
+    if (isUserLoading) return;
+    if (!user) {
+      router.push('/lawyer-login');
+      return;
+    }
+    if (!firestore) return;
+    
     async function fetchData() {
       setIsLoading(true);
-      const data = await getLawyerDashboardData();
+      const data = await getLawyerDashboardData(firestore, user!.uid);
       setRequests(data.newRequests);
       setActiveCases(data.activeCases);
       setCompletedCases(data.completedCases);
       setIsLoading(false);
     }
     fetchData();
-  }, []);
+  }, [isUserLoading, user, router, firestore]);
   
+  if (isUserLoading || isLoading || !user) {
+      return (
+        <div className="flex justify-center items-center h-screen">
+            <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        </div>
+      )
+  }
+
   const handleAcceptCase = (request: LawyerAppointmentRequest) => {
     const newChatId = uuidv4();
     toast({
@@ -210,10 +229,10 @@ export default function LawyerDashboardPage() {
             <Card>
               <CardContent className="pt-6 flex flex-col items-center text-center">
                 <Avatar className="w-24 h-24 mb-4">
-                  <AvatarImage src="https://images.unsplash.com/photo-1658250646172-227c363047af?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxtYWxlJTIwbGF3eWVyfGVufDB8fHx8MTc2MzE5ODA0OXww&ixlib=rb-4.1.0&q=80&w=1080" />
-                  <AvatarFallback>สช</AvatarFallback>
+                  <AvatarImage src={user.photoURL || "https://images.unsplash.com/photo-1658250646172-227c363047af?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxtYWxlJTIwbGF3eWVyfGVufDB8fHx8MTc2MzE5ODA0OXww&ixlib=rb-4.1.0&q=80&w=1080"} />
+                  <AvatarFallback>{user.displayName?.charAt(0) || 'L'}</AvatarFallback>
                 </Avatar>
-                <p className="font-bold text-xl">นายสมชาย กฎหมายดี</p>
+                <p className="font-bold text-xl">{user.displayName}</p>
                 <p className="text-sm text-muted-foreground">SME Fraud Expert</p>
                  <div className="flex mt-4 gap-2">
                     <Link href="/lawyer-profile/edit" passHref>
