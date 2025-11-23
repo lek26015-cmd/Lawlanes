@@ -56,10 +56,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             if (user) {
                 const userDocRef = doc(firestore, "users", user.uid);
-                try {
-                    const userDoc = await getDoc(userDocRef);
-                    
-                    if (!userDoc.exists()) {
+                
+                getDoc(userDocRef).then(userDoc => {
+                     if (!userDoc.exists()) {
                         const designatedSuperAdminUID = 'wS9w7ysNYUajNsBYZ6C7n2Afe9H3';
 
                         if (user.uid === designatedSuperAdminUID) {
@@ -71,26 +70,29 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                                 superAdmin: true,
                                 registeredAt: serverTimestamp(),
                             };
-                            setDoc(userDocRef, newAdminData).then(async () => {
-                                const freshUserDoc = await getDoc(userDocRef);
-                                if (freshUserDoc.exists() && freshUserDoc.data().role === 'admin') {
-                                    setIsAdmin(true);
-                                    setCurrentUser(user);
-                                    setUserRole(freshUserDoc.data().superAdmin ? 'Super Admin' : 'Administrator');
-                                }
-                            }).catch(serverError => {
+                            setDoc(userDocRef, newAdminData)
+                              .then(() => {
+                                  // After setting the doc, we can assume the role.
+                                  setIsAdmin(true);
+                                  setCurrentUser(user);
+                                  setUserRole('Super Admin');
+                              })
+                              .catch(serverError => {
                                 const permissionError = new FirestorePermissionError({
                                     path: userDocRef.path,
                                     operation: 'create',
                                     requestResourceData: newAdminData,
                                 });
                                 errorEmitter.emit('permission-error', permissionError);
-                            });
+                                // Set state to non-admin because creation failed
+                                setIsAdmin(false);
+                              });
                         } else {
+                            // Not the designated admin, sign them out.
                             setIsAdmin(false);
                             setCurrentUser(null);
                             setUserRole(null);
-                            await signOut(auth);
+                            signOut(auth);
                             router.push('/admin/login');
                         }
                     } else if (userDoc.exists() && userDoc.data().role === 'admin') {
@@ -99,6 +101,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                         setCurrentUser(user);
                         setUserRole(role);
                     } else {
+                        // User exists but is not an admin
                         setIsAdmin(false);
                         setCurrentUser(null);
                         setUserRole(null);
@@ -106,14 +109,16 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                              router.push('/admin/login');
                         }
                     }
-                } catch (error: any) {
+                }).catch(error => {
                      const permissionError = new FirestorePermissionError({
                         path: userDocRef.path,
                         operation: 'get',
                     });
                     errorEmitter.emit('permission-error', permissionError);
-                }
+                    setIsAdmin(false);
+                });
             } else {
+                // No user logged in
                 setIsAdmin(false);
                 setCurrentUser(null);
                  setUserRole(null);
