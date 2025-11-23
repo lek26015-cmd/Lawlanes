@@ -20,7 +20,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
-import { FirebaseContext, FirebaseContextState } from '@/firebase';
+import { FirebaseContext, FirebaseContextState, errorEmitter, FirestorePermissionError } from '@/firebase';
 import AdminLoginPage from './login/page';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
 import {
@@ -32,7 +32,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -56,48 +56,62 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             if (user) {
                 const userDocRef = doc(firestore, "users", user.uid);
-                let userDoc = await getDoc(userDocRef);
-                
-                // If user document doesn't exist, check if they are the designated super admin
-                if (!userDoc.exists()) {
-                    const designatedSuperAdminUID = 'wS9w7ysNYUajNsBYZ6C7n2Afe9H3';
+                try {
+                    const userDoc = await getDoc(userDocRef);
+                    
+                    if (!userDoc.exists()) {
+                        const designatedSuperAdminUID = 'wS9w7ysNYUajNsBYZ6C7n2Afe9H3';
 
-                    if (user.uid === designatedSuperAdminUID) {
-                        // This is the designated super admin, create their admin document
-                        const newAdminData = {
-                            uid: user.uid,
-                            name: user.displayName || 'Admin',
-                            email: user.email,
-                            role: 'admin',
-                            superAdmin: true, // Grant super admin rights
-                            registeredAt: new Date(),
-                        };
-                        await setDoc(userDocRef, newAdminData);
-                        userDoc = await getDoc(userDocRef); // Re-fetch the document
+                        if (user.uid === designatedSuperAdminUID) {
+                            const newAdminData = {
+                                uid: user.uid,
+                                name: user.displayName || 'Admin',
+                                email: user.email,
+                                role: 'admin',
+                                superAdmin: true,
+                                registeredAt: serverTimestamp(),
+                            };
+                            setDoc(userDocRef, newAdminData).then(async () => {
+                                const freshUserDoc = await getDoc(userDocRef);
+                                if (freshUserDoc.exists() && freshUserDoc.data().role === 'admin') {
+                                    setIsAdmin(true);
+                                    setCurrentUser(user);
+                                    setUserRole(freshUserDoc.data().superAdmin ? 'Super Admin' : 'Administrator');
+                                }
+                            }).catch(serverError => {
+                                const permissionError = new FirestorePermissionError({
+                                    path: userDocRef.path,
+                                    operation: 'create',
+                                    requestResourceData: newAdminData,
+                                });
+                                errorEmitter.emit('permission-error', permissionError);
+                            });
+                        } else {
+                            setIsAdmin(false);
+                            setCurrentUser(null);
+                            setUserRole(null);
+                            await signOut(auth);
+                            router.push('/admin/login');
+                        }
+                    } else if (userDoc.exists() && userDoc.data().role === 'admin') {
+                        const role = userDoc.data().superAdmin ? 'Super Admin' : 'Administrator';
+                        setIsAdmin(true);
+                        setCurrentUser(user);
+                        setUserRole(role);
                     } else {
-                        // This user is not the designated super admin and has no document, deny access
                         setIsAdmin(false);
                         setCurrentUser(null);
                         setUserRole(null);
-                        await signOut(auth); // Sign them out
-                        router.push('/admin/login'); // Redirect to login
-                        setIsCheckingAuth(false);
-                        return;
+                         if (pathname.startsWith('/admin') && pathname !== '/admin/login') {
+                             router.push('/admin/login');
+                        }
                     }
-                }
-
-                if (userDoc.exists() && userDoc.data().role === 'admin') {
-                    const role = userDoc.data().superAdmin ? 'Super Admin' : 'Administrator';
-                    setIsAdmin(true);
-                    setCurrentUser(user);
-                    setUserRole(role);
-                } else {
-                    setIsAdmin(false);
-                    setCurrentUser(null);
-                    setUserRole(null);
-                     if (pathname.startsWith('/admin') && pathname !== '/admin/login') {
-                         router.push('/admin/login');
-                    }
+                } catch (error: any) {
+                     const permissionError = new FirestorePermissionError({
+                        path: userDocRef.path,
+                        operation: 'get',
+                    });
+                    errorEmitter.emit('permission-error', permissionError);
                 }
             } else {
                 setIsAdmin(false);
