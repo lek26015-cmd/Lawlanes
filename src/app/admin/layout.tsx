@@ -32,7 +32,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -56,8 +56,23 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             if (user) {
                 const userDocRef = doc(firestore, "users", user.uid);
-                const userDoc = await getDoc(userDocRef);
+                let userDoc = await getDoc(userDocRef);
                 
+                // If user document doesn't exist, this might be the first admin login
+                if (!userDoc.exists()) {
+                    // Create the user document and make them a super admin
+                    const newAdminData = {
+                        uid: user.uid,
+                        name: user.displayName || 'Admin',
+                        email: user.email,
+                        role: 'admin',
+                        superAdmin: true, // Grant super admin rights
+                        registeredAt: new Date(),
+                    };
+                    await setDoc(userDocRef, newAdminData);
+                    userDoc = await getDoc(userDocRef); // Re-fetch the document
+                }
+
                 if (userDoc.exists() && userDoc.data().role === 'admin') {
                     const role = userDoc.data().superAdmin ? 'Super Admin' : 'Administrator';
                     setIsAdmin(true);
