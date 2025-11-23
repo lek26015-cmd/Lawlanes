@@ -1,31 +1,9 @@
 
-
 'use client';
 
 import * as React from 'react';
 import Link from 'next/link';
-import {
-  File,
-  Home,
-  ListFilter,
-  MoreHorizontal,
-  Package2,
-  PanelLeft,
-  PlusCircle,
-  Search,
-  Settings,
-  Users2,
-  Landmark,
-  ShieldCheck,
-  FileText,
-  Megaphone,
-  Gavel,
-  ArrowLeft,
-  Ticket,
-  Clock,
-  User,
-  AlertCircle
-} from 'lucide-react';
+import { ListFilter, Ticket } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -40,7 +18,6 @@ import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
@@ -59,39 +36,32 @@ import {
   TabsList,
   TabsTrigger,
 } from '@/components/ui/tabs';
+import { useFirebase } from '@/firebase';
+import { getAllTickets } from '@/lib/data';
 
-
-const mockTickets = [
-    {
-        id: "TICKET-5891A",
-        caseId: "case-001",
-        clientName: "สมหญิง ใจดี",
-        lawyerName: "นางสาวสมศรี ยุติธรรม",
-        problemType: "ทนายตอบช้า",
-        status: "pending",
-        reportedAt: "2024-07-28"
-    },
-    {
-        id: "TICKET-5891B",
-        caseId: "case-002",
-        clientName: "นายสมชาย กฎหมายดี",
-        lawyerName: "ลูกค้า",
-        problemType: "ไม่สามารถอัปโหลดไฟล์ได้",
-        status: "pending",
-        reportedAt: "2024-07-27"
-    },
-    {
-        id: "TICKET-5890C",
-        caseId: "case-003",
-        clientName: "บริษัท เติบโต จำกัด",
-        lawyerName: "นายวิชัย ชนะคดี",
-        problemType: "ปัญหาการชำระเงิน",
-        status: "resolved",
-        reportedAt: "2024-07-25"
-    }
-]
 
 export default function AdminTicketsPage() {
+    const { firestore } = useFirebase();
+    const [allTickets, setAllTickets] = React.useState<any[]>([]);
+    const [filteredTickets, setFilteredTickets] = React.useState<any[]>([]);
+    const [activeTab, setActiveTab] = React.useState('all');
+
+    React.useEffect(() => {
+        if (!firestore) return;
+        getAllTickets(firestore).then(tickets => {
+            setAllTickets(tickets);
+            setFilteredTickets(tickets);
+        });
+    }, [firestore]);
+    
+    React.useEffect(() => {
+        if (activeTab === 'all') {
+            setFilteredTickets(allTickets);
+        } else {
+            setFilteredTickets(allTickets.filter(t => t.status === activeTab));
+        }
+    }, [activeTab, allTickets]);
+
 
     const statusBadges: { [key: string]: React.ReactNode } = {
         pending: <Badge variant="outline" className="border-yellow-600 text-yellow-700 bg-yellow-50">รอดำเนินการ</Badge>,
@@ -108,7 +78,7 @@ export default function AdminTicketsPage() {
                 </CardDescription>
             </CardHeader>
             <CardContent>
-                <Tabs defaultValue="all">
+                <Tabs defaultValue="all" onValueChange={setActiveTab}>
                     <div className="flex items-center">
                         <TabsList>
                         <TabsTrigger value="all">ทั้งหมด</TabsTrigger>
@@ -136,7 +106,7 @@ export default function AdminTicketsPage() {
                             </DropdownMenu>
                         </div>
                     </div>
-                     <TabsContent value="all">
+                     <TabsContent value={activeTab}>
                         <Table>
                             <TableHeader>
                                 <TableRow>
@@ -151,12 +121,12 @@ export default function AdminTicketsPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {mockTickets.map(ticket => (
+                                {filteredTickets.map(ticket => (
                                     <TableRow key={ticket.id}>
                                         <TableCell className="font-mono">{ticket.id}</TableCell>
                                         <TableCell>
                                             <div className="font-medium">{ticket.problemType}</div>
-                                            <div className="text-xs text-muted-foreground">เคส: {ticket.caseId}</div>
+                                            <div className="text-xs text-muted-foreground">เคส: {ticket.caseId || 'N/A'}</div>
                                         </TableCell>
                                         <TableCell>{ticket.clientName}</TableCell>
                                         <TableCell>{statusBadges[ticket.status]}</TableCell>
@@ -177,7 +147,7 @@ export default function AdminTicketsPage() {
             </CardContent>
              <CardFooter>
                 <div className="text-xs text-muted-foreground">
-                   แสดง <strong>{mockTickets.length}</strong> จาก <strong>{mockTickets.length}</strong> รายการ
+                   แสดง <strong>{filteredTickets.length}</strong> จาก <strong>{allTickets.length}</strong> รายการ
                 </div>
             </CardFooter>
         </Card>

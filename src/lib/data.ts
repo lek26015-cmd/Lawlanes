@@ -1,351 +1,274 @@
 
-
-import type { LawyerProfile, ImagePlaceholder, Ad } from '@/lib/types';
+import { 
+    collection, 
+    query, 
+    where, 
+    getDocs, 
+    getDoc, 
+    doc, 
+    limit, 
+    orderBy,
+    DocumentData,
+    Firestore
+} from 'firebase/firestore';
+import type { LawyerProfile, ImagePlaceholder, Ad, Article, Case, UpcomingAppointment, ReportedTicket, LawyerAppointmentRequest, LawyerCase } from '@/lib/types';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import type { Article, Case, UpcomingAppointment, Document, ReportedTicket, LawyerAppointmentRequest, LawyerCase } from '@/lib/types';
-
 
 export const getImageUrl = (id: string) => PlaceHolderImages.find(img => img.id === id)?.imageUrl ?? '';
 export const getImageHint = (id: string) => PlaceHolderImages.find(img => img.id === id)?.imageHint ?? '';
 
-export const mockLawyers: LawyerProfile[] = [
-  {
-    id: '1',
-    userId: 'LAWYER_USER_ID_1', // Changed to be distinct
-    name: 'นายสมชาย กฎหมายดี',
-    status: 'approved',
-    description: 'ผู้เชี่ยวชาญด้านคดีฉ้อโกงและสัญญาสำหรับ SMEs ประสบการณ์กว่า 15 ปีในการว่าความและให้คำปรึกษา',
-    specialty: ['คดีฉ้อโกง SMEs', 'คดีแพ่งและพาณิชย์'],
-    imageUrl: getImageUrl('lawyer-1'),
-    imageHint: getImageHint('lawyer-1'),
-  },
-  {
-    id: '2',
-    userId: 'LAWYER_USER_ID_2',
-    name: 'นางสาวสมศรี ยุติธรรม',
-    status: 'approved',
-    description: 'ทนายความหญิงที่มุ่งเน้นการแก้ปัญหาข้อพิพาททางธุรกิจด้วยการเจรจาไกล่เกลี่ยและการฟ้องร้อง',
-    specialty: ['คดีแพ่งและพาณิชย์', 'การผิดสัญญา'],
-    imageUrl: getImageUrl('lawyer-2'),
-    imageHint: getImageHint('lawyer-2'),
-  },
-  {
-    id: '3',
-    userId: 'LAWYER_USER_ID_3',
-    name: 'นายวิชัย ชนะคดี',
-    status: 'approved',
-    description: 'มีประสบการณ์สูงในการจัดการคดีฉ้อโกงที่ซับซ้อนและข้อพิพาททางการค้าระหว่างประเทศ',
-    specialty: ['คดีฉ้อโกง SMEs'],
-    imageUrl: getImageUrl('lawyer-3'),
-    imageHint: getImageHint('lawyer-3'),
-  },
-  {
-    id: '4',
-    userId: 'LAWYER_USER_ID_4',
-    name: 'นางสาวมานี มีสัตย์',
-    status: 'approved',
-    description: 'เชี่ยวชาญด้านกฎหมายคุ้มครองผู้บริโภคและการเรียกร้องค่าเสียหายจากสัญญาที่ไม่เป็นธรรม',
-    specialty: ['คดีแพ่งและพาณิชย์'],
-    imageUrl: getImageUrl('lawyer-4'),
-    imageHint: getImageHint('lawyer-4'),
-  },
-  {
-    id: '5',
-    userId: 'LAWYER_USER_ID_5',
-    name: 'นายเก่งกาจ รักความถูกต้อง',
-    status: 'approved',
-    description: 'ให้คำปรึกษาเชิงรุกเพื่อป้องกันปัญหาทางกฎหมายสำหรับธุรกิจ SMEs และสตาร์ทอัพ',
-    specialty: ['คดีฉ้อโกง SMEs', 'การผิดสัญญา'],
-    imageUrl: getImageUrl('lawyer-5'),
-    imageHint: getImageHint('lawyer-5'),
-  },
-];
-
-export const mockAdmins = [
-    { id: 'admin-1', name: 'แอดมินหลัก', email: 'admin@lawlanes.com', role: 'Super Admin' },
-    { id: 'admin-2', name: 'สมศรี มีชัย', email: 'somsri.m@lawlanes.com', role: 'Content Manager' },
-    { id: 'admin-3', name: 'วิชัย รักดี', email: 'wichai.r@lawlanes.com', role: 'Support Lead' },
-];
-
-export async function getApprovedLawyers(): Promise<LawyerProfile[]> {
-  // In a real app, this would fetch from Firestore
-  // e.g., await db.collection('lawyerProfiles').where('status', '==', 'approved').get();
-  return new Promise(resolve => {
-    setTimeout(() => {
-      resolve(mockLawyers.filter(l => l.status === 'approved'));
-    }, 500); // Simulate network delay
-  });
+// --- Lawyer Functions ---
+export async function getApprovedLawyers(db: Firestore): Promise<LawyerProfile[]> {
+  const lawyersRef = collection(db, 'lawyerProfiles');
+  const q = query(lawyersRef, where('status', '==', 'approved'));
+  const querySnapshot = await getDocs(q);
+  return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as LawyerProfile));
 }
 
-export async function getLawyerById(id: string): Promise<LawyerProfile | undefined> {
-  return new Promise(resolve => {
-    setTimeout(() => {
-      resolve(mockLawyers.find(l => l.id === id));
-    }, 200);
-  });
-}
-
-export const mockArticles: Article[] = [
-    {
-      id: 'article-1',
-      slug: '5-things-to-know-before-signing-employment-contract',
-      title: '5 สิ่งต้องรู้ก่อนเซ็นสัญญาจ้างงาน',
-      description: 'สัญญาจ้างงานเป็นเอกสารสำคัญที่มีผลผูกพันทางกฎหมายระหว่างนายจ้างและลูกจ้าง การทำความเข้าใจ...',
-      category: 'กฎหมายแรงงาน',
-      imageUrl: getImageUrl('article-1'),
-      imageHint: getImageHint('article-1'),
-      content: `
-สัญญาจ้างงานเป็นเอกสารสำคัญที่มีผลผูกพันทางกฎหมายระหว่างนายจ้างและลูกจ้าง การทำความเข้าใจองค์ประกอบต่างๆ ในสัญญาอย่างละเอียดก่อนลงนามจึงเป็นสิ่งจำเป็นอย่างยิ่ง เพื่อป้องกันปัญหาที่อาจเกิดขึ้นในอนาคต บทความนี้จะสรุป 5 ประเด็นหลักที่ต้องตรวจสอบให้ถี่ถ้วนก่อนเซ็นสัญญาจ้างงาน
-
-**1. ขอบเขตงานและความรับผิดชอบ (Job Scope and Responsibilities)**
-ตรวจสอบให้แน่ใจว่าสัญญาได้ระบุตำแหน่งงาน ขอบเขตความรับผิดชอบ และหน้าที่ที่ต้องปฏิบัติไว้อย่างชัดเจน เพื่อให้คุณเข้าใจว่าบริษัทคาดหวังอะไรจากคุณ และป้องกันการถูกมอบหมายงานนอกเหนือจากที่ตกลงกันไว้โดยไม่มีค่าตอบแทนเพิ่มเติม
-
-**2. อัตราค่าจ้างและสวัสดิการ (Salary and Benefits)**
-รายละเอียดเกี่ยวกับอัตราค่าจ้าง, รอบการจ่ายเงิน, ค่าล่วงเวลา (OT), โบนัส และสวัสดิการอื่นๆ เช่น ประกันสังคม, ประกันสุขภาพ, กองทุนสำรองเลี้ยงชีพ ควรถูกระบุไว้อย่างชัดเจน ตรวจสอบตัวเลขและเงื่อนไขการได้รับสวัสดิการต่างๆ ให้ถูกต้องครบถ้วน
-
-**3. วันและเวลาทำงาน (Working Hours)**
-สัญญาต้องระบุวันทำงานปกติ (เช่น จันทร์-ศุกร์), เวลาเข้า-ออกงาน, และเวลาพักอย่างชัดเจน รวมถึงเงื่อนไขการทำงานล่วงเวลาและการทำงานในวันหยุด เพื่อให้คุณทราบถึงข้อผูกมัดด้านเวลาและสามารถวางแผนชีวิตส่วนตัวได้
-
-**4. เงื่อนไขการลา (Leave Policies)**
-ทำความเข้าใจเกี่ยวกับสิทธิ์ในการลาประเภทต่างๆ ทั้งลาป่วย, ลากิจ, ลาพักร้อน ว่ามีจำนวนวันเท่าไหร่ต่อปี และมีเงื่อนไขในการขอลาอย่างไรบ้าง เช่น ต้องแจ้งล่วงหน้ากี่วัน หรือต้องใช้เอกสารอะไรประกอบ
-
-**5. เงื่อนไขการเลิกจ้าง (Termination Clause)**
-นี่คือส่วนที่สำคัญที่สุดส่วนหนึ่งของสัญญา อ่านและทำความเข้าใจเงื่อนไขที่ทั้งฝ่ายนายจ้างและลูกจ้างสามารถบอกเลิกสัญญาได้ ระยะเวลาที่ต้องบอกกล่าวล่วงหน้า (Notice Period) และค่าชดเชยที่จะได้รับในกรณีต่างๆ เพื่อรักษาสิทธิ์ของตัวเองหากเกิดการเลิกจ้างขึ้น
-
-การสละเวลาตรวจสอบรายละเอียดเหล่านี้อย่างรอบคอบ จะช่วยให้คุณเริ่มต้นการทำงานใหม่ได้อย่างสบายใจและลดความเสี่ยงจากข้อพิพาททางกฎหมายในอนาคตได้อย่างมาก
-      `,
-    },
-    {
-      id: 'article-2',
-      slug: 'pdpa-for-sme',
-      title: 'กฎหมาย PDPA สำหรับ SME ที่ต้องรู้',
-      description: 'PDPA หรือ พ.ร.บ. คุ้มครองข้อมูลส่วนบุคคล มีผลบังคับใช้แล้ว ธุรกิจ SME ต้องปรับตัวอย่างไรบ้าง...',
-      category: 'กฎหมายธุรกิจ',
-      imageUrl: getImageUrl('article-2'),
-      imageHint: getImageHint('article-2'),
-      content: `
-PDPA หรือ พระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562 เป็นกฎหมายที่มีความสำคัญอย่างยิ่งต่อผู้ประกอบการทุกคน โดยเฉพาะธุรกิจขนาดกลางและขนาดย่อม (SME) ที่อาจยังขาดความเข้าใจและแนวปฏิบัติที่ถูกต้องในการจัดการข้อมูลส่วนบุคคลของลูกค้าหรือพนักงาน ซึ่งอาจนำไปสู่ความเสี่ยงในการทำผิดกฎหมายโดยไม่รู้ตัว
-
-**ข้อมูลส่วนบุคคลคืออะไร?**
-ข้อมูลส่วนบุคคลหมายถึงข้อมูลใดๆ ที่สามารถใช้ระบุตัวตนของบุคคลนั้นได้ ทั้งทางตรงและทางอ้อม เช่น ชื่อ-นามสกุล, ที่อยู่, เบอร์โทรศัพท์, อีเมล, เลขบัตรประชาชน, ข้อมูลทางการเงิน, หรือแม้กระทั่งข้อมูลพฤติกรรมการใช้งานออนไลน์
-
-**SME ต้องทำอะไรบ้าง?**
-1.  **ขอความยินยอม (Consent):** ก่อนที่จะเก็บรวบรวม ใช้ หรือเปิดเผยข้อมูลส่วนบุคคลของใคร ต้องขอความยินยอมจากเจ้าของข้อมูลอย่างชัดเจนและแจ้งวัตถุประสงค์ให้ทราบ
-2.  **มีนโยบายความเป็นส่วนตัว (Privacy Policy):** จัดทำเอกสารนโยบายความเป็นส่วนตัวเพื่อแจ้งให้เจ้าของข้อมูลทราบว่าบริษัทจะเก็บข้อมูลอะไรบ้าง, นำไปใช้อย่างไร, เก็บไว้นานแค่ไหน, และมีมาตรการรักษาความปลอดภัยอย่างไร
-3.  **จัดให้มีมาตรการรักษาความปลอดภัย:** ต้องมีมาตรการที่เหมาะสมทั้งในทางเทคนิคและทางกายภาพเพื่อป้องกันการเข้าถึงข้อมูลโดยไม่ได้รับอนุญาต
-4.  **เคารพสิทธิของเจ้าของข้อมูล:** เจ้าของข้อมูลมีสิทธิ์ในการเข้าถึง, แก้ไข, หรือขอลบข้อมูลของตนเองได้ ธุรกิจต้องเตรียมช่องทางและกระบวนการเพื่อรองรับคำขอดังกล่าว
-
-การไม่ปฏิบัติตาม PDPA อาจมีโทษทั้งทางแพ่ง ทางอาญา และทางปกครอง ซึ่งมีค่าปรับที่สูงมาก การลงทุนในการวางระบบให้ถูกต้องตามกฎหมายจึงเป็นการลงทุนที่คุ้มค่าเพื่อความยั่งยืนของธุรกิจในระยะยาว
-      `,
-    },
-    {
-      id: 'article-3',
-      slug: 'trademark-registration',
-      title: 'การจดทะเบียนเครื่องหมายการค้า สำคัญอย่างไร?',
-      description: 'เครื่องหมายการค้าเปรียบเสมือนหน้าตาของธุรกิจ การจดทะเบียนจึงเป็นสิ่งสำคัญเพื่อป้องกันการลอกเลียนแบบ...',
-      category: 'ทรัพย์สินทางปัญญา',
-      imageUrl: getImageUrl('article-3'),
-      imageHint: getImageHint('article-3'),
-      content: `
-เครื่องหมายการค้า (Trademark) ไม่ว่าจะเป็นชื่อแบรนด์, โลโก้, หรือสโลแกน เปรียบเสมือน "หน้าตา" และสินทรัพย์ที่สำคัญอย่างหนึ่งของธุรกิจที่ช่วยสร้างการจดจำและแยกแยะสินค้าหรือบริการของคุณออกจากคู่แข่ง การจดทะเบียนเครื่องหมายการค้าจึงไม่ใช่แค่เรื่องทางกฎหมาย แต่เป็นกลยุทธ์ทางธุรกิจที่สำคัญอย่างยิ่ง
-
-**ทำไมต้องจดทะเบียนเครื่องหมายการค้า?**
-
-1.  **ได้รับสิทธิ์แต่เพียงผู้เดียว (Exclusive Rights):** การจดทะเบียนจะทำให้คุณเป็นเจ้าของเครื่องหมายการค้านั้นอย่างสมบูรณ์ตามกฎหมาย คุณมีสิทธิ์แต่เพียงผู้เดียวในการใช้เครื่องหมายการค้านี้กับสินค้าหรือบริการที่ได้จดทะเบียนไว้
-2.  **ป้องกันการลอกเลียนแบบ:** หากมีผู้อื่นนำเครื่องหมายการค้าของคุณไปใช้หรือลอกเลียนจนทำให้ผู้บริโภคสับสน คุณสามารถดำเนินการทางกฎหมายเพื่อหยุดการกระทำดังกล่าวและเรียกร้องค่าเสียหายได้
-3.  **สร้างมูลค่าเพิ่มให้กับธุรกิจ:** เครื่องหมายการค้าที่จดทะเบียนแล้วถือเป็นทรัพย์สินทางปัญญาที่สามารถซื้อขาย, โอนสิทธิ์, หรืออนุญาตให้ผู้อื่นใช้ (Licensing) เพื่อสร้างรายได้ได้
-4.  **สร้างความน่าเชื่อถือ:** การมีสัญลักษณ์ ® (Registered) ต่อท้ายโลโก้ ช่วยสร้างความมั่นใจและความน่าเชื่อถือให้กับลูกค้าและคู่ค้า ว่าแบรนด์ของคุณได้รับการคุ้มครองทางกฎหมาย
-
-**ขั้นตอนการจดทะเบียนโดยสรุป**
-การจดทะเบียนต้องยื่นคำขอต่อกรมทรัพย์สินทางปัญญา โดยต้องตรวจสอบก่อนว่าเครื่องหมายการค้าของคุณไม่ซ้ำหรือคล้ายกับของผู้อื่นที่จดทะเบียนไว้แล้ว และต้องไม่มีลักษณะต้องห้ามตามกฎหมาย กระบวนการทั้งหมดอาจใช้เวลาหลายเดือนจนถึงเป็นปี แต่ความคุ้มครองที่ได้รับนั้นมีค่ายิ่งกว่า
-
-ดังนั้น หากคุณจริงจังกับการสร้างแบรนด์ การจดทะเบียนเครื่องหมายการค้าคือหนึ่งในสิ่งแรกๆ ที่ควรทำเพื่อปกป้องธุรกิจของคุณในระยะยาว
-      `,
-    },
-    {
-      id: 'article-4',
-      slug: 'fraud-prevention-for-sme',
-      title: 'วิธีป้องกันการฉ้อโกงในธุรกิจ SME',
-      description: 'เรียนรู้วิธีสังเกตและป้องกันการฉ้อโกงที่อาจเกิดขึ้นได้ในธุรกิจ SME เพื่อลดความเสี่ยงและความเสียหาย',
-      category: 'คดีฉ้อโกง',
-      imageUrl: getImageUrl('article-4'),
-      imageHint: 'resume document',
-      content: 'การฉ้อโกงเป็นภัยคุกคามที่ร้ายแรงสำหรับธุรกิจ SME ซึ่งอาจมาในหลายรูปแบบ ตั้งแต่การยักยอกโดยพนักงานภายในไปจนถึงการหลอกลวงจากบุคคลภายนอก บทความนี้จะแนะนำแนวทางเบื้องต้นในการป้องกัน...'
-    },
-    {
-      id: 'article-5',
-      slug: 'basics-of-commercial-contracts',
-      title: 'พื้นฐานสัญญาทางแพ่งและพาณิชย์ที่ควรรู้',
-      description: 'ทำความเข้าใจองค์ประกอบสำคัญของสัญญาทางแพ่งและพาณิชย์ เพื่อให้การทำธุรกรรมของคุณรัดกุมและปลอดภัย',
-      category: 'กฎหมายแพ่ง',
-      imageUrl: getImageUrl('article-5'),
-      imageHint: 'clothing rack',
-      content: 'สัญญาเป็นหัวใจสำคัญของการทำธุรกิจ การมีความเข้าใจในหลักการพื้นฐานของสัญญาทางแพ่งและพาณิชย์จะช่วยให้คุณหลีกเลี่ยงข้อพิพาทและดำเนินธุรกิจได้อย่างราบรื่น...',
-    },
-];
-
-export async function getAllArticles(): Promise<Article[]> {
-  return new Promise(resolve => {
-    setTimeout(() => {
-      resolve(mockArticles);
-    }, 200); // Simulate network delay
-  });
-}
-
-export async function getArticleBySlug(slug: string): Promise<Article | undefined> {
-  return new Promise(resolve => {
-    setTimeout(() => {
-      resolve(mockArticles.find(a => a.slug === slug));
-    }, 200);
-  });
-}
-
-// Mock data for Dashboard
-const mockCases: Case[] = [
-  {
-    id: 'case-001',
-    title: 'ตรวจสอบสัญญาเช่าคอนโด',
-    lawyer: { id: '2', name: 'นางสาวสมศรี ยุติธรรม', imageUrl: '', imageHint: '' },
-    lastMessage: 'สถานะ: รอทนายส่งใบเสนอราคา | ส่งเมื่อ: 24 ต.ค. 2567',
-    lastMessageTimestamp: '',
-    status: 'active',
-    hasNewMessage: false,
-    color: 'blue'
-  },
-  {
-    id: 'case-002',
-    title: 'จดทะเบียนบริษัท ลอว์เลน จำกัด',
-    lawyer: { id: '3', name: 'นายวิชัย ชนะคดี', imageUrl: '', imageHint: '' },
-    lastMessage: 'สถานะ: ทนายกำลังเตรียมเอกสาร | ส่งเมื่อ: 23 ต.ค. 2567',
-    lastMessageTimestamp: '',
-    status: 'active',
-    hasNewMessage: false,
-    color: 'yellow'
-  },
-  {
-    id: 'case-003',
-    title: 'คดีมรดก',
-    lawyer: { id: '1', name: 'นายสมชาย กฎหมายดี', imageUrl: '', imageHint: '' },
-    lastMessage: 'เสร็จสิ้นเมื่อ: 20 ต.ค. 2567',
-    lastMessageTimestamp: '',
-    status: 'closed',
-    hasNewMessage: false,
-    color: 'blue'
-  },
-];
-
-const mockAppointments: UpcomingAppointment[] = [
-  {
-    id: 'appt-001',
-    lawyer: {
-        name: 'ทนายสมชาย ก.',
-        imageUrl: getImageUrl('lawyer-1'),
-        imageHint: getImageHint('lawyer-1'),
-    },
-    date: new Date(new Date().setDate(new Date().getDate() + 3)),
-    description: 'ปรึกษาคดีมรดก',
-    time: '10:00 น.'
+export async function getLawyerById(db: Firestore, id: string): Promise<LawyerProfile | undefined> {
+  const lawyerRef = doc(db, 'lawyerProfiles', id);
+  const docSnap = await getDoc(lawyerRef);
+  if (docSnap.exists()) {
+    return { id: docSnap.id, ...docSnap.data() } as LawyerProfile;
   }
-];
-
-const mockTickets: ReportedTicket[] = [
-  {
-    id: 'TICKET-5891A',
-    caseId: 'case-001',
-    lawyerId: '2',
-    caseTitle: 'ตรวจสอบสัญญาเช่าคอนโด',
-    problemType: 'ทนายตอบช้า',
-    status: 'pending',
-    reportedAt: new Date(new Date().setDate(new Date().getDate() - 1)),
-  }
-];
-
-export async function getDashboardData(): Promise<{ cases: Case[], appointments: UpcomingAppointment[], tickets: ReportedTicket[] }> {
-  return new Promise(resolve => {
-    setTimeout(() => {
-      resolve({
-        cases: mockCases,
-        appointments: mockAppointments,
-        tickets: mockTickets,
-      });
-    }, 500);
-  });
+  return undefined;
 }
 
-// Mock data for Lawyer Dashboard
-const mockNewRequests: LawyerAppointmentRequest[] = [
-    {
-        id: 'req-001',
-        clientName: 'คุณสมหญิง ใจดี',
-        caseTitle: 'ปรึกษาเรื่องสัญญาจ้าง',
-        description: 'ต้องการให้ทนายความช่วยตรวจสอบร่างสัญญาจ้างพนักงานตำแหน่งผู้จัดการฝ่ายการตลาด มีประเด็นเรื่องขอบเขตการทำงานและเงื่อนไขการเลิกจ้างที่ต้องการคำแนะนำด่วน',
-        requestedAt: new Date(new Date().setHours(new Date().getHours() - 2)),
-    },
-    {
-        id: 'req-002',
-        clientName: 'บริษัท เติบโต จำกัด',
-        caseTitle: 'ขอคำปรึกษาด้าน PDPA',
-        description: 'บริษัทกำลังจะเปิดตัวแอปพลิเคชันใหม่ ต้องการปรึกษาแนวทางการเก็บข้อมูลผู้ใช้งานให้สอดคล้องกับกฎหมาย PDPA',
-        requestedAt: new Date(new Date().setDate(new Date().getDate() - 1)),
+// --- Article Functions ---
+export async function getAllArticles(db: Firestore): Promise<Article[]> {
+  const articlesRef = collection(db, 'articles');
+  const q = query(articlesRef, orderBy('publishedAt', 'desc'));
+  const querySnapshot = await getDocs(q);
+  return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Article));
+}
+
+export async function getArticleBySlug(db: Firestore, slug: string): Promise<Article | undefined> {
+  const articlesRef = collection(db, 'articles');
+  const q = query(articlesRef, where('slug', '==', slug), limit(1));
+  const querySnapshot = await getDocs(q);
+  if (!querySnapshot.empty) {
+    const docSnap = querySnapshot.docs[0];
+    return { id: docSnap.id, ...docSnap.data() } as Article;
+  }
+  return undefined;
+}
+
+// --- Ad Functions ---
+export async function getAdsByPlacement(db: Firestore, placement: 'Homepage Carousel' | 'Lawyer Page Sidebar'): Promise<Ad[]> {
+  const adsRef = collection(db, 'ads');
+  const q = query(adsRef, where('placement', '==', placement), where('status', '==', 'active'));
+  const querySnapshot = await getDocs(q);
+  return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ad));
+}
+
+export async function getAdById(db: Firestore, id: string): Promise<Ad | undefined> {
+    const adRef = doc(db, 'ads', id);
+    const docSnap = await getDoc(adRef);
+    if(docSnap.exists()) {
+        return { id: docSnap.id, ...docSnap.data() } as Ad;
     }
-];
-
-const mockLawyerCases: LawyerCase[] = [
-    { id: 'lcase-001', title: 'คดีฉ้อโกงออนไลน์', clientName: 'คุณมานี', clientId: 'CLIENT_ID_1', status: 'กำลังดำเนินการ', lastUpdate: '2 วันที่แล้ว', notifications: 3 },
-    { id: 'lcase-002', title: 'ปัญหาข้อพิพาทที่ดิน', clientName: 'คุณวิชัย', clientId: 'CLIENT_ID_2', status: 'กำลังดำเนินการ', lastUpdate: '5 ชั่วโมงที่แล้ว', notifications: 'document' },
-    { id: 'lcase-003', title: 'ร่างสัญญาแฟรนไชส์', clientName: 'ร้านชานมไข่มุก', clientId: 'CLIENT_ID_3', status: 'เสร็จสิ้น', lastUpdate: '15 ต.ค. 2567' },
-];
-
-export async function getLawyerDashboardData(): Promise<{ newRequests: LawyerAppointmentRequest[], activeCases: LawyerCase[], completedCases: LawyerCase[] }> {
-    return new Promise(resolve => {
-        setTimeout(() => {
-            resolve({
-                newRequests: mockNewRequests,
-                activeCases: mockLawyerCases.filter(c => c.status === 'กำลังดำเนินการ'),
-                completedCases: mockLawyerCases.filter(c => c.status === 'เสร็จสิ้น'),
-            });
-        }, 500);
-    });
+    return undefined;
 }
 
-export async function getLawyerAppointmentRequestById(id: string): Promise<LawyerAppointmentRequest | undefined> {
-    return new Promise(resolve => {
-        setTimeout(() => {
-            resolve(mockNewRequests.find(req => req.id === id));
-        }, 100);
+// --- User Dashboard Functions ---
+export async function getDashboardData(db: Firestore, userId: string): Promise<{ cases: Case[], appointments: UpcomingAppointment[], tickets: ReportedTicket[] }> {
+    // Fetch Cases (Chats)
+    const chatsRef = collection(db, 'chats');
+    const casesQuery = query(chatsRef, where('participants', 'array-contains', userId));
+    const casesSnapshot = await getDocs(casesQuery);
+    const cases: Case[] = await Promise.all(casesSnapshot.docs.map(async (d) => {
+        const chatData = d.data();
+        const otherParticipantId = chatData.participants.find((p: string) => p !== userId);
+        const lawyerProfile = otherParticipantId ? await getLawyerById(db, otherParticipantId) : null;
+        
+        return {
+            id: d.id,
+            title: chatData.caseTitle || 'Unknown Case',
+            lawyer: {
+                id: lawyerProfile?.id || '',
+                name: lawyerProfile?.name || 'Unknown Lawyer',
+                imageUrl: lawyerProfile?.imageUrl || '',
+                imageHint: lawyerProfile?.imageHint || ''
+            },
+            lastMessage: '...', // This would require fetching last message
+            lastMessageTimestamp: '',
+            status: 'active', // This would need to be stored on the chat doc
+        };
+    }));
+
+    // Fetch Appointments
+    const appointmentsRef = collection(db, 'appointments');
+    const appointmentsQuery = query(appointmentsRef, where('userId', '==', userId), where('status', '==', 'pending'));
+    const appointmentsSnapshot = await getDocs(appointmentsQuery);
+    const appointments: UpcomingAppointment[] = appointmentsSnapshot.docs.map(d => {
+        const data = d.data();
+        return {
+            id: d.id,
+            lawyer: {
+                name: data.lawyerName,
+                imageUrl: data.lawyerImageUrl,
+                imageHint: '',
+            },
+            date: data.appointmentDate.toDate(),
+            description: data.description,
+            time: format(data.appointmentDate.toDate(), 'HH:mm น.')
+        }
     });
-}
-
-
-// Mock data for Ads
-export const mockAds: Ad[] = [
-  // Homepage Banners
-  { id: 'ad-home-1', title: "โปรโมตสำนักงานกฎหมายของคุณที่นี่", description: "เข้าถึงลูกค้ากลุ่มเป้าหมายได้โดยตรง โปรโมตบริการของคุณบน Lawlanes เพื่อเพิ่มการมองเห็นและสร้างความน่าเชื่อถือ", placement: 'Homepage Carousel', status: 'active', imageUrl: getImageUrl('ad-banner-2'), imageHint: getImageHint('ad-banner-2'), analytics: { clicks: 1250, gender: { male: 600, female: 620, other: 30 }, age: { '18-24': 150, '25-34': 450, '35-44': 350, '45-54': 200, '55+': 100 } } },
-  { id: 'ad-home-2', title: "บริการด้านสัญญาครบวงจร", description: "ทีมงานของเราเชี่ยวชาญการร่างและตรวจสอบสัญญาทุกประเภทสำหรับธุรกิจ SME เพื่อความรัดกุมและปลอดภัย", placement: 'Homepage Carousel', status: 'active', imageUrl: getImageUrl('article-1'), imageHint: getImageHint('article-1'), analytics: { clicks: 880, gender: { male: 400, female: 450, other: 30 }, age: { '18-24': 100, '25-34': 300, '35-44': 280, '45-54': 150, '55+': 50 } } },
-  { id: 'ad-home-3', title: "ปรึกษาด่วนกับ AI", description: "ไม่แน่ใจเรื่องข้อกฎหมาย? ลองใช้ AI Legal Advisor ของเราเพื่อรับการประเมินเบื้องต้นได้ทันที 24 ชั่วโมง", placement: 'Homepage Carousel', status: 'draft', imageUrl: getImageUrl('article-2'), imageHint: getImageHint('article-2') },
-  
-  // Lawyer Page Sidebar Ads
-  { id: 'ad-sidebar-1', title: 'สำนักงานกฎหมาย ชัยชนะ', description: 'บริการให้คำปรึกษาด้านกฎหมายธุรกิจครบวงจร', placement: 'Lawyer Page Sidebar', status: 'active', imageUrl: getImageUrl('ad-logo-1'), imageHint: getImageHint('ad-logo-1'), analytics: { clicks: 2340, gender: { male: 1100, female: 1200, other: 40 }, age: { '18-24': 200, '25-34': 800, '35-44': 740, '45-54': 400, '55+': 200 } } },
-  { id: 'ad-sidebar-2', title: 'บริษัท สุจริต ลอว์ เฟิร์ม จำกัด', description: 'เชี่ยวชาญคดีฉ้อโกงและอาชญากรรมทางเศรษฐกิจ', placement: 'Lawyer Page Sidebar', status: 'active', imageUrl: getImageUrl('ad-logo-2'), imageHint: getImageHint('ad-logo-2'), analytics: { clicks: 1980, gender: { male: 900, female: 1050, other: 30 }, age: { '18-24': 150, '25-34': 700, '35-44': 630, '45-54': 350, '55+': 150 } } },
-  { id: 'ad-sidebar-3', title: 'กลุ่มทนายความเพื่อประชาชน', description: 'ให้คำปรึกษาคดีแพ่งและพาณิชย์สำหรับ SME', placement: 'Lawyer Page Sidebar', status: 'active', imageUrl: getImageUrl('ad-logo-3'), imageHint: getImageHint('ad-logo-3'), analytics: { clicks: 3120, gender: { male: 1500, female: 1580, other: 40 }, age: { '18-24': 400, '25-34': 1100, '35-44': 920, '45-54': 500, '55+': 200 } } },
-  { id: 'ad-sidebar-4', title: 'Legal Link and Partners', description: 'บริการด้านทรัพย์สินทางปัญญาและสัญญาทุกประเภท', placement: 'Lawyer Page Sidebar', status: 'draft', imageUrl: getImageUrl('ad-logo-4'), imageHint: getImageHint('ad-logo-4') },
-];
-
-export async function getAdsByPlacement(placement: 'Homepage Carousel' | 'Lawyer Page Sidebar'): Promise<Ad[]> {
-  return new Promise(resolve => {
-    setTimeout(() => {
-      resolve(mockAds.filter(ad => ad.placement === placement && ad.status === 'active'));
-    }, 100);
-  });
-}
-
-
-export async function getAdById(id: string): Promise<Ad | undefined> {
-    return new Promise(resolve => {
-      setTimeout(() => {
-        resolve(mockAds.find(job => job.id === id));
-      }, 100);
-    });
-  }
-
     
+    // Fetch Tickets
+    const ticketsRef = collection(db, 'tickets');
+    const ticketsQuery = query(ticketsRef, where('userId', '==', userId));
+    const ticketsSnapshot = await getDocs(ticketsQuery);
+    const tickets: ReportedTicket[] = ticketsSnapshot.docs.map(d => {
+        const data = d.data();
+        return {
+            id: d.id,
+            caseId: data.caseId,
+            caseTitle: `เคส ${data.caseId}`,
+            problemType: data.problemType,
+            status: data.status,
+            reportedAt: data.reportedAt.toDate(),
+            lawyerId: '' // This info might not be directly on the ticket
+        }
+    })
+
+    return { cases, appointments, tickets };
+}
+
+// --- Lawyer Dashboard Functions ---
+
+export async function getLawyerDashboardData(db: Firestore, lawyerId: string): Promise<{ newRequests: LawyerAppointmentRequest[], activeCases: LawyerCase[], completedCases: LawyerCase[] }> {
+    // Fetch new appointment requests
+    const appointmentsRef = collection(db, 'appointments');
+    const requestsQuery = query(appointmentsRef, where('lawyerId', '==', lawyerId), where('status', '==', 'pending'));
+    const requestsSnapshot = await getDocs(requestsQuery);
+    const newRequests: LawyerAppointmentRequest[] = requestsSnapshot.docs.map(d => {
+        const data = d.data();
+        // In a real app, you'd fetch client name from users collection
+        return {
+            id: d.id,
+            clientName: 'ลูกค้าใหม่', // Placeholder
+            caseTitle: data.description,
+            description: data.description,
+            requestedAt: data.createdAt.toDate(),
+        }
+    });
+
+    // Fetch cases (chats)
+    const chatsRef = collection(db, 'chats');
+    const casesQuery = query(chatsRef, where('participants', 'array-contains', lawyerId));
+    const casesSnapshot = await getDocs(casesQuery);
+    const lawyerCases: LawyerCase[] = await Promise.all(casesSnapshot.docs.map(async (d) => {
+        const chatData = d.data();
+        const clientParticipantId = chatData.participants.find((p: string) => p !== lawyerId);
+        
+        let clientName = 'ลูกค้า';
+        if(clientParticipantId) {
+             const userDoc = await getDoc(doc(db, 'users', clientParticipantId));
+             if(userDoc.exists()) clientName = userDoc.data().name;
+        }
+
+        return {
+            id: d.id,
+            title: chatData.caseTitle || 'Unknown Case',
+            clientName: clientName,
+            clientId: clientParticipantId,
+            status: 'กำลังดำเนินการ', // This needs to be stored on chat doc
+            lastUpdate: '...', // Would need to fetch last message
+        };
+    }));
+
+    return {
+        newRequests,
+        activeCases: lawyerCases.filter(c => c.status === 'กำลังดำเนินการ'),
+        completedCases: lawyerCases.filter(c => c.status === 'เสร็จสิ้น'),
+    };
+}
+
+
+export async function getLawyerAppointmentRequestById(db: Firestore, id: string): Promise<LawyerAppointmentRequest | undefined> {
+    const reqRef = doc(db, 'appointments', id);
+    const docSnap = await getDoc(reqRef);
+    if (docSnap.exists()) {
+        const data = docSnap.data();
+         // In a real app, you'd fetch client name from users collection
+        return {
+            id: docSnap.id,
+            clientName: 'ลูกค้า (ดึงข้อมูลจริง)',
+            caseTitle: data.description,
+            description: data.description,
+            requestedAt: data.createdAt.toDate(),
+        };
+    }
+    return undefined;
+}
+
+
+// --- Data for Admin pages (can be more complex) ---
+
+export async function getAllUsers(db: Firestore): Promise<any[]> {
+  const usersRef = collection(db, 'users');
+  const q = query(usersRef, where('role', '==', 'customer'));
+  const querySnapshot = await getDocs(q);
+  return querySnapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data(),
+    registeredAt: doc.data().registeredAt?.toDate().toLocaleDateString('th-TH') || 'N/A'
+  }));
+}
+
+
+export async function getAllLawyers(db: Firestore): Promise<LawyerProfile[]> {
+    const lawyersRef = collection(db, 'lawyerProfiles');
+    const querySnapshot = await getDocs(lawyersRef);
+    return querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+            id: doc.id,
+            ...data,
+            joinedAt: data.joinedAt?.toDate().toLocaleDateString('th-TH') || 'N/A'
+        } as LawyerProfile
+    });
+}
+
+export async function getAllAds(db: Firestore): Promise<Ad[]> {
+  const adsRef = collection(db, 'ads');
+  const querySnapshot = await getDocs(adsRef);
+  return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ad));
+}
+
+export async function getAllAdminArticles(db: Firestore): Promise<Article[]> {
+  const articlesRef = collection(db, 'articles');
+  const querySnapshot = await getDocs(articlesRef);
+  return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Article));
+}
+
+export async function getArticleById(db: Firestore, id: string): Promise<Article | undefined> {
+  const articleRef = doc(db, 'articles', id);
+  const docSnap = await getDoc(articleRef);
+  if (docSnap.exists()) {
+    return { id: docSnap.id, ...docSnap.data() } as Article;
+  }
+  return undefined;
+}
+
+
+export async function getAllTickets(db: Firestore): Promise<any[]> {
+  const ticketsRef = collection(db, 'tickets');
+  const querySnapshot = await getDocs(ticketsRef);
+  const tickets = await Promise.all(querySnapshot.docs.map(async (d) => {
+    const data = d.data();
+    let clientName = 'Unknown User';
+    const userDoc = await getDoc(doc(db, 'users', data.userId));
+    if (userDoc.exists()) {
+      clientName = userDoc.data().name;
+    }
+    return {
+      id: d.id,
+      ...data,
+      clientName,
+      reportedAt: data.reportedAt.toDate().toLocaleDateString('th-TH'),
+    };
+  }));
+  return tickets;
+}

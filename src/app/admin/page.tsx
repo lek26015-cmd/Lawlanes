@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import * as React from 'react';
@@ -42,12 +41,38 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { useFirebase } from '@/firebase';
+import { collection, query, where, getDocs, limit } from 'firebase/firestore';
 
 interface AdminDashboardProps {
   userRole?: string | null;
 }
 
 export default function AdminDashboard({ userRole }: AdminDashboardProps) {
+  const { firestore } = useFirebase();
+  const [pendingLawyers, setPendingLawyers] = React.useState<any[]>([]);
+  const [tickets, setTickets] = React.useState<any[]>([]);
+  
+  React.useEffect(() => {
+    if (!firestore) return;
+
+    // Fetch pending lawyers
+    const lawyersRef = collection(firestore, 'lawyerProfiles');
+    const qLawyers = query(lawyersRef, where('status', '==', 'pending'), limit(5));
+    getDocs(qLawyers).then(snapshot => {
+      setPendingLawyers(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+
+    // Fetch open tickets
+    const ticketsRef = collection(firestore, 'tickets');
+    const qTickets = query(ticketsRef, where('status', '==', 'pending'), limit(5));
+    getDocs(qTickets).then(snapshot => {
+      setTickets(snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
+    });
+
+  }, [firestore]);
+
+
   return (
     <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
       <div className="grid gap-4 md:grid-cols-2 md:gap-8 lg:grid-cols-4">
@@ -55,7 +80,7 @@ export default function AdminDashboard({ userRole }: AdminDashboardProps) {
             <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">
-                รายได้รวม
+                รายได้รวม (จำลอง)
               </CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
@@ -87,9 +112,9 @@ export default function AdminDashboard({ userRole }: AdminDashboardProps) {
             <Ticket className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12</div>
+            <div className="text-2xl font-bold">{tickets.length}</div>
             <p className="text-xs text-muted-foreground">
-              5 เรื่องเป็นปัญหาเร่งด่วน
+              {tickets.length > 0 ? `${tickets.length} เรื่องเป็นปัญหาเร่งด่วน` : 'ไม่มีเรื่องเร่งด่วน'}
             </p>
           </CardContent>
         </Card>
@@ -101,7 +126,7 @@ export default function AdminDashboard({ userRole }: AdminDashboardProps) {
             <ShieldCheck className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">+2</div>
+            <div className="text-2xl font-bold">+{pendingLawyers.length}</div>
             <p className="text-xs text-muted-foreground">
               รอการตรวจสอบคุณสมบัติ
             </p>
@@ -118,7 +143,7 @@ export default function AdminDashboard({ userRole }: AdminDashboardProps) {
               </CardDescription>
             </div>
             <Button asChild size="sm" className="ml-auto gap-1">
-              <Link href="/admin/lawyers?status=pending">
+              <Link href="/admin/lawyers?tab=pending">
                 ดูทั้งหมด
                 <ArrowLeft className="h-4 w-4" />
               </Link>
@@ -144,15 +169,16 @@ export default function AdminDashboard({ userRole }: AdminDashboardProps) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                <TableRow>
+                {pendingLawyers.map(lawyer => (
+                <TableRow key={lawyer.id}>
                   <TableCell>
-                    <div className="font-medium">นริศรา เพชร</div>
+                    <div className="font-medium">{lawyer.name}</div>
                     <div className="hidden text-sm text-muted-foreground md:inline">
-                      narisara.p@example.com
+                      {lawyer.userId}
                     </div>
                   </TableCell>
                   <TableCell className="hidden xl:table-cell">
-                    กฎหมายองค์กร
+                    {lawyer.specialty.join(', ')}
                   </TableCell>
                     <TableCell className="hidden xl:table-cell">
                     <Badge className="text-xs" variant="outline">
@@ -160,7 +186,7 @@ export default function AdminDashboard({ userRole }: AdminDashboardProps) {
                     </Badge>
                   </TableCell>
                   <TableCell className="hidden md:table-cell">
-                    2024-07-28
+                    {lawyer.joinedAt?.toDate().toLocaleDateString('th-TH') || 'N/A'}
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>
@@ -176,52 +202,12 @@ export default function AdminDashboard({ userRole }: AdminDashboardProps) {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>การดำเนินการ</DropdownMenuLabel>
-                        <DropdownMenuItem>ดูใบสมัคร</DropdownMenuItem>
-                        <DropdownMenuItem>อนุมัติ</DropdownMenuItem>
-                        <DropdownMenuItem>ปฏิเสธ</DropdownMenuItem>
+                        <DropdownMenuItem asChild><Link href={`/admin/lawyers/${lawyer.id}`}>ดูใบสมัคร</Link></DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>
                 </TableRow>
-                <TableRow>
-                  <TableCell>
-                    <div className="font-medium">ชานนท์ ทวี</div>
-                    <div className="hidden text-sm text-muted-foreground md:inline">
-                        chanon.t@example.com
-                    </div>
-                  </TableCell>
-                  <TableCell className="hidden xl:table-cell">
-                    คดีฉ้อโกง SMEs
-                  </TableCell>
-                  <TableCell className="hidden xl:table-cell">
-                    <Badge className="text-xs" variant="outline">
-                      รอตรวจสอบ
-                    </Badge>
-                  </TableCell>
-                    <TableCell className="hidden md:table-cell">
-                    2024-07-27
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button
-                          aria-haspopup="true"
-                          size="icon"
-                          variant="ghost"
-                        >
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">สลับเมนู</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>การดำเนินการ</DropdownMenuLabel>
-                        <DropdownMenuItem>ดูใบสมัคร</DropdownMenuItem>
-                        <DropdownMenuItem>อนุมัติ</DropdownMenuItem>
-                        <DropdownMenuItem>ปฏิเสธ</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
+                ))}
               </TableBody>
             </Table>
           </CardContent>
@@ -234,38 +220,24 @@ export default function AdminDashboard({ userRole }: AdminDashboardProps) {
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-8">
-            <div className="flex items-center gap-4">
-              <div className="grid gap-1">
-                <p className="text-sm font-medium leading-none">
-                  สมหญิง ใจดี
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  TICKET-5891A: ปัญหาการชำระเงิน
-                </p>
+            {tickets.map(ticket => (
+              <div key={ticket.id} className="flex items-center gap-4">
+                <div className="grid gap-1">
+                  <p className="text-sm font-medium leading-none">
+                    {ticket.userId}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {ticket.id}: {ticket.problemType}
+                  </p>
+                </div>
+                <Button asChild size="sm" className="ml-auto gap-1">
+                  <Link href={`/admin/tickets/${ticket.id}`}>
+                    ดู Ticket
+                    <ArrowLeft className="h-4 w-4" />
+                  </Link>
+                </Button>
               </div>
-              <Button asChild size="sm" className="ml-auto gap-1">
-                <Link href="#">
-                  ดู Ticket
-                  <ArrowLeft className="h-4 w-4" />
-                </Link>
-              </Button>
-            </div>
-              <div className="flex items-center gap-4">
-              <div className="grid gap-1">
-                <p className="text-sm font-medium leading-none">
-                  นายสมชาย กฎหมายดี
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  TICKET-5891B: ไม่สามารถอัปโหลดไฟล์ได้
-                </p>
-              </div>
-              <Button asChild size="sm" className="ml-auto gap-1">
-                <Link href="#">
-                  ดู Ticket
-                  <ArrowLeft className="h-4 w-4" />
-                </Link>
-              </Button>
-            </div>
+            ))}
           </CardContent>
         </Card>
       </div>

@@ -32,6 +32,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { doc, getDoc } from 'firebase/firestore';
 
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -39,8 +40,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const router = useRouter();
 
     const firebaseContext = useContext(FirebaseContext);
-    const auth = firebaseContext?.auth ?? null;
-    const areServicesAvailable = firebaseContext?.areServicesAvailable ?? false;
+    const { auth, firestore, areServicesAvailable } = firebaseContext || {};
 
     const [isAdmin, setIsAdmin] = useState(false);
     const [isCheckingAuth, setIsCheckingAuth] = useState(true);
@@ -48,25 +48,26 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const [userRole, setUserRole] = useState<string | null>(null);
 
     useEffect(() => {
-        if (!areServicesAvailable || !auth) {
+        if (!areServicesAvailable || !auth || !firestore) {
             setIsCheckingAuth(false);
             return;
         }
 
-        const unsubscribe = onAuthStateChanged(auth, (user) => {
+        const unsubscribe = onAuthStateChanged(auth, async (user) => {
             if (user) {
-                const isSuperAdmin = user.uid === 'wS9w7ysNYUajNsBYZ6C7n2Afe9H3';
-                const mockIsAdminByEmail = user.email?.includes('@lawlanes.com');
+                const userDocRef = doc(firestore, "users", user.uid);
+                const userDoc = await getDoc(userDocRef);
                 
-                if (isSuperAdmin || mockIsAdminByEmail) {
+                if (userDoc.exists() && userDoc.data().role === 'admin') {
+                    const role = userDoc.data().superAdmin ? 'Super Admin' : 'Administrator';
                     setIsAdmin(true);
                     setCurrentUser(user);
-                    setUserRole(isSuperAdmin ? 'Super Admin' : 'Administrator');
+                    setUserRole(role);
                 } else {
                     setIsAdmin(false);
                     setCurrentUser(null);
                     setUserRole(null);
-                    if (pathname.startsWith('/admin') && pathname !== '/admin/login') {
+                     if (pathname.startsWith('/admin') && pathname !== '/admin/login') {
                          router.push('/');
                     }
                 }
@@ -79,7 +80,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         });
 
         return () => unsubscribe();
-    }, [areServicesAvailable, auth]);
+    }, [areServicesAvailable, auth, firestore, router, pathname]);
 
     const handleLogout = async () => {
         if (auth) {

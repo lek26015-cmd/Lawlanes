@@ -42,7 +42,7 @@ import {
   TabsTrigger,
 } from '@/components/ui/tabs';
 import Image from 'next/image';
-import { mockAds } from '@/lib/data';
+import { getAllAds } from '@/lib/data';
 import type { Ad } from '@/lib/types';
 import {
   AlertDialog,
@@ -56,30 +56,55 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
+import { useFirebase } from '@/firebase';
+import { doc, deleteDoc } from 'firebase/firestore';
+import { errorEmitter, FirestorePermissionError } from '@/firebase';
+
 
 export default function AdminAdsPage() {
-    const [filteredAds, setFilteredAds] = React.useState<Ad[]>(mockAds);
+    const [allAds, setAllAds] = React.useState<Ad[]>([]);
+    const [filteredAds, setFilteredAds] = React.useState<Ad[]>([]);
     const [activeTab, setActiveTab] = React.useState('all');
     const { toast } = useToast();
+    const { firestore } = useFirebase();
+
+    React.useEffect(() => {
+        if (!firestore) return;
+        getAllAds(firestore).then(ads => {
+            setAllAds(ads);
+            setFilteredAds(ads);
+        });
+    }, [firestore]);
 
     React.useEffect(() => {
         if (activeTab === 'all') {
-            setFilteredAds(mockAds);
+            setFilteredAds(allAds);
         } else {
-            setFilteredAds(mockAds.filter(ad => ad.placement === activeTab));
+            setFilteredAds(allAds.filter(ad => ad.placement === activeTab));
         }
-    }, [activeTab]);
+    }, [activeTab, allAds]);
     
-    const handleDeleteAd = (adName: string) => {
-        toast({
-            title: "ลบโฆษณาสำเร็จ",
-            description: `โฆษณา "${adName}" ได้ถูกลบออกจากระบบแล้ว (จำลอง)`,
-            variant: "destructive"
-        })
+    const handleDeleteAd = (adId: string, adName: string) => {
+        if (!firestore) return;
+        const adRef = doc(firestore, 'ads', adId);
+        deleteDoc(adRef).then(() => {
+            toast({
+                title: "ลบโฆษณาสำเร็จ",
+                description: `โฆษณา "${adName}" ได้ถูกลบออกจากระบบแล้ว`,
+                variant: "destructive"
+            });
+            setAllAds(prev => prev.filter(ad => ad.id !== adId));
+        }).catch(error => {
+            const permissionError = new FirestorePermissionError({
+                path: adRef.path,
+                operation: 'delete'
+            });
+            errorEmitter.emit('permission-error', permissionError);
+        });
     }
 
   return (
-    <main className="flex flex-1 flex-col gap-4">
+    <main className="flex flex-1 flex-col gap-4 p-4">
         <Card>
             <CardHeader>
                 <CardTitle>จัดการโฆษณา</CardTitle>
@@ -106,7 +131,7 @@ export default function AdminAdsPage() {
                         </Button>
                         </div>
                     </div>
-                    <TabsContent value="all">
+                    <TabsContent value={activeTab}>
                          <AlertDialog>
                             <Table>
                                 <TableHeader>
@@ -175,31 +200,30 @@ export default function AdminAdsPage() {
                                                 </AlertDialogTrigger>
                                             </DropdownMenuContent>
                                             </DropdownMenu>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>คุณแน่ใจหรือไม่?</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        การกระทำนี้ไม่สามารถย้อนกลับได้ คุณกำลังจะลบโฆษณา "{ad.title}" ออกจากระบบอย่างถาวร
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={() => handleDeleteAd(ad.id, ad.title)} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">ยืนยันการลบ</AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
                                         </TableCell>
-                                         <AlertDialogContent>
-                                            <AlertDialogHeader>
-                                                <AlertDialogTitle>คุณแน่ใจหรือไม่?</AlertDialogTitle>
-                                                <AlertDialogDescription>
-                                                    การกระทำนี้ไม่สามารถย้อนกลับได้ คุณกำลังจะลบโฆษณา "{ad.title}" ออกจากระบบอย่างถาวร
-                                                </AlertDialogDescription>
-                                            </AlertDialogHeader>
-                                            <AlertDialogFooter>
-                                                <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
-                                                <AlertDialogAction onClick={() => handleDeleteAd(ad.title)} className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">ยืนยันการลบ</AlertDialogAction>
-                                            </AlertDialogFooter>
-                                        </AlertDialogContent>
                                     </TableRow>
                                 ))}
                                 </TableBody>
                             </Table>
                         </AlertDialog>
                     </TabsContent>
-                    {/* Other TabsContent removed for brevity, they would need similar table updates */}
                 </Tabs>
             </CardContent>
              <CardFooter>
                 <div className="text-xs text-muted-foreground">
-                    แสดง <strong>{filteredAds.length}</strong> จาก <strong>{mockAds.length}</strong> รายการ
+                    แสดง <strong>{filteredAds.length}</strong> จาก <strong>{allAds.length}</strong> รายการ
                 </div>
             </CardFooter>
         </Card>

@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
@@ -15,10 +14,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import Image from 'next/image';
+import { useFirebase } from '@/firebase';
 
 function LawyersPageContent() {
   const searchParams = useSearchParams();
   const specialties = searchParams.get('specialties');
+  const { firestore } = useFirebase();
 
   const [allLawyers, setAllLawyers] = useState<LawyerProfile[]>([]);
   const [filteredLawyers, setFilteredLawyers] = useState<LawyerProfile[]>([]);
@@ -29,14 +30,15 @@ function LawyersPageContent() {
 
   useEffect(() => {
     async function fetchData() {
+      if (!firestore) return;
       setIsLoading(true);
-      const lawyers = await getApprovedLawyers();
+      const lawyers = await getApprovedLawyers(firestore);
       setAllLawyers(lawyers);
       setFilteredLawyers(lawyers);
       setIsLoading(false);
     }
     fetchData();
-  }, []);
+  }, [firestore]);
   
   const specialtyArray = useMemo(() => specialties ? specialties.split(',') : [], [specialties]);
 

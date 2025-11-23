@@ -28,19 +28,53 @@ import {
 import { useToast } from '@/hooks/use-toast'
 import { Textarea } from '@/components/ui/textarea'
 import Image from 'next/image'
+import { useFirebase } from '@/firebase'
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore'
+import { errorEmitter, FirestorePermissionError } from '@/firebase'
 
 export default function AdminAdCreatePage() {
   const router = useRouter()
   const { toast } = useToast()
+  const { firestore } = useFirebase();
   
   const [title, setTitle] = React.useState('');
+  const [description, setDescription] = React.useState('');
+  const [placement, setPlacement] = React.useState('Homepage Carousel');
+  const [status, setStatus] = React.useState('draft');
+  const [isSaving, setIsSaving] = React.useState(false);
 
-  const handleSaveChanges = () => {
-    toast({
-        title: "สร้างโฆษณาสำเร็จ",
-        description: `โฆษณาใหม่ "${title || 'โฆษณาใหม่'}" ได้ถูกเพิ่มเข้าสู่ระบบแล้ว`,
-    })
-    router.push('/admin/ads');
+  const handleSaveChanges = async () => {
+    if (!firestore) return;
+    setIsSaving(true);
+    
+    const newAd = {
+      title,
+      description,
+      placement,
+      status,
+      imageUrl: 'https://picsum.photos/seed/new-ad/600/400', // Placeholder
+      imageHint: 'advertisement banner',
+      createdAt: serverTimestamp(),
+    };
+
+    const adsCollection = collection(firestore, 'ads');
+    
+    addDoc(adsCollection, newAd).then(() => {
+        toast({
+            title: "สร้างโฆษณาสำเร็จ",
+            description: `โฆษณาใหม่ "${title || 'โฆษณาใหม่'}" ได้ถูกเพิ่มเข้าสู่ระบบแล้ว`,
+        })
+        router.push('/admin/ads');
+    }).catch(error => {
+        const permissionError = new FirestorePermissionError({
+            path: 'ads',
+            operation: 'create',
+            requestResourceData: newAd,
+        });
+        errorEmitter.emit('permission-error', permissionError);
+    }).finally(() => {
+        setIsSaving(false);
+    });
   }
 
   return (
@@ -48,7 +82,7 @@ export default function AdminAdCreatePage() {
         <div className="mx-auto grid max-w-2xl flex-1 auto-rows-max gap-4">
           <div className="flex items-center gap-4">
             <Link href="/admin/ads">
-                <Button variant="outline" size="icon" className="h-7 w-7">
+                <Button variant="outline" size="icon" className="h-7 w-7" disabled={isSaving}>
                 <ChevronLeft className="h-4 w-4" />
                 <span className="sr-only">กลับ</span>
                 </Button>
@@ -58,12 +92,12 @@ export default function AdminAdCreatePage() {
             </h1>
             <div className="hidden items-center gap-2 md:ml-auto md:flex">
               <Link href="/admin/ads">
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" disabled={isSaving}>
                     ยกเลิก
                 </Button>
               </Link>
-              <Button size="sm" onClick={handleSaveChanges}>
-                บันทึกโฆษณา
+              <Button size="sm" onClick={handleSaveChanges} disabled={isSaving}>
+                {isSaving ? 'กำลังบันทึก...' : 'บันทึกโฆษณา'}
               </Button>
             </div>
           </div>
@@ -84,7 +118,7 @@ export default function AdminAdCreatePage() {
                     </div>
                     <Button variant="outline">
                       <Upload className="h-4 w-4 mr-2"/>
-                      อัปโหลดรูป
+                      อัปโหลดรูป (จำลอง)
                     </Button>
                   </div>
                 </div>
@@ -104,12 +138,14 @@ export default function AdminAdCreatePage() {
                   <Textarea
                     id="description"
                     placeholder="คำอธิบายสั้นๆ เกี่ยวกับโฆษณา"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
                   />
                 </div>
                  <div className="grid grid-cols-2 gap-4">
                     <div className="grid gap-3">
                         <Label htmlFor="placement">ตำแหน่ง</Label>
-                        <Select defaultValue="Homepage Carousel">
+                        <Select value={placement} onValueChange={setPlacement}>
                             <SelectTrigger id="placement">
                                 <SelectValue />
                             </SelectTrigger>
@@ -121,7 +157,7 @@ export default function AdminAdCreatePage() {
                     </div>
                     <div className="grid gap-3">
                         <Label htmlFor="status">สถานะ</Label>
-                        <Select defaultValue="draft">
+                        <Select value={status} onValueChange={setStatus}>
                             <SelectTrigger id="status">
                                 <SelectValue />
                             </SelectTrigger>
@@ -138,12 +174,12 @@ export default function AdminAdCreatePage() {
           </Card>
            <div className="flex items-center justify-end gap-2 md:hidden">
               <Link href="/admin/ads">
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" disabled={isSaving}>
                     ยกเลิก
                 </Button>
               </Link>
-              <Button size="sm" onClick={handleSaveChanges}>
-                บันทึกโฆษณา
+              <Button size="sm" onClick={handleSaveChanges} disabled={isSaving}>
+                {isSaving ? 'กำลังบันทึก...' : 'บันทึกโฆษณา'}
               </Button>
             </div>
         </div>

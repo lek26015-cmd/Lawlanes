@@ -1,22 +1,52 @@
 
+'use client'
 import { getArticleBySlug, getAllArticles } from '@/lib/data';
-import { notFound } from 'next/navigation';
+import { notFound, useParams } from 'next/navigation';
 import Image from 'next/image';
 import { ArrowLeft, Calendar } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Card, CardContent } from '@/components/ui/card';
+import { useFirebase } from '@/firebase';
+import { useEffect, useState } from 'react';
+import { Article } from '@/lib/types';
+import { format } from 'date-fns';
+import { th } from 'date-fns/locale';
 
-export default async function ArticlePage({ params }: { params: { slug: string } }) {
-  const article = await getArticleBySlug(params.slug);
-  if (!article) {
-    notFound();
+export default function ArticlePage() {
+  const params = useParams();
+  const { slug } = params;
+  const { firestore } = useFirebase();
+  const [article, setArticle] = useState<Article | null>(null);
+  const [otherArticles, setOtherArticles] = useState<Article[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    async function fetchArticleData() {
+      if (!firestore || !slug) return;
+      setIsLoading(true);
+      
+      const currentArticle = await getArticleBySlug(firestore, slug as string);
+      if (!currentArticle) {
+        notFound();
+        return;
+      }
+      setArticle(currentArticle);
+
+      const allArticles = await getAllArticles(firestore);
+      const other = allArticles.filter(a => a.slug !== slug).slice(0, 3);
+      setOtherArticles(other);
+
+      setIsLoading(false);
+    }
+    fetchArticleData();
+  }, [firestore, slug]);
+
+
+  if (isLoading || !article) {
+    return <div>Loading...</div>; // Or a skeleton loader
   }
-
-  // Fetch other articles for the sidebar, excluding the current one
-  const allArticles = await getAllArticles();
-  const otherArticles = allArticles.filter(a => a.slug !== params.slug).slice(0, 3);
 
   return (
     <div className="bg-white">
@@ -51,8 +81,8 @@ export default async function ArticlePage({ params }: { params: { slug: string }
                       <AvatarFallback>ทน</AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="font-semibold text-foreground">ทีมงาน ContestOne (จำลอง)</p>
-                      <p>เผยแพร่เมื่อ: 18 กรกฎาคม 2024 (ตัวอย่าง)</p>
+                      <p className="font-semibold text-foreground">{article.authorName || 'ทีมงาน Lawlanes'}</p>
+                      <p>เผยแพร่เมื่อ: {article.publishedAt ? format(new Date(article.publishedAt), 'd MMMM yyyy', { locale: th }) : 'N/A'}</p>
                     </div>
                   </div>
                 </div>
@@ -111,7 +141,7 @@ export default async function ArticlePage({ params }: { params: { slug: string }
                           <h3 className="font-semibold text-base leading-tight group-hover:text-primary transition-colors">
                             {other.title}
                           </h3>
-                          <p className="text-xs text-muted-foreground mt-2">20 ก.ค. 24 (ตัวอย่าง)</p>
+                          <p className="text-xs text-muted-foreground mt-2">{other.publishedAt ? format(new Date(other.publishedAt), 'd MMM yy', { locale: th }) : ''}</p>
                         </div>
                       </div>
                     </Card>

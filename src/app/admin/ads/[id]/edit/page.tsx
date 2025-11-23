@@ -26,30 +26,69 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
-import { mockAds } from '@/lib/data'
 import type { Ad } from '@/lib/types';
 import { Textarea } from '@/components/ui/textarea'
 import Image from 'next/image'
+import { useFirebase } from '@/firebase'
+import { getAdById } from '@/lib/data'
+import { doc, updateDoc } from 'firebase/firestore'
+import { errorEmitter, FirestorePermissionError } from '@/firebase'
+
 
 export default function AdminAdEditPage() {
   const params = useParams()
   const router = useRouter()
   const { id } = params
   const { toast } = useToast()
+  const { firestore } = useFirebase();
 
   const [ad, setAd] = React.useState<Ad | null>(null);
+  const [isSaving, setIsSaving] = React.useState(false);
 
   React.useEffect(() => {
-    const foundAd = mockAds.find(a => a.id === id);
-    setAd(foundAd || null);
-  }, [id]);
+    if (!firestore || !id) return;
+    getAdById(firestore, id as string).then(setAd);
+  }, [id, firestore]);
 
-  const handleSaveChanges = () => {
-    toast({
-        title: "บันทึกข้อมูลสำเร็จ",
-        description: `โฆษณา "${ad?.title}" ได้รับการอัปเดตแล้ว`,
-    })
-    router.push(`/admin/ads`);
+  const handleSaveChanges = async () => {
+    if (!firestore || !ad) return;
+    setIsSaving(true);
+    
+    const adRef = doc(firestore, 'ads', ad.id);
+    const updatedData = {
+        title: ad.title,
+        description: ad.description,
+        placement: ad.placement,
+        status: ad.status,
+    };
+    
+    updateDoc(adRef, updatedData).then(() => {
+        toast({
+            title: "บันทึกข้อมูลสำเร็จ",
+            description: `โฆษณา "${ad.title}" ได้รับการอัปเดตแล้ว`,
+        })
+        router.push(`/admin/ads`);
+    }).catch(error => {
+        const permissionError = new FirestorePermissionError({
+            path: adRef.path,
+            operation: 'update',
+            requestResourceData: updatedData,
+          });
+        errorEmitter.emit('permission-error', permissionError);
+    }).finally(() => {
+        setIsSaving(false);
+    });
+  }
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    if (!ad) return;
+    const { id, value } = e.target;
+    setAd({ ...ad, [id]: value });
+  };
+  
+  const handleSelectChange = (id: 'placement' | 'status') => (value: string) => {
+    if (!ad) return;
+    setAd({ ...ad, [id]: value });
   }
 
   if (!ad) {
@@ -71,12 +110,12 @@ export default function AdminAdEditPage() {
             </h1>
             <div className="hidden items-center gap-2 md:ml-auto md:flex">
               <Link href="/admin/ads">
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" disabled={isSaving}>
                     ยกเลิก
                 </Button>
               </Link>
-              <Button size="sm" onClick={handleSaveChanges}>
-                บันทึกการเปลี่ยนแปลง
+              <Button size="sm" onClick={handleSaveChanges} disabled={isSaving}>
+                {isSaving ? 'กำลังบันทึก...' : 'บันทึกการเปลี่ยนแปลง'}
               </Button>
             </div>
           </div>
@@ -101,7 +140,7 @@ export default function AdminAdEditPage() {
                     />
                     <Button variant="outline">
                       <Upload className="h-4 w-4 mr-2"/>
-                      เปลี่ยนรูป
+                      เปลี่ยนรูป (จำลอง)
                     </Button>
                   </div>
                 </div>
@@ -111,20 +150,22 @@ export default function AdminAdEditPage() {
                     id="title"
                     type="text"
                     className="w-full"
-                    defaultValue={ad.title}
+                    value={ad.title}
+                    onChange={handleInputChange}
                   />
                 </div>
                  <div className="grid gap-3">
                   <Label htmlFor="description">คำอธิบาย</Label>
                   <Textarea
                     id="description"
-                    defaultValue={ad.description}
+                    value={ad.description}
+                    onChange={handleInputChange}
                   />
                 </div>
                  <div className="grid grid-cols-2 gap-4">
                     <div className="grid gap-3">
                         <Label htmlFor="placement">ตำแหน่ง</Label>
-                        <Select defaultValue={ad.placement}>
+                        <Select value={ad.placement} onValueChange={handleSelectChange('placement')}>
                             <SelectTrigger id="placement">
                                 <SelectValue />
                             </SelectTrigger>
@@ -136,7 +177,7 @@ export default function AdminAdEditPage() {
                     </div>
                     <div className="grid gap-3">
                         <Label htmlFor="status">สถานะ</Label>
-                        <Select defaultValue={ad.status}>
+                        <Select value={ad.status} onValueChange={handleSelectChange('status')}>
                             <SelectTrigger id="status">
                                 <SelectValue />
                             </SelectTrigger>
@@ -153,12 +194,12 @@ export default function AdminAdEditPage() {
           </Card>
            <div className="flex items-center justify-end gap-2 md:hidden">
               <Link href="/admin/ads">
-                <Button variant="outline" size="sm">
+                <Button variant="outline" size="sm" disabled={isSaving}>
                     ยกเลิก
                 </Button>
               </Link>
-              <Button size="sm" onClick={handleSaveChanges}>
-                บันทึกการเปลี่ยนแปลง
+              <Button size="sm" onClick={handleSaveChanges} disabled={isSaving}>
+                 {isSaving ? 'กำลังบันทึก...' : 'บันทึกการเปลี่ยนแปลง'}
               </Button>
             </div>
         </div>

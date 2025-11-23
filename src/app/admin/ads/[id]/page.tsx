@@ -22,21 +22,23 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { mockAds } from '@/lib/data'
+import { getAdById } from '@/lib/data'
 import type { Ad } from '@/lib/types'
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import { useFirebase } from '@/firebase'
 
 export default function AdminAdDetailsPage() {
   const params = useParams()
   const router = useRouter()
   const { id } = params
+  const { firestore } = useFirebase();
 
   const [ad, setAd] = React.useState<Ad | null>(null);
 
   React.useEffect(() => {
-    const foundAd = mockAds.find(a => a.id === id);
-    setAd(foundAd || null);
-  }, [id]);
+    if (!firestore || !id) return;
+    getAdById(firestore, id as string).then(setAd);
+  }, [id, firestore]);
 
   if (!ad) {
     return <div>Loading...</div>
@@ -44,7 +46,7 @@ export default function AdminAdDetailsPage() {
   
   if (!ad.analytics) {
       return (
-           <main className="grid flex-1 items-start gap-4">
+           <main className="grid flex-1 items-start gap-4 p-4">
                 <div className="mx-auto grid max-w-[59rem] flex-1 auto-rows-max gap-4">
                     <p>No analytics data for this ad.</p>
                 </div>
@@ -67,7 +69,7 @@ export default function AdminAdDetailsPage() {
   ]
 
   return (
-    <main className="grid flex-1 items-start gap-4">
+    <main className="grid flex-1 items-start gap-4 p-4">
         <div className="mx-auto grid w-full max-w-6xl flex-1 auto-rows-max gap-4">
           <div className="flex items-center gap-4">
             <Link href="/admin/ads">

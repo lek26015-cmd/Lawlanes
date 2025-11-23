@@ -12,22 +12,25 @@ import { ArrowRight, Search, FileText, ArrowLeft } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { useFirebase } from '@/firebase';
 
 export default function ArticlesPage() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const { firestore } = useFirebase();
 
   useEffect(() => {
     async function fetchArticles() {
+      if (!firestore) return;
       setIsLoading(true);
-      const allArticles = await getAllArticles();
+      const allArticles = await getAllArticles(firestore);
       setArticles(allArticles);
       setIsLoading(false);
     }
     fetchArticles();
-  }, []);
+  }, [firestore]);
 
   const categories = useMemo(() => {
     const allCategories = articles.map(article => article.category);

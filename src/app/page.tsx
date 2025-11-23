@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -27,10 +26,13 @@ import {
 } from "@/components/ui/carousel";
 import { Separator } from '@/components/ui/separator';
 import Autoplay from "embla-carousel-autoplay";
+import { useFirebase } from '@/firebase';
 
 
 export default function Home() {
   const router = useRouter();
+  const { firestore } = useFirebase();
+
   const [features] = useState([
     {
       icon: <MessageSquare className="w-6 h-6 text-blue-600" />,
@@ -65,7 +67,6 @@ export default function Home() {
   const [analysisText, setAnalysisText] = useState('');
   const { setAiChatOpen } = useChat();
 
-  // State for lawyer verification
   const [licenseNumber, setLicenseNumber] = useState('');
   const [isVerifying, setIsVerifying] = useState(false);
   const [verificationResult, setVerificationResult] = useState<'found' | 'not_found' | 'error' | null>(null);
@@ -86,11 +87,12 @@ export default function Home() {
 
   useEffect(() => {
     async function fetchData() {
+      if (!firestore) return;
       const [lawyers, allArticles, banners, sidebarAdsData] = await Promise.all([
-        getApprovedLawyers(),
-        getAllArticles(),
-        getAdsByPlacement('Homepage Carousel'),
-        getAdsByPlacement('Lawyer Page Sidebar')
+        getApprovedLawyers(firestore),
+        getAllArticles(firestore),
+        getAdsByPlacement(firestore, 'Homepage Carousel'),
+        getAdsByPlacement(firestore, 'Lawyer Page Sidebar')
       ]);
 
       setRecommendedLawyers(lawyers.slice(0, 3));
@@ -99,7 +101,7 @@ export default function Home() {
       setSidebarAds(sidebarAdsData);
     }
     fetchData();
-  }, []);
+  }, [firestore]);
 
   const handleAnalysis = async () => {
     if (!analysisText.trim()) return;
@@ -110,7 +112,6 @@ export default function Home() {
       router.push(`/lawyers?specialties=${encodeURIComponent(specialties)}`);
     } catch (error) {
       console.error('Failed to find lawyer specialties:', error);
-      // If AI fails, just go to the lawyers page without filter
       router.push('/lawyers');
     } finally {
       setIsFindingLawyers(false);
@@ -120,17 +121,16 @@ export default function Home() {
   const handleVerify = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const targetLicenseNumber = licenseNumber;
-    if (!targetLicenseNumber) return;
+    if (!targetLicenseNumber || !firestore) return;
 
     setIsVerifying(true);
     setVerificationResult(null);
     setVerifiedLawyer(null);
 
-    // Simulate API call and verification logic
     setTimeout(async () => {
       try {
         if (targetLicenseNumber === '12345/2550') {
-          const lawyer = await getLawyerById('1'); // Get a mock lawyer
+          const lawyer = await getLawyerById(firestore, '1'); 
           if (lawyer) {
             setVerifiedLawyer(lawyer);
             setVerificationResult('found');

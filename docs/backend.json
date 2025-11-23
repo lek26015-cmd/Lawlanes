@@ -24,6 +24,22 @@
           "type": "string",
           "enum": ["customer", "lawyer", "admin"],
           "description": "The role of the user within the application."
+        },
+        "type": {
+          "type": "string",
+          "enum": ["บุคคลทั่วไป", "SME"]
+        },
+        "registeredAt": {
+            "type": "string",
+            "format": "date-time"
+        },
+        "status": {
+            "type": "string",
+            "enum": ["active", "suspended"]
+        },
+        "avatar": {
+            "type": "string",
+            "format": "uri"
         }
       },
       "required": ["uid", "name", "email", "role"]
@@ -34,10 +50,6 @@
       "type": "object",
       "description": "Represents the profile of a lawyer in the Lawlanes application.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the lawyer profile."
-        },
         "userId": {
           "type": "string",
           "description": "Firebase User ID of the lawyer. This is the unique ID generated and managed by Firebase Authentication."
@@ -48,23 +60,24 @@
         },
         "status": {
           "type": "string",
-          "description": "The status of the lawyer's profile (e.g., 'approved', 'pending')."
+          "enum": ["approved", "pending", "rejected"]
         },
         "description": {
           "type": "string",
           "description": "A brief description of the lawyer's experience and expertise."
         },
         "specialty": {
-          "type": "string",
-          "description": "The lawyer's area of specialization (e.g., 'SME Fraud Cases', 'Civil and Commercial Law')."
-        }
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "imageUrl": { "type": "string", "format": "uri" },
+        "imageHint": { "type": "string" },
+        "joinedAt": { "type": "string", "format": "date-time" }
       },
       "required": [
-        "id",
         "userId",
         "name",
         "status",
-        "description",
         "specialty"
       ]
     },
@@ -75,163 +88,122 @@
       "properties": {
         "participants": {
           "type": "array",
-          "items": {
-            "type": "string"
-          },
+          "items": { "type": "string" },
           "description": "An array containing the user IDs of the two participants in the chat."
         },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time",
-          "description": "The timestamp when the chat was created."
-        }
+        "createdAt": { "type": "string", "format": "date-time" },
+        "caseTitle": { "type": "string" }
       },
-      "required": [
-        "participants",
-        "createdAt"
-      ]
+      "required": [ "participants", "createdAt" ]
     },
     "ChatMessage": {
       "title": "ChatMessage",
       "description": "Represents a single message within a chat.",
       "type": "object",
       "properties": {
-        "senderId": {
-          "type": "string",
-          "description": "The user ID of the message sender."
-        },
-        "text": {
-          "type": "string",
-          "description": "The text content of the message."
-        },
-        "timestamp": {
-          "type": "string",
-          "format": "date-time",
-          "description": "The timestamp when the message was sent."
-        }
+        "senderId": { "type": "string" },
+        "text": { "type": "string" },
+        "timestamp": { "type": "string", "format": "date-time" }
       },
-      "required": [
-        "senderId",
-        "text",
-        "timestamp"
-      ]
+      "required": [ "senderId", "text", "timestamp" ]
     },
     "Appointment": {
       "title": "Appointment",
       "description": "Represents a consultation appointment request from a user to a lawyer.",
       "type": "object",
       "properties": {
-        "userId": {
-          "type": "string",
-          "description": "The ID of the user requesting the appointment."
-        },
-        "lawyerId": {
-          "type": "string",
-          "description": "The ID of the lawyer the appointment is with."
-        },
-        "appointmentDate": {
-          "type": "string",
-          "format": "date-time",
-          "description": "The requested date and time for the appointment."
-        },
-        "description": {
-          "type": "string",
-          "description": "A brief description of the legal issue to be discussed."
-        },
-        "status": {
-          "type": "string",
-          "enum": [
-            "pending",
-            "confirmed",
-            "cancelled",
-            "completed"
-          ],
-          "description": "The status of the appointment."
-        },
-        "createdAt": {
-          "type": "string",
-          "format": "date-time",
-          "description": "The timestamp when the appointment was requested."
-        }
+        "userId": { "type": "string" },
+        "lawyerId": { "type": "string" },
+        "lawyerName": { "type": "string" },
+        "lawyerImageUrl": { "type": "string" },
+        "appointmentDate": { "type": "string", "format": "date-time" },
+        "description": { "type": "string" },
+        "status": { "type": "string", "enum": [ "pending", "confirmed", "cancelled" ] },
+        "createdAt": { "type": "string", "format": "date-time" }
       },
-      "required": [
-        "userId",
-        "lawyerId",
-        "appointmentDate",
-        "description",
-        "status",
-        "createdAt"
-      ]
+      "required": [ "userId", "lawyerId", "appointmentDate", "description", "status" ]
+    },
+    "Article": {
+        "title": "Article",
+        "type": "object",
+        "properties": {
+            "title": { "type": "string" },
+            "slug": { "type": "string" },
+            "description": { "type": "string" },
+            "content": { "type": "string" },
+            "category": { "type": "string" },
+            "imageUrl": { "type": "string", "format": "uri" },
+            "imageHint": { "type": "string" },
+            "publishedAt": { "type": "string", "format": "date-time" },
+            "authorName": { "type": "string" }
+        },
+        "required": ["title", "slug", "content", "category", "publishedAt"]
+    },
+    "Ad": {
+        "title": "Ad",
+        "type": "object",
+        "properties": {
+             "title": { "type": "string" },
+             "description": { "type": "string" },
+             "placement": { "type": "string", "enum": ["Homepage Carousel", "Lawyer Page Sidebar"] },
+             "status": { "type": "string", "enum": ["active", "draft", "expired"] },
+             "imageUrl": { "type": "string", "format": "uri" },
+             "imageHint": { "type": "string" }
+        },
+        "required": ["title", "placement", "status", "imageUrl"]
+    },
+    "Ticket": {
+        "title": "Ticket",
+        "type": "object",
+        "properties": {
+            "caseId": { "type": "string" },
+            "userId": { "type": "string" },
+            "problemType": { "type": "string" },
+            "description": { "type": "string" },
+            "status": { "type": "string", "enum": ["pending", "resolved"] },
+            "reportedAt": { "type": "string", "format": "date-time" }
+        },
+        "required": ["userId", "problemType", "status", "reportedAt"]
     }
   },
   "auth": {
-    "providers": [
-      "emailPassword",
-      "anonymous",
-      "google.com"
-    ]
+    "providers": [ "emailPassword", "anonymous", "google.com" ]
   },
   "firestore": {
     "structure": [
       {
         "path": "/users/{userId}",
-        "definition": {
-            "entityName": "UserProfile",
-            "schema": {
-                "$ref": "#/entities/UserProfile"
-            },
-            "description": "Stores user profile information, including their role."
-        }
+        "definition": { "schema": { "$ref": "#/entities/UserProfile" } }
       },
       {
-        "path": "/lawyerProfiles/{lawyerProfileId}",
-        "definition": {
-          "entityName": "LawyerProfile",
-          "schema": {
-            "$ref": "#/entities/LawyerProfile"
-          },
-          "description": "Stores lawyer profiles, accessible for reading by all users if status is 'approved'. Includes the userId field for owner-based rules.",
-          "params": [
-            {
-              "name": "lawyerProfileId",
-              "description": "Unique identifier for the lawyer profile."
-            }
-          ]
-        }
+        "path": "/lawyerProfiles/{lawyerId}",
+        "definition": { "schema": { "$ref": "#/entities/LawyerProfile" } }
       },
       {
         "path": "/chats/{chatId}",
-        "definition": {
-          "entityName": "Chat",
-          "schema": {
-            "$ref": "#/entities/Chat"
-          },
-          "description": "Stores chat sessions between users and lawyers.",
-          "params": [
-            {
-              "name": "chatId",
-              "description": "Unique identifier for the chat session."
-            }
-          ],
-          "subcollections": [
-            {
-              "path": "messages/{messageId}",
-              "definition": {
-                "entityName": "ChatMessage",
-                "schema": {
-                  "$ref": "#/entities/ChatMessage"
-                },
-                "description": "Stores individual messages within a chat session.",
-                "params": [
-                  {
-                    "name": "messageId",
-                    "description": "Unique identifier for the message."
-                  }
-                ]
-              }
-            }
-          ]
-        }
+        "definition": { "schema": { "$ref": "#/entities/Chat" } },
+        "subcollections": [
+          {
+            "path": "messages/{messageId}",
+            "definition": { "schema": { "$ref": "#/entities/ChatMessage" } }
+          }
+        ]
+      },
+      {
+        "path": "/appointments/{appointmentId}",
+        "definition": { "schema": { "$ref": "#/entities/Appointment" } }
+      },
+      {
+        "path": "/articles/{articleId}",
+        "definition": { "schema": { "$ref": "#/entities/Article" } }
+      },
+      {
+        "path": "/ads/{adId}",
+        "definition": { "schema": { "$ref": "#/entities/Ad" } }
+      },
+      {
+        "path": "/tickets/{ticketId}",
+        "definition": { "schema": { "$ref": "#/entities/Ticket" } }
       }
     ]
   }
