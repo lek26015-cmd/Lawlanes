@@ -22,6 +22,8 @@ function CloseCasePageContent() {
 
   const caseId = params.id as string;
   const clientName = searchParams.get('clientName') || 'ลูกค้า';
+  const lawyerId = searchParams.get('lawyerId');
+  const clientId = searchParams.get('clientId');
   
   const [summary, setSummary] = useState('');
   const [finalFee, setFinalFee] = useState('3500');
@@ -39,21 +41,26 @@ function CloseCasePageContent() {
     
     const finalFeeNumber = parseFloat(finalFee);
     const requiresApproval = finalFeeNumber > initialFee;
-
-    console.log({ caseId, summary, finalFee, requiresApproval });
     
+    const chatParams = new URLSearchParams();
+    chatParams.set('lawyerId', lawyerId || '1'); // Fallback to '1'
+    if(clientId) chatParams.set('clientId', clientId);
+    chatParams.set('view', 'lawyer');
+
     if (requiresApproval) {
         toast({
             title: 'ส่งคำขอค่าบริการเพิ่มเติมสำเร็จ',
             description: `ระบบได้ส่งคำขออนุมัติค่าบริการใหม่ให้ '${clientName}' แล้ว`,
         });
-        router.push(`/chat/${caseId}?lawyerId=1&clientId=...&view=lawyer&additionalFeeRequested=true`);
+        chatParams.set('additionalFeeRequested', 'true');
+        router.push(`/chat/${caseId}?${chatParams.toString()}`);
     } else {
         toast({
           title: 'ส่งสรุปเคสสำเร็จ',
           description: `ได้ส่งสรุปและแจ้งปิดเคสสำหรับ ${caseId} เรียบร้อยแล้ว`,
         });
-        router.push(`/chat/${caseId}?lawyerId=1&clientId=...&view=lawyer&status=closed`);
+        chatParams.set('status', 'closed');
+        router.push(`/chat/${caseId}?${chatParams.toString()}`);
     }
 
   };
@@ -75,7 +82,7 @@ function CloseCasePageContent() {
       <div className="container mx-auto px-4 md:px-6 py-8">
         <div className="max-w-3xl mx-auto space-y-6">
           <div>
-            <Link href={`/chat/${caseId}?lawyerId=1&clientId=...&view=lawyer`} className="text-sm text-muted-foreground hover:text-foreground mb-4 inline-flex items-center gap-2">
+            <Link href={`/chat/${caseId}?lawyerId=${lawyerId}&clientId=${clientId}&view=lawyer`} className="text-sm text-muted-foreground hover:text-foreground mb-4 inline-flex items-center gap-2">
               <ArrowLeft className="w-4 h-4" />
               กลับไปที่ห้องแชท
             </Link>

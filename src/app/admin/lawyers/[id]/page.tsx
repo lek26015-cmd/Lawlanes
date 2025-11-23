@@ -43,7 +43,7 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
-import { mockLawyers as allMockLawyers } from '@/lib/data'
+import { getLawyerById } from '@/lib/data'
 import type { LawyerProfile } from '@/lib/types'
 import { useToast } from '@/hooks/use-toast'
 import {
@@ -57,32 +57,42 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { useFirebase } from '@/firebase'
+import { doc, updateDoc } from 'firebase/firestore'
 
 export default function AdminLawyerDetailPage() {
   const params = useParams()
   const router = useRouter()
   const { id } = params
   const { toast } = useToast()
+  const { firestore } = useFirebase();
   
   const [lawyer, setLawyer] = React.useState<LawyerProfile | null>(null);
   const [currentDate, setCurrentDate] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     setCurrentDate(new Date().toISOString());
-    const foundLawyer = allMockLawyers.find(l => l.id === id);
-    // @ts-ignore
-    setLawyer(foundLawyer || null);
-  }, [id]);
+    if(!firestore || !id) return;
+
+    getLawyerById(firestore, id as string).then(foundLawyer => {
+        setLawyer(foundLawyer || null);
+    });
+  }, [id, firestore]);
 
   const handleStatusChange = (newStatus: LawyerProfile['status']) => {
-    if (!lawyer) return;
-    toast({
-      title: 'เปลี่ยนสถานะสำเร็จ',
-      description: `สถานะของ ${lawyer.name} ถูกเปลี่ยนเป็น "${newStatus}"`,
-    });
-    // In a real app, this would also update the backend.
-    // For this mock, we just navigate away.
-    router.push('/admin/lawyers');
+    if (!lawyer || !firestore) return;
+    
+    const lawyerRef = doc(firestore, 'lawyerProfiles', lawyer.id);
+    updateDoc(lawyerRef, { status: newStatus }).then(() => {
+        toast({
+            title: 'เปลี่ยนสถานะสำเร็จ',
+            description: `สถานะของ ${lawyer.name} ถูกเปลี่ยนเป็น "${newStatus}"`,
+        });
+        setLawyer(prev => prev ? {...prev, status: newStatus} : null);
+    }).catch(err => {
+        console.error(err);
+        toast({ variant: 'destructive', title: 'เกิดข้อผิดพลาด', description: 'ไม่สามารถเปลี่ยนสถานะได้'})
+    })
   };
 
   if (!lawyer) {
@@ -124,7 +134,7 @@ export default function AdminLawyerDetailPage() {
             </div>
             <div className="hidden items-center gap-2 md:ml-auto md:flex">
               <Link href={`/admin/lawyers/${id}/edit`}>
-                <Button variant="outline" size="sm">แก้ไขข้อมูล</Button>
+                <Button variant="outline" size="sm">แก้ไขข้อมูล (จำลอง)</Button>
               </Link>
               <AlertDialog>
                 <DropdownMenu>
@@ -133,17 +143,13 @@ export default function AdminLawyerDetailPage() {
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
                     <AlertDialogTrigger asChild>
-                        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>อนุมัติ</DropdownMenuItem>
+                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} disabled={lawyer.status === 'approved'}>อนุมัติ</DropdownMenuItem>
                     </AlertDialogTrigger>
                      <AlertDialogTrigger asChild>
-                        <DropdownMenuItem onSelect={(e) => e.preventDefault()}>ย้ายไปรอตรวจสอบ</DropdownMenuItem>
+                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} disabled={lawyer.status === 'pending'}>ย้ายไปรอตรวจสอบ</DropdownMenuItem>
                     </AlertDialogTrigger>
                      <AlertDialogTrigger asChild>
-                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive">ปฏิเสธ</DropdownMenuItem>
-                    </AlertDialogTrigger>
-                    <DropdownMenuSeparator />
-                     <AlertDialogTrigger asChild>
-                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive">ระงับบัญชี</DropdownMenuItem>
+                        <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="text-destructive" disabled={lawyer.status === 'rejected'}>ปฏิเสธ</DropdownMenuItem>
                     </AlertDialogTrigger>
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -156,7 +162,7 @@ export default function AdminLawyerDetailPage() {
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                         <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => handleStatusChange('approved')}>ยืนยัน</AlertDialogAction>
+                        <AlertDialogAction onClick={() => handleStatusChange( lawyer.status !== 'approved' ? 'approved' : 'pending' )}>ยืนยัน</AlertDialogAction>
                     </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
@@ -164,7 +170,7 @@ export default function AdminLawyerDetailPage() {
           </div>
           <Card>
             <CardHeader>
-              <CardTitle>ประวัติเคสล่าสุด</CardTitle>
+              <CardTitle>ประวัติเคสล่าสุด (จำลอง)</CardTitle>
             </CardHeader>
             <CardContent>
               <Table>
@@ -193,7 +199,7 @@ export default function AdminLawyerDetailPage() {
           </Card>
            <Card>
             <CardHeader>
-                <CardTitle>เอกสารประกอบการสมัคร</CardTitle>
+                <CardTitle>เอกสารประกอบการสมัคร (จำลอง)</CardTitle>
             </CardHeader>
              <CardContent>
                <div className="grid gap-3">
@@ -220,7 +226,7 @@ export default function AdminLawyerDetailPage() {
                   ข้อมูลทนายความ
                 </CardTitle>
                 <CardDescription>
-                  เข้าร่วมเมื่อ: {lawyer.joinedAt}
+                  เข้าร่วมเมื่อ: {lawyer.joinedAt as string}
                 </CardDescription>
               </div>
             </CardHeader>
@@ -233,7 +239,7 @@ export default function AdminLawyerDetailPage() {
                   </Avatar>
                   <div className="grid gap-1">
                     <p className="font-medium text-lg">{lawyer.name}</p>
-                    <p className="text-muted-foreground">ID: {lawyer.id}</p>
+                    <p className="text-muted-foreground">ID: {lawyer.userId}</p>
                   </div>
                 </div>
                 <Separator />

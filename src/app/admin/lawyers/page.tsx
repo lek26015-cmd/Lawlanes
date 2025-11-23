@@ -46,7 +46,7 @@ import {
   TabsTrigger,
 } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { mockLawyers as allMockLawyers } from '@/lib/data';
+import { getAllLawyers } from '@/lib/data';
 import type { LawyerProfile } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -60,22 +60,18 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { useFirebase } from '@/firebase';
+import { doc, updateDoc } from 'firebase/firestore';
 
-// Extend mock data with more varied statuses and join dates for filtering
-const mockLawyers = allMockLawyers.map((lawyer, index) => ({
-  ...lawyer,
-  status: ['approved', 'pending', 'rejected'][index % 3] as 'approved' | 'pending' | 'rejected',
-  joinedAt: `2024-07-${28 - index * 2}`
-}));
 
 export default function AdminLawyersPage() {
     const { toast } = useToast();
-    const [filteredLawyers, setFilteredLawyers] = React.useState<LawyerProfile[]>(mockLawyers);
+    const { firestore } = useFirebase();
+    const [allLawyers, setAllLawyers] = React.useState<LawyerProfile[]>([]);
+    const [filteredLawyers, setFilteredLawyers] = React.useState<LawyerProfile[]>([]);
     const [activeTab, setActiveTab] = React.useState('all');
-    const [action, setAction] = React.useState<{ type: LawyerProfile['status']; lawyerId: string } | null>(null);
+    const [action, setAction] = React.useState<{ type: LawyerProfile['status']; lawyerId: string, lawyerName: string } | null>(null);
 
-    
-    // In a real app, specialties would be fetched or managed globally
     const specialties = ['คดีฉ้อโกง SMEs', 'คดีแพ่งและพาณิชย์', 'การผิดสัญญา', 'ทรัพย์สินทางปัญญา', 'กฎหมายแรงงาน'];
     
     const [specialtyFilters, setSpecialtyFilters] = React.useState<Record<string, boolean>>(
@@ -83,7 +79,12 @@ export default function AdminLawyersPage() {
     );
 
     React.useEffect(() => {
-        let lawyers = mockLawyers;
+        if (!firestore) return;
+        getAllLawyers(firestore).then(setAllLawyers);
+    }, [firestore]);
+
+    React.useEffect(() => {
+        let lawyers = allLawyers;
 
         if (activeTab !== 'all') {
             lawyers = lawyers.filter(l => l.status === activeTab);
@@ -97,7 +98,7 @@ export default function AdminLawyersPage() {
         }
 
         setFilteredLawyers(lawyers);
-    }, [activeTab, specialtyFilters]);
+    }, [activeTab, specialtyFilters, allLawyers]);
 
     const handleExport = () => {
         const headers = ["ID", "Name", "Specialties", "JoinedAt", "Status"];
@@ -119,22 +120,22 @@ export default function AdminLawyersPage() {
     };
 
     const handleStatusChange = () => {
-        if (!action) return;
+        if (!action || !firestore) return;
         const { lawyerId, type: newStatus } = action;
 
-        const lawyerName = mockLawyers.find(l => l.id === lawyerId)?.name;
-        toast({
-            title: `เปลี่ยนสถานะสำเร็จ`,
-            description: `สถานะของ ${lawyerName} ถูกเปลี่ยนเป็น "${newStatus}" แล้ว`,
-        });
-        
-        // This is where you would update the backend.
-        // For now, we'll just refilter the list to simulate the change.
-        const updatedLawyers = mockLawyers.map(l => l.id === lawyerId ? {...l, status: newStatus} : l);
-        // This is a hacky way to force re-render/re-filter, not for production
-        setActiveTab('all'); 
-        setTimeout(() => setActiveTab(newStatus), 100);
-        setAction(null);
+        const lawyerRef = doc(firestore, 'lawyerProfiles', lawyerId);
+        updateDoc(lawyerRef, { status: newStatus }).then(() => {
+            toast({
+                title: `เปลี่ยนสถานะสำเร็จ`,
+                description: `สถานะของ ${action.lawyerName} ถูกเปลี่ยนเป็น "${newStatus}" แล้ว`,
+            });
+            setAllLawyers(prev => prev.map(l => l.id === lawyerId ? {...l, status: newStatus} : l));
+            setAction(null);
+        }).catch(err => {
+            console.error(err);
+            toast({ variant: 'destructive', title: 'เกิดข้อผิดพลาด', description: 'ไม่สามารถอัปเดตสถานะได้'});
+            setAction(null);
+        })
     };
     
     const statusBadges: Record<LawyerProfile['status'], React.ReactNode> = {
@@ -225,7 +226,7 @@ export default function AdminLawyersPage() {
                                         </div>
                                     </TableCell>
                                     <TableCell className="hidden md:table-cell">{statusBadges[lawyer.status]}</TableCell>
-                                    <TableCell className="hidden md:table-cell">{lawyer.joinedAt}</TableCell>
+                                    <TableCell className="hidden md:table-cell">{lawyer.joinedAt as string}</TableCell>
                                     <TableCell>
                                         <AlertDialog>
                                             <DropdownMenu>
@@ -246,21 +247,21 @@ export default function AdminLawyersPage() {
                                                     <DropdownMenuSeparator />
                                                     {lawyer.status !== 'approved' && (
                                                         <AlertDialogTrigger asChild>
-                                                            <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setAction({ type: 'approved', lawyerId: lawyer.id }); }}>
+                                                            <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setAction({ type: 'approved', lawyerId: lawyer.id, lawyerName: lawyer.name }); }}>
                                                                 <UserCheck className="mr-2 h-4 w-4" /> อนุมัติ
                                                             </DropdownMenuItem>
                                                         </AlertDialogTrigger>
                                                     )}
                                                     {lawyer.status !== 'pending' && (
                                                         <AlertDialogTrigger asChild>
-                                                            <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setAction({ type: 'pending', lawyerId: lawyer.id }); }}>
+                                                            <DropdownMenuItem onSelect={(e) => { e.preventDefault(); setAction({ type: 'pending', lawyerId: lawyer.id, lawyerName: lawyer.name }); }}>
                                                                 <Clock className="mr-2 h-4 w-4" /> รอตรวจสอบ
                                                             </DropdownMenuItem>
                                                         </AlertDialogTrigger>
                                                     )}
                                                     {lawyer.status !== 'rejected' && (
                                                          <AlertDialogTrigger asChild>
-                                                            <DropdownMenuItem className="text-destructive" onSelect={(e) => { e.preventDefault(); setAction({ type: 'rejected', lawyerId: lawyer.id }); }}>
+                                                            <DropdownMenuItem className="text-destructive" onSelect={(e) => { e.preventDefault(); setAction({ type: 'rejected', lawyerId: lawyer.id, lawyerName: lawyer.name }); }}>
                                                                 <UserX className="mr-2 h-4 w-4" /> ปฏิเสธ
                                                             </DropdownMenuItem>
                                                          </AlertDialogTrigger>
@@ -271,7 +272,7 @@ export default function AdminLawyersPage() {
                                                 <AlertDialogHeader>
                                                     <AlertDialogTitle>ยืนยันการเปลี่ยนสถานะ?</AlertDialogTitle>
                                                     <AlertDialogDescription>
-                                                        คุณแน่ใจหรือไม่ที่จะเปลี่ยนสถานะของ {mockLawyers.find(l => l.id === action?.lawyerId)?.name} เป็น "{action?.type}"?
+                                                        คุณแน่ใจหรือไม่ที่จะเปลี่ยนสถานะของ {action?.lawyerName} เป็น "{action?.type}"?
                                                     </AlertDialogDescription>
                                                 </AlertDialogHeader>
                                                 <AlertDialogFooter>
@@ -290,7 +291,7 @@ export default function AdminLawyersPage() {
             </CardContent>
              <CardFooter>
                 <div className="text-xs text-muted-foreground">
-                    แสดง <strong>{filteredLawyers.length}</strong> จาก <strong>{mockLawyers.length}</strong> รายการ
+                    แสดง <strong>{filteredLawyers.length}</strong> จาก <strong>{allLawyers.length}</strong> รายการ
                 </div>
             </CardFooter>
         </Card>

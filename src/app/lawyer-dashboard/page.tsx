@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -31,7 +32,7 @@ import { useUser, useFirebase } from '@/firebase';
 export default function LawyerDashboardPage() {
   const router = useRouter();
   const { auth, firestore } = useFirebase();
-  const { data: user, isLoading: isUserLoading } = useUser(auth);
+  const { data: user, isLoading: isUserLoading } = useUser();
 
   const [requests, setRequests] = useState<LawyerAppointmentRequest[]>([]);
   const [activeCases, setActiveCases] = useState<LawyerCase[]>([]);
@@ -73,10 +74,10 @@ export default function LawyerDashboardPage() {
       title: 'รับเคสสำเร็จ!',
       description: `เคส "${request.caseTitle}" ได้ถูกเพิ่มในรายการเคสที่กำลังดำเนินการ`,
     });
-    router.push(`/chat/${newChatId}?lawyerId=1&clientId=...&view=lawyer`);
+    router.push(`/chat/${newChatId}?lawyerId=${user.uid}&clientId=...&view=lawyer`);
   };
 
-  const incomeStat = { icon: <DollarSign className="w-10 h-10"/>, label: 'รายได้เดือนนี้', value: '฿75,000', color: 'text-green-500', href: '/admin/financials' };
+  const incomeStat = { icon: <DollarSign className="w-10 h-10"/>, label: 'รายได้เดือนนี้', value: '฿75,000', color: 'text-green-500', href: '/lawyer-dashboard' };
   const otherStats = [
     { icon: <Star />, label: 'คะแนนเฉลี่ย', value: '4.8/5', color: 'text-yellow-500', href: '#' },
     { icon: <Percent />, label: 'อัตราการตอบรับ', value: '95%', color: 'text-blue-500', href: '#' },
@@ -174,7 +175,7 @@ export default function LawyerDashboardPage() {
               </CardHeader>
               <CardContent>
                 {activeCases.map((caseItem) => (
-                    <Link href={`/chat/${caseItem.id}?lawyerId=1&clientId=${caseItem.clientId}&view=lawyer`} key={caseItem.id}>
+                    <Link href={`/chat/${caseItem.id}?lawyerId=${user.uid}&clientId=${caseItem.clientId}&view=lawyer`} key={caseItem.id}>
                         <div className="flex items-center justify-between p-4 rounded-lg hover:bg-gray-200/50 transition-colors">
                             <div>
                                 <p className="font-semibold">{caseItem.title}</p>
@@ -210,7 +211,7 @@ export default function LawyerDashboardPage() {
               </CardHeader>
                <CardContent>
                 {completedCases.map((caseItem) => (
-                    <Link href={`/chat/${caseItem.id}?lawyerId=1&clientId=${caseItem.clientId}&view=lawyer&status=closed`} key={caseItem.id}>
+                    <Link href={`/chat/${caseItem.id}?lawyerId=${user.uid}&clientId=${caseItem.clientId}&view=lawyer&status=closed`} key={caseItem.id}>
                         <div className="flex items-center justify-between p-4 rounded-lg hover:bg-gray-200/50 transition-colors">
                             <div>
                                 <p className="font-semibold">{caseItem.title}</p>
@@ -235,11 +236,11 @@ export default function LawyerDashboardPage() {
                 <p className="font-bold text-xl">{user.displayName}</p>
                 <p className="text-sm text-muted-foreground">SME Fraud Expert</p>
                  <div className="flex mt-4 gap-2">
-                    <Link href="/lawyer-profile/edit" passHref>
-                        <Button variant="outline"><User className="mr-2"/> โปรไฟล์</Button>
+                    <Link href={`/lawyers/${user.uid}`} passHref>
+                        <Button variant="outline"><User className="mr-2"/> โปรไฟล์สาธารณะ</Button>
                     </Link>
-                    <Link href="/lawyer-settings" passHref>
-                        <Button variant="outline"><Settings className="mr-2"/> ตั้งค่า</Button>
+                    <Link href="/lawyer-schedule" passHref>
+                        <Button variant="outline"><Settings className="mr-2"/> จัดการตาราง</Button>
                     </Link>
                 </div>
               </CardContent>
@@ -262,7 +263,7 @@ export default function LawyerDashboardPage() {
 
              <Card>
                 <CardHeader>
-                    <CardTitle className="font-bold text-base">สถิติอื่นๆ</CardTitle>
+                    <CardTitle className="font-bold text-base">สถิติอื่นๆ (จำลอง)</CardTitle>
                 </CardHeader>
                 <CardContent className="grid grid-cols-3 gap-2">
                     {otherStats.map(stat => (

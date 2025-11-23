@@ -1,7 +1,19 @@
 
 
+
 import { ChatResponse } from "@/ai/flows/chat-flow";
 import { ReactElement } from "react";
+
+export interface UserProfile {
+    uid: string;
+    name: string;
+    email: string;
+    role: 'customer' | 'lawyer' | 'admin';
+    type: 'บุคคลทั่วไป' | 'SME';
+    registeredAt: any;
+    status: 'active' | 'suspended';
+    avatar?: string;
+}
 
 export interface LawyerProfile {
   id: string;
@@ -12,6 +24,7 @@ export interface LawyerProfile {
   specialty: string[];
   imageUrl: string;
   imageHint: string;
+  joinedAt: any;
 }
 
 export interface ChatMessage {
@@ -39,6 +52,8 @@ export interface Article {
   imageUrl: string;
   imageHint: string;
   content: string;
+  publishedAt: any;
+  authorName: string;
 }
 
 export interface Case {
@@ -47,7 +62,7 @@ export interface Case {
   lawyer: Pick<LawyerProfile, 'id' | 'name' | 'imageUrl' | 'imageHint'>;
   lastMessage: string;
   lastMessageTimestamp: string;
-  status: 'active' | 'closed';
+  status: 'active' | 'closed' | 'pending_payment';
   hasNewMessage?: boolean;
   color?: 'blue' | 'yellow';
 }
@@ -91,7 +106,7 @@ export interface LawyerCase {
   title: string;
   clientName: string;
   clientId: string;
-  status: 'รอการตอบรับ' | 'กำลังดำเนินการ' | 'เสร็จสิ้น';
+  status: 'active' | 'closed' | 'pending_payment';
   lastUpdate: string;
   notifications?: number | 'document';
 }
@@ -130,5 +145,3 @@ export type ImagePlaceholder = {
   imageUrl: string;
   imageHint: string;
 };
-
-    

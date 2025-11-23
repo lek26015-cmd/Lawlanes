@@ -1,4 +1,5 @@
 
+
 'use client';
 
 import { useState, useEffect, Suspense, useRef } from 'react';
@@ -36,6 +37,7 @@ import { Textarea } from '@/components/ui/textarea';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { doc, getDoc } from 'firebase/firestore';
 
 function ChatPageContent() {
     const params = useParams();
@@ -49,7 +51,7 @@ function ChatPageContent() {
     const additionalFeeRequested = searchParams.get('additionalFeeRequested');
     
     const [lawyer, setLawyer] = useState<LawyerProfile | null>(null);
-    const [client, setClient] = useState<{ id: string, name: string } | null>(null); // Mock client
+    const [client, setClient] = useState<{ id: string, name: string, imageUrl: string } | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [files, setFiles] = useState<{ name: string, size: number }[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -71,20 +73,24 @@ function ChatPageContent() {
     const totalFee = initialFee + additionalFee;
 
     useEffect(() => {
+        if (!firestore) return;
         async function fetchData() {
             setIsLoading(true);
             if (lawyerId) {
-                const lawyerData = await getLawyerById(lawyerId);
+                const lawyerData = await getLawyerById(firestore, lawyerId);
                 setLawyer(lawyerData || null);
             }
             if (isLawyerView && clientId) {
-                 // In a real app, you would fetch client details by clientId
-                setClient({ id: clientId, name: 'สมหญิง ใจดี' });
+                 const userDoc = await getDoc(doc(firestore, 'users', clientId));
+                 if (userDoc.exists()) {
+                    const userData = userDoc.data();
+                    setClient({ id: clientId, name: userData.name, imageUrl: userData.avatar || '' });
+                 }
             }
             setIsLoading(false);
         }
         fetchData();
-    }, [lawyerId, clientId, isLawyerView]);
+    }, [lawyerId, clientId, isLawyerView, firestore]);
 
     const handleUploadClick = () => {
         fileInputRef.current?.click();
@@ -150,6 +156,7 @@ function ChatPageContent() {
             title: "ส่งรีวิวสำเร็จ",
             description: "ขอบคุณสำหรับความคิดเห็นของคุณ!",
         });
+        router.push('/dashboard');
     };
 
     if (isLoading) {
@@ -164,7 +171,7 @@ function ChatPageContent() {
     const otherUser = {
         name: isLawyerView ? (client?.name ?? 'Client') : (lawyer?.name ?? 'Lawyer'),
         userId: isLawyerView ? (client?.id ?? '') : (lawyer?.userId ?? ''),
-        imageUrl: isLawyerView ? "https://picsum.photos/seed/user-avatar/100/100" : (lawyer?.imageUrl ?? ''),
+        imageUrl: isLawyerView ? (client?.imageUrl ?? "https://picsum.photos/seed/user-avatar/100/100") : (lawyer?.imageUrl ?? ''),
     };
 
 

@@ -11,8 +11,9 @@ import {
     DocumentData,
     Firestore
 } from 'firebase/firestore';
-import type { LawyerProfile, ImagePlaceholder, Ad, Article, Case, UpcomingAppointment, ReportedTicket, LawyerAppointmentRequest, LawyerCase } from '@/lib/types';
+import type { LawyerProfile, ImagePlaceholder, Ad, Article, Case, UpcomingAppointment, ReportedTicket, LawyerAppointmentRequest, LawyerCase, UserProfile } from '@/lib/types';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
+import { format } from 'date-fns';
 
 export const getImageUrl = (id: string) => PlaceHolderImages.find(img => img.id === id)?.imageUrl ?? '';
 export const getImageHint = (id: string) => PlaceHolderImages.find(img => img.id === id)?.imageHint ?? '';
@@ -39,7 +40,14 @@ export async function getAllArticles(db: Firestore): Promise<Article[]> {
   const articlesRef = collection(db, 'articles');
   const q = query(articlesRef, orderBy('publishedAt', 'desc'));
   const querySnapshot = await getDocs(q);
-  return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Article));
+  return querySnapshot.docs.map(doc => {
+      const data = doc.data();
+      return { 
+          id: doc.id, 
+          ...data,
+          publishedAt: data.publishedAt?.toDate().toISOString() // Convert timestamp to string
+      } as Article
+  });
 }
 
 export async function getArticleBySlug(db: Firestore, slug: string): Promise<Article | undefined> {
@@ -48,7 +56,12 @@ export async function getArticleBySlug(db: Firestore, slug: string): Promise<Art
   const querySnapshot = await getDocs(q);
   if (!querySnapshot.empty) {
     const docSnap = querySnapshot.docs[0];
-    return { id: docSnap.id, ...docSnap.data() } as Article;
+    const data = docSnap.data();
+    return { 
+        id: docSnap.id, 
+        ...data,
+        publishedAt: data.publishedAt?.toDate().toISOString()
+    } as Article;
   }
   return undefined;
 }
@@ -85,14 +98,14 @@ export async function getDashboardData(db: Firestore, userId: string): Promise<{
             id: d.id,
             title: chatData.caseTitle || 'Unknown Case',
             lawyer: {
-                id: lawyerProfile?.id || '',
+                id: lawyerProfile?.userId || '',
                 name: lawyerProfile?.name || 'Unknown Lawyer',
                 imageUrl: lawyerProfile?.imageUrl || '',
                 imageHint: lawyerProfile?.imageHint || ''
             },
             lastMessage: '...', // This would require fetching last message
             lastMessageTimestamp: '',
-            status: 'active', // This would need to be stored on the chat doc
+            status: chatData.status,
         };
     }));
 
@@ -142,17 +155,21 @@ export async function getLawyerDashboardData(db: Firestore, lawyerId: string): P
     const appointmentsRef = collection(db, 'appointments');
     const requestsQuery = query(appointmentsRef, where('lawyerId', '==', lawyerId), where('status', '==', 'pending'));
     const requestsSnapshot = await getDocs(requestsQuery);
-    const newRequests: LawyerAppointmentRequest[] = requestsSnapshot.docs.map(d => {
+    const newRequests: LawyerAppointmentRequest[] = await Promise.all(requestsSnapshot.docs.map(async d => {
         const data = d.data();
-        // In a real app, you'd fetch client name from users collection
+        let clientName = 'ลูกค้า';
+        if (data.userId) {
+            const userDoc = await getDoc(doc(db, 'users', data.userId));
+            if (userDoc.exists()) clientName = userDoc.data().name;
+        }
         return {
             id: d.id,
-            clientName: 'ลูกค้าใหม่', // Placeholder
+            clientName: clientName,
             caseTitle: data.description,
             description: data.description,
             requestedAt: data.createdAt.toDate(),
         }
-    });
+    }));
 
     // Fetch cases (chats)
     const chatsRef = collection(db, 'chats');
@@ -173,15 +190,15 @@ export async function getLawyerDashboardData(db: Firestore, lawyerId: string): P
             title: chatData.caseTitle || 'Unknown Case',
             clientName: clientName,
             clientId: clientParticipantId,
-            status: 'กำลังดำเนินการ', // This needs to be stored on chat doc
-            lastUpdate: '...', // Would need to fetch last message
+            status: chatData.status, 
+            lastUpdate: chatData.lastMessageAt?.toDate().toLocaleDateString('th-TH') || 'N/A', // Assuming you add this field
         };
     }));
 
     return {
         newRequests,
-        activeCases: lawyerCases.filter(c => c.status === 'กำลังดำเนินการ'),
-        completedCases: lawyerCases.filter(c => c.status === 'เสร็จสิ้น'),
+        activeCases: lawyerCases.filter(c => c.status === 'active'),
+        completedCases: lawyerCases.filter(c => c.status === 'closed'),
     };
 }
 
@@ -191,10 +208,14 @@ export async function getLawyerAppointmentRequestById(db: Firestore, id: string)
     const docSnap = await getDoc(reqRef);
     if (docSnap.exists()) {
         const data = docSnap.data();
-         // In a real app, you'd fetch client name from users collection
+        let clientName = 'ลูกค้า';
+         if (data.userId) {
+            const userDoc = await getDoc(doc(db, 'users', data.userId));
+            if (userDoc.exists()) clientName = userDoc.data().name;
+        }
         return {
             id: docSnap.id,
-            clientName: 'ลูกค้า (ดึงข้อมูลจริง)',
+            clientName: clientName,
             caseTitle: data.description,
             description: data.description,
             requestedAt: data.createdAt.toDate(),
@@ -206,15 +227,18 @@ export async function getLawyerAppointmentRequestById(db: Firestore, id: string)
 
 // --- Data for Admin pages (can be more complex) ---
 
-export async function getAllUsers(db: Firestore): Promise<any[]> {
+export async function getAllUsers(db: Firestore): Promise<UserProfile[]> {
   const usersRef = collection(db, 'users');
-  const q = query(usersRef, where('role', '==', 'customer'));
+  const q = query(usersRef);
   const querySnapshot = await getDocs(q);
-  return querySnapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data(),
-    registeredAt: doc.data().registeredAt?.toDate().toLocaleDateString('th-TH') || 'N/A'
-  }));
+  return querySnapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      uid: doc.id,
+      ...data,
+      registeredAt: data.registeredAt?.toDate().toLocaleDateString('th-TH') || 'N/A'
+    } as UserProfile;
+  });
 }
 
 
@@ -259,9 +283,11 @@ export async function getAllTickets(db: Firestore): Promise<any[]> {
   const tickets = await Promise.all(querySnapshot.docs.map(async (d) => {
     const data = d.data();
     let clientName = 'Unknown User';
-    const userDoc = await getDoc(doc(db, 'users', data.userId));
-    if (userDoc.exists()) {
-      clientName = userDoc.data().name;
+    if (data.userId) {
+      const userDoc = await getDoc(doc(db, 'users', data.userId));
+      if (userDoc.exists()) {
+        clientName = userDoc.data().name;
+      }
     }
     return {
       id: d.id,

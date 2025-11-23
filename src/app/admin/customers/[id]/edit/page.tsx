@@ -8,7 +8,6 @@ import {
 } from 'lucide-react'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -29,16 +28,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
-
-const mockCustomer = {
-    id: "cus_001",
-    name: "สมหญิง ใจดี",
-    email: "somying.j@example.com",
-    avatar: "https://picsum.photos/seed/user-avatar/100/100",
-    registeredAt: "2024-06-15",
-    type: "บุคคลทั่วไป",
-    status: "active",
-};
+import { useFirebase } from '@/firebase'
+import { doc, getDoc, updateDoc } from 'firebase/firestore'
+import type { UserProfile } from '@/lib/types'
 
 
 export default function AdminCustomerEditPage() {
@@ -46,23 +38,71 @@ export default function AdminCustomerEditPage() {
   const router = useRouter()
   const { id } = params
   const { toast } = useToast()
+  const { firestore } = useFirebase()
 
-  // In a real app, you would fetch customer data based on the id
-  const [customer, setCustomer] = React.useState(mockCustomer)
+  const [customer, setCustomer] = React.useState<UserProfile | null>(null)
+  const [isLoading, setIsLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    if (!firestore || !id) return;
+    const userRef = doc(firestore, 'users', id as string);
+    getDoc(userRef).then(docSnap => {
+      if (docSnap.exists()) {
+        setCustomer(docSnap.data() as UserProfile);
+      }
+      setIsLoading(false);
+    })
+  }, [firestore, id]);
 
   const handleSaveChanges = () => {
-    toast({
-        title: "บันทึกข้อมูลสำเร็จ",
-        description: `ข้อมูลของลูกค้า ${customer.name} ได้รับการอัปเดตแล้ว`,
+    if (!firestore || !customer || !id) return;
+    
+    const userRef = doc(firestore, 'users', id as string);
+    // Only updating fields that are editable in this form
+    const updatedData = {
+        name: customer.name,
+        type: customer.type,
+        status: customer.status,
+    };
+
+    updateDoc(userRef, updatedData).then(() => {
+      toast({
+          title: "บันทึกข้อมูลสำเร็จ",
+          description: `ข้อมูลของลูกค้า ${customer.name} ได้รับการอัปเดตแล้ว`,
+      })
+      router.push(`/admin/customers`)
+    }).catch(err => {
+      console.error(err);
+      toast({ variant: 'destructive', title: 'เกิดข้อผิดพลาด', description: 'ไม่สามารถบันทึกข้อมูลได้'})
     })
-    router.push(`/admin/customers/${id}`)
   }
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!customer) return;
+    const { id, value } = e.target;
+    setCustomer({ ...customer, [id]: value });
+  };
+  
+  const handleSelectChange = (id: 'type' | 'status') => (value: string) => {
+    if (!customer) return;
+    // @ts-ignore
+    setCustomer({ ...customer, [id]: value });
+  }
+  
+  if (isLoading) {
+    return <div>กำลังโหลดข้อมูล...</div>
+  }
+
+  if (!customer) {
+    return <div>ไม่พบข้อมูลลูกค้า</div>
+  }
+
 
   return (
       <main className="flex-1 p-4 sm:px-6 sm:py-0 md:p-8">
         <div className="mx-auto grid max-w-2xl flex-1 auto-rows-max gap-4">
           <div className="flex items-center gap-4">
-            <Link href={`/admin/customers/${id}`}>
+            <Link href={`/admin/customers`}>
                 <Button variant="outline" size="icon" className="h-7 w-7">
                 <ChevronLeft className="h-4 w-4" />
                 <span className="sr-only">กลับ</span>
@@ -72,7 +112,7 @@ export default function AdminCustomerEditPage() {
               แก้ไขข้อมูลลูกค้า
             </h1>
             <div className="hidden items-center gap-2 md:ml-auto md:flex">
-              <Link href={`/admin/customers/${id}`}>
+              <Link href={`/admin/customers`}>
                 <Button variant="outline" size="sm">
                     ยกเลิก
                 </Button>
@@ -100,7 +140,7 @@ export default function AdminCustomerEditPage() {
                     </Avatar>
                     <Button variant="outline">
                       <Upload className="h-4 w-4 mr-2"/>
-                      เปลี่ยนรูป
+                      เปลี่ยนรูป (จำลอง)
                     </Button>
                   </div>
                 </div>
@@ -110,7 +150,8 @@ export default function AdminCustomerEditPage() {
                     id="name"
                     type="text"
                     className="w-full"
-                    defaultValue={customer.name}
+                    value={customer.name}
+                    onChange={handleInputChange}
                   />
                 </div>
                 <div className="grid gap-3">
@@ -119,13 +160,14 @@ export default function AdminCustomerEditPage() {
                     id="email"
                     type="email"
                     className="w-full"
-                    defaultValue={customer.email}
+                    value={customer.email}
+                    disabled
                   />
                 </div>
                  <div className="grid grid-cols-2 gap-4">
                     <div className="grid gap-3">
                         <Label htmlFor="type">ประเภทลูกค้า</Label>
-                        <Select defaultValue={customer.type}>
+                        <Select value={customer.type} onValueChange={handleSelectChange('type')}>
                             <SelectTrigger id="type">
                                 <SelectValue placeholder="เลือกประเภท" />
                             </SelectTrigger>
@@ -137,7 +179,7 @@ export default function AdminCustomerEditPage() {
                     </div>
                     <div className="grid gap-3">
                         <Label htmlFor="status">สถานะบัญชี</Label>
-                        <Select defaultValue={customer.status}>
+                        <Select value={customer.status} onValueChange={handleSelectChange('status')}>
                             <SelectTrigger id="status">
                                 <SelectValue placeholder="เลือกสถานะ" />
                             </SelectTrigger>
@@ -152,7 +194,7 @@ export default function AdminCustomerEditPage() {
             </CardContent>
           </Card>
            <div className="flex items-center justify-end gap-2 md:hidden">
-              <Link href={`/admin/customers/${id}`}>
+              <Link href={`/admin/customers`}>
                 <Button variant="outline" size="sm">
                     ยกเลิก
                 </Button>

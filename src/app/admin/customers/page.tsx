@@ -48,60 +48,32 @@ import {
   TabsTrigger,
 } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-
-
-const mockCustomers = [
-  {
-    id: "cus_001",
-    name: "สมหญิง ใจดี",
-    email: "somying.j@example.com",
-    avatar: "https://picsum.photos/seed/user-avatar/40/40",
-    type: "บุคคลทั่วไป",
-    registeredAt: "2024-06-15",
-    status: "active"
-  },
-  {
-    id: "cus_002",
-    name: "บริษัท เติบโต จำกัด",
-    email: "contact@terbto.co.th",
-    avatar: "https://picsum.photos/seed/company-logo1/40/40",
-    type: "SME",
-    registeredAt: "2024-05-20",
-    status: "active"
-  },
-  {
-    id: "cus_003",
-    name: "วิชัย ประเสริฐ",
-    email: "wichai.p@example.com",
-    avatar: "https://picsum.photos/seed/user-avatar2/40/40",
-    type: "บุคคลทั่วไป",
-    registeredAt: "2024-07-01",
-    status: "suspended"
-  },
-   {
-    id: "cus_004",
-    name: "หจก. รุ่งเรืองการค้า",
-    email: "rungrueng@example.com",
-    avatar: "https://picsum.photos/seed/company-logo2/40/40",
-    type: "SME",
-    registeredAt: "2024-04-10",
-    status: "active"
-  },
-];
+import { useFirebase } from '@/firebase';
+import { getAllUsers } from '@/lib/data';
+import type { UserProfile } from '@/lib/types';
 
 
 export default function AdminCustomersPage() {
-    const [filteredCustomers, setFilteredCustomers] = React.useState(mockCustomers);
+    const { firestore } = useFirebase();
+    const [allCustomers, setAllCustomers] = React.useState<UserProfile[]>([]);
+    const [filteredCustomers, setFilteredCustomers] = React.useState<UserProfile[]>([]);
     const [activeTab, setActiveTab] = React.useState('all');
     const [typeFilters, setTypeFilters] = React.useState({
         individual: true,
         sme: true,
     });
+    
+    React.useEffect(() => {
+        if (!firestore) return;
+        getAllUsers(firestore).then(setAllCustomers);
+    }, [firestore]);
+
 
     React.useEffect(() => {
-        let customers = mockCustomers;
+        let customers = allCustomers;
 
         if (activeTab !== 'all') {
+            // @ts-ignore
             customers = customers.filter(c => c.status === activeTab);
         }
 
@@ -112,14 +84,14 @@ export default function AdminCustomersPage() {
         });
 
         setFilteredCustomers(customers);
-    }, [activeTab, typeFilters]);
+    }, [activeTab, typeFilters, allCustomers]);
 
     const handleExport = () => {
         const headers = ["ID", "Name", "Email", "Type", "RegisteredAt", "Status"];
         const csvRows = [
             headers.join(','),
             ...filteredCustomers.map(c => 
-                [c.id, `"${c.name}"`, c.email, c.type, c.registeredAt, c.status].join(',')
+                [c.uid, `"${c.name}"`, c.email, c.type, c.registeredAt, c.status].join(',')
             )
         ];
         
@@ -188,7 +160,7 @@ export default function AdminCustomersPage() {
                           <Link href="/admin/customers/new">
                             <PlusCircle className="h-3.5 w-3.5" />
                             <span className="sr-only sm:not-sr-only sm:whitespace-nowrap">
-                            เพิ่มลูกค้า
+                            เพิ่มลูกค้า (จำลอง)
                             </span>
                           </Link>
                         </Button>
@@ -216,7 +188,7 @@ export default function AdminCustomersPage() {
                             </TableHeader>
                             <TableBody>
                             {filteredCustomers.map(customer => (
-                                <TableRow key={customer.id}>
+                                <TableRow key={customer.uid}>
                                     <TableCell className="hidden sm:table-cell">
                                         <Avatar className="h-9 w-9">
                                             <AvatarImage src={customer.avatar} alt={customer.name} />
@@ -230,10 +202,10 @@ export default function AdminCustomersPage() {
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                        <Badge variant="outline">{customer.type}</Badge>
+                                        <Badge variant="outline">{customer.type || 'N/A'}</Badge>
                                     </TableCell>
                                     <TableCell className="hidden md:table-cell">
-                                        {customer.registeredAt}
+                                        {customer.registeredAt as string}
                                     </TableCell>
                                     <TableCell className="hidden md:table-cell">
                                         <Badge variant={customer.status === 'active' ? 'secondary' : 'destructive'}>
@@ -255,14 +227,14 @@ export default function AdminCustomersPage() {
                                         <DropdownMenuContent align="end">
                                             <DropdownMenuLabel>การดำเนินการ</DropdownMenuLabel>
                                             <DropdownMenuItem asChild>
-                                              <Link href={`/admin/customers/${customer.id}`}>ดูโปรไฟล์</Link>
+                                              <Link href={`/admin/customers/${customer.uid}`}>ดูโปรไฟล์</Link>
                                             </DropdownMenuItem>
                                             <DropdownMenuItem asChild>
-                                              <Link href={`/admin/customers/${customer.id}/edit`}>แก้ไขข้อมูล</Link>
+                                              <Link href={`/admin/customers/${customer.uid}/edit`}>แก้ไขข้อมูล</Link>
                                             </DropdownMenuItem>
                                             <DropdownMenuSeparator />
                                             <DropdownMenuItem className="text-destructive">
-                                            ระงับบัญชี
+                                            ระงับบัญชี (จำลอง)
                                             </DropdownMenuItem>
                                         </DropdownMenuContent>
                                         </DropdownMenu>
@@ -272,190 +244,12 @@ export default function AdminCustomersPage() {
                             </TableBody>
                         </Table>
                     </TabsContent>
-                     <TabsContent value="active">
-                         {/* Content for active tab, uses the same table structure */}
-                         <Table>
-                            <TableHeader>
-                            <TableRow>
-                                <TableHead className="hidden w-[100px] sm:table-cell">
-                                <span className="sr-only">รูป</span>
-                                </TableHead>
-                                <TableHead>ลูกค้า</TableHead>
-                                <TableHead>ประเภท</TableHead>
-                                <TableHead className="hidden md:table-cell">
-                                วันที่ลงทะเบียน
-                                </TableHead>
-                                <TableHead>
-                                <span className="sr-only">การดำเนินการ</span>
-                                </TableHead>
-                            </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                            {filteredCustomers.map(customer => (
-                                <TableRow key={customer.id}>
-                                    <TableCell className="hidden sm:table-cell">
-                                        <Avatar className="h-9 w-9">
-                                            <AvatarImage src={customer.avatar} alt={customer.name} />
-                                            <AvatarFallback>{customer.name.slice(0, 2)}</AvatarFallback>
-                                        </Avatar>
-                                    </TableCell>
-                                    <TableCell className="font-medium">
-                                        {customer.name}
-                                         <div className="text-xs text-muted-foreground md:hidden">
-                                            {customer.email}
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Badge variant="outline">{customer.type}</Badge>
-                                    </TableCell>
-                                    <TableCell className="hidden md:table-cell">
-                                        {customer.registeredAt}
-                                    </TableCell>
-                                    <TableCell>
-                                        <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button
-                                            aria-haspopup="true"
-                                            size="icon"
-                                            variant="ghost"
-                                            >
-                                            <MoreHorizontal className="h-4 w-4" />
-                                            <span className="sr-only">สลับเมนู</span>
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
-                                            <DropdownMenuLabel>การดำเนินการ</DropdownMenuLabel>
-                                            <DropdownMenuItem asChild>
-                                              <Link href={`/admin/customers/${customer.id}`}>ดูโปรไฟล์</Link>
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem asChild>
-                                              <Link href={`/admin/customers/${customer.id}/edit`}>แก้ไขข้อมูล</Link>
-                                            </DropdownMenuItem>
-                                            <DropdownMenuSeparator />
-                                            <DropdownMenuItem className="text-destructive">
-                                            ระงับบัญชี
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                            </TableBody>
-                        </Table>
-                    </TabsContent>
-                     <TabsContent value="suspended">
-                         {/* Content for suspended tab, uses the same table structure */}
-                          <Table>
-                            <TableHeader>
-                            <TableRow>
-                                <TableHead className="hidden w-[100px] sm:table-cell">
-                                <span className="sr-only">รูป</span>
-                                </TableHead>
-                                <TableHead>ลูกค้า</TableHead>
-                                <TableHead>ประเภท</TableHead>
-                                <TableHead className="hidden md:table-cell">
-                                วันที่ลงทะเบียน
-                                </TableHead>
-                                <TableHead>
-                                <span className="sr-only">การดำเนินการ</span>
-                                </TableHead>
-                            </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                            {filteredCustomers.map(customer => (
-                                <TableRow key={customer.id}>
-                                    <TableCell className="hidden sm:table-cell">
-                                        <Avatar className="h-9 w-9">
-                                            <AvatarImage src={customer.avatar} alt={customer.name} />
-                                            <AvatarFallback>{customer.name.slice(0, 2)}</AvatarFallback>
-                                        </Avatar>
-                                    </TableCell>
-                                    <TableCell className="font-medium">
-                                        {customer.name}
-                                         <div className="text-xs text-muted-foreground md:hidden">
-                                            {customer.email}
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Badge variant="outline">{customer.type}</Badge>
-                                    </TableCell>
-                                    <TableCell className="hidden md:table-cell">
-                                        {customer.registeredAt}
-                                    </TableCell>
-                                    <TableCell>
-                                        <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <Button
-                                            aria-haspopup="true"
-                                            size="icon"
-                                            variant="ghost"
-                                            >
-                                            <MoreHorizontal className="h-4 w-4" />
-                                            <span className="sr-only">สลับเมนู</span>
-                                            </Button>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="end">
-                                            <DropdownMenuLabel>การดำเนินการ</DropdownMenuLabel>
-                                            <DropdownMenuItem asChild>
-                                              <Link href={`/admin/customers/${customer.id}`}>ดูโปรไฟล์</Link>
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem asChild>
-                                              <Link href={`/admin/customers/${customer.id}/edit`}>แก้ไขข้อมูล</Link>
-                                            </DropdownMenuItem>
-                                            <DropdownMenuSeparator />
-                                            <DropdownMenuItem>
-                                            เปิดใช้งานบัญชี
-                                            </DropdownMenuItem>
-                                        </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                            </TableBody>
-                        </Table>
-                    </TabsContent>
+                    
                 </Tabs>
             </CardContent>
              <CardFooter>
                 <div className="flex w-full items-center justify-between text-xs text-muted-foreground">
-                    <div>แสดง <strong>{filteredCustomers.length}</strong> จาก <strong>{mockCustomers.length}</strong> รายการ</div>
-                     <div className="flex items-center gap-2">
-                         <Button
-                          variant="outline"
-                          className="h-8 w-8 p-0"
-                          disabled
-                        >
-                          <span className="sr-only">Go to first page</span>
-                          <ChevronsLeft className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          className="h-8 w-8 p-0"
-                          disabled
-                        >
-                          <span className="sr-only">Go to previous page</span>
-                          <ChevronLeft className="h-4 w-4" />
-                        </Button>
-                         <div className="flex w-[100px] items-center justify-center text-sm font-medium">
-                          Page 1 of 1
-                        </div>
-                         <Button
-                          variant="outline"
-                          className="h-8 w-8 p-0"
-                          disabled
-                        >
-                          <span className="sr-only">Go to next page</span>
-                          <ChevronRight className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          className="h-8 w-8 p-0"
-                          disabled
-                        >
-                          <span className="sr-only">Go to last page</span>
-                          <ChevronsRight className="h-4 w-4" />
-                        </Button>
-                    </div>
+                    <div>แสดง <strong>{filteredCustomers.length}</strong> จาก <strong>{allCustomers.length}</strong> รายการ</div>
                 </div>
             </CardFooter>
         </Card>
