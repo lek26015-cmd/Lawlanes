@@ -84,12 +84,12 @@ function LawyersPageContent() {
     <div className="container mx-auto px-4 md:px-6 py-12">
       <div className="text-center mb-8">
         <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl font-headline">
-          {specialties ? 'ทนายที่แนะนำสำหรับคุณ' : 'Expert Lawyer Marketplace'}
+          {specialties ? 'ทนายที่แนะนำสำหรับคุณ' : 'ศูนย์รวมทนายความมืออาชีพ'}
         </h1>
         <p className="max-w-2xl mx-auto mt-4 text-muted-foreground md:text-xl">
           {specialties
             ? 'นี่คือรายชื่อทนายที่ AI แนะนำจากปัญหาของคุณ พร้อมรายชื่อทนายทั้งหมด'
-            : 'A curated list of approved lawyers specializing in civil and fraud cases for SMEs.'}
+            : 'ค้นหาและเชื่อมต่อกับทนายความที่เชี่ยวชาญคดีแพ่งและคดีฉ้อโกงสำหรับธุรกิจ SME'}
         </p>
       </div>
 
