@@ -20,6 +20,10 @@
           "format": "email",
           "description": "The user's email address."
         },
+        "phone": {
+          "type": "string",
+          "description": "The user's phone number."
+        },
         "role": {
           "type": "string",
           "enum": ["customer", "lawyer", "admin"],
@@ -54,29 +58,38 @@
           "type": "string",
           "description": "Firebase User ID of the lawyer. This is the unique ID generated and managed by Firebase Authentication."
         },
-        "name": {
-          "type": "string",
-          "description": "The lawyer's full name."
-        },
-        "status": {
-          "type": "string",
-          "enum": ["approved", "pending", "rejected"]
-        },
-        "description": {
-          "type": "string",
-          "description": "A brief description of the lawyer's experience and expertise."
-        },
-        "specialty": {
-          "type": "array",
-          "items": { "type": "string" }
-        },
+        "name": { "type": "string", "description": "The lawyer's full name." },
+        "email": { "type": "string", "format": "email" },
+        "phone": { "type": "string" },
+        "dob": { "type": "string", "format": "date" },
+        "gender": { "type": "string", "enum": ["ชาย", "หญิง", "อื่นๆ"] },
+        "licenseNumber": { "type": "string" },
+        "address": { "type": "string" },
+        "serviceProvinces": { "type": "array", "items": { "type": "string" } },
+        "bankName": { "type": "string" },
+        "bankAccountNumber": { "type": "string" },
+        "lineId": { "type": "string" },
+        "status": { "type": "string", "enum": ["approved", "pending", "rejected"] },
+        "description": { "type": "string", "description": "A brief description of the lawyer's experience and expertise." },
+        "specialty": { "type": "array", "items": { "type": "string" } },
         "imageUrl": { "type": "string", "format": "uri" },
         "imageHint": { "type": "string" },
+        "idCardUrl": { "type": "string", "format": "uri" },
+        "licenseUrl": { "type": "string", "format": "uri" },
         "joinedAt": { "type": "string", "format": "date-time" }
       },
       "required": [
         "userId",
         "name",
+        "email",
+        "phone",
+        "dob",
+        "gender",
+        "licenseNumber",
+        "address",
+        "serviceProvinces",
+        "bankName",
+        "bankAccountNumber",
         "status",
         "specialty"
       ]

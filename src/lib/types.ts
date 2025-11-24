@@ -1,6 +1,4 @@
 
-
-
 import { ChatResponse } from "@/ai/flows/chat-flow";
 import { ReactElement } from "react";
 
@@ -8,6 +6,7 @@ export interface UserProfile {
     uid: string;
     name: string;
     email: string;
+    phone?: string;
     role: 'customer' | 'lawyer' | 'admin';
     type: 'บุคคลทั่วไป' | 'SME';
     registeredAt: any;
@@ -19,11 +18,23 @@ export interface LawyerProfile {
   id: string;
   userId: string;
   name: string;
+  email: string;
+  phone: string;
+  dob: any;
+  gender: 'ชาย' | 'หญิง' | 'อื่นๆ';
+  licenseNumber: string;
+  address: string;
+  serviceProvinces: string[];
+  bankName: string;
+  bankAccountNumber: string;
+  lineId?: string;
   status: 'approved' | 'pending' | 'rejected';
   description: string;
   specialty: string[];
   imageUrl: string;
   imageHint: string;
+  idCardUrl: string;
+  licenseUrl: string;
   joinedAt: any;
 }
 

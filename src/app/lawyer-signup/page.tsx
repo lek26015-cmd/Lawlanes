@@ -20,6 +20,12 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2, Upload, FileText, X } from 'lucide-react';
 import Logo from '@/components/logo';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { CalendarIcon } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
 
 const specialties = [
   'คดีฉ้อโกง SMEs',
@@ -30,52 +36,67 @@ const specialties = [
   'อสังหาริมทรัพย์',
 ];
 
+const bankNames = ["ธนาคารกรุงเทพ", "ธนาคารกสิกรไทย", "ธนาคารกรุงไทย", "ธนาคารไทยพาณิชย์", "ธนาคารกรุงศรีอยุธยา", "ธนาคารทหารไทยธนชาต", "ธนาคารออมสิน", "ธนาคารเพื่อการเกษตรและสหกรณ์การเกษตร"];
+
 const formSchema = z.object({
-  name: z.string().min(2, { message: 'ชื่อต้องมีอย่างน้อย 2 ตัวอักษร' }),
-  licenseNumber: z.string().min(1, { message: 'กรุณากรอกเลขใบอนุญาต' }),
+  name: z.string().min(2, { message: 'ชื่อ-นามสกุลต้องมีอย่างน้อย 2 ตัวอักษร' }),
   email: z.string().email({ message: 'รูปแบบอีเมลไม่ถูกต้อง' }),
   password: z.string().min(6, { message: 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร' }),
+  phone: z.string().min(9, { message: 'กรุณากรอกเบอร์โทรศัพท์ให้ถูกต้อง' }),
+  dob: z.date({ required_error: 'กรุณาเลือกวันเกิด' }),
+  gender: z.string({ required_error: 'กรุณาเลือกเพศ' }),
+  licenseNumber: z.string().min(1, { message: 'กรุณากรอกเลขใบอนุญาต' }),
+  address: z.string().min(1, { message: 'กรุณากรอกที่อยู่' }),
+  serviceProvinces: z.string().min(1, { message: 'กรุณากรอกจังหวัดที่ให้บริการ' }),
+  bankName: z.string({ required_error: 'กรุณาเลือกธนาคาร' }),
+  bankAccountNumber: z.string().min(1, { message: 'กรุณากรอกเลขบัญชีธนาคาร' }),
+  lineId: z.string().optional(),
   specialties: z.array(z.string()).refine(value => value.some(item => item), {
     message: 'กรุณาเลือกความเชี่ยวชาญอย่างน้อย 1 อย่าง',
   }),
 });
+
 
 export default function LawyerSignupPage() {
   const router = useRouter();
   const { auth, firestore } = useFirebase();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
-  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [idCardFile, setIdCardFile] = useState<File | null>(null);
+  const [licenseFile, setLicenseFile] = useState<File | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: '',
-      licenseNumber: '',
       email: '',
       password: '',
+      phone: '',
+      gender: undefined,
+      licenseNumber: '',
+      address: '',
+      serviceProvinces: '',
+      bankName: undefined,
+      bankAccountNumber: '',
+      lineId: '',
       specialties: [],
     },
   });
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = (setter: React.Dispatch<React.SetStateAction<File | null>>) => (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files) {
-      setUploadedFiles(prev => [...prev, ...Array.from(event.target.files!)]);
+      setter(event.target.files[0]);
     }
-  };
-
-  const removeFile = (fileName: string) => {
-    setUploadedFiles(prev => prev.filter(file => file.name !== fileName));
   };
 
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!auth || !firestore) return;
-    if (uploadedFiles.length === 0) {
+    if (!idCardFile || !licenseFile) {
       toast({
         variant: 'destructive',
         title: 'ข้อมูลไม่ครบถ้วน',
-        description: 'กรุณาอัปโหลดเอกสารประกอบการสมัคร',
+        description: 'กรุณาอัปโหลดไฟล์ บัตรประชาชน และ ใบอนุญาตทนายความ',
       });
       return;
     }
@@ -95,6 +116,7 @@ export default function LawyerSignupPage() {
         uid: user.uid,
         name: values.name,
         email: values.email,
+        phone: values.phone,
         role: 'lawyer',
       };
       setDoc(userDocRef, userProfileData).catch(error => {
@@ -111,11 +133,22 @@ export default function LawyerSignupPage() {
       const lawyerProfileData = {
         userId: user.uid,
         name: values.name,
+        email: values.email,
+        phone: values.phone,
+        dob: values.dob,
+        gender: values.gender,
         licenseNumber: values.licenseNumber,
+        address: values.address,
+        serviceProvinces: values.serviceProvinces.split(',').map(s => s.trim()),
+        bankName: values.bankName,
+        bankAccountNumber: values.bankAccountNumber,
+        lineId: values.lineId,
         specialty: values.specialties,
-        status: 'pending', // Initial status is pending review
-        description: '', // Admin will fill this later
-        imageUrl: '',
+        status: 'pending',
+        description: '',
+        imageUrl: '', // This and file URLs would be set after upload
+        idCardUrl: '',
+        licenseUrl: '',
         joinedAt: serverTimestamp(),
       };
       setDoc(lawyerProfileRef, lawyerProfileData).catch(error => {
@@ -128,14 +161,13 @@ export default function LawyerSignupPage() {
       });
       
       // In a real app, you would upload files to Firebase Storage here.
-      console.log('Uploading files:', uploadedFiles.map(f => f.name));
+      console.log('Uploading files:', idCardFile.name, licenseFile.name);
 
       toast({
         title: 'สมัครเข้าร่วมสำเร็จ',
         description: 'เราได้รับใบสมัครของคุณแล้ว และจะติดต่อกลับหลังจากตรวจสอบข้อมูลเรียบร้อย',
       });
       
-      // Sign out the user and redirect to a confirmation page or home page
       await signOut(auth);
       router.push('/');
 
@@ -158,7 +190,7 @@ export default function LawyerSignupPage() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 p-4">
       <div className="container mx-auto flex justify-center py-8">
-        <Card className="w-full max-w-2xl shadow-xl">
+        <Card className="w-full max-w-3xl shadow-xl">
           <CardHeader className="text-center space-y-4">
              <Link href="/" className="flex justify-center">
               <Logo />
@@ -173,57 +205,86 @@ export default function LawyerSignupPage() {
           <CardContent>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+                
+                <h3 className="text-lg font-semibold border-b pb-2">ข้อมูลส่วนตัว</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField control={form.control} name="name" render={({ field }) => (
-                        <FormItem><FormLabel>ชื่อ-นามสกุล (ตามใบอนุญาต)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel>ชื่อ-นามสกุล (ตามบัตรประชาชน)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                     )}/>
-                     <FormField control={form.control} name="licenseNumber" render={({ field }) => (
-                        <FormItem><FormLabel>เลขที่ใบอนุญาตว่าความ</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                    <FormField control={form.control} name="phone" render={({ field }) => (
+                        <FormItem><FormLabel>เบอร์โทรศัพท์</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
                     )}/>
                 </div>
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField control={form.control} name="dob" render={({ field }) => (
+                        <FormItem className="flex flex-col"><FormLabel>วันเกิด</FormLabel>
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
+                                  {field.value ? format(field.value, "PPP") : <span>เลือกวันเกิด</span>}
+                                  <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date > new Date() || date < new Date("1900-01-01")} initialFocus />
+                            </PopoverContent>
+                          </Popover>
+                        <FormMessage /></FormItem>
+                    )}/>
+                     <FormField control={form.control} name="gender" render={({ field }) => (
+                        <FormItem><FormLabel>เพศ</FormLabel>
+                           <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="เลือกเพศ" /></SelectTrigger></FormControl>
+                            <SelectContent><SelectItem value="ชาย">ชาย</SelectItem><SelectItem value="หญิง">หญิง</SelectItem><SelectItem value="อื่นๆ">อื่นๆ</SelectItem></SelectContent>
+                          </Select>
+                        <FormMessage /></FormItem>
+                    )}/>
+                </div>
+                <FormField control={form.control} name="address" render={({ field }) => (
+                    <FormItem><FormLabel>ที่อยู่ (ตามบัตรประชาชน)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                )}/>
+                <FormField control={form.control} name="lineId" render={({ field }) => (
+                    <FormItem><FormLabel>Line ID (ถ้ามี)</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                )}/>
+
+                <h3 className="text-lg font-semibold border-b pb-2 pt-4">ข้อมูลบัญชีผู้ใช้</h3>
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField control={form.control} name="email" render={({ field }) => (
-                        <FormItem><FormLabel>อีเมล</FormLabel><FormControl><Input placeholder="name@example.com" {...field} /></FormControl><FormMessage /></FormItem>
+                        <FormItem><FormLabel>อีเมล (สำหรับเข้าสู่ระบบ)</FormLabel><FormControl><Input placeholder="name@example.com" {...field} /></FormControl><FormMessage /></FormItem>
                     )}/>
                      <FormField control={form.control} name="password" render={({ field }) => (
                         <FormItem><FormLabel>รหัสผ่าน</FormLabel><FormControl><Input type="password" placeholder="อย่างน้อย 6 ตัวอักษร" {...field} /></FormControl><FormMessage /></FormItem>
                     )}/>
                 </div>
-                 <FormField
+
+                <h3 className="text-lg font-semibold border-b pb-2 pt-4">ข้อมูลสำหรับวิชาชีพ</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField control={form.control} name="licenseNumber" render={({ field }) => (
+                        <FormItem><FormLabel>เลขที่ใบอนุญาตว่าความ</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                    )}/>
+                     <FormField control={form.control} name="serviceProvinces" render={({ field }) => (
+                        <FormItem><FormLabel>จังหวัดที่ให้บริการ (คั่นด้วยจุลภาค)</FormLabel><FormControl><Input placeholder="กรุงเทพ, นนทบุรี" {...field} /></FormControl><FormMessage /></FormItem>
+                    )}/>
+                </div>
+                <FormField
                   control={form.control}
                   name="specialties"
                   render={() => (
                     <FormItem>
-                      <div className="mb-4">
-                        <FormLabel className="text-base">ความเชี่ยวชาญ (เลือกได้มากกว่า 1)</FormLabel>
-                      </div>
+                      <div className="mb-4"><FormLabel className="text-base">ความเชี่ยวชาญ (เลือกได้มากกว่า 1)</FormLabel></div>
                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                         {specialties.map((item) => (
-                          <FormField
-                            key={item}
-                            control={form.control}
-                            name="specialties"
-                            render={({ field }) => {
-                              return (
+                          <FormField key={item} control={form.control} name="specialties"
+                            render={({ field }) => (
                                 <FormItem key={item} className="flex flex-row items-center space-x-3 space-y-0 p-3 bg-gray-100 rounded-md">
-                                  <FormControl>
-                                    <Checkbox
-                                      checked={field.value?.includes(item)}
-                                      onCheckedChange={(checked) => {
-                                        return checked
-                                          ? field.onChange([...field.value, item])
-                                          : field.onChange(
-                                              field.value?.filter(
-                                                (value) => value !== item
-                                              )
-                                            )
-                                      }}
-                                    />
-                                  </FormControl>
+                                  <FormControl><Checkbox checked={field.value?.includes(item)} onCheckedChange={(checked) => {
+                                      return checked ? field.onChange([...field.value, item]) : field.onChange(field.value?.filter((value) => value !== item))
+                                  }}/></FormControl>
                                   <FormLabel className="font-normal text-sm">{item}</FormLabel>
                                 </FormItem>
-                              )
-                            }}
+                            )}
                           />
                         ))}
                       </div>
@@ -232,41 +293,41 @@ export default function LawyerSignupPage() {
                   )}
                 />
                 
-                <div>
-                  <Label>เอกสารประกอบการสมัคร</Label>
-                  <p className="text-sm text-muted-foreground">กรุณาอัปโหลดเอกสารต่อไปนี้: 1. สำเนาใบอนุญาตให้ว่าความ 2. สำเนาบัตรประชาชน 3. รูปถ่ายหน้าตรง</p>
-                  <div className="mt-2 flex justify-center rounded-lg border border-dashed border-gray-900/25 px-6 py-10">
-                    <div className="text-center">
-                      <Upload className="mx-auto h-12 w-12 text-gray-300" />
-                      <div className="mt-4 flex text-sm leading-6 text-gray-600">
-                        <label
-                          htmlFor="file-upload"
-                          className="relative cursor-pointer rounded-md bg-white font-semibold text-primary focus-within:outline-none focus-within:ring-2 focus-within:ring-primary focus-within:ring-offset-2 hover:text-primary/80"
-                        >
-                          <span>อัปโหลดไฟล์</span>
-                          <input id="file-upload" name="file-upload" type="file" className="sr-only" multiple onChange={handleFileChange} />
-                        </label>
-                        <p className="pl-1">หรือลากและวาง</p>
-                      </div>
-                      <p className="text-xs leading-5 text-gray-600">ไฟล์ PDF, PNG, JPG ขนาดไม่เกิน 10MB ต่อไฟล์</p>
+                <h3 className="text-lg font-semibold border-b pb-2 pt-4">ข้อมูลการรับเงิน</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <FormField control={form.control} name="bankName" render={({ field }) => (
+                        <FormItem><FormLabel>ธนาคาร</FormLabel>
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <FormControl><SelectTrigger><SelectValue placeholder="เลือกธนาคาร" /></SelectTrigger></FormControl>
+                            <SelectContent>{bankNames.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}</SelectContent>
+                          </Select>
+                        <FormMessage /></FormItem>
+                    )}/>
+                     <FormField control={form.control} name="bankAccountNumber" render={({ field }) => (
+                        <FormItem><FormLabel>เลขที่บัญชี</FormLabel><FormControl><Input {...field} /></FormControl><FormMessage /></FormItem>
+                    )}/>
+                </div>
+
+                <h3 className="text-lg font-semibold border-b pb-2 pt-4">เอกสารประกอบการสมัคร</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                        <Label>ไฟล์บัตรประชาชน</Label>
+                        <div className="flex items-center gap-2 p-2 border rounded-md bg-gray-50">
+                            <FileText className="h-5 w-5 text-gray-500 flex-shrink-0" />
+                            <span className="text-sm text-gray-600 truncate flex-grow">{idCardFile ? idCardFile.name : 'ยังไม่ได้เลือกไฟล์'}</span>
+                            <Input id="id-card-upload" type="file" className="hidden" onChange={handleFileChange(setIdCardFile)} />
+                            <Button type="button" variant="outline" size="sm" onClick={() => document.getElementById('id-card-upload')?.click()}>เลือกไฟล์</Button>
+                        </div>
                     </div>
-                  </div>
-                   {uploadedFiles.length > 0 && (
-                    <div className="mt-4 space-y-2">
-                        <p className="text-sm font-medium">ไฟล์ที่แนบ:</p>
-                        {uploadedFiles.map(file => (
-                            <div key={file.name} className="flex items-center justify-between p-2 bg-gray-100 rounded-md">
-                                <div className="flex items-center gap-2">
-                                    <FileText className="h-5 w-5 text-gray-500" />
-                                    <span className="text-sm">{file.name}</span>
-                                </div>
-                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => removeFile(file.name)}>
-                                    <X className="h-4 w-4 text-red-500"/>
-                                </Button>
-                            </div>
-                        ))}
+                     <div className="space-y-2">
+                        <Label>ไฟล์ใบอนุญาตทนายความ</Label>
+                        <div className="flex items-center gap-2 p-2 border rounded-md bg-gray-50">
+                            <FileText className="h-5 w-5 text-gray-500 flex-shrink-0" />
+                            <span className="text-sm text-gray-600 truncate flex-grow">{licenseFile ? licenseFile.name : 'ยังไม่ได้เลือกไฟล์'}</span>
+                            <Input id="license-upload" type="file" className="hidden" onChange={handleFileChange(setLicenseFile)} />
+                            <Button type="button" variant="outline" size="sm" onClick={() => document.getElementById('license-upload')?.click()}>เลือกไฟล์</Button>
+                        </div>
                     </div>
-                  )}
                 </div>
 
                 <Button type="submit" className="w-full" size="lg" disabled={isLoading}>
