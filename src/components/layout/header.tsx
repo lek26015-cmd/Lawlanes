@@ -24,9 +24,9 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { doc, getDoc } from 'firebase/firestore';
 
 
-export default function Header({ setUserRole }: { setUserRole: (role: string | null) => void }) {
+export default function Header({ lang, navigation, setUserRole }: { lang: string, navigation: any, setUserRole: (role: string | null) => void }) {
   const pathname = usePathname();
-  const isHomePage = pathname === '/';
+  const isHomePage = pathname === `/${lang}`;
   
   const [isScrolled, setIsScrolled] = useState(!isHomePage);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -115,7 +115,7 @@ export default function Header({ setUserRole }: { setUserRole: (role: string | n
   return (
     <header className={headerClasses}>
       <div className="container mx-auto flex h-20 items-center justify-between px-4 md:px-6">
-        <Link href="/" aria-label="Home">
+        <Link href={`/${lang}`} aria-label="Home">
           <Logo className={cn(useTransparentHeader ? '' : 'text-background')} />
         </Link>
         
@@ -146,11 +146,11 @@ export default function Header({ setUserRole }: { setUserRole: (role: string | n
         </div>
 
         <nav className="hidden items-center gap-4 text-sm font-medium md:flex whitespace-nowrap">
-          <Link href="/articles" className={pathname.startsWith('/articles') ? activeNavLinkClasses : navLinkClasses}>
-            บทความ
+          <Link href={`/${lang}/articles`} className={pathname.startsWith(`/${lang}/articles`) ? activeNavLinkClasses : navLinkClasses}>
+            {navigation.articles}
           </Link>
-          <Link href="/for-lawyers" className={pathname.startsWith('/for-lawyers') ? activeNavLinkClasses : navLinkClasses}>
-            สำหรับทนายความ
+          <Link href={`/${lang}/for-lawyers`} className={pathname.startsWith(`/${lang}/for-lawyers`) ? activeNavLinkClasses : navLinkClasses}>
+            {navigation.forLawyers}
           </Link>
         </nav>
 
@@ -171,20 +171,20 @@ export default function Header({ setUserRole }: { setUserRole: (role: string | n
                     <DropdownMenuLabel>บัญชีของฉัน</DropdownMenuLabel>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem asChild>
-                        <Link href="/dashboard"><LayoutDashboard className="mr-2" />แดชบอร์ด</Link>
+                        <Link href={`/${lang}/dashboard`}><LayoutDashboard className="mr-2" />{navigation.dashboard}</Link>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
-                        <Link href="/account"><User className="mr-2" />จัดการบัญชี</Link>
+                        <Link href={`/${lang}/account`}><User className="mr-2" />{navigation.account}</Link>
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={handleLogout} className="text-destructive">
-                        <LogOut className="mr-2" />ออกจากระบบ
+                        <LogOut className="mr-2" />{navigation.logout}
                     </DropdownMenuItem>
                 </DropdownMenuContent>
              </DropdownMenu>
           ) : (
-            <Link href="/login">
-                <Button variant="ghost" className={loginButtonClasses}>เข้าสู่ระบบ</Button>
+            <Link href={`/${lang}/login`}>
+                <Button variant="ghost" className={loginButtonClasses}>{navigation.login}</Button>
             </Link>
           )}
         </div>
@@ -203,17 +203,17 @@ export default function Header({ setUserRole }: { setUserRole: (role: string | n
                     </SheetHeader>
                     <div className="flex flex-col gap-6 p-6">
                         <nav className="flex flex-col gap-4 text-lg mt-6">
-                            <Link href="/" className="hover:text-primary">หน้าแรก</Link>
-                            <Link href="/articles" className="hover:text-primary">บทความ</Link>
-                            <Link href="/for-lawyers" className="hover:text-primary">สำหรับทนายความ</Link>
-                             <Link href="/lawyers" className="hover:text-primary">ค้นหาทนาย</Link>
+                            <Link href={`/${lang}`} className="hover:text-primary">หน้าแรก</Link>
+                            <Link href={`/${lang}/articles`} className="hover:text-primary">{navigation.articles}</Link>
+                            <Link href={`/${lang}/for-lawyers`} className="hover:text-primary">{navigation.forLawyers}</Link>
+                             <Link href={`/${lang}/lawyers`} className="hover:text-primary">ค้นหาทนาย</Link>
                         </nav>
                          <div className="border-t pt-6">
                            {user ? (
-                                <Button onClick={handleLogout} className="w-full" variant="destructive">ออกจากระบบ</Button>
+                                <Button onClick={handleLogout} className="w-full" variant="destructive">{navigation.logout}</Button>
                            ) : (
-                                <Link href="/login">
-                                    <Button className="w-full">เข้าสู่ระบบ</Button>
+                                <Link href={`/${lang}/login`}>
+                                    <Button className="w-full">{navigation.login}</Button>
                                 </Link>
                            )}
                         </div>

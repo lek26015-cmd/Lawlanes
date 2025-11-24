@@ -8,6 +8,8 @@ import Footer from '@/components/layout/footer';
 import FloatingChatButton from '@/components/chat/floating-chat-button';
 import ChatModal from '@/components/chat/chat-modal';
 import CookieBanner from '@/components/cookie-banner';
+import { getDictionary } from '@/lib/dictionary';
+import { Locale } from '../../../next.config';
 
 export default function ClientLayout({
   children,
@@ -17,16 +19,24 @@ export default function ClientLayout({
   const pathname = usePathname();
   const [isClient, setIsClient] = useState(false);
   const [userRole, setUserRole] = useState<string | null>(null);
-
+  const [navigation, setNavigation] = useState<any>(null);
+  
+  const lang = pathname.split('/')[1] as Locale;
 
   useEffect(() => {
     setIsClient(true);
-  }, []);
+    const fetchDictionary = async () => {
+      const dict = await getDictionary(lang);
+      setNavigation(dict);
+    };
+    fetchDictionary();
+  }, [lang]);
+
 
   const isAdminPage = pathname.startsWith('/admin');
-  const isAuthPage = pathname === '/login' || pathname === '/signup' || pathname === '/lawyer-signup' || pathname === '/lawyer-login';
+  const isAuthPage = pathname.includes('/login') || pathname.includes('/signup') || pathname.includes('/lawyer-signup');
 
-  if (!isClient) {
+  if (!isClient || !navigation) {
     // On the server and during initial client render, render a neutral layout
     return <div className="flex min-h-screen flex-col"><main className="flex-1">{children}</main></div>;
   }
@@ -42,9 +52,9 @@ export default function ClientLayout({
   return (
     <>
       <div className="flex min-h-screen flex-col">
-        <Header setUserRole={setUserRole} />
+        <Header lang={lang} navigation={navigation.header} setUserRole={setUserRole} />
         <main className="flex-1 bg-gray-50/50">{children}</main>
-        <Footer userRole={userRole} />
+        <Footer lang={lang} navigation={navigation.homepage.footer} userRole={userRole} />
       </div>
       <FloatingChatButton />
       <ChatModal />

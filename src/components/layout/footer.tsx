@@ -5,40 +5,40 @@ import Link from 'next/link';
 import Logo from '@/components/logo';
 import { usePathname } from 'next/navigation';
 
-export default function Footer({ userRole }: { userRole: string | null }) {
+export default function Footer({ lang, navigation, userRole }: { lang: string, navigation: any, userRole: string | null }) {
   const pathname = usePathname();
-  const isAuthPage = pathname === '/login' || pathname === '/signup' || pathname === '/lawyer-signup' || pathname === '/lawyer-login';
+  const isAuthPage = pathname.endsWith('/login') || pathname.endsWith('/signup') || pathname.endsWith('/lawyer-signup') || pathname.endsWith('/lawyer-login');
 
   let quickLinks = [
-    { href: '/', label: 'หน้าแรก' },
-    { href: '/#features', label: 'บริการ' },
-    { href: '/articles', label: 'บทความ' },
-    { href: '/lawyers', label: 'ค้นหาทนาย' },
-    { href: '/#verify-lawyer-cta', label: 'ตรวจสอบสถานะทนาย' },
+    { href: `/${lang}`, label: navigation.home },
+    { href: `/${lang}/#features`, label: navigation.services },
+    { href: `/${lang}/articles`, label: navigation.articles },
+    { href: `/${lang}/lawyers`, label: navigation.findLawyer },
+    { href: `/${lang}/#verify-lawyer-cta`, label: navigation.verifyLawyer },
   ];
 
   if (userRole === 'customer') {
-    quickLinks.push({ href: '/dashboard', label: 'แดชบอร์ดลูกค้า' });
+    quickLinks.push({ href: `/${lang}/dashboard`, label: navigation.customerDashboard });
   }
 
   let forLawyersLinks = [
-    { href: '/for-lawyers', label: 'เข้าร่วมเป็นทนาย Lawlanes' },
-    { href: '/lawyer-login', label: 'เข้าสู่ระบบทนาย' },
+    { href: `/${lang}/for-lawyers`, label: navigation.joinLawlanes },
+    { href: `/${lang}/lawyer-login`, label: navigation.lawyerLogin },
   ];
   
   if (userRole === 'lawyer') {
-    forLawyersLinks.push({ href: '/lawyer-dashboard', label: 'Dashboard ทนาย' });
+    forLawyersLinks.push({ href: `/${lang}/lawyer-dashboard`, label: navigation.lawyerDashboard });
   }
   
   if (userRole === 'admin') {
-     forLawyersLinks.push({ href: '/admin', label: 'แดชบอร์ดผู้ดูแล' });
+     forLawyersLinks.push({ href: `/admin`, label: navigation.adminDashboard });
   }
 
 
   const legalLinks = [
-    { href: '/privacy', label: 'นโยบายความเป็นส่วนตัว' },
-    { href: '/terms', label: 'ข้อกำหนดการใช้งาน' },
-    { href: '/help', label: 'ศูนย์ช่วยเหลือ' },
+    { href: `/${lang}/privacy`, label: navigation.privacyPolicy },
+    { href: `/${lang}/terms`, label: navigation.termsOfService },
+    { href: `/${lang}/help`, label: navigation.helpCenter },
   ];
   
   if (isAuthPage) {
@@ -58,7 +58,7 @@ export default function Footer({ userRole }: { userRole: string | null }) {
           </div>
           
           <div>
-            <h3 className="font-semibold text-white mb-4">ลิงก์ด่วน</h3>
+            <h3 className="font-semibold text-white mb-4">{navigation.quickLinks}</h3>
             <ul className="space-y-2">
               {quickLinks.map((link) => (
                 <li key={link.label}>
@@ -71,7 +71,7 @@ export default function Footer({ userRole }: { userRole: string | null }) {
           </div>
           
           <div>
-            <h3 className="font-semibold text-white mb-4">สำหรับทนายความ</h3>
+            <h3 className="font-semibold text-white mb-4">{navigation.forLawyers}</h3>
             <ul className="space-y-2">
               {forLawyersLinks.map((link) => (
                 <li key={link.label}>
@@ -84,7 +84,7 @@ export default function Footer({ userRole }: { userRole: string | null }) {
           </div>
 
           <div>
-            <h3 className="font-semibold text-white mb-4">กฎหมาย</h3>
+            <h3 className="font-semibold text-white mb-4">{navigation.legal}</h3>
             <ul className="space-y-2">
               {legalLinks.map((link) => (
                 <li key={link.label}>
