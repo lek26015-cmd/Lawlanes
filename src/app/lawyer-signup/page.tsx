@@ -102,6 +102,7 @@ export default function LawyerSignupPage() {
     }
     
     setIsLoading(true);
+    
     try {
       // 1. Create user in Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
@@ -118,14 +119,20 @@ export default function LawyerSignupPage() {
         email: values.email,
         phone: values.phone,
         role: 'lawyer',
+        type: 'บุคคลทั่วไป',
+        registeredAt: serverTimestamp(),
+        status: 'active',
+        avatar: '',
       };
-      setDoc(userDocRef, userProfileData).catch(error => {
+      
+      setDoc(userDocRef, userProfileData).catch(serverError => {
         const permissionError = new FirestorePermissionError({
           path: userDocRef.path,
           operation: 'create',
           requestResourceData: userProfileData,
         });
         errorEmitter.emit('permission-error', permissionError);
+        // Re-throw or handle as needed, e.g., show a toast.
       });
       
       // 4. Create lawyer profile document in Firestore (lawyerProfiles collection)
@@ -147,11 +154,13 @@ export default function LawyerSignupPage() {
         status: 'pending',
         description: '',
         imageUrl: '', // This and file URLs would be set after upload
+        imageHint: 'professional lawyer',
         idCardUrl: '',
         licenseUrl: '',
         joinedAt: serverTimestamp(),
       };
-      setDoc(lawyerProfileRef, lawyerProfileData).catch(error => {
+      
+      setDoc(lawyerProfileRef, lawyerProfileData).catch(serverError => {
         const permissionError = new FirestorePermissionError({
           path: lawyerProfileRef.path,
           operation: 'create',
