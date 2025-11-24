@@ -23,9 +23,6 @@ import {
 import { Separator } from '@/components/ui/separator';
 import { getDictionary } from '@/lib/dictionary';
 import { Locale } from '../../../next.config';
-
-// Mock data, to be replaced by API calls
-import { mockLawyers } from '@/lib/data';
 import { analytics } from 'firebase-admin';
 
 async function getHomePageData(db: any) {
@@ -218,7 +215,7 @@ export default async function Home({ params: { lang } }: { params: { lang: Local
                   <Separator className='w-24 mx-auto mt-4 bg-border' />
               </div>
               <div className="max-w-5xl mx-auto flex flex-col gap-4">
-                  {mockLawyers.map((lawyer) => (
+                  {recommendedLawyers.map((lawyer) => (
                     <div key={lawyer.id} className="bg-white rounded-lg shadow-md">
                       <LawyerCard lawyer={lawyer} />
                     </div>

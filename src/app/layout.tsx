@@ -4,6 +4,8 @@ import './globals.css';
 import React from 'react';
 import { ClientProviders } from './client-providers';
 import { i18n } from '../../next.config';
+import { getDictionary } from '@/lib/dictionary';
+import { Locale } from '../../next.config';
 
 export async function generateStaticParams() {
   return i18n.locales.map((locale) => ({ lang: locale }))
@@ -14,13 +16,15 @@ export const metadata: Metadata = {
   description: 'Preliminary legal assessments for SMEs in Thailand.',
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
   params,
 }: Readonly<{
   children: React.ReactNode;
   params: { lang: string };
 }>) {
+  const dict = await getDictionary(params.lang as Locale);
+
   return (
     <html lang={params.lang} suppressHydrationWarning>
       <head>
@@ -29,7 +33,7 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&display=swap" rel="stylesheet" />
       </head>
       <body className="font-body antialiased">
-        <ClientProviders>
+        <ClientProviders navigation={dict}>
           {children}
         </ClientProviders>
       </body>
