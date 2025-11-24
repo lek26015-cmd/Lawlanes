@@ -5,25 +5,35 @@ import Link from 'next/link';
 import Logo from '@/components/logo';
 import { usePathname } from 'next/navigation';
 
-export default function Footer() {
+export default function Footer({ userRole }: { userRole: string | null }) {
   const pathname = usePathname();
   const isAuthPage = pathname === '/login' || pathname === '/signup' || pathname === '/lawyer-signup' || pathname === '/lawyer-login';
 
-  const quickLinks = [
+  let quickLinks = [
     { href: '/', label: 'หน้าแรก' },
     { href: '/#features', label: 'บริการ' },
     { href: '/articles', label: 'บทความ' },
     { href: '/lawyers', label: 'ค้นหาทนาย' },
     { href: '/#verify-lawyer-cta', label: 'ตรวจสอบสถานะทนาย' },
-    { href: '/dashboard', label: 'แดชบอร์ดลูกค้า' },
   ];
 
-  const forLawyersLinks = [
+  if (userRole === 'customer') {
+    quickLinks.push({ href: '/dashboard', label: 'แดชบอร์ดลูกค้า' });
+  }
+
+  let forLawyersLinks = [
     { href: '/for-lawyers', label: 'เข้าร่วมเป็นทนาย Lawlanes' },
     { href: '/lawyer-login', label: 'เข้าสู่ระบบทนาย' },
-    { href: '/lawyer-dashboard', label: 'Dashboard ทนาย' },
-    { href: '/admin', label: 'แดชบอร์ดผู้ดูแล' },
   ];
+  
+  if (userRole === 'lawyer') {
+    forLawyersLinks.push({ href: '/lawyer-dashboard', label: 'Dashboard ทนาย' });
+  }
+  
+  if (userRole === 'admin') {
+     forLawyersLinks.push({ href: '/admin', label: 'แดชบอร์ดผู้ดูแล' });
+  }
+
 
   const legalLinks = [
     { href: '/privacy', label: 'นโยบายความเป็นส่วนตัว' },

@@ -21,17 +21,34 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { doc, getDoc } from 'firebase/firestore';
 
 
-export default function Header() {
+export default function Header({ setUserRole }: { setUserRole: (role: string | null) => void }) {
   const pathname = usePathname();
   const isHomePage = pathname === '/';
   
   const [isScrolled, setIsScrolled] = useState(!isHomePage);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  const { auth } = useFirebase();
+  const { auth, firestore } = useFirebase();
   const { data: user, isLoading } = useUser(auth);
+
+  useEffect(() => {
+    if (isLoading || !firestore) return;
+    if (user) {
+        const userDocRef = doc(firestore, "users", user.uid);
+        getDoc(userDocRef).then(docSnap => {
+            if (docSnap.exists()) {
+                setUserRole(docSnap.data().role);
+            } else {
+                setUserRole(null);
+            }
+        });
+    } else {
+        setUserRole(null);
+    }
+  }, [user, isLoading, firestore, setUserRole]);
 
   useEffect(() => {
     if (!isHomePage) {

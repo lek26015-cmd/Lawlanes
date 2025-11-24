@@ -16,6 +16,8 @@ export default function ClientLayout({
 }) {
   const pathname = usePathname();
   const [isClient, setIsClient] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
+
 
   useEffect(() => {
     setIsClient(true);
@@ -40,9 +42,9 @@ export default function ClientLayout({
   return (
     <>
       <div className="flex min-h-screen flex-col">
-        <Header />
+        <Header setUserRole={setUserRole} />
         <main className="flex-1 bg-gray-50/50">{children}</main>
-        <Footer />
+        <Footer userRole={userRole} />
       </div>
       <FloatingChatButton />
       <ChatModal />
