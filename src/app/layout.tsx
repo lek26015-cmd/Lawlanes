@@ -3,9 +3,9 @@ import type { Metadata } from 'next';
 import './globals.css';
 import React from 'react';
 import { ClientProviders } from './client-providers';
-import { i18n } from '../../next.config';
+import { i18n } from '../../i18n.config';
 import { getDictionary } from '@/lib/dictionary';
-import { Locale } from '../../next.config';
+import { Locale } from '../../i18n.config';
 
 export async function generateStaticParams() {
   return i18n.locales.map((locale) => ({ lang: locale }))
