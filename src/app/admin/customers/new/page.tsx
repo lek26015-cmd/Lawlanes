@@ -6,7 +6,7 @@ import {
   ChevronLeft,
   Upload,
 } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import {
@@ -27,11 +27,14 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
+import { Locale } from '@/../i18n.config'
 
 
 export default function AdminCustomerCreatePage() {
   const { toast } = useToast()
   const router = useRouter()
+  const params = useParams();
+  const lang = params.lang as Locale;
   
   const [name, setName] = React.useState('');
 
@@ -40,14 +43,14 @@ export default function AdminCustomerCreatePage() {
         title: "สร้างลูกค้าสำเร็จ",
         description: `ลูกค้าใหม่ ${name || 'ลูกค้า'} ได้ถูกเพิ่มเข้าสู่ระบบแล้ว`,
     })
-    router.push('/admin/customers');
+    router.push(`/${lang}/admin/customers`);
   }
 
   return (
       <main className="flex-1 p-4 sm:px-6 sm:py-0 md:p-8">
         <div className="mx-auto grid max-w-2xl flex-1 auto-rows-max gap-4">
           <div className="flex items-center gap-4">
-            <Link href="/admin/customers">
+            <Link href={`/${lang}/admin/customers`}>
                 <Button variant="outline" size="icon" className="h-7 w-7">
                 <ChevronLeft className="h-4 w-4" />
                 <span className="sr-only">กลับ</span>
@@ -57,7 +60,7 @@ export default function AdminCustomerCreatePage() {
               เพิ่มลูกค้าใหม่
             </h1>
             <div className="hidden items-center gap-2 md:ml-auto md:flex">
-              <Link href="/admin/customers">
+              <Link href={`/${lang}/admin/customers`}>
                 <Button variant="outline" size="sm">
                     ยกเลิก
                 </Button>
@@ -138,7 +141,7 @@ export default function AdminCustomerCreatePage() {
             </CardContent>
           </Card>
            <div className="flex items-center justify-end gap-2 md:hidden">
-              <Link href="/admin/customers">
+              <Link href={`/${lang}/admin/customers`}>
                 <Button variant="outline" size="sm">
                     ยกเลิก
                 </Button>

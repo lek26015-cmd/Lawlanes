@@ -10,7 +10,7 @@ import { Search, Menu, User, ChevronDown, LogOut, LayoutDashboard } from 'lucide
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { useUser, useFirebase } from '@/firebase';
+import { useUser as useAuthUser, useFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
 import {
   DropdownMenu,
@@ -32,7 +32,7 @@ export default function Header({ lang, navigation, setUserRole }: { lang: string
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const { auth, firestore } = useFirebase();
-  const { data: user, isLoading } = useUser(auth);
+  const { data: user, isLoading } = useAuthUser();
 
   useEffect(() => {
     if (isLoading || !firestore) return;
@@ -116,7 +116,7 @@ export default function Header({ lang, navigation, setUserRole }: { lang: string
     <header className={headerClasses}>
       <div className="container mx-auto flex h-20 items-center justify-between px-4 md:px-6">
         <Link href={`/${lang}`} aria-label="Home">
-          <Logo className={cn(useTransparentHeader ? '' : 'text-background')} />
+          <Logo href={`/${lang}`} className={cn(useTransparentHeader ? '' : 'text-background')} />
         </Link>
         
         <div className="hidden md:flex flex-1 justify-center px-8 lg:px-16">
@@ -199,7 +199,9 @@ export default function Header({ lang, navigation, setUserRole }: { lang: string
                 </SheetTrigger>
                 <SheetContent side="left" className="p-0">
                     <SheetHeader className="p-6 pb-0">
-                      <SheetTitle><Logo /></SheetTitle>
+                      <SheetTitle>
+                        <Logo href={`/${lang}`} />
+                      </SheetTitle>
                     </SheetHeader>
                     <div className="flex flex-col gap-6 p-6">
                         <nav className="flex flex-col gap-4 text-lg mt-6">

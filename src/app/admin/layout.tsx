@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import Logo from '@/components/logo';
 
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -47,7 +48,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [userRole, setUserRole] = useState<string | null>(null);
 
-    const lang = pathname.split('/')[1];
+    const lang = pathname.split('/')[1] || 'th';
     const loginPath = `/${lang}/admin/login`;
     const adminRootPath = `/admin`; // Admin paths are not localized
 
@@ -171,9 +172,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="hidden border-r bg-muted/40 md:block">
         <div className="flex h-full max-h-screen flex-col gap-2">
           <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
-            <Link href="/admin" className="flex items-center gap-2 font-semibold">
-              <Gavel className="h-6 w-6" />
-              <span className="">Lawlanes Admin</span>
+            <Link href="/admin">
+                <Logo href="/admin" />
             </Link>
           </div>
           <div className="flex-1 overflow-auto py-2">

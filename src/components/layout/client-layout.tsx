@@ -20,7 +20,7 @@ export default function ClientLayout({
   const pathname = usePathname();
   const [userRole, setUserRole] = useState<string | null>(null);
   
-  const lang = pathname.split('/')[1] as Locale;
+  const lang = (pathname.split('/')[1] || 'th') as Locale;
 
   const isAdminPage = pathname.startsWith('/admin');
   const isAuthPage = pathname.includes('/login') || pathname.includes('/signup') || pathname.includes('/lawyer-signup');
