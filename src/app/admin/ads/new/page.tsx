@@ -6,7 +6,7 @@ import {
   ChevronLeft,
   Upload,
 } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import {
   Card,
@@ -34,6 +34,7 @@ import { errorEmitter, FirestorePermissionError } from '@/firebase'
 
 export default function AdminAdCreatePage() {
   const router = useRouter()
+  const params = useParams();
   const { toast } = useToast()
   const { firestore } = useFirebase();
   
@@ -42,6 +43,7 @@ export default function AdminAdCreatePage() {
   const [placement, setPlacement] = React.useState('Homepage Carousel');
   const [status, setStatus] = React.useState('draft');
   const [isSaving, setIsSaving] = React.useState(false);
+  const adminAdsPath = `/${params.lang}/admin/ads`;
 
   const handleSaveChanges = async () => {
     if (!firestore) return;
@@ -64,7 +66,7 @@ export default function AdminAdCreatePage() {
             title: "สร้างโฆษณาสำเร็จ",
             description: `โฆษณาใหม่ "${title || 'โฆษณาใหม่'}" ได้ถูกเพิ่มเข้าสู่ระบบแล้ว`,
         })
-        router.push('/admin/ads');
+        router.push(adminAdsPath);
     }).catch(error => {
         const permissionError = new FirestorePermissionError({
             path: 'ads',
@@ -81,7 +83,7 @@ export default function AdminAdCreatePage() {
       <main className="flex-1 p-4 sm:px-6 sm:py-0 md:p-8">
         <div className="mx-auto grid max-w-2xl flex-1 auto-rows-max gap-4">
           <div className="flex items-center gap-4">
-            <Link href="/admin/ads">
+            <Link href={adminAdsPath}>
                 <Button variant="outline" size="icon" className="h-7 w-7" disabled={isSaving}>
                 <ChevronLeft className="h-4 w-4" />
                 <span className="sr-only">กลับ</span>
@@ -91,7 +93,7 @@ export default function AdminAdCreatePage() {
               เพิ่มโฆษณาใหม่
             </h1>
             <div className="hidden items-center gap-2 md:ml-auto md:flex">
-              <Link href="/admin/ads">
+              <Link href={adminAdsPath}>
                 <Button variant="outline" size="sm" disabled={isSaving}>
                     ยกเลิก
                 </Button>
@@ -173,7 +175,7 @@ export default function AdminAdCreatePage() {
             </CardContent>
           </Card>
            <div className="flex items-center justify-end gap-2 md:hidden">
-              <Link href="/admin/ads">
+              <Link href={adminAdsPath}>
                 <Button variant="outline" size="sm" disabled={isSaving}>
                     ยกเลิก
                 </Button>

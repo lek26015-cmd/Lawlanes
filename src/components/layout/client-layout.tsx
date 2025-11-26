@@ -8,7 +8,7 @@ import Footer from '@/components/layout/footer';
 import FloatingChatButton from '@/components/chat/floating-chat-button';
 import ChatModal from '@/components/chat/chat-modal';
 import CookieBanner from '@/components/cookie-banner';
-import { Locale } from '../../../next.config';
+import { Locale } from '@/../i18n.config';
 
 export default function ClientLayout({
   children,

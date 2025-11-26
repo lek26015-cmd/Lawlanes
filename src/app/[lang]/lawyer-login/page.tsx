@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -31,6 +31,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import Logo from '@/components/logo';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Locale } from '@/../i18n.config';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'รูปแบบอีเมลไม่ถูกต้อง' }),
@@ -39,6 +40,8 @@ const formSchema = z.object({
 
 export default function LawyerLoginPage() {
   const router = useRouter();
+  const params = useParams();
+  const lang = params.lang as Locale;
   const { auth } = useFirebase();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
@@ -60,7 +63,7 @@ export default function LawyerLoginPage() {
         title: 'เข้าสู่ระบบสำเร็จ',
         description: 'กำลังนำคุณไปยังแดชบอร์ดทนายความ...',
       });
-      router.push('/lawyer-dashboard');
+      router.push(`/${lang}/lawyer-dashboard`);
     } catch (error: any) {
       console.error(error);
       let errorMessage = 'เกิดข้อผิดพลาดที่ไม่รู้จัก';
@@ -82,16 +85,16 @@ export default function LawyerLoginPage() {
       <div className="container mx-auto flex justify-center p-4">
         <Card className="w-full max-w-md shadow-xl">
           <CardHeader className="text-center space-y-4">
-            <Link href="/" className="flex justify-center">
+            <Link href={`/${lang}`} className="flex justify-center">
               <Logo />
             </Link>
              <Tabs defaultValue="lawyer" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="customer" asChild>
-                    <Link href="/login">ลูกค้า</Link>
+                    <Link href={`/${lang}/login`}>ลูกค้า</Link>
                 </TabsTrigger>
                 <TabsTrigger value="lawyer" asChild>
-                    <Link href="/lawyer-login">ทนายความ</Link>
+                    <Link href={`/${lang}/lawyer-login`}>ทนายความ</Link>
                 </TabsTrigger>
               </TabsList>
             </Tabs>
@@ -140,7 +143,7 @@ export default function LawyerLoginPage() {
             <div className="mt-4 text-center text-sm">
               <p>
                 ยังไม่มีบัญชีทนายความ?{' '}
-                <Link href="/lawyer-signup" className="underline hover:text-primary">
+                <Link href={`/${lang}/lawyer-signup`} className="underline hover:text-primary">
                   สมัครเข้าร่วมที่นี่
                 </Link>
               </p>

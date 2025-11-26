@@ -4,6 +4,7 @@
 import Link from 'next/link';
 import Logo from '@/components/logo';
 import { usePathname } from 'next/navigation';
+import { Locale } from '@/../i18n.config';
 
 export default function Footer({ lang, navigation, userRole }: { lang: string, navigation: any, userRole: string | null }) {
   const pathname = usePathname();
@@ -11,10 +12,9 @@ export default function Footer({ lang, navigation, userRole }: { lang: string, n
 
   let quickLinks = [
     { href: `/${lang}`, label: navigation.home },
-    { href: `/${lang}/#features`, label: navigation.services },
     { href: `/${lang}/articles`, label: navigation.articles },
     { href: `/${lang}/lawyers`, label: navigation.findLawyer },
-    { href: `/${lang}/#verify-lawyer-cta`, label: navigation.verifyLawyer },
+    { href: `/${lang}/verify-lawyer`, label: navigation.verifyLawyer },
   ];
 
   if (userRole === 'customer') {

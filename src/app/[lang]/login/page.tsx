@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -32,6 +32,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import Logo from '@/components/logo';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Locale } from '@/../i18n.config';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'รูปแบบอีเมลไม่ถูกต้อง' }),
@@ -40,6 +41,8 @@ const formSchema = z.object({
 
 export default function LoginPage() {
   const router = useRouter();
+  const params = useParams();
+  const lang = params.lang as Locale;
   const { auth, firestore } = useFirebase();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
@@ -62,7 +65,7 @@ export default function LoginPage() {
         title: 'เข้าสู่ระบบสำเร็จ',
         description: 'กำลังนำคุณไปยังแดชบอร์ด...',
       });
-      router.push('/dashboard');
+      router.push(`/${lang}/dashboard`);
     } catch (error: any) {
       console.error(error);
       let errorMessage = 'เกิดข้อผิดพลาดที่ไม่รู้จัก';
@@ -105,7 +108,7 @@ export default function LoginPage() {
         title: 'เข้าสู่ระบบด้วย Google สำเร็จ',
         description: 'กำลังนำคุณไปยังแดชบอร์ด...',
       });
-      router.push('/dashboard');
+      router.push(`/${lang}/dashboard`);
 
     } catch (error: any) {
       console.error("Google Sign-In Error:", error);
@@ -124,16 +127,16 @@ export default function LoginPage() {
       <div className="container mx-auto flex justify-center p-4">
         <Card className="w-full max-w-md shadow-xl">
           <CardHeader className="text-center space-y-4">
-            <Link href="/" className="flex justify-center">
+            <Link href={`/${lang}`} className="flex justify-center">
               <Logo />
             </Link>
              <Tabs defaultValue="customer" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="customer" asChild>
-                    <Link href="/login">ลูกค้า</Link>
+                    <Link href={`/${lang}/login`}>ลูกค้า</Link>
                 </TabsTrigger>
                 <TabsTrigger value="lawyer" asChild>
-                    <Link href="/lawyer-login">ทนายความ</Link>
+                    <Link href={`/${lang}/lawyer-login`}>ทนายความ</Link>
                 </TabsTrigger>
               </TabsList>
             </Tabs>
@@ -202,7 +205,7 @@ export default function LoginPage() {
             <div className="mt-4 text-center text-sm">
                <p>
                   ยังไม่มีบัญชี?{' '}
-                  <Link href="/signup" className="underline hover:text-primary">
+                  <Link href={`/${lang}/signup`} className="underline hover:text-primary">
                     สมัครสมาชิกที่นี่
                   </Link>
                </p>
