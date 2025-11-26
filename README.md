@@ -1,4 +1,4 @@
-# Firebase Studio
+# lawlanes
 
 This is a NextJS starter in Firebase Studio.
 
@@ -22,4 +22,3 @@ This project is configured to be deployed to Cloudflare Pages.
         *   `NEXT_PUBLIC_FIREBASE_APP_ID`
         *   `NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID` (if it exists in your config)
 4.  **Deploy.** Cloudflare Pages will automatically build and deploy your site using these variables.
-# lawlanes
