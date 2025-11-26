@@ -1,5 +1,4 @@
 import type {NextConfig} from 'next';
-const { i18n } = require('./i18n.config.js');
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -31,7 +30,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  i18n,
 };
 
 export default nextConfig;

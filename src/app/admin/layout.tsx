@@ -21,7 +21,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { FirebaseContext, FirebaseContextState, errorEmitter, FirestorePermissionError } from '@/firebase';
-import AdminLoginPage from '../[lang]/admin/login/page';
+import AdminLoginPage from '@/app/admin/login/page';
 import { onAuthStateChanged, signOut, User } from 'firebase/auth';
 import {
   DropdownMenu,
@@ -48,9 +48,8 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     const [currentUser, setCurrentUser] = useState<User | null>(null);
     const [userRole, setUserRole] = useState<string | null>(null);
 
-    const lang = pathname.split('/')[1] || 'th';
-    const loginPath = `/${lang}/admin/login`;
-    const adminRootPath = `/admin`; // Admin paths are not localized
+    const loginPath = `/admin/login`;
+    const adminRootPath = `/admin`; 
 
     useEffect(() => {
         if (!areServicesAvailable || !auth || !firestore) {
@@ -135,7 +134,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         });
 
         return () => unsubscribe();
-    }, [areServicesAvailable, auth, firestore, router, pathname, lang, loginPath, adminRootPath]);
+    }, [areServicesAvailable, auth, firestore, router, pathname, loginPath, adminRootPath]);
 
     const handleLogout = async () => {
         if (auth) {
@@ -172,9 +171,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <div className="hidden border-r bg-muted/40 md:block">
         <div className="flex h-full max-h-screen flex-col gap-2">
           <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
-            <Link href="/admin">
-                <Logo href="/admin" />
-            </Link>
+            <Logo href="/admin" />
           </div>
           <div className="flex-1 overflow-auto py-2">
             <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
@@ -227,7 +224,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                              </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem asChild>
-                             <Link href={`/${lang}`}>
+                             <Link href={`/`}>
                                 <ArrowLeftCircle className="mr-2 h-4 w-4" />
                                 <span>กลับไปหน้าเว็บไซต์</span>
                              </Link>

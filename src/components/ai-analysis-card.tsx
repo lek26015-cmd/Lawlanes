@@ -10,7 +10,7 @@ import { Sparkles, Scale, Loader2 } from 'lucide-react';
 import { findLawyerSpecialties } from '@/ai/flows/find-lawyers-flow';
 import { useChat } from '@/context/chat-context';
 
-export default function AiAnalysisCard({ t, lang }: { t: any, lang: string }) {
+export default function AiAnalysisCard() {
   const router = useRouter();
   const [isFindingLawyers, setIsFindingLawyers] = useState(false);
   const [analysisText, setAnalysisText] = useState('');
@@ -22,10 +22,10 @@ export default function AiAnalysisCard({ t, lang }: { t: any, lang: string }) {
     try {
       const result = await findLawyerSpecialties({ problem: analysisText });
       const specialties = result.specialties.join(',');
-      router.push(`/${lang}/lawyers?specialties=${encodeURIComponent(specialties)}`);
+      router.push(`/lawyers?specialties=${encodeURIComponent(specialties)}`);
     } catch (error) {
       console.error('Failed to find lawyer specialties:', error);
-      router.push(`/${lang}/lawyers`);
+      router.push(`/lawyers`);
     } finally {
       setIsFindingLawyers(false);
     }
@@ -41,17 +41,17 @@ export default function AiAnalysisCard({ t, lang }: { t: any, lang: string }) {
             <div className="flex items-center gap-3 mb-2">
                 <Scale className="h-7 w-7 text-foreground" />
                 <h2 className="text-2xl md:text-3xl font-bold font-headline">
-                {t.aiAnalysisTitle}
+                ไม่แน่ใจว่าต้องการทนายด้านไหน?
                 </h2>
             </div>
             <p className="text-muted-foreground mb-6">
-                {t.aiAnalysisSubtitle}
+                ให้ AI ช่วยวิเคราะห์ปัญหาเบื้องต้นและแนะนำทนายที่ตรงจุด
             </p>
             <div className="space-y-4">
                 <Textarea
                   value={analysisText}
                   onChange={(e) => setAnalysisText(e.target.value)}
-                  placeholder={t.aiAnalysisPlaceholder}
+                  placeholder="อธิบายปัญหาของคุณที่นี่ เช่น 'โดนโกงแชร์', 'ต้องการจดทะเบียนบริษัท', 'ปัญหาที่ดินกับเพื่อนบ้าน'"
                   rows={4}
                   className="bg-background/10 text-foreground placeholder:text-muted-foreground border-border"
                 />
@@ -59,10 +59,10 @@ export default function AiAnalysisCard({ t, lang }: { t: any, lang: string }) {
                   {isFindingLawyers ? (
                       <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      {t.aiAnalyzingButton}
+                      กำลังวิเคราะห์...
                       </>
                   ) : (
-                      t.aiAnalysisButton
+                      'วิเคราะห์และแนะนำทนาย'
                   )}
                 </Button>
             </div>

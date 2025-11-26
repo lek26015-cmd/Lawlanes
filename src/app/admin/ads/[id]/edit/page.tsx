@@ -44,7 +44,7 @@ export default function AdminAdEditPage() {
 
   const [ad, setAd] = React.useState<Ad | null>(null);
   const [isSaving, setIsSaving] = React.useState(false);
-  const adminAdsPath = `/${params.lang}/admin/ads`;
+  const adminAdsPath = `/admin/ads`;
 
   React.useEffect(() => {
     if (!firestore || !id) return;

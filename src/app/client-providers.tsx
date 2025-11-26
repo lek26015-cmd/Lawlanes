@@ -7,11 +7,11 @@ import { ChatProvider } from '@/context/chat-context';
 import ClientLayout from '@/components/layout/client-layout';
 import { Toaster } from '@/components/ui/toaster';
 
-export function ClientProviders({ children, navigation }: { children: React.ReactNode, navigation: any }) {
+export function ClientProviders({ children }: { children: React.ReactNode }) {
   return (
     <FirebaseClientProvider>
       <ChatProvider>
-        <ClientLayout navigation={navigation}>{children}</ClientLayout>
+        <ClientLayout>{children}</ClientLayout>
         <Toaster />
       </ChatProvider>
     </FirebaseClientProvider>

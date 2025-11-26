@@ -2,12 +2,13 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useFirebase } from '@/firebase';
 
 import { Button } from '@/components/ui/button';
@@ -28,21 +29,21 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, Gavel } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import Logo from '@/components/logo';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'รูปแบบอีเมลไม่ถูกต้อง' }),
   password: z.string().min(1, { message: 'กรุณากรอกรหัสผ่าน' }),
 });
 
-export default function AdminLoginPage() {
+export default function LoginPage() {
   const router = useRouter();
   const { auth, firestore } = useFirebase();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -53,24 +54,15 @@ export default function AdminLoginPage() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!auth) {
-        toast({
-            variant: 'destructive',
-            title: 'เกิดข้อผิดพลาด',
-            description: 'ไม่สามารถเชื่อมต่อกับระบบยืนยันตัวตนได้',
-        });
-        return;
-    }
+    if (!auth) return;
     setIsLoading(true);
     try {
-      // In a real app, you should also verify the user's role (admin) after login.
       await signInWithEmailAndPassword(auth, values.email, values.password);
       toast({
         title: 'เข้าสู่ระบบสำเร็จ',
-        description: 'กำลังนำคุณไปยังแดชบอร์ดผู้ดูแลระบบ...',
+        description: 'กำลังนำคุณไปยังแดชบอร์ด...',
       });
-      // The layout will handle the redirect after auth state changes.
-
+      router.push(`/dashboard`);
     } catch (error: any) {
       console.error(error);
       let errorMessage = 'เกิดข้อผิดพลาดที่ไม่รู้จัก';
@@ -86,20 +78,35 @@ export default function AdminLoginPage() {
       setIsLoading(false);
     }
   }
-  
+
   async function handleGoogleSignIn() {
     if (!auth || !firestore) return;
     setIsGoogleLoading(true);
     try {
       const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
-      
-      // The admin layout will handle role verification and document creation
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
+
+      // Check if user profile already exists
+      const userRef = doc(firestore, 'users', user.uid);
+      const userSnap = await getDoc(userRef);
+
+      if (!userSnap.exists()) {
+        // Create a new user profile if it doesn't exist
+        await setDoc(userRef, {
+          uid: user.uid,
+          name: user.displayName,
+          email: user.email,
+          role: 'customer',
+        });
+      }
+
       toast({
         title: 'เข้าสู่ระบบด้วย Google สำเร็จ',
-        description: 'กำลังตรวจสอบสิทธิ์และนำคุณไปยังแดชบอร์ด...',
+        description: 'กำลังนำคุณไปยังแดชบอร์ด...',
       });
-      
+      router.push(`/dashboard`);
+
     } catch (error: any) {
       console.error("Google Sign-In Error:", error);
       toast({
@@ -112,24 +119,33 @@ export default function AdminLoginPage() {
     }
   }
 
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-900 text-white">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="container mx-auto flex justify-center p-4">
-        <Card className="w-full max-w-md shadow-xl bg-gray-800/50 border-gray-700">
+        <Card className="w-full max-w-md shadow-xl">
           <CardHeader className="text-center space-y-4">
-            <div className="flex justify-center text-white">
-              <Logo href={`/`} />
-            </div>
+            <Link href={`/`} className="flex justify-center">
+              <Logo href="/" />
+            </Link>
+             <Tabs defaultValue="customer" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="customer" asChild>
+                    <Link href={`/login`}>ลูกค้า</Link>
+                </TabsTrigger>
+                <TabsTrigger value="lawyer" asChild>
+                    <Link href={`/lawyer-login`}>ทนายความ</Link>
+                </TabsTrigger>
+              </TabsList>
+            </Tabs>
             <CardTitle className="text-2xl font-bold font-headline pt-4">
-              Administrator Login
+              เข้าสู่ระบบ
             </CardTitle>
-            <CardDescription className="text-gray-400">
-              สำหรับผู้ดูแลระบบ Lawlanes เท่านั้น
+            <CardDescription>
+              ยินดีต้อนรับกลับสู่ Lawlanes
             </CardDescription>
           </CardHeader>
           <CardContent>
-             <Button variant="outline" className="w-full bg-white text-black hover:bg-gray-200" onClick={handleGoogleSignIn} disabled={isGoogleLoading || isLoading}>
+            <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isGoogleLoading || isLoading}>
               {isGoogleLoading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
@@ -141,11 +157,11 @@ export default function AdminLoginPage() {
             </Button>
             <div className="relative my-4">
               <div className="absolute inset-0 flex items-center">
-                <span className="w-full border-t border-gray-600" />
+                <span className="w-full border-t" />
               </div>
               <div className="relative flex justify-center text-xs uppercase">
-                <span className="bg-gray-800/50 px-2 text-gray-400">
-                  หรือ
+                <span className="bg-background px-2 text-muted-foreground">
+                  หรือเข้าสู่ระบบด้วยอีเมล
                 </span>
               </div>
             </div>
@@ -156,14 +172,9 @@ export default function AdminLoginPage() {
                   name="email"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-gray-300">อีเมล</FormLabel>
+                      <FormLabel>อีเมล</FormLabel>
                       <FormControl>
-                        <Input 
-                            placeholder="admin@lawlanes.com" 
-                            {...field} 
-                            disabled={isLoading}
-                            className="bg-gray-700 border-gray-600 text-white" 
-                        />
+                        <Input placeholder="name@example.com" {...field} disabled={isLoading || isGoogleLoading} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -174,26 +185,28 @@ export default function AdminLoginPage() {
                   name="password"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel className="text-gray-300">รหัสผ่าน</FormLabel>
+                      <FormLabel>รหัสผ่าน</FormLabel>
                       <FormControl>
-                        <Input 
-                            type="password" 
-                            placeholder="********" 
-                            {...field} 
-                            disabled={isLoading}
-                            className="bg-gray-700 border-gray-600 text-white"
-                        />
+                        <Input type="password" placeholder="********" {...field} disabled={isLoading || isGoogleLoading} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-                <Button type="submit" className="w-full bg-primary text-primary-foreground hover:bg-primary/90" disabled={isLoading}>
+                <Button type="submit" className="w-full" disabled={isLoading || isGoogleLoading}>
                   {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   เข้าสู่ระบบ
                 </Button>
               </form>
             </Form>
+            <div className="mt-4 text-center text-sm">
+               <p>
+                  ยังไม่มีบัญชี?{' '}
+                  <Link href={`/signup`} className="underline hover:text-primary">
+                    สมัครสมาชิกที่นี่
+                  </Link>
+               </p>
+            </div>
           </CardContent>
         </Card>
       </div>

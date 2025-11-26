@@ -8,20 +8,15 @@ import Footer from '@/components/layout/footer';
 import FloatingChatButton from '@/components/chat/floating-chat-button';
 import ChatModal from '@/components/chat/chat-modal';
 import CookieBanner from '@/components/cookie-banner';
-import { Locale } from '@/../i18n.config';
 
 export default function ClientLayout({
   children,
-  navigation,
 }: {
   children: React.ReactNode;
-  navigation: any;
 }) {
   const pathname = usePathname();
   const [userRole, setUserRole] = useState<string | null>(null);
   
-  const lang = (pathname.split('/')[1] || 'th') as Locale;
-
   const isAdminPage = pathname.startsWith('/admin');
   const isAuthPage = pathname.includes('/login') || pathname.includes('/signup') || pathname.includes('/lawyer-signup');
 
@@ -37,9 +32,9 @@ export default function ClientLayout({
   return (
     <>
       <div className="flex min-h-screen flex-col">
-        <Header lang={lang} navigation={navigation.header} setUserRole={setUserRole} />
+        <Header setUserRole={setUserRole} />
         <main className="flex-1 bg-gray-50/50">{children}</main>
-        <Footer lang={lang} navigation={navigation.homepage.footer} userRole={userRole} />
+        <Footer userRole={userRole} />
       </div>
       <FloatingChatButton />
       <ChatModal />
