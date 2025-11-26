@@ -19,7 +19,8 @@ export const getImageUrl = (id: string) => PlaceHolderImages.find(img => img.id 
 export const getImageHint = (id: string) => PlaceHolderImages.find(img => img.id === id)?.imageHint ?? '';
 
 // --- Lawyer Functions ---
-export async function getApprovedLawyers(db: Firestore): Promise<LawyerProfile[]> {
+export async function getApprovedLawyers(db: Firestore | null): Promise<LawyerProfile[]> {
+  if (!db) return [];
   const lawyersRef = collection(db, 'lawyerProfiles');
   const q = query(lawyersRef, where('status', '==', 'approved'));
   const querySnapshot = await getDocs(q);
@@ -27,6 +28,7 @@ export async function getApprovedLawyers(db: Firestore): Promise<LawyerProfile[]
 }
 
 export async function getLawyerById(db: Firestore, id: string): Promise<LawyerProfile | undefined> {
+  if (!db) return undefined;
   const lawyerRef = doc(db, 'lawyerProfiles', id);
   const docSnap = await getDoc(lawyerRef);
   if (docSnap.exists()) {
@@ -36,7 +38,8 @@ export async function getLawyerById(db: Firestore, id: string): Promise<LawyerPr
 }
 
 // --- Article Functions ---
-export async function getAllArticles(db: Firestore): Promise<Article[]> {
+export async function getAllArticles(db: Firestore | null): Promise<Article[]> {
+  if (!db) return [];
   const articlesRef = collection(db, 'articles');
   const q = query(articlesRef, orderBy('publishedAt', 'desc'));
   const querySnapshot = await getDocs(q);
@@ -51,6 +54,7 @@ export async function getAllArticles(db: Firestore): Promise<Article[]> {
 }
 
 export async function getArticleBySlug(db: Firestore, slug: string): Promise<Article | undefined> {
+  if (!db) return undefined;
   const articlesRef = collection(db, 'articles');
   const q = query(articlesRef, where('slug', '==', slug), limit(1));
   const querySnapshot = await getDocs(q);
@@ -67,7 +71,8 @@ export async function getArticleBySlug(db: Firestore, slug: string): Promise<Art
 }
 
 // --- Ad Functions ---
-export async function getAdsByPlacement(db: Firestore, placement: 'Homepage Carousel' | 'Lawyer Page Sidebar'): Promise<Ad[]> {
+export async function getAdsByPlacement(db: Firestore | null, placement: 'Homepage Carousel' | 'Lawyer Page Sidebar'): Promise<Ad[]> {
+  if (!db) return [];
   const adsRef = collection(db, 'ads');
   const q = query(adsRef, where('placement', '==', placement), where('status', '==', 'active'));
   const querySnapshot = await getDocs(q);
@@ -75,6 +80,7 @@ export async function getAdsByPlacement(db: Firestore, placement: 'Homepage Caro
 }
 
 export async function getAdById(db: Firestore, id: string): Promise<Ad | undefined> {
+    if (!db) return undefined;
     const adRef = doc(db, 'ads', id);
     const docSnap = await getDoc(adRef);
     if(docSnap.exists()) {
@@ -85,6 +91,7 @@ export async function getAdById(db: Firestore, id: string): Promise<Ad | undefin
 
 // --- User Dashboard Functions ---
 export async function getDashboardData(db: Firestore, userId: string): Promise<{ cases: Case[], appointments: UpcomingAppointment[], tickets: ReportedTicket[] }> {
+    if (!db) return { cases: [], appointments: [], tickets: [] };
     // Fetch Cases (Chats)
     const chatsRef = collection(db, 'chats');
     const casesQuery = query(chatsRef, where('participants', 'array-contains', userId));
@@ -151,6 +158,7 @@ export async function getDashboardData(db: Firestore, userId: string): Promise<{
 // --- Lawyer Dashboard Functions ---
 
 export async function getLawyerDashboardData(db: Firestore, lawyerId: string): Promise<{ newRequests: LawyerAppointmentRequest[], activeCases: LawyerCase[], completedCases: LawyerCase[] }> {
+    if (!db) return { newRequests: [], activeCases: [], completedCases: [] };
     // Fetch new appointment requests
     const appointmentsRef = collection(db, 'appointments');
     const requestsQuery = query(appointmentsRef, where('lawyerId', '==', lawyerId), where('status', '==', 'pending'));
@@ -204,6 +212,7 @@ export async function getLawyerDashboardData(db: Firestore, lawyerId: string): P
 
 
 export async function getLawyerAppointmentRequestById(db: Firestore, id: string): Promise<LawyerAppointmentRequest | undefined> {
+    if (!db) return undefined;
     const reqRef = doc(db, 'appointments', id);
     const docSnap = await getDoc(reqRef);
     if (docSnap.exists()) {
@@ -228,6 +237,7 @@ export async function getLawyerAppointmentRequestById(db: Firestore, id: string)
 // --- Data for Admin pages (can be more complex) ---
 
 export async function getAllUsers(db: Firestore): Promise<UserProfile[]> {
+  if (!db) return [];
   const usersRef = collection(db, 'users');
   const q = query(usersRef);
   const querySnapshot = await getDocs(q);
@@ -243,6 +253,7 @@ export async function getAllUsers(db: Firestore): Promise<UserProfile[]> {
 
 
 export async function getAllLawyers(db: Firestore): Promise<LawyerProfile[]> {
+    if (!db) return [];
     const lawyersRef = collection(db, 'lawyerProfiles');
     const querySnapshot = await getDocs(lawyersRef);
     return querySnapshot.docs.map(doc => {
@@ -256,18 +267,21 @@ export async function getAllLawyers(db: Firestore): Promise<LawyerProfile[]> {
 }
 
 export async function getAllAds(db: Firestore): Promise<Ad[]> {
+  if (!db) return [];
   const adsRef = collection(db, 'ads');
   const querySnapshot = await getDocs(adsRef);
   return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ad));
 }
 
 export async function getAllAdminArticles(db: Firestore): Promise<Article[]> {
+  if (!db) return [];
   const articlesRef = collection(db, 'articles');
   const querySnapshot = await getDocs(articlesRef);
   return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Article));
 }
 
 export async function getArticleById(db: Firestore, id: string): Promise<Article | undefined> {
+  if (!db) return undefined;
   const articleRef = doc(db, 'articles', id);
   const docSnap = await getDoc(articleRef);
   if (docSnap.exists()) {
@@ -278,6 +292,7 @@ export async function getArticleById(db: Firestore, id: string): Promise<Article
 
 
 export async function getAllTickets(db: Firestore): Promise<any[]> {
+  if (!db) return [];
   const ticketsRef = collection(db, 'tickets');
   const querySnapshot = await getDocs(ticketsRef);
   const tickets = await Promise.all(querySnapshot.docs.map(async (d) => {
