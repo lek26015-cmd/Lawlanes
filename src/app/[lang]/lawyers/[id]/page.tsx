@@ -14,33 +14,36 @@ import { Separator } from '@/components/ui/separator';
 import React, { useState, useEffect } from 'react';
 import type { LawyerProfile } from '@/lib/types';
 import { useChat } from '@/context/chat-context';
+import { useFirebase } from '@/firebase';
 
 export default function LawyerProfilePage() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
+  const { firestore } = useFirebase();
   const [lawyer, setLawyer] = useState<LawyerProfile | null>(null);
 
   useEffect(() => {
     async function fetchLawyer() {
-      if (!id) return;
-      const lawyerData = await getLawyerById(id);
+      if (!id || !firestore) return;
+      const lawyerData = await getLawyerById(firestore, id);
       if (!lawyerData) {
         notFound();
       }
       setLawyer(lawyerData);
     }
     fetchLawyer();
-  }, [id]);
+  }, [id, firestore]);
 
   if (!lawyer) {
     return <div>Loading...</div>; // Or a loading skeleton
   }
 
-  const rating = (Number(lawyer.id) % 2) + 3.5;
-  const reviewCount = Number(lawyer.id) * 7 + 5;
-  const caseWinRate = (Number(lawyer.id) * 3 + 80);
-  const totalCases = (Number(lawyer.id) * 25 + 100);
+  const rating = 4.5;
+  const reviewCount = 38;
+  const caseWinRate = 92;
+  const totalCases = 150;
+
 
   const mockReviews = [
     {
@@ -218,5 +221,3 @@ export default function LawyerProfilePage() {
     </>
   );
 }
-
-    

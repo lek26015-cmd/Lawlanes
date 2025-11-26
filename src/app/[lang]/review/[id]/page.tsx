@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Label } from '@/components/ui/label';
+import { useFirebase } from '@/firebase';
 
 
 function ReviewPageContent() {
@@ -20,6 +21,7 @@ function ReviewPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { toast } = useToast();
+  const { firestore } = useFirebase();
 
   const chatId = params.id as string;
   const lawyerId = searchParams.get('lawyerId');
@@ -31,12 +33,12 @@ function ReviewPageContent() {
 
   useEffect(() => {
     async function fetchLawyer() {
-      if (!lawyerId) {
+      if (!lawyerId || !firestore) {
         setIsLoading(false);
         return;
       }
       setIsLoading(true);
-      const lawyerData = await getLawyerById(lawyerId);
+      const lawyerData = await getLawyerById(firestore, lawyerId);
       if (!lawyerData) {
         notFound();
       }
@@ -44,7 +46,7 @@ function ReviewPageContent() {
       setIsLoading(false);
     }
     fetchLawyer();
-  }, [lawyerId]);
+  }, [lawyerId, firestore]);
 
   const handleSubmitReview = () => {
     if (rating === 0) {

@@ -14,10 +14,12 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { Badge } from '@/components/ui/badge';
 import LawyerCard from '@/components/lawyer-card';
+import { useFirebase } from '@/firebase';
 
 export default function LawFirmPage() {
   const params = useParams();
   const id = params.id as string;
+  const { firestore } = useFirebase();
 
   const [firm, setFirm] = useState<Ad | null>(null);
   const [lawyers, setLawyers] = useState<LawyerProfile[]>([]);
@@ -25,9 +27,9 @@ export default function LawFirmPage() {
 
   useEffect(() => {
     async function fetchData() {
-      if (!id) return;
+      if (!id || !firestore) return;
       setIsLoading(true);
-      const firmData = await getAdById(id);
+      const firmData = await getAdById(firestore, id);
       if (!firmData || firmData.placement !== 'Lawyer Page Sidebar') {
         notFound();
         return;
@@ -35,13 +37,13 @@ export default function LawFirmPage() {
       setFirm(firmData);
 
       // Fetch sample lawyers for the firm
-      const allLawyers = await getApprovedLawyers();
+      const allLawyers = await getApprovedLawyers(firestore);
       setLawyers(allLawyers.slice(0, 2)); // Mock: show first 2 lawyers
 
       setIsLoading(false);
     }
     fetchData();
-  }, [id]);
+  }, [id, firestore]);
 
   if (isLoading) {
     return <div className="flex justify-center items-center h-screen">Loading...</div>;
@@ -130,5 +132,3 @@ export default function LawFirmPage() {
     </div>
   );
 }
-
-    

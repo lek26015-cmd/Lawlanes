@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/carousel";
 import { Separator } from '@/components/ui/separator';
 import { getDictionary } from '@/lib/dictionary';
-import { Locale } from '../../../next.config';
+import { Locale } from '../../../i18n.config';
 import { analytics } from 'firebase-admin';
 
 async function getHomePageData(db: any) {

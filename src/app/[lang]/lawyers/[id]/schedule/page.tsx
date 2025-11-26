@@ -15,12 +15,14 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { addDays, format } from 'date-fns';
+import { useFirebase } from '@/firebase';
 
 export default function SchedulePage() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
   const { toast } = useToast();
+  const { firestore } = useFirebase();
 
   const [lawyer, setLawyer] = useState<LawyerProfile | null>(null);
   const [date, setDate] = useState<Date | undefined>();
@@ -29,9 +31,9 @@ export default function SchedulePage() {
 
   useEffect(() => {
     async function fetchLawyer() {
-      if (!id) return;
+      if (!id || !firestore) return;
       setIsLoading(true);
-      const lawyerData = await getLawyerById(id);
+      const lawyerData = await getLawyerById(firestore, id);
       if (!lawyerData) {
         notFound();
       }
@@ -39,7 +41,7 @@ export default function SchedulePage() {
       setIsLoading(false);
     }
     fetchLawyer();
-  }, [id]);
+  }, [id, firestore]);
 
   const handleSubmit = () => {
     if (!date || !description.trim()) {

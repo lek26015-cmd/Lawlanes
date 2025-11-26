@@ -20,11 +20,13 @@ import { FileText, Ticket, Upload } from 'lucide-react';
 import { format } from 'date-fns';
 import { th } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
+import { useFirebase } from '@/firebase';
 
 function SupportPageContent() {
     const params = useParams();
     const router = useRouter();
     const ticketId = params.id as string;
+    const { firestore, user } = useFirebase();
     
     const [ticket, setTicket] = useState<ReportedTicket | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -34,11 +36,11 @@ function SupportPageContent() {
 
     useEffect(() => {
         async function fetchTicket() {
-            if (!ticketId) {
+            if (!ticketId || !firestore || !user) {
                 setIsLoading(false);
                 return;
             }
-            const { tickets } = await getDashboardData();
+            const { tickets } = await getDashboardData(firestore, user.uid);
             // Simulate changing one ticket to resolved for testing purposes
             const modifiedTickets = tickets.map(t => t.id === 'TICKET-5891A' ? { ...t, status: 'resolved' as const } : t);
             const currentTicket = modifiedTickets.find(t => t.id === ticketId);
@@ -47,7 +49,7 @@ function SupportPageContent() {
             setIsLoading(false);
         }
         fetchTicket();
-    }, [ticketId]);
+    }, [ticketId, firestore, user]);
 
     const handleUploadClick = () => {
         fileInputRef.current?.click();

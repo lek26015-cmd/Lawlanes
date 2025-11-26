@@ -39,12 +39,14 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
+import { useFirebase } from '@/firebase';
 
 export default function AppointmentDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { toast } = useToast();
   const id = params.id as string;
+  const { firestore, user } = useFirebase();
 
   const [appointment, setAppointment] = useState<UpcomingAppointment | null>(
     null
@@ -54,8 +56,9 @@ export default function AppointmentDetailPage() {
 
   useEffect(() => {
     async function fetchAppointmentData() {
+      if(!firestore || !user) return;
       setIsLoading(true);
-      const { appointments } = await getDashboardData();
+      const { appointments } = await getDashboardData(firestore, user.uid);
       const currentAppointment = appointments.find((appt) => appt.id === id);
 
       if (!currentAppointment) {
@@ -65,16 +68,16 @@ export default function AppointmentDetailPage() {
       setAppointment(currentAppointment);
 
       // We need to extract lawyerId from the appointment data structure.
-      // Since it's not there, let's assume a mock structure or hardcode for now.
       // In a real app, the appointment object would contain the lawyer's ID.
+      // This is still a bit of a mock. A real query would use currentAppointment.lawyerId
       const lawyerId = '1'; // Mocking lawyer ID
-      const lawyerData = await getLawyerById(lawyerId);
+      const lawyerData = await getLawyerById(firestore, lawyerId);
       setLawyer(lawyerData || null);
 
       setIsLoading(false);
     }
     fetchAppointmentData();
-  }, [id]);
+  }, [id, firestore, user]);
 
   const handleCancelAppointment = () => {
     toast({

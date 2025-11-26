@@ -13,10 +13,12 @@ import { getLawyerById } from '@/lib/data';
 import type { LawyerProfile } from '@/lib/types';
 import React from 'react';
 import Link from 'next/link';
+import { useFirebase } from '@/firebase';
 
 function VerifyLawyerContent() {
   const searchParams = useSearchParams();
   const licenseNumberFromQuery = searchParams.get('licenseNumber');
+  const { firestore } = useFirebase();
 
   const [licenseNumber, setLicenseNumber] = useState(licenseNumberFromQuery || '');
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
@@ -39,6 +41,7 @@ function VerifyLawyerContent() {
   }, [licenseNumberFromQuery]);
 
   const handleVerify = async (numberToVerify?: string) => {
+    if(!firestore) return;
     const targetLicenseNumber = numberToVerify || licenseNumber;
     if (!targetLicenseNumber && !uploadedFile) return;
 
@@ -52,7 +55,7 @@ function VerifyLawyerContent() {
         // Simulate logic: if input is '12345/2550', we find a specific lawyer.
         // In a real scenario, this would be an API call to a database.
         if (targetLicenseNumber === '12345/2550' || uploadedFile) {
-          const lawyer = await getLawyerById('1'); // Get a mock lawyer
+          const lawyer = await getLawyerById(firestore, '1'); // Get a mock lawyer
           if (lawyer) {
             setVerifiedLawyer(lawyer);
             setVerificationResult('found');
