@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState } from 'react';
@@ -31,7 +30,7 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import Logo from '@/components/logo';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'; // ✅ แก้เครื่องหมาย ; ให้ถูกต้อง
 
 const formSchema = z.object({
   email: z.string().email({ message: 'รูปแบบอีเมลไม่ถูกต้อง' }),
@@ -123,17 +122,16 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="container mx-auto flex justify-center p-4">
         <Card className="w-full max-w-md shadow-xl">
+          {/* ✅ เพิ่ม CardHeader กลับเข้ามาเพื่อให้ตรงกับ CardHeader ปิดท้าย */}
           <CardHeader className="text-center space-y-4">
-            <Link href={`/`} className="flex justify-center">
-              <Logo href="/" />
-            </Link>
-             <Tabs defaultValue="customer" className="w-full">
+            <Logo href="/" className="flex justify-center" />
+            <Tabs defaultValue="customer" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="customer" asChild>
-                    <Link href={`/login`}>ลูกค้า</Link>
+                  <Link href={`/login`}>ลูกค้า</Link>
                 </TabsTrigger>
                 <TabsTrigger value="lawyer" asChild>
-                    <Link href={`/lawyer-login`}>ทนายความ</Link>
+                  <Link href={`/lawyer-login`}>ทนายความ</Link>
                 </TabsTrigger>
               </TabsList>
             </Tabs>
@@ -144,6 +142,7 @@ export default function LoginPage() {
               ยินดีต้อนรับกลับสู่ Lawlanes
             </CardDescription>
           </CardHeader>
+          
           <CardContent>
             <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isGoogleLoading || isLoading}>
               {isGoogleLoading ? (

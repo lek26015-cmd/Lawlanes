@@ -1,4 +1,3 @@
-
 import { 
     collection, 
     query, 
@@ -89,70 +88,50 @@ export async function getAdById(db: Firestore, id: string): Promise<Ad | undefin
     return undefined;
 }
 
-// --- User Dashboard Functions ---
-export async function getDashboardData(db: Firestore, userId: string): Promise<{ cases: Case[], appointments: UpcomingAppointment[], tickets: ReportedTicket[] }> {
-    if (!db) return { cases: [], appointments: [], tickets: [] };
-    // Fetch Cases (Chats)
-    const chatsRef = collection(db, 'chats');
-    const casesQuery = query(chatsRef, where('participants', 'array-contains', userId));
-    const casesSnapshot = await getDocs(casesQuery);
-    const cases: Case[] = await Promise.all(casesSnapshot.docs.map(async (d) => {
-        const chatData = d.data();
-        const otherParticipantId = chatData.participants.find((p: string) => p !== userId);
-        const lawyerProfile = otherParticipantId ? await getLawyerById(db, otherParticipantId) : null;
-        
-        return {
-            id: d.id,
-            title: chatData.caseTitle || 'Unknown Case',
-            lawyer: {
-                id: lawyerProfile?.userId || '',
-                name: lawyerProfile?.name || 'Unknown Lawyer',
-                imageUrl: lawyerProfile?.imageUrl || '',
-                imageHint: lawyerProfile?.imageHint || ''
-            },
-            lastMessage: '...', // This would require fetching last message
-            lastMessageTimestamp: '',
-            status: chatData.status,
-        };
-    }));
+// --- User Dashboard Functions (MOCK DATA) ---
+export async function getDashboardData(db: any, userId: string) {
+  // จำลองการ Delay นิดหน่อยให้เหมือนโหลดจริง
+  await new Promise(resolve => setTimeout(resolve, 1000));
 
-    // Fetch Appointments
-    const appointmentsRef = collection(db, 'appointments');
-    const appointmentsQuery = query(appointmentsRef, where('userId', '==', userId), where('status', '==', 'pending'));
-    const appointmentsSnapshot = await getDocs(appointmentsQuery);
-    const appointments: UpcomingAppointment[] = appointmentsSnapshot.docs.map(d => {
-        const data = d.data();
-        return {
-            id: d.id,
-            lawyer: {
-                name: data.lawyerName,
-                imageUrl: data.lawyerImageUrl,
-                imageHint: '',
-            },
-            date: data.appointmentDate.toDate(),
-            description: data.description,
-            time: format(data.appointmentDate.toDate(), 'HH:mm น.')
-        }
-    });
-    
-    // Fetch Tickets
-    const ticketsRef = collection(db, 'tickets');
-    const ticketsQuery = query(ticketsRef, where('userId', '==', userId));
-    const ticketsSnapshot = await getDocs(ticketsQuery);
-    const tickets: ReportedTicket[] = ticketsSnapshot.docs.map(d => {
-        const data = d.data();
-        return {
-            id: d.id,
-            caseId: data.caseId,
-            caseTitle: `เคส ${data.caseId}`,
-            problemType: data.problemType,
-            status: data.status,
-            reportedAt: data.reportedAt.toDate(),
-            lawyerId: '' // This info might not be directly on the ticket
-        }
-    })
-
-    return { cases, appointments, tickets };
+  return {
+    cases: [
+      {
+        id: 'CASE-2568-001',
+        title: 'คดีแพ่ง - ผิดสัญญาเช่าซื้อ',
+        status: 'active', // active, closed
+        lastMessage: 'ทนายกำลังร่างคำฟ้องเพื่อยื่นต่อศาล',
+        lawyer: { id: 'L001', name: 'ทนายสมชาย ใจดี' },
+        updatedAt: new Date(),
+      },
+      {
+        id: 'CASE-2567-089',
+        title: 'จดทะเบียนจัดตั้งบริษัท',
+        status: 'closed',
+        lastMessage: 'ดำเนินการจดทะเบียนเสร็จสิ้น',
+        lawyer: { id: 'L002', name: 'ทนายวิภา เก่งกฎหมาย' },
+        updatedAt: new Date('2024-12-15'),
+      }
+    ],
+    appointments: [
+      {
+        id: 'APT-001',
+        date: new Date(new Date().setDate(new Date().getDate() + 2)), // อีก 2 วัน
+        time: '10:00 - 11:00',
+        description: 'ปรึกษาเรื่องสัญญาจ้าง',
+        lawyer: { id: 'L001', name: 'ทนายสมชาย ใจดี' },
+      }
+    ],
+    tickets: [
+      {
+        id: 'T-101',
+        caseId: 'CASE-2568-001',
+        caseTitle: 'คดีแพ่ง - ผิดสัญญาเช่าซื้อ',
+        problemType: 'ติดต่อทนายไม่ได้',
+        reportedAt: new Date(),
+        status: 'pending'
+      }
+    ]
+  };
 }
 
 // --- Lawyer Dashboard Functions ---

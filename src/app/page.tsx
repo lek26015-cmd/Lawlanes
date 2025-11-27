@@ -1,29 +1,17 @@
-
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Textarea } from '@/components/ui/textarea';
-import { CheckCircle, MessageSquare, Users, Sparkles, Scale, ArrowRight, Newspaper, Loader2, Briefcase, UserCheck, ShieldCheck, ShieldAlert, Phone, Mail, Award, FileText } from 'lucide-react';
+import { MessageSquare, Users, ShieldCheck, ArrowRight, Briefcase, UserCheck, FileText } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { getApprovedLawyers, getAllArticles, getLawyerById, getAdsByPlacement, getImageUrl, getImageHint } from '@/lib/data';
+import { getApprovedLawyers, getAllArticles, getAdsByPlacement, getImageUrl, getImageHint } from '@/lib/data';
 import LawyerCard from '@/components/lawyer-card';
-import type { LawyerProfile, Article, Ad, ImagePlaceholder } from '@/lib/types';
-import AiAnalysisCard from '@/components/ai-analysis-card'; // We will create this
-import { Input } from '@/components/ui/input';
+import AiAnalysisCard from '@/components/ai-analysis-card'; 
 import { Badge } from '@/components/ui/badge';
-import Logo from '@/components/logo';
-import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  CarouselNext,
-  CarouselPrevious,
-} from "@/components/ui/carousel";
 import { Separator } from '@/components/ui/separator';
 
 async function getHomePageData(db: any) {
-  // In a real app, 'db' would be your Firestore instance
+  // จำลองการดึงข้อมูล (In a real app, 'db' would be your Firestore instance)
   const [lawyers, allArticles, banners, sidebarAds] = await Promise.all([
     getApprovedLawyers(db),
     getAllArticles(db),
@@ -39,45 +27,34 @@ async function getHomePageData(db: any) {
   };
 }
 
-
 export default async function Home() {
-  // In a real app, initialize Firestore here
   const db = null; 
-  const { recommendedLawyers, articles, homepageBanners, sidebarAds } = await getHomePageData(db);
+  const { recommendedLawyers, articles } = await getHomePageData(db);
 
-
+  // ข้อมูล Feature แบบภาษาไทย
   const features = [
     {
       icon: <MessageSquare className="w-6 h-6 text-blue-600" />,
-      title: "ที่ปรึกษากฎหมาย AI",
-      description: "รับการประเมินปัญหาทางกฎหมายเบื้องต้นได้ทันทีจาก AI ผู้เชี่ยวชาญของเรา",
+      title: "ปรึกษาได้ทุกที่",
+      description: "แชทหรือวิดีโอคอลกับทนายความได้ทันที ไม่ว่าจะอยู่ที่ไหน",
     },
     {
       icon: <Users className="w-6 h-6 text-blue-600" />,
-      title: "ตลาดกลางทนายความ",
-      description: "เชื่อมต่อกับเครือข่ายทนายความที่ผ่านการคัดเลือกและเชี่ยวชาญเฉพาะทาง",
+      title: "ทนายความคัดคุณภาพ",
+      description: "ทนายความทุกคนผ่านการตรวจสอบประวัติและใบอนุญาตเรียบร้อยแล้ว",
     },
     {
       icon: <ShieldCheck className="w-6 h-6 text-blue-600" />,
-      title: "ปลอดภัยและเป็นความลับ",
-      description: "ข้อมูลและการสนทนาของคุณจะถูกเข้ารหัสและเก็บเป็นความลับตามมาตรฐานสูงสุด",
+      title: "ปลอดภัยและเป็นส่วนตัว",
+      description: "ข้อมูลคดีของคุณจะถูกเก็บเป็นความลับสูงสุด ด้วยมาตรฐานความปลอดภัย",
     },
   ];
 
   const stats = [
-      { value: '10x', label: "ประเมินเบื้องต้นเร็วกว่า" },
-      { value: '50+', label: "ทนายความ SME ที่ผ่านการคัดเลือก" },
-      { value: '24/7', label: "AI พร้อมให้คำปรึกษา" },
-      { value: '100%', label: "แพลตฟอร์มปลอดภัย" },
-  ]
-  
-  const partners = [
-    { name: 'สภาทนายความ' },
-    { name: 'ETDA Thailand' },
-    { name: 'DEPA' },
-    { name: 'NIA' },
-    { name: 'Techsauce' },
-    { name: 'Krungsri Finnovate' },
+      { value: '10x', label: 'รวดเร็วกว่าเดิม' },
+      { value: '50+', label: 'ทนายความผู้เชี่ยวชาญ' },
+      { value: '24/7', label: 'บริการตลอด 24 ชม.' },
+      { value: '100%', label: 'ความพึงพอใจ' },
   ];
   
   const mainArticle = articles[0];
@@ -103,22 +80,23 @@ export default async function Home() {
                     <div className="flex flex-col items-center lg:items-start text-center lg:text-left space-y-6">
                         
                         <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none font-headline">
-                            พันธมิตรกฎหมาย เคียงข้าง SMEs ไทย
+                            ปรึกษาปัญหากฎหมายกับ<br/>ทนายความมืออาชีพ
                         </h1>
                         <p className="max-w-[600px] text-background/80 md:text-xl">
-                            เชื่อมต่อทนายมืออาชีพ เพื่อความสำเร็จที่ยั่งยืน
+                            แพลตฟอร์มที่เชื่อมโยงคุณกับทนายความผู้เชี่ยวชาญ ค้นหาทนายที่ใช่ หรือปรึกษา AI ทนายความอัจฉริยะได้ทันที
                         </p>
                         <div className="flex flex-col sm:flex-row gap-4">
                             <Link href={`/lawyers`}>
-                            <Button size="lg" variant="secondary">ดูรายชื่อทนายทั้งหมด</Button>
+                                <Button size="lg" variant="secondary">ค้นหาทนายความ</Button>
                             </Link>
                             <Button size="lg" variant="outline" className="bg-transparent text-background border-background hover:bg-background hover:text-foreground">
-                                ปรึกษาเบื้องต้นกับ AI
+                                ปรึกษา AI ทนายความ
                             </Button>
                         </div>
                     </div>
 
-                    <AiAnalysisCard />
+                    {/* หมายเหตุ: ถ้า AiAnalysisCard รับ props เป็น t หรือ lang อาจต้องไปแก้ไฟล์นั้นด้วย */}
+                    <AiAnalysisCard /> 
                 </div>
             </div>
         </section>
@@ -128,9 +106,9 @@ export default async function Home() {
             <div className="grid lg:grid-cols-2 gap-12 items-center">
                 <div className="space-y-8">
                     <div>
-                        <p className="text-sm font-semibold text-primary uppercase">Lawlanes ทำงานอย่างไร</p>
+                        <p className="text-sm font-semibold text-primary uppercase">ขั้นตอนการใช้งาน</p>
                         <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground font-headline mt-2">
-                            ขั้นตอนง่ายๆ เพื่อความชัดเจนทางกฎหมาย
+                            ใช้งานง่าย สะดวก และรวดเร็ว
                         </h2>
                     </div>
                     <div className="grid grid-cols-2 gap-4">
@@ -159,31 +137,28 @@ export default async function Home() {
           </div>
         </section>
 
-        {/* This section needs to be a client component to handle form state and API calls */}
-        {/* <VerificationSection /> */}
-
         <section className="w-full py-12 md:py-24 lg:py-32">
             <div className="container mx-auto px-4 md:px-6">
                 <div className="grid md:grid-cols-2 gap-12 items-center">
                     <div className="space-y-4">
                         <p className="text-sm font-semibold text-primary uppercase">สำหรับธุรกิจ SME</p>
                         <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground font-headline">
-                           ค้นหาทนายความที่เชี่ยวชาญ และเหมาะสมกับธุรกิจของคุณ
+                           โซลูชันกฎหมายเพื่อธุรกิจ SME
                         </h2>
                         <p className="text-muted-foreground text-lg">
-                           เพิ่มประสิทธิภาพ ลดขั้นตอนที่ซับซ้อน และลดความเสี่ยงทางกฎหมายด้วยการเชื่อมต่อกับเครือข่ายทนายความผู้เชี่ยวชาญของเรา
+                           ลดความเสี่ยงทางกฎหมาย ช่วยให้ธุรกิจของคุณเติบโตได้อย่างมั่นคง ด้วยบริการที่ปรึกษากฎหมายมืออาชีพ
                         </p>
                          <div className="flex items-center gap-4 text-muted-foreground">
                             <ShieldCheck className="w-6 h-6 text-primary" />
-                            <span>ทนายความที่ผ่านการตรวจสอบและยืนยันตัวตน</span>
+                            <span>ร่างและตรวจสัญญาธุรกิจ</span>
                         </div>
                          <div className="flex items-center gap-4 text-muted-foreground">
                             <FileText className="w-6 h-6 text-primary" />
-                            <span>เชี่ยวชาญหลากหลาย ทั้งคดีแพ่ง ฉ้อโกง และสัญญา</span>
+                            <span>ที่ปรึกษากฎหมายประจำบริษัท</span>
                         </div>
                         <div className="pt-4">
                            <Button size="lg" asChild>
-                             <Link href={`/lawyers`}>ดูทนายความทั้งหมด</Link>
+                             <Link href={`/lawyers`}>ดูบริการสำหรับ SME</Link>
                            </Button>
                         </div>
                     </div>
@@ -205,8 +180,8 @@ export default async function Home() {
         <section className="w-full bg-gray-50 py-12 md:py-24 lg:py-32">
           <div className="container mx-auto px-4 md:px-6">
               <div className='text-center mb-12'>
-                  <h2 className='text-3xl font-bold tracking-tight text-foreground font-headline sm:text-4xl'>ทนายที่แนะนำ</h2>
-                  <p className="mt-2 text-muted-foreground">ทนายความที่ผ่านการคัดเลือกและมีความเชี่ยวชาญเฉพาะทาง</p>
+                  <h2 className='text-3xl font-bold tracking-tight text-foreground font-headline sm:text-4xl'>ทนายความแนะนำ</h2>
+                  <p className="mt-2 text-muted-foreground">ทนายความที่มีประสบการณ์และความเชี่ยวชาญเฉพาะด้าน</p>
                   <Separator className='w-24 mx-auto mt-4 bg-border' />
               </div>
               <div className="max-w-5xl mx-auto flex flex-col gap-4">
@@ -218,7 +193,7 @@ export default async function Home() {
               </div>
               <div className="mt-12 text-center">
                   <Button asChild size="lg" variant="outline" className="bg-white">
-                      <Link href={`/lawyers`}>ดูรายชื่อทนายทั้งหมด</Link>
+                      <Link href={`/lawyers`}>ดูทนายความทั้งหมด</Link>
                   </Button>
               </div>
           </div>
@@ -228,7 +203,7 @@ export default async function Home() {
           <div className="container mx-auto px-4 md:px-6">
             <div className="flex justify-between items-center mb-12">
               <h2 className="text-3xl font-bold tracking-tighter sm:text-4xl font-headline text-foreground">
-                สาระน่ารู้ทางกฎหมาย
+                บทความกฎหมายน่ารู้
               </h2>
               <Link href={`/articles`}>
                 <Button variant="link" className="text-foreground hover:text-primary">
@@ -285,7 +260,7 @@ export default async function Home() {
                 </div>
               </div>
             ) : (
-              <p>Loading articles...</p>
+              <p>กำลังโหลดบทความ...</p>
             )}
 
           </div>
@@ -298,15 +273,15 @@ export default async function Home() {
                     <Briefcase className="h-8 w-8" />
                 </div>
               <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">
-                คุณเป็นทนายความใช่ไหม?
+                สำหรับทนายความ
               </h2>
               <p className="max-w-3xl mx-auto mt-4 text-background/80 md:text-xl">
-                เข้าร่วมเครือข่ายทนายความคุณภาพของเราเพื่อเข้าถึงลูกค้ากลุ่มใหม่ๆ และใช้เครื่องมือที่ทันสมัยในการจัดการเคสของคุณ
+                ร่วมเป็นส่วนหนึ่งกับเราเพื่อขยายฐานลูกความ และสร้างความน่าเชื่อถือบนโลกออนไลน์
               </p>
               <div className="mt-8">
                 <Link href={`/for-lawyers`}>
                     <Button size="lg" variant="secondary" className="text-lg">
-                        <UserCheck className="mr-2 h-5 w-5" /> เข้าร่วมกับ Lawlanes
+                        <UserCheck className="mr-2 h-5 w-5" /> สมัครเข้าร่วมเป็นทนายความ
                     </Button>
                 </Link>
               </div>
