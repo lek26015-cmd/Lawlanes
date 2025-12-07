@@ -68,14 +68,14 @@ export default async function Home() {
         <section className="relative w-full py-20 md:py-32 lg:py-40 text-background">
           <div className="absolute inset-0 z-[-1]">
             <Image
-              src={getImageUrl('lawyer-team-working')}
+              src={getImageUrl('hero-main')}
               alt="Lawyers working"
               fill
               className="object-cover"
-              data-ai-hint={getImageHint('lawyer-team-working')}
+              data-ai-hint={getImageHint('hero-main')}
               priority
             />
-            <div className="absolute inset-0" style={{ backgroundColor: 'hsla(203, 100%, 17%, 0.7)' }} />
+
           </div>
           <div className="container relative z-10 mx-auto px-4 md:px-6">
             <div className="grid lg:grid-cols-2 gap-12 items-center">

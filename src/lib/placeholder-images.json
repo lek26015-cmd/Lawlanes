@@ -128,9 +128,15 @@
     },
     {
       "id": "lawyer-team-working",
-      "description": "Man in a suit holding a gavel",
-      "imageUrl": "https://images.unsplash.com/photo-1507679799987-c73779587ccf?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyMHx8bGF3fGVufDB8fHx8MTc2MzIyOTY4OHww&ixlib=rb-4.1.0&q=80&w=1080",
-      "imageHint": "law gavel"
+      "description": "Lawlanes Hero Cover",
+      "imageUrl": "/images/lawlanes-hero-cover.jpg",
+      "imageHint": "lawyer team"
+    },
+    {
+      "id": "hero-main",
+      "description": "Lawlanes Hero Main",
+      "imageUrl": "/images/lawlanes-hero.jpg",
+      "imageHint": "lawyer hero"
     }
   ]
 }

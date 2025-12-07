@@ -100,8 +100,16 @@ export async function generateIndex(): Promise<void> {
 
 export async function retrieveContext(query: string, topK: number = 5): Promise<string> {
     try {
-        // Check if index exists, if not generate it
-        if (!fs.existsSync(INDEX_FILE_PATH)) {
+        // Check if index exists and is valid
+        let shouldGenerate = !fs.existsSync(INDEX_FILE_PATH);
+        if (!shouldGenerate) {
+            const stats = fs.statSync(INDEX_FILE_PATH);
+            if (stats.size === 0) {
+                shouldGenerate = true;
+            }
+        }
+
+        if (shouldGenerate) {
             await generateIndex();
         }
 
