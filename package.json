@@ -48,7 +48,7 @@
     "input-otp": "^1.2.4",
     "lucide-react": "^0.475.0",
     "negotiator": "^0.6.3",
-    "next": "15.3.3",
+    "next": "^16.0.7",
     "patch-package": "^8.0.0",
     "pdf-parse": "^2.4.5",
     "promptpay-qr": "^0.5.0",
