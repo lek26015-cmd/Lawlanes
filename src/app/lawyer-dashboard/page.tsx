@@ -32,7 +32,7 @@ import { useUser, useFirebase } from '@/firebase';
 export default function LawyerDashboardPage() {
   const router = useRouter();
   const { auth, firestore } = useFirebase();
-  const { data: user, isLoading: isUserLoading } = useUser();
+  const { user, isUserLoading } = useUser();
 
   const [requests, setRequests] = useState<LawyerAppointmentRequest[]>([]);
   const [activeCases, setActiveCases] = useState<LawyerCase[]>([]);
@@ -48,7 +48,7 @@ export default function LawyerDashboardPage() {
       return;
     }
     if (!firestore) return;
-    
+
     async function fetchData() {
       setIsLoading(true);
       const data = await getLawyerDashboardData(firestore, user!.uid);
@@ -59,13 +59,13 @@ export default function LawyerDashboardPage() {
     }
     fetchData();
   }, [isUserLoading, user, router, firestore]);
-  
+
   if (isUserLoading || isLoading || !user) {
-      return (
-        <div className="flex justify-center items-center h-screen">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        </div>
-      )
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    )
   }
 
   const handleAcceptCase = (request: LawyerAppointmentRequest) => {
@@ -77,13 +77,13 @@ export default function LawyerDashboardPage() {
     router.push(`/chat/${newChatId}?lawyerId=${user.uid}&clientId=...&view=lawyer`);
   };
 
-  const incomeStat = { icon: <DollarSign className="w-10 h-10"/>, label: 'รายได้เดือนนี้', value: '฿75,000', color: 'text-green-500', href: '/lawyer-dashboard' };
+  const incomeStat = { icon: <DollarSign className="w-10 h-10" />, label: 'รายได้เดือนนี้', value: '฿75,000', color: 'text-green-500', href: '/lawyer-dashboard' };
   const otherStats = [
     { icon: <Star />, label: 'คะแนนเฉลี่ย', value: '4.8/5', color: 'text-yellow-500', href: '#' },
     { icon: <Percent />, label: 'อัตราการตอบรับ', value: '95%', color: 'text-blue-500', href: '#' },
     { icon: <Briefcase />, label: 'เคสที่เสร็จสิ้น', value: '12', color: 'text-purple-500', href: '#' },
   ];
-  
+
   const caseStatusBadge = {
     'รอการตอบรับ': <Badge variant="destructive">ใหม่</Badge>,
     'กำลังดำเนินการ': <Badge variant="secondary">กำลังดำเนินการ</Badge>,
@@ -116,42 +116,42 @@ export default function LawyerDashboardPage() {
                     {requests.map((req) => (
                       <div key={req.id} className="p-4 rounded-lg bg-primary/5 border border-primary/20">
                         <div className="flex flex-col sm:flex-row justify-between">
-                            <div>
-                                <p className="font-semibold text-foreground">{req.caseTitle}</p>
-                                <p className="text-sm text-muted-foreground">
-                                    ผู้ขอ: {req.clientName} | ขอเมื่อ: {format(req.requestedAt, 'dd MMM yyyy, HH:mm', { locale: th })}
-                                </p>
-                            </div>
-                            <div className="flex gap-2 mt-3 sm:mt-0">
-                                <Button size="sm" variant="outline" asChild>
-                                    <Link href={`/lawyer-dashboard/request/${req.id}`}>ดูรายละเอียด</Link>
-                                </Button>
-                                <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                        <Button size="sm" className="bg-green-600 hover:bg-green-700">รับเคสนี้</Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                            <AlertDialogTitle>ยืนยันการรับเคส?</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                            การรับเคสนี้จะสร้างห้องสนทนาส่วนตัวระหว่างคุณและลูกค้า และจะถือว่าเป็นการเริ่มต้นการให้คำปรึกษาอย่างเป็นทางการ
-                                            </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                            <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
-                                            <AlertDialogAction
-                                            onClick={() => handleAcceptCase(req)}
-                                            className="bg-green-600 text-white hover:bg-green-700"
-                                            >
-                                            ยืนยันการรับเคส
-                                            </AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
-                            </div>
+                          <div>
+                            <p className="font-semibold text-foreground">{req.caseTitle}</p>
+                            <p className="text-sm text-muted-foreground">
+                              ผู้ขอ: {req.clientName} | ขอเมื่อ: {format(req.requestedAt, 'dd MMM yyyy, HH:mm', { locale: th })}
+                            </p>
+                          </div>
+                          <div className="flex gap-2 mt-3 sm:mt-0">
+                            <Button size="sm" variant="outline" asChild>
+                              <Link href={`/lawyer-dashboard/request/${req.id}`}>ดูรายละเอียด</Link>
+                            </Button>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button size="sm" className="bg-green-600 hover:bg-green-700">รับเคสนี้</Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>ยืนยันการรับเคส?</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    การรับเคสนี้จะสร้างห้องสนทนาส่วนตัวระหว่างคุณและลูกค้า และจะถือว่าเป็นการเริ่มต้นการให้คำปรึกษาอย่างเป็นทางการ
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+                                  <AlertDialogAction
+                                    onClick={() => handleAcceptCase(req)}
+                                    className="bg-green-600 text-white hover:bg-green-700"
+                                  >
+                                    ยืนยันการรับเคส
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
                         </div>
                         <Card className="mt-3 bg-background/50 p-3">
-                           <p className="text-sm text-muted-foreground">"{req.description}"</p>
+                          <p className="text-sm text-muted-foreground">"{req.description}"</p>
                         </Card>
                       </div>
                     ))}
@@ -175,32 +175,32 @@ export default function LawyerDashboardPage() {
               </CardHeader>
               <CardContent>
                 {activeCases.map((caseItem) => (
-                    <Link href={`/chat/${caseItem.id}?lawyerId=${user.uid}&clientId=${caseItem.clientId}&view=lawyer`} key={caseItem.id}>
-                        <div className="flex items-center justify-between p-4 rounded-lg hover:bg-gray-200/50 transition-colors">
-                            <div>
-                                <p className="font-semibold">{caseItem.title}</p>
-                                <p className="text-sm text-muted-foreground">ลูกค้า: {caseItem.clientName} | อัปเดตล่าสุด: {caseItem.lastUpdate}</p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                {caseItem.notifications && (
-                                  typeof caseItem.notifications === 'number' ? (
-                                    <Badge variant="destructive" className="flex items-center justify-center w-6 h-6 rounded-full p-0">
-                                      {caseItem.notifications}
-                                    </Badge>
-                                  ) : (
-                                    <Badge variant="outline" className="border-blue-500 bg-blue-50 text-blue-700">
-                                      <FileUp className="w-3 h-3" />
-                                    </Badge>
-                                  )
-                                )}
-                                <Button size="sm">เข้าสู่ห้องแชท</Button>
-                            </div>
-                        </div>
-                    </Link>
+                  <Link href={`/chat/${caseItem.id}?lawyerId=${user.uid}&clientId=${caseItem.clientId}&view=lawyer`} key={caseItem.id}>
+                    <div className="flex items-center justify-between p-4 rounded-lg hover:bg-gray-200/50 transition-colors">
+                      <div>
+                        <p className="font-semibold">{caseItem.title}</p>
+                        <p className="text-sm text-muted-foreground">ลูกค้า: {caseItem.clientName} | อัปเดตล่าสุด: {caseItem.lastUpdate}</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {caseItem.notifications && (
+                          typeof caseItem.notifications === 'number' ? (
+                            <Badge variant="destructive" className="flex items-center justify-center w-6 h-6 rounded-full p-0">
+                              {caseItem.notifications}
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="border-blue-500 bg-blue-50 text-blue-700">
+                              <FileUp className="w-3 h-3" />
+                            </Badge>
+                          )
+                        )}
+                        <Button size="sm">เข้าสู่ห้องแชท</Button>
+                      </div>
+                    </div>
+                  </Link>
                 ))}
               </CardContent>
             </Card>
-            
+
             {/* Completed Cases */}
             <Card>
               <CardHeader>
@@ -209,17 +209,17 @@ export default function LawyerDashboardPage() {
                   เคสที่เสร็จสิ้นแล้ว
                 </CardTitle>
               </CardHeader>
-               <CardContent>
+              <CardContent>
                 {completedCases.map((caseItem) => (
-                    <Link href={`/chat/${caseItem.id}?lawyerId=${user.uid}&clientId=${caseItem.clientId}&view=lawyer&status=closed`} key={caseItem.id}>
-                        <div className="flex items-center justify-between p-4 rounded-lg hover:bg-gray-200/50 transition-colors">
-                            <div>
-                                <p className="font-semibold">{caseItem.title}</p>
-                                <p className="text-sm text-muted-foreground">ลูกค้า: {caseItem.clientName} | วันที่เสร็จสิ้น: {caseItem.lastUpdate}</p>
-                            </div>
-                            <Badge variant="outline">ดูประวัติ</Badge>
-                        </div>
-                    </Link>
+                  <Link href={`/chat/${caseItem.id}?lawyerId=${user.uid}&clientId=${caseItem.clientId}&view=lawyer&status=closed`} key={caseItem.id}>
+                    <div className="flex items-center justify-between p-4 rounded-lg hover:bg-gray-200/50 transition-colors">
+                      <div>
+                        <p className="font-semibold">{caseItem.title}</p>
+                        <p className="text-sm text-muted-foreground">ลูกค้า: {caseItem.clientName} | วันที่เสร็จสิ้น: {caseItem.lastUpdate}</p>
+                      </div>
+                      <Badge variant="outline">ดูประวัติ</Badge>
+                    </div>
+                  </Link>
                 ))}
               </CardContent>
             </Card>
@@ -235,58 +235,58 @@ export default function LawyerDashboardPage() {
                 </Avatar>
                 <p className="font-bold text-xl">{user.displayName}</p>
                 <p className="text-sm text-muted-foreground">SME Fraud Expert</p>
-                 <div className="flex mt-4 gap-2">
-                    <Link href={`/lawyers/${user.uid}`} passHref>
-                        <Button variant="outline"><User className="mr-2"/> โปรไฟล์สาธารณะ</Button>
-                    </Link>
-                    <Link href="/lawyer-schedule" passHref>
-                        <Button variant="outline"><Settings className="mr-2"/> จัดการตาราง</Button>
-                    </Link>
+                <div className="flex mt-4 gap-2">
+                  <Link href={`/lawyers/${user.uid}`} passHref>
+                    <Button variant="outline"><User className="mr-2" /> โปรไฟล์สาธารณะ</Button>
+                  </Link>
+                  <Link href="/lawyer-schedule" passHref>
+                    <Button variant="outline"><Settings className="mr-2" /> จัดการตาราง</Button>
+                  </Link>
                 </div>
               </CardContent>
             </Card>
-            
+
             <Card className="bg-green-600 text-white shadow-lg">
-                <Link href={incomeStat.href} className="block p-6 hover:bg-green-700/50 rounded-lg transition-colors">
-                    <div className="flex items-center gap-4">
-                        <div className="flex-shrink-0">
-                           {incomeStat.icon}
-                        </div>
-                        <div>
-                           <p className="text-sm font-light">{incomeStat.label}</p>
-                           <p className="text-3xl font-bold">{incomeStat.value}</p>
-                        </div>
-                    </div>
-                     <p className="text-center text-xs mt-4 bg-black/20 p-2 rounded-full">คลิกเพื่อดูรายละเอียด</p>
+              <Link href={incomeStat.href} className="block p-6 hover:bg-green-700/50 rounded-lg transition-colors">
+                <div className="flex items-center gap-4">
+                  <div className="flex-shrink-0">
+                    {incomeStat.icon}
+                  </div>
+                  <div>
+                    <p className="text-sm font-light">{incomeStat.label}</p>
+                    <p className="text-3xl font-bold">{incomeStat.value}</p>
+                  </div>
+                </div>
+                <p className="text-center text-xs mt-4 bg-black/20 p-2 rounded-full">คลิกเพื่อดูรายละเอียด</p>
+              </Link>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-bold text-base">สถิติอื่นๆ (จำลอง)</CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-3 gap-2">
+                {otherStats.map(stat => (
+                  <Link href={stat.href} key={stat.label} className="block p-2 bg-gray-100 rounded-lg text-center hover:bg-gray-200 hover:shadow-sm transition-all">
+                    <div className={`mx-auto h-6 w-6 flex items-center justify-center ${stat.color}`}>{stat.icon}</div>
+                    <p className="text-lg font-bold mt-1">{stat.value}</p>
+                    <p className="text-xs text-muted-foreground">{stat.label}</p>
+                  </Link>
+                ))}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-bold">เครื่องมือ</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <Link href="/lawyer-schedule" passHref>
+                  <Button variant="ghost" className="w-full justify-start"><CalendarPlus className="mr-2" /> จัดการตารางนัดหมาย</Button>
                 </Link>
-             </Card>
-
-             <Card>
-                <CardHeader>
-                    <CardTitle className="font-bold text-base">สถิติอื่นๆ (จำลอง)</CardTitle>
-                </CardHeader>
-                <CardContent className="grid grid-cols-3 gap-2">
-                    {otherStats.map(stat => (
-                        <Link href={stat.href} key={stat.label} className="block p-2 bg-gray-100 rounded-lg text-center hover:bg-gray-200 hover:shadow-sm transition-all">
-                            <div className={`mx-auto h-6 w-6 flex items-center justify-center ${stat.color}`}>{stat.icon}</div>
-                            <p className="text-lg font-bold mt-1">{stat.value}</p>
-                            <p className="text-xs text-muted-foreground">{stat.label}</p>
-                        </Link>
-                    ))}
-                </CardContent>
-             </Card>
-
-             <Card>
-                <CardHeader>
-                    <CardTitle className="font-bold">เครื่องมือ</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                    <Link href="/lawyer-schedule" passHref>
-                        <Button variant="ghost" className="w-full justify-start"><CalendarPlus className="mr-2"/> จัดการตารางนัดหมาย</Button>
-                    </Link>
-                    <Button variant="ghost" className="w-full justify-start"><BarChart className="mr-2"/> ดูรายงานสรุป</Button>
-                </CardContent>
-             </Card>
+                <Button variant="ghost" className="w-full justify-start"><BarChart className="mr-2" /> ดูรายงานสรุป</Button>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </div>

@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useParams } from 'next/navigation';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -19,6 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import Logo from '@/components/logo';
 import { Separator } from '@/components/ui/separator';
+// import { Locale } from '@/../i18n.config';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'ชื่อต้องมีอย่างน้อย 2 ตัวอักษร' }),
@@ -28,6 +29,8 @@ const formSchema = z.object({
 
 export default function SignupPage() {
   const router = useRouter();
+  // const params = useParams(); // Removed lang param
+  // const lang = params.lang as Locale; // Removed lang param
   const { auth, firestore } = useFirebase();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
@@ -61,22 +64,22 @@ export default function SignupPage() {
         email: values.email,
         role: 'customer', // Default role for general signup
       };
-      
+
       setDoc(userRef, userProfileData)
         .catch(error => {
-            const permissionError = new FirestorePermissionError({
-              path: userRef.path,
-              operation: 'create',
-              requestResourceData: userProfileData,
-            });
-            errorEmitter.emit('permission-error', permissionError);
+          const permissionError = new FirestorePermissionError({
+            path: userRef.path,
+            operation: 'create',
+            requestResourceData: userProfileData,
+          });
+          errorEmitter.emit('permission-error', permissionError);
         });
-      
+
       toast({
         title: 'สมัครสมาชิกสำเร็จ',
         description: 'กำลังนำคุณไปยังแดชบอร์ด...',
       });
-      
+
       router.push(`/dashboard`);
 
     } catch (error: any) {
@@ -117,12 +120,12 @@ export default function SignupPage() {
         // Create a new user profile if it doesn't exist
         setDoc(userRef, userProfileData)
           .catch(error => {
-              const permissionError = new FirestorePermissionError({
-                path: userRef.path,
-                operation: 'create',
-                requestResourceData: userProfileData,
-              });
-              errorEmitter.emit('permission-error', permissionError);
+            const permissionError = new FirestorePermissionError({
+              path: userRef.path,
+              operation: 'create',
+              requestResourceData: userProfileData,
+            });
+            errorEmitter.emit('permission-error', permissionError);
           });
       }
 
@@ -149,9 +152,9 @@ export default function SignupPage() {
       <div className="container mx-auto flex justify-center p-4">
         <Card className="w-full max-w-md shadow-xl">
           <CardHeader className="text-center space-y-4">
-             <Link href={`/`} className="flex justify-center">
+            <div className="flex justify-center">
               <Logo href="/" />
-            </Link>
+            </div>
             <CardTitle className="text-2xl font-bold font-headline">
               สร้างบัญชีใหม่
             </CardTitle>
@@ -160,7 +163,7 @@ export default function SignupPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-             <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isGoogleLoading || isLoading}>
+            <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isGoogleLoading || isLoading}>
               {isGoogleLoading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (

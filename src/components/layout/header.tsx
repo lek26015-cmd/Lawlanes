@@ -27,33 +27,33 @@ import { doc, getDoc } from 'firebase/firestore';
 export default function Header({ setUserRole }: { setUserRole: (role: string | null) => void }) {
   const pathname = usePathname();
   const isHomePage = pathname === `/`;
-  
+
   const [isScrolled, setIsScrolled] = useState(!isHomePage);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const { auth, firestore } = useFirebase();
-  const { data: user, isLoading } = useAuthUser();
+  const { user, isUserLoading: isLoading } = useAuthUser();
 
   useEffect(() => {
     if (isLoading || !firestore) return;
     if (user) {
-        const userDocRef = doc(firestore, "users", user.uid);
-        getDoc(userDocRef).then(docSnap => {
-            if (docSnap.exists()) {
-                setUserRole(docSnap.data().role);
-            } else {
-                setUserRole(null);
-            }
-        });
+      const userDocRef = doc(firestore, "users", user.uid);
+      getDoc(userDocRef).then(docSnap => {
+        if (docSnap.exists()) {
+          setUserRole(docSnap.data().role);
+        } else {
+          setUserRole(null);
+        }
+      });
     } else {
-        setUserRole(null);
+      setUserRole(null);
     }
   }, [user, isLoading, firestore, setUserRole]);
 
   useEffect(() => {
     if (!isHomePage) {
-        if (!isScrolled) setIsScrolled(true);
-        return;
+      if (!isScrolled) setIsScrolled(true);
+      return;
     }
 
     const handleScroll = () => {
@@ -68,7 +68,7 @@ export default function Header({ setUserRole }: { setUserRole: (role: string | n
       window.removeEventListener('scroll', handleScroll);
     };
   }, [isHomePage]);
-  
+
   useEffect(() => {
     setIsMobileMenuOpen(false);
   }, [pathname])
@@ -77,7 +77,7 @@ export default function Header({ setUserRole }: { setUserRole: (role: string | n
 
   const handleLogout = async () => {
     if (auth) {
-        await signOut(auth);
+      await signOut(auth);
     }
   }
 
@@ -99,16 +99,16 @@ export default function Header({ setUserRole }: { setUserRole: (role: string | n
     'font-semibold',
     useTransparentHeader ? 'text-foreground' : 'text-background'
   );
-  
+
   const loginButtonClasses = cn(
     useTransparentHeader ? '' : 'text-background hover:text-background hover:bg-white/10'
   );
-  
+
   const searchInputClasses = cn(
-      "w-full rounded-full border focus:ring-primary pl-4 pr-12 h-12 transition-colors",
-      useTransparentHeader 
-        ? "bg-background/20 border-foreground/30 text-foreground placeholder:text-foreground/70 focus:bg-background/80"
-        : "bg-background/20 border-foreground/30 text-background placeholder:text-background/70 focus:bg-background/30"
+    "w-full rounded-full border focus:ring-primary pl-4 pr-12 h-12 transition-colors",
+    useTransparentHeader
+      ? "bg-background/20 border-foreground/30 text-foreground placeholder:text-foreground/70 focus:bg-background/80"
+      : "bg-background/20 border-foreground/30 text-background placeholder:text-background/70 focus:bg-background/30"
   )
 
 
@@ -116,31 +116,31 @@ export default function Header({ setUserRole }: { setUserRole: (role: string | n
     <header className={headerClasses}>
       <div className="container mx-auto flex h-20 items-center justify-between px-4 md:px-6">
         <Logo href="/" className={cn(useTransparentHeader ? '' : 'text-background')} />
-        
+
         <div className="hidden md:flex flex-1 justify-center px-8 lg:px-16">
-            <div className="relative w-full max-w-lg">
-              <Input
-                type="search"
-                placeholder="ค้นหาทนาย, ความเชี่ยวชาญ, หรือปัญหา..."
-                className={searchInputClasses}
-              />
-              <Button
-                type="submit"
-                size="icon"
-                variant="secondary"
-                className={cn(
-                    "absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full",
-                    useTransparentHeader 
-                    ? "bg-foreground/20 hover:bg-foreground/30"
-                    : "bg-white/20 hover:bg-white/30"
-                )}
-              >
-                <Search className={cn(
-                    "h-4 w-4",
-                     useTransparentHeader ? "text-foreground/80" : "text-white/80"
-                )} />
-              </Button>
-            </div>
+          <div className="relative w-full max-w-lg">
+            <Input
+              type="search"
+              placeholder="ค้นหาทนาย, ความเชี่ยวชาญ, หรือปัญหา..."
+              className={searchInputClasses}
+            />
+            <Button
+              type="submit"
+              size="icon"
+              variant="secondary"
+              className={cn(
+                "absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8 rounded-full",
+                useTransparentHeader
+                  ? "bg-foreground/20 hover:bg-foreground/30"
+                  : "bg-white/20 hover:bg-white/30"
+              )}
+            >
+              <Search className={cn(
+                "h-4 w-4",
+                useTransparentHeader ? "text-foreground/80" : "text-white/80"
+              )} />
+            </Button>
+          </div>
         </div>
 
         <nav className="hidden items-center gap-4 text-sm font-medium md:flex whitespace-nowrap">
@@ -154,72 +154,72 @@ export default function Header({ setUserRole }: { setUserRole: (role: string | n
 
         <div className="hidden items-center gap-2 md:flex ml-4 whitespace-nowrap">
           {isLoading ? null : user ? (
-             <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className={cn("flex items-center gap-2", loginButtonClasses)}>
-                         <Avatar className="w-8 h-8">
-                            <AvatarImage src={user.photoURL || "https://picsum.photos/seed/user-avatar/100/100"} />
-                            <AvatarFallback>{user.displayName?.charAt(0) || user.email?.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <span className="hidden lg:inline">{user.displayName || user.email}</span>
-                        <ChevronDown className="w-4 h-4" />
-                    </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>บัญชีของฉัน</DropdownMenuLabel>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem asChild>
-                        <Link href="/dashboard"><LayoutDashboard className="mr-2" />แดชบอร์ด</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                        <Link href="/account"><User className="mr-2" />จัดการบัญชี</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem onClick={handleLogout} className="text-destructive">
-                        <LogOut className="mr-2" />ออกจากระบบ
-                    </DropdownMenuItem>
-                </DropdownMenuContent>
-             </DropdownMenu>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className={cn("flex items-center gap-2", loginButtonClasses)}>
+                  <Avatar className="w-8 h-8">
+                    <AvatarImage src={user.photoURL || "https://picsum.photos/seed/user-avatar/100/100"} />
+                    <AvatarFallback>{user.displayName?.charAt(0) || user.email?.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <span className="hidden lg:inline">{user.displayName || user.email}</span>
+                  <ChevronDown className="w-4 h-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>บัญชีของฉัน</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link href="/dashboard"><LayoutDashboard className="mr-2" />แดชบอร์ด</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link href="/account"><User className="mr-2" />จัดการบัญชี</Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout} className="text-destructive">
+                  <LogOut className="mr-2" />ออกจากระบบ
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
             <Link href="/login">
-                <Button variant="ghost" className={loginButtonClasses}>เข้าสู่ระบบ</Button>
+              <Button variant="ghost" className={loginButtonClasses}>เข้าสู่ระบบ</Button>
             </Link>
           )}
         </div>
-        
+
         <div className="md:hidden">
-            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-                <SheetTrigger asChild>
-                    <Button variant="ghost" size="icon" className={cn(useTransparentHeader ? 'text-foreground' : 'text-background')}>
-                        <Menu />
-                        <span className="sr-only">เปิดเมนู</span>
-                    </Button>
-                </SheetTrigger>
-                <SheetContent side="left" className="p-0">
-                    <SheetHeader className="p-6 pb-0">
-                      <SheetTitle>
-                        <Logo href="/" />
-                      </SheetTitle>
-                    </SheetHeader>
-                    <div className="flex flex-col gap-6 p-6">
-                        <nav className="flex flex-col gap-4 text-lg mt-6">
-                            <Link href="/" className="hover:text-primary">หน้าแรก</Link>
-                            <Link href="/articles" className="hover:text-primary">บทความ</Link>
-                            <Link href="/for-lawyers" className="hover:text-primary">สำหรับทนายความ</Link>
-                             <Link href="/lawyers" className="hover:text-primary">ค้นหาทนาย</Link>
-                        </nav>
-                         <div className="border-t pt-6">
-                           {user ? (
-                                <Button onClick={handleLogout} className="w-full" variant="destructive">ออกจากระบบ</Button>
-                           ) : (
-                                <Link href="/login">
-                                    <Button className="w-full">เข้าสู่ระบบ</Button>
-                                </Link>
-                           )}
-                        </div>
-                    </div>
-                </SheetContent>
-            </Sheet>
+          <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className={cn(useTransparentHeader ? 'text-foreground' : 'text-background')}>
+                <Menu />
+                <span className="sr-only">เปิดเมนู</span>
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="p-0">
+              <SheetHeader className="p-6 pb-0">
+                <SheetTitle>
+                  <Logo href="/" />
+                </SheetTitle>
+              </SheetHeader>
+              <div className="flex flex-col gap-6 p-6">
+                <nav className="flex flex-col gap-4 text-lg mt-6">
+                  <Link href="/" className="hover:text-primary">หน้าแรก</Link>
+                  <Link href="/articles" className="hover:text-primary">บทความ</Link>
+                  <Link href="/for-lawyers" className="hover:text-primary">สำหรับทนายความ</Link>
+                  <Link href="/lawyers" className="hover:text-primary">ค้นหาทนาย</Link>
+                </nav>
+                <div className="border-t pt-6">
+                  {user ? (
+                    <Button onClick={handleLogout} className="w-full" variant="destructive">ออกจากระบบ</Button>
+                  ) : (
+                    <Link href="/login">
+                      <Button className="w-full">เข้าสู่ระบบ</Button>
+                    </Link>
+                  )}
+                </div>
+              </div>
+            </SheetContent>
+          </Sheet>
         </div>
 
       </div>

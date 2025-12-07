@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -31,6 +31,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import Logo from '@/components/logo';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+// import { Locale } from '@/../i18n.config'; // Removed unused import
 
 const formSchema = z.object({
   email: z.string().email({ message: 'รูปแบบอีเมลไม่ถูกต้อง' }),
@@ -39,6 +40,8 @@ const formSchema = z.object({
 
 export default function LawyerLoginPage() {
   const router = useRouter();
+  // const params = useParams(); // Removed lang param
+  // const lang = params.lang as Locale; // Removed lang param
   const { auth } = useFirebase();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
@@ -64,7 +67,7 @@ export default function LawyerLoginPage() {
     } catch (error: any) {
       console.error(error);
       let errorMessage = 'เกิดข้อผิดพลาดที่ไม่รู้จัก';
-       if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
         errorMessage = 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
       }
       toast({
@@ -82,16 +85,16 @@ export default function LawyerLoginPage() {
       <div className="container mx-auto flex justify-center p-4">
         <Card className="w-full max-w-md shadow-xl">
           <CardHeader className="text-center space-y-4">
-            <Link href={`/`} className="flex justify-center">
+            <div className="flex justify-center">
               <Logo href="/" />
-            </Link>
-             <Tabs defaultValue="lawyer" className="w-full">
+            </div>
+            <Tabs defaultValue="lawyer" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="customer" asChild>
-                    <Link href={`/login`}>ลูกค้า</Link>
+                  <Link href={`/login`}>ลูกค้า</Link>
                 </TabsTrigger>
                 <TabsTrigger value="lawyer" asChild>
-                    <Link href={`/lawyer-login`}>ทนายความ</Link>
+                  <Link href={`/lawyer-login`}>ทนายความ</Link>
                 </TabsTrigger>
               </TabsList>
             </Tabs>

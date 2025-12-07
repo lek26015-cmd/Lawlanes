@@ -1,7 +1,8 @@
+
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -30,7 +31,8 @@ import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import Logo from '@/components/logo';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'; // ✅ แก้เครื่องหมาย ; ให้ถูกต้อง
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+// import { Locale } from '@/../i18n.config'; // Removed unused import
 
 const formSchema = z.object({
   email: z.string().email({ message: 'รูปแบบอีเมลไม่ถูกต้อง' }),
@@ -39,6 +41,8 @@ const formSchema = z.object({
 
 export default function LoginPage() {
   const router = useRouter();
+  // const params = useParams(); // Removed lang param
+  // const lang = params.lang as Locale; // Removed lang param
   const { auth, firestore } = useFirebase();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
@@ -65,7 +69,7 @@ export default function LoginPage() {
     } catch (error: any) {
       console.error(error);
       let errorMessage = 'เกิดข้อผิดพลาดที่ไม่รู้จัก';
-       if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
         errorMessage = 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
       }
       toast({
@@ -122,9 +126,10 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="container mx-auto flex justify-center p-4">
         <Card className="w-full max-w-md shadow-xl">
-          {/* ✅ เพิ่ม CardHeader กลับเข้ามาเพื่อให้ตรงกับ CardHeader ปิดท้าย */}
           <CardHeader className="text-center space-y-4">
-            <Logo href="/" className="flex justify-center" />
+            <div className="flex justify-center">
+              <Logo href="/" />
+            </div>
             <Tabs defaultValue="customer" className="w-full">
               <TabsList className="grid w-full grid-cols-2">
                 <TabsTrigger value="customer" asChild>
@@ -142,7 +147,6 @@ export default function LoginPage() {
               ยินดีต้อนรับกลับสู่ Lawlanes
             </CardDescription>
           </CardHeader>
-          
           <CardContent>
             <Button variant="outline" className="w-full" onClick={handleGoogleSignIn} disabled={isGoogleLoading || isLoading}>
               {isGoogleLoading ? (
@@ -199,12 +203,12 @@ export default function LoginPage() {
               </form>
             </Form>
             <div className="mt-4 text-center text-sm">
-               <p>
-                  ยังไม่มีบัญชี?{' '}
-                  <Link href={`/signup`} className="underline hover:text-primary">
-                    สมัครสมาชิกที่นี่
-                  </Link>
-               </p>
+              <p>
+                ยังไม่มีบัญชี?{' '}
+                <Link href={`/signup`} className="underline hover:text-primary">
+                  สมัครสมาชิกที่นี่
+                </Link>
+              </p>
             </div>
           </CardContent>
         </Card>

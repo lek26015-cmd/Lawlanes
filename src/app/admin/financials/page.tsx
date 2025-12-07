@@ -73,6 +73,7 @@ type SlipVerificationItem = {
   amount: number;
   submittedAt: Date;
   collectionName: 'appointments' | 'chats';
+  slipUrl?: string;
 };
 
 export default function AdminFinancialsPage() {
@@ -108,31 +109,62 @@ export default function AdminFinancialsPage() {
 
       const pending: SlipVerificationItem[] = [];
 
-      appointmentSnapshot.docs.forEach((d) => {
+      // Helper to fetch user name
+      const getUserName = async (uid: string) => {
+        try {
+          const userDoc = await getDocs(query(collection(firestore, 'users'), where('uid', '==', uid)));
+          if (!userDoc.empty) return userDoc.docs[0].data().name;
+          return 'Unknown User';
+        } catch (e) { return 'Unknown User'; }
+      };
+
+      // Helper to fetch lawyer name
+      const getLawyerName = async (lawyerId: string) => {
+        try {
+          const lawyerDoc = await getDocs(query(collection(firestore, 'lawyerProfiles'), where('id', '==', lawyerId)));
+          if (!lawyerDoc.empty) return lawyerDoc.docs[0].data().name;
+          return 'Unknown Lawyer';
+        } catch (e) { return 'Unknown Lawyer'; }
+      }
+
+
+      for (const d of appointmentSnapshot.docs) {
         const data = d.data();
+        const userName = await getUserName(data.userId);
         pending.push({
           id: d.id,
           type: 'Appointment',
-          userName: 'ลูกค้า (ดึงข้อมูลจริง)', // Placeholder
+          userName: userName,
           lawyerName: data.lawyerName,
-          amount: 3500, // Hardcoded for now
-          submittedAt: data.createdAt.toDate(),
+          amount: 3500,
+          submittedAt: data.createdAt?.toDate() || new Date(),
           collectionName: 'appointments',
+          slipUrl: data.slipUrl
         });
-      });
+      }
 
-      chatSnapshot.docs.forEach((d) => {
+      for (const d of chatSnapshot.docs) {
         const data = d.data();
+        // Chat participants: [userId, lawyerUserId]
+        // We need to find which one is the customer. Usually the creator.
+        // But here we saved userId explicitly in my previous step.
+        const userId = data.userId || data.participants[0];
+        const lawyerId = data.lawyerId;
+
+        const userName = await getUserName(userId);
+        const lawyerName = lawyerId ? await getLawyerName(lawyerId) : 'Unknown Lawyer';
+
         pending.push({
           id: d.id,
           type: 'Chat',
-          userName: 'ลูกค้า (ดึงข้อมูลจริง)', // Placeholder
-          lawyerName: 'ทนาย (ดึงข้อมูลจริง)', // Placeholder
-          amount: 500, // Hardcoded for now
-          submittedAt: data.createdAt.toDate(),
+          userName: userName,
+          lawyerName: lawyerName,
+          amount: 500,
+          submittedAt: data.createdAt?.toDate() || new Date(),
           collectionName: 'chats',
+          slipUrl: data.slipUrl
         });
-      });
+      }
 
       setSlipVerifications(pending.sort((a, b) => b.submittedAt.getTime() - a.submittedAt.getTime()));
     } catch (error) {
@@ -373,12 +405,12 @@ export default function AdminFinancialsPage() {
                               ฿{item.amount.toLocaleString()}
                             </TableCell>
                             <TableCell className="text-right space-x-2">
-                               <Button variant="outline" size="sm">
-                                <Eye className="mr-1 h-3 w-3"/> ดูสลิป
-                               </Button>
-                               <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => handleApprovePayment(item)}>
-                                <CheckCircle className="mr-1 h-3 w-3"/> อนุมัติ
-                               </Button>
+                              <Button variant="outline" size="sm" onClick={() => item.slipUrl && window.open(item.slipUrl, '_blank')} disabled={!item.slipUrl}>
+                                <Eye className="mr-1 h-3 w-3" /> ดูสลิป
+                              </Button>
+                              <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => handleApprovePayment(item)}>
+                                <CheckCircle className="mr-1 h-3 w-3" /> อนุมัติ
+                              </Button>
                             </TableCell>
                           </TableRow>
                         ))
@@ -394,9 +426,9 @@ export default function AdminFinancialsPage() {
                 </CardContent>
               </Card>
             </TabsContent>
-            
+
             <TabsContent value="transactions">
-                <p className="text-muted-foreground">ส่วนนี้กำลังอยู่ในระหว่างการพัฒนา จะแสดงรายการธุรกรรมทั้งหมด</p>
+              <p className="text-muted-foreground">ส่วนนี้กำลังอยู่ในระหว่างการพัฒนา จะแสดงรายการธุรกรรมทั้งหมด</p>
             </TabsContent>
 
           </Tabs>

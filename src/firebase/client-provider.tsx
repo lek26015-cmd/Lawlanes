@@ -57,6 +57,7 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
       firebaseApp={firebaseServices.firebaseApp}
       auth={firebaseServices.auth}
       firestore={firebaseServices.firestore}
+      storage={firebaseServices.storage}
       user={userAuthState.user}
       isUserLoading={userAuthState.isUserLoading}
       userError={userAuthState.userError}

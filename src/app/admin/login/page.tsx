@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter, useParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -42,7 +42,6 @@ export default function AdminLoginPage() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
-  
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -119,7 +118,7 @@ export default function AdminLoginPage() {
         <Card className="w-full max-w-md shadow-xl bg-gray-800/50 border-gray-700">
           <CardHeader className="text-center space-y-4">
             <div className="flex justify-center text-white">
-              <Logo href={`/`} />
+              <Gavel className="h-8 w-8" />
             </div>
             <CardTitle className="text-2xl font-bold font-headline pt-4">
               Administrator Login
