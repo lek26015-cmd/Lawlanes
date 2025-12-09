@@ -51,7 +51,7 @@ export default function LawyerDashboardPage() {
 
     async function fetchData() {
       setIsLoading(true);
-      const data = await getLawyerDashboardData(firestore, user!.uid);
+      const data = await getLawyerDashboardData(firestore!, user!.uid);
       setRequests(data.newRequests);
       setActiveCases(data.activeCases);
       setCompletedCases(data.completedCases);

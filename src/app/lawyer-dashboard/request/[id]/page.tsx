@@ -31,6 +31,7 @@ import { format } from 'date-fns';
 import { th } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { v4 as uuidv4 } from 'uuid';
+import { useFirebase } from '@/firebase';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -50,13 +51,15 @@ function RequestDetailPageContent() {
   const { toast } = useToast();
   const id = params.id as string;
 
+  const { firestore } = useFirebase();
   const [request, setRequest] = useState<LawyerAppointmentRequest | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     async function fetchRequestData() {
+      if (!firestore) return;
       setIsLoading(true);
-      const requestData = await getLawyerAppointmentRequestById(id);
+      const requestData = await getLawyerAppointmentRequestById(firestore, id);
 
       if (!requestData) {
         notFound();
@@ -66,7 +69,7 @@ function RequestDetailPageContent() {
       setIsLoading(false);
     }
     fetchRequestData();
-  }, [id]);
+  }, [id, firestore]);
 
   const handleAcceptCase = () => {
     // In a real app, this would update the case status, create a chat, etc.
@@ -125,24 +128,24 @@ function RequestDetailPageContent() {
           </CardHeader>
           <CardContent className="space-y-6 p-6">
             <div className="space-y-4 rounded-lg border bg-secondary/30 p-4">
-                <div className="flex items-center gap-4">
-                     <Avatar className="h-14 w-14">
-                        <AvatarImage src="https://picsum.photos/seed/user-avatar/100/100" />
-                        <AvatarFallback>{request.clientName.charAt(0)}</AvatarFallback>
-                    </Avatar>
-                    <div>
-                        <p className="font-semibold text-muted-foreground">ผู้ขอรับคำปรึกษา</p>
-                        <p className="font-bold text-lg text-foreground">{request.clientName}</p>
-                    </div>
+              <div className="flex items-center gap-4">
+                <Avatar className="h-14 w-14">
+                  <AvatarImage src="https://picsum.photos/seed/user-avatar/100/100" />
+                  <AvatarFallback>{request.clientName.charAt(0)}</AvatarFallback>
+                </Avatar>
+                <div>
+                  <p className="font-semibold text-muted-foreground">ผู้ขอรับคำปรึกษา</p>
+                  <p className="font-bold text-lg text-foreground">{request.clientName}</p>
                 </div>
+              </div>
             </div>
 
             <div className="space-y-4 rounded-lg border bg-background p-4">
-              <h3 className="font-semibold flex items-center gap-2"><FileText className="w-5 h-5 text-muted-foreground"/> ข้อมูลเคส</h3>
+              <h3 className="font-semibold flex items-center gap-2"><FileText className="w-5 h-5 text-muted-foreground" /> ข้อมูลเคส</h3>
               <div className="flex items-start gap-3 pl-7">
                 <div>
-                    <p className="font-medium">หัวข้อ</p>
-                    <p className="text-muted-foreground">{request.caseTitle}</p>
+                  <p className="font-medium">หัวข้อ</p>
+                  <p className="text-muted-foreground">{request.caseTitle}</p>
                 </div>
               </div>
               <div className="flex items-start gap-3 pl-7">
@@ -154,25 +157,25 @@ function RequestDetailPageContent() {
                 </div>
               </div>
             </div>
-            
+
             <div className="space-y-4 rounded-lg border bg-background p-4">
-                 <h3 className="font-semibold flex items-center gap-2"><Clock className="w-5 h-5 text-muted-foreground"/> ข้อมูลการส่งเรื่อง</h3>
-                 <div className="flex items-start gap-3 pl-7">
-                    <div>
-                        <p className="font-medium">วันที่ส่งคำขอ</p>
-                        <p className="text-muted-foreground">
-                            {format(request.requestedAt, 'EEEE, d MMMM yyyy, HH:mm', { locale: th })}
-                        </p>
-                    </div>
+              <h3 className="font-semibold flex items-center gap-2"><Clock className="w-5 h-5 text-muted-foreground" /> ข้อมูลการส่งเรื่อง</h3>
+              <div className="flex items-start gap-3 pl-7">
+                <div>
+                  <p className="font-medium">วันที่ส่งคำขอ</p>
+                  <p className="text-muted-foreground">
+                    {format(request.requestedAt, 'EEEE, d MMMM yyyy, HH:mm', { locale: th })}
+                  </p>
                 </div>
+              </div>
             </div>
 
             <div className="space-y-2 rounded-lg border border-green-200 bg-green-50 p-4">
-                <h3 className="font-semibold flex items-center gap-2 text-green-800"><DollarSign className="w-5 h-5"/> ค่าบริการ (Escrow)</h3>
-                <div className="flex items-center justify-between text-green-700 pl-7">
-                    <p>ลูกค้าได้ชำระค่าบริการเบื้องต้นไว้ในระบบแล้ว</p>
-                    <p className="font-bold text-lg">฿3,500</p>
-                </div>
+              <h3 className="font-semibold flex items-center gap-2 text-green-800"><DollarSign className="w-5 h-5" /> ค่าบริการ (Escrow)</h3>
+              <div className="flex items-center justify-between text-green-700 pl-7">
+                <p>ลูกค้าได้ชำระค่าบริการเบื้องต้นไว้ในระบบแล้ว</p>
+                <p className="font-bold text-lg">฿3,500</p>
+              </div>
             </div>
 
 
@@ -203,28 +206,28 @@ function RequestDetailPageContent() {
               </AlertDialogContent>
             </AlertDialog>
             <AlertDialog>
-                <AlertDialogTrigger asChild>
-                    <Button size="lg" className="bg-green-600 hover:bg-green-700">
-                        <Check className="mr-2" /> รับเคสนี้
-                    </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                    <AlertDialogHeader>
-                        <AlertDialogTitle>ยืนยันการรับเคส?</AlertDialogTitle>
-                        <AlertDialogDescription>
-                          การรับเคสนี้จะสร้างห้องสนทนาส่วนตัวระหว่างคุณและลูกค้า และจะถือว่าเป็นการเริ่มต้นการให้คำปรึกษาอย่างเป็นทางการ
-                        </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                        <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
-                        <AlertDialogAction
-                         onClick={handleAcceptCase}
-                         className="bg-green-600 text-white hover:bg-green-700"
-                        >
-                        ยืนยันการรับเคส
-                        </AlertDialogAction>
-                    </AlertDialogFooter>
-                </AlertDialogContent>
+              <AlertDialogTrigger asChild>
+                <Button size="lg" className="bg-green-600 hover:bg-green-700">
+                  <Check className="mr-2" /> รับเคสนี้
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>ยืนยันการรับเคส?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    การรับเคสนี้จะสร้างห้องสนทนาส่วนตัวระหว่างคุณและลูกค้า และจะถือว่าเป็นการเริ่มต้นการให้คำปรึกษาอย่างเป็นทางการ
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleAcceptCase}
+                    className="bg-green-600 text-white hover:bg-green-700"
+                  >
+                    ยืนยันการรับเคส
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
             </AlertDialog>
           </CardFooter>
         </Card>
@@ -234,9 +237,9 @@ function RequestDetailPageContent() {
 }
 
 export default function RequestDetailPage() {
-    return (
-        <Suspense fallback={<div>Loading request...</div>}>
-            <RequestDetailPageContent />
-        </Suspense>
-    )
+  return (
+    <Suspense fallback={<div>Loading request...</div>}>
+      <RequestDetailPageContent />
+    </Suspense>
+  )
 }

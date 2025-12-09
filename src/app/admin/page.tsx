@@ -41,16 +41,14 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { useFirebase } from '@/firebase';
-import { collection, query, where, getDocs, limit } from 'firebase/firestore';
+import { useFirebase, useUser } from '@/firebase';
+import { collection, query, where, getDocs, limit, doc, getDoc } from 'firebase/firestore';
 import { getAdminStats } from '@/lib/data';
 
-interface AdminDashboardProps {
-  userRole?: string | null;
-}
-
-export default function AdminDashboard({ userRole }: AdminDashboardProps) {
+export default function AdminDashboard() {
   const { firestore } = useFirebase();
+  const { user } = useUser();
+  const [userRole, setUserRole] = React.useState<string | null>(null);
   const [stats, setStats] = React.useState({
     totalUsers: 0,
     newUsers: 0,
@@ -62,7 +60,15 @@ export default function AdminDashboard({ userRole }: AdminDashboardProps) {
   const [tickets, setTickets] = React.useState<any[]>([]);
 
   React.useEffect(() => {
-    if (!firestore) return;
+    if (!firestore || !user) return;
+
+    // Fetch user role
+    const userDocRef = doc(firestore, "users", user.uid);
+    getDoc(userDocRef).then(docSnap => {
+      if (docSnap.exists()) {
+        setUserRole(docSnap.data().role);
+      }
+    });
 
     // Fetch stats
     getAdminStats(firestore).then(setStats);

@@ -27,9 +27,9 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
-import { mockLawyers as allMockLawyers } from '@/lib/data'
+import { getLawyerById } from '@/lib/data'
+import { useFirebase } from '@/firebase'
 import type { LawyerProfile } from '@/lib/types';
-import { Badge } from '@/components/ui/badge'
 import { Checkbox } from '@/components/ui/checkbox'
 
 export default function AdminLawyerEditPage() {
@@ -37,19 +37,19 @@ export default function AdminLawyerEditPage() {
   const router = useRouter()
   const { id } = params
   const { toast } = useToast()
+  const { firestore } = useFirebase();
 
   const [lawyer, setLawyer] = React.useState<LawyerProfile | null>(null);
 
   React.useEffect(() => {
-    const foundLawyer = allMockLawyers.find(l => l.id === id);
-    // @ts-ignore
-    setLawyer(foundLawyer || null);
-  }, [id]);
+    if (!firestore || !id) return;
+    getLawyerById(firestore, id as string).then(l => setLawyer(l || null));
+  }, [id, firestore]);
 
   const handleSaveChanges = () => {
     toast({
-        title: "บันทึกข้อมูลสำเร็จ",
-        description: `ข้อมูลของทนาย ${lawyer?.name} ได้รับการอัปเดตแล้ว`,
+      title: "บันทึกข้อมูลสำเร็จ",
+      description: `ข้อมูลของทนาย ${lawyer?.name} ได้รับการอัปเดตแล้ว`,
     })
     router.push(`/admin/lawyers/${id}`);
   }
@@ -57,106 +57,106 @@ export default function AdminLawyerEditPage() {
   if (!lawyer) {
     return <div>Loading...</div>
   }
-  
+
   const allSpecialties = ['คดีฉ้อโกง SMEs', 'คดีแพ่งและพาณิชย์', 'การผิดสัญญา', 'ทรัพย์สินทางปัญญา', 'กฎหมายแรงงาน'];
 
 
   return (
-      <main className="flex-1 p-4 sm:px-6 sm:py-0 md:p-8">
-        <div className="mx-auto grid max-w-2xl flex-1 auto-rows-max gap-4">
-          <div className="flex items-center gap-4">
+    <main className="flex-1 p-4 sm:px-6 sm:py-0 md:p-8">
+      <div className="mx-auto grid max-w-2xl flex-1 auto-rows-max gap-4">
+        <div className="flex items-center gap-4">
+          <Link href={`/admin/lawyers/${id}`}>
+            <Button variant="outline" size="icon" className="h-7 w-7">
+              <ChevronLeft className="h-4 w-4" />
+              <span className="sr-only">กลับ</span>
+            </Button>
+          </Link>
+          <h1 className="flex-1 shrink-0 whitespace-nowrap text-xl font-semibold tracking-tight sm:grow-0">
+            แก้ไขข้อมูลทนายความ
+          </h1>
+          <div className="hidden items-center gap-2 md:ml-auto md:flex">
             <Link href={`/admin/lawyers/${id}`}>
-                <Button variant="outline" size="icon" className="h-7 w-7">
-                <ChevronLeft className="h-4 w-4" />
-                <span className="sr-only">กลับ</span>
-                </Button>
-            </Link>
-            <h1 className="flex-1 shrink-0 whitespace-nowrap text-xl font-semibold tracking-tight sm:grow-0">
-              แก้ไขข้อมูลทนายความ
-            </h1>
-            <div className="hidden items-center gap-2 md:ml-auto md:flex">
-              <Link href={`/admin/lawyers/${id}`}>
-                <Button variant="outline" size="sm">
-                    ยกเลิก
-                </Button>
-              </Link>
-              <Button size="sm" onClick={handleSaveChanges}>
-                บันทึกการเปลี่ยนแปลง
+              <Button variant="outline" size="sm">
+                ยกเลิก
               </Button>
-            </div>
+            </Link>
+            <Button size="sm" onClick={handleSaveChanges}>
+              บันทึกการเปลี่ยนแปลง
+            </Button>
           </div>
-          <Card>
-            <CardHeader>
-              <CardTitle>ข้อมูลโปรไฟล์</CardTitle>
-              <CardDescription>
-                จัดการข้อมูลส่วนตัวและสถานะของทนายความ
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-6">
-                <div className="grid gap-3">
-                  <Label htmlFor="picture">รูปโปรไฟล์</Label>
-                  <div className="flex items-center gap-4">
-                    <Avatar className="h-16 w-16">
-                      <AvatarImage src={lawyer.imageUrl} />
-                      <AvatarFallback>{lawyer.name.slice(0, 2)}</AvatarFallback>
-                    </Avatar>
-                    <Button variant="outline">
-                      <Upload className="h-4 w-4 mr-2"/>
-                      เปลี่ยนรูป
-                    </Button>
-                  </div>
-                </div>
-                <div className="grid gap-3">
-                  <Label htmlFor="name">ชื่อ-นามสกุล</Label>
-                  <Input
-                    id="name"
-                    type="text"
-                    className="w-full"
-                    defaultValue={lawyer.name}
-                  />
-                </div>
-                <div className="grid gap-3">
-                    <Label htmlFor="status">สถานะ</Label>
-                    <Select defaultValue={lawyer.status}>
-                        <SelectTrigger id="status">
-                            <SelectValue placeholder="เลือกสถานะ" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="approved">อนุมัติแล้ว</SelectItem>
-                            <SelectItem value="pending">รอตรวจสอบ</SelectItem>
-                            <SelectItem value="rejected">ถูกปฏิเสธ</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </div>
-                <div className="grid gap-3">
-                  <Label>ความเชี่ยวชาญ</Label>
-                   <div className="grid grid-cols-2 gap-2">
-                        {allSpecialties.map(spec => (
-                            <div key={spec} className="flex items-center space-x-2 p-2 rounded-md bg-secondary/50">
-                                <Checkbox 
-                                    id={`spec-${spec}`} 
-                                    defaultChecked={lawyer.specialty.includes(spec)}
-                                />
-                                <Label htmlFor={`spec-${spec}`} className="text-sm font-normal">{spec}</Label>
-                            </div>
-                        ))}
-                    </div>
+        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>ข้อมูลโปรไฟล์</CardTitle>
+            <CardDescription>
+              จัดการข้อมูลส่วนตัวและสถานะของทนายความ
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-6">
+              <div className="grid gap-3">
+                <Label htmlFor="picture">รูปโปรไฟล์</Label>
+                <div className="flex items-center gap-4">
+                  <Avatar className="h-16 w-16">
+                    <AvatarImage src={lawyer.imageUrl} />
+                    <AvatarFallback>{lawyer.name.slice(0, 2)}</AvatarFallback>
+                  </Avatar>
+                  <Button variant="outline">
+                    <Upload className="h-4 w-4 mr-2" />
+                    เปลี่ยนรูป
+                  </Button>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-           <div className="flex items-center justify-end gap-2 md:hidden">
-              <Link href={`/admin/lawyers/${id}`}>
-                <Button variant="outline" size="sm">
-                    ยกเลิก
-                </Button>
-              </Link>
-              <Button size="sm" onClick={handleSaveChanges}>
-                บันทึกการเปลี่ยนแปลง
-              </Button>
+              <div className="grid gap-3">
+                <Label htmlFor="name">ชื่อ-นามสกุล</Label>
+                <Input
+                  id="name"
+                  type="text"
+                  className="w-full"
+                  defaultValue={lawyer.name}
+                />
+              </div>
+              <div className="grid gap-3">
+                <Label htmlFor="status">สถานะ</Label>
+                <Select defaultValue={lawyer.status}>
+                  <SelectTrigger id="status">
+                    <SelectValue placeholder="เลือกสถานะ" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="approved">อนุมัติแล้ว</SelectItem>
+                    <SelectItem value="pending">รอตรวจสอบ</SelectItem>
+                    <SelectItem value="rejected">ถูกปฏิเสธ</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid gap-3">
+                <Label>ความเชี่ยวชาญ</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {allSpecialties.map(spec => (
+                    <div key={spec} className="flex items-center space-x-2 p-2 rounded-md bg-secondary/50">
+                      <Checkbox
+                        id={`spec-${spec}`}
+                        defaultChecked={lawyer.specialty.includes(spec)}
+                      />
+                      <Label htmlFor={`spec-${spec}`} className="text-sm font-normal">{spec}</Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </div>
+          </CardContent>
+        </Card>
+        <div className="flex items-center justify-end gap-2 md:hidden">
+          <Link href={`/admin/lawyers/${id}`}>
+            <Button variant="outline" size="sm">
+              ยกเลิก
+            </Button>
+          </Link>
+          <Button size="sm" onClick={handleSaveChanges}>
+            บันทึกการเปลี่ยนแปลง
+          </Button>
         </div>
-      </main>
+      </div>
+    </main>
   )
 }

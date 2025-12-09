@@ -6,11 +6,13 @@
  * - chat - A function that handles the chat process.
  */
 
-import {ai} from '@/ai/genkit';
-import {MessageData} from 'genkit';
-import {z} from 'zod';
+import { ai } from '@/ai/genkit';
+import { MessageData } from 'genkit';
+import { z } from 'zod';
 import { getAllArticles } from '@/lib/data';
 import { Article } from '@/lib/types';
+
+import { initializeFirebase } from '@/firebase';
 
 // Define the tool for searching articles
 const searchArticlesTool = ai.defineTool(
@@ -31,11 +33,12 @@ const searchArticlesTool = ai.defineTool(
   },
   async (input) => {
     console.log(`[searchArticlesTool] Searching for: ${input.query}`);
-    const articles = await getAllArticles();
+    const { firestore } = initializeFirebase();
+    const articles = await getAllArticles(firestore);
     const lowerCaseQuery = input.query.toLowerCase();
-    
+
     const filteredArticles = articles
-      .filter(article => 
+      .filter(article =>
         article.title.toLowerCase().includes(lowerCaseQuery) ||
         article.description.toLowerCase().includes(lowerCaseQuery) ||
         article.content.toLowerCase().includes(lowerCaseQuery)
@@ -53,7 +56,7 @@ const ChatRequestSchema = z.object({
   history: z.array(
     z.object({
       role: z.enum(['user', 'model']),
-      content: z.array(z.object({text: z.string()})),
+      content: z.array(z.object({ text: z.string() })),
     })
   ),
   prompt: z.string(),
@@ -69,11 +72,11 @@ const ChatResponseSchema = z.object({
 export type ChatResponse = z.infer<typeof ChatResponseSchema>;
 
 const chatPrompt = ai.definePrompt({
-    name: 'chatPrompt',
-    input: { schema: ChatRequestSchema },
-    output: { schema: ChatResponseSchema },
-    tools: [searchArticlesTool],
-    system: `You are an AI legal assistant for Lawlanes, a legal tech platform in Thailand.
+  name: 'chatPrompt',
+  input: { schema: ChatRequestSchema },
+  output: { schema: ChatResponseSchema },
+  tools: [searchArticlesTool],
+  system: `You are an AI legal assistant for Lawlanes, a legal tech platform in Thailand.
     Your role is to provide preliminary analysis and information, not definitive legal advice.
     
     Always follow these steps:
@@ -83,18 +86,18 @@ const chatPrompt = ai.definePrompt({
     4.  Always conclude your response by reminding the user that your analysis is for informational purposes only and they should consult with a qualified lawyer for formal advice.
     5.  All responses must be in Thai.
     `,
-    prompt: `User prompt: {{{prompt}}}`,
+  prompt: `User prompt: {{{prompt}}}`,
 });
 
 
 export async function chat(
   request: z.infer<typeof ChatRequestSchema>
 ): Promise<ChatResponse> {
-  const {history, prompt} = request;
+  const { history, prompt } = request;
 
   const { output } = await chatPrompt({
-      history: history as MessageData[],
-      prompt,
+    history,
+    prompt,
   });
 
   return output!;

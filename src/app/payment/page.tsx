@@ -22,7 +22,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { v4 as uuidv4 } from 'uuid';
 import { useFirebase } from '@/firebase';
 import { addDoc, collection, doc, serverTimestamp, setDoc } from 'firebase/firestore';
-import { errorEmitter, FirestorePermissionError, storage } from '@/firebase';
+import { errorEmitter, FirestorePermissionError } from '@/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 
@@ -31,7 +31,7 @@ function PaymentPageContent() {
     const router = useRouter();
     const { toast } = useToast();
     const { setInitialChatMessage } = useChat();
-    const { firestore, user } = useFirebase();
+    const { firestore, user, storage } = useFirebase();
 
     const paymentType = searchParams.get('type') || 'appointment';
     const lawyerId = searchParams.get('lawyerId');
