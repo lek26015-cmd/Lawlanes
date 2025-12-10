@@ -21,9 +21,11 @@ import { useChat } from '@/context/chat-context';
 import { Textarea } from '@/components/ui/textarea';
 import { v4 as uuidv4 } from 'uuid';
 import { useFirebase } from '@/firebase';
-import { addDoc, collection, doc, serverTimestamp, setDoc } from 'firebase/firestore';
+import { addDoc, collection, doc, serverTimestamp, setDoc, getDoc, query, where, getDocs } from 'firebase/firestore';
 import { errorEmitter, FirestorePermissionError } from '@/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '@/lib/constants';
+import { compressImageToBase64 } from '@/lib/image-utils';
 
 
 function PaymentPageContent() {
@@ -44,7 +46,7 @@ function PaymentPageContent() {
     const [paymentSuccess, setPaymentSuccess] = useState(false);
     const [promptPayPayload, setPromptPayPayload] = useState('');
     const [initialMessage, setInitialMessage] = useState(description || '');
-    const [activeTab, setActiveTab] = useState("credit-card");
+    const [activeTab, setActiveTab] = useState("bank-transfer");
     const [isWaitingForPayment, setIsWaitingForPayment] = useState(false);
     const [slipFile, setSlipFile] = useState<File | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -62,13 +64,29 @@ function PaymentPageContent() {
                 setIsLoading(false);
                 return;
             }
+
+            // Check if current user is a lawyer
+            if (user) {
+                const q = query(collection(firestore, "lawyerProfiles"), where("userId", "==", user.uid));
+                const lawyerSnap = await getDocs(q);
+                if (!lawyerSnap.empty) {
+                    toast({
+                        variant: "destructive",
+                        title: "ไม่สามารถทำรายการได้",
+                        description: "บัญชีทนายความไม่สามารถชำระเงินค่าบริการได้"
+                    });
+                    router.push('/lawyer-dashboard');
+                    return;
+                }
+            }
+
             setIsLoading(true);
             const lawyerData = await getLawyerById(firestore, lawyerId);
             setLawyer(lawyerData || null);
             setIsLoading(false);
         }
         fetchLawyer();
-    }, [lawyerId, firestore]);
+    }, [lawyerId, firestore, user, router, toast]);
 
     useEffect(() => {
         // This is a mock phone number for QR generation
@@ -86,9 +104,19 @@ function PaymentPageContent() {
     };
 
     const processPayment = async (isManualTransfer = false) => {
+        const targetLawyerUserId = lawyer?.userId || lawyer?.id;
+        console.log("Starting processPayment", { isManualTransfer, paymentType, user: user?.uid, lawyer: lawyer?.id, targetLawyerUserId });
         setIsProcessing(true);
         if (!firestore || !user || !lawyer) {
+            console.error("Missing dependencies", { firestore: !!firestore, user: !!user, lawyer: !!lawyer });
             toast({ variant: "destructive", title: "เกิดข้อผิดพลาด", description: "ไม่สามารถเชื่อมต่อฐานข้อมูลได้" });
+            setIsProcessing(false);
+            return;
+        }
+
+        if (!targetLawyerUserId) {
+            console.error("Lawyer data is missing userId and id", lawyer);
+            toast({ variant: "destructive", title: "ข้อมูลทนายความไม่ถูกต้อง", description: "ไม่พบข้อมูลผู้ใช้ของทนายความ กรุณาติดต่อผู้ดูแลระบบ" });
             setIsProcessing(false);
             return;
         }
@@ -96,23 +124,47 @@ function PaymentPageContent() {
         try {
             let slipUrl = '';
             if (isManualTransfer && slipFile) {
+                console.log("Uploading slip...");
                 try {
-                    slipUrl = await uploadSlip(slipFile, user.uid);
+                    // Add timeout to upload
+                    const uploadPromise = uploadSlip(slipFile, user.uid);
+                    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Upload timed out")), 15000)); // 15s timeout
+
+                    slipUrl = await Promise.race([uploadPromise, timeoutPromise]) as string;
+                    console.log("Slip uploaded:", slipUrl);
                 } catch (uploadError) {
-                    console.error("Upload error:", uploadError);
-                    toast({ variant: "destructive", title: "อัปโหลดสลิปไม่สำเร็จ", description: "กรุณาลองใหม่อีกครั้ง" });
-                    setIsProcessing(false);
-                    return;
+                    console.warn("Upload failed or timed out:", uploadError);
+
+                    // Only attempt Base64 fallback for images
+                    if (slipFile.type.startsWith('image/')) {
+                        try {
+                            toast({ title: "กำลังปรับขนาดรูปภาพ...", description: "การอัปโหลดล่าช้า ระบบกำลังย่อไฟล์เพื่อส่งข้อมูล" });
+                            slipUrl = await compressImageToBase64(slipFile);
+                            console.log("Slip converted to Base64");
+                            toast({ title: "กำลังใช้ระบบสำรอง", description: "ใช้การส่งไฟล์แบบสำรองเรียบร้อยแล้ว" });
+                        } catch (base64Error) {
+                            console.error("Base64 conversion failed:", base64Error);
+                            toast({ variant: "destructive", title: "อัปโหลดสลิปไม่สำเร็จ", description: "กรุณาลองใหม่อีกครั้ง หรือไฟล์อาจมีขนาดใหญ่เกินไป" });
+                            setIsProcessing(false);
+                            return;
+                        }
+                    } else {
+                        // For PDFs or other types, we can't compress, so we must fail
+                        toast({ variant: "destructive", title: "อัปโหลดไฟล์ไม่สำเร็จ", description: "การอัปโหลดใช้เวลานานเกินไป กรุณาลองใหม่อีกครั้ง" });
+                        setIsProcessing(false);
+                        return;
+                    }
                 }
             }
 
             if (paymentType === 'chat') {
+                console.log("Processing chat payment...");
                 const newChatId = uuidv4();
                 const chatRef = doc(firestore, 'chats', newChatId);
                 const messagesRef = collection(chatRef, 'messages');
 
                 const chatPayload = {
-                    participants: [user.uid, lawyer.userId],
+                    participants: [user.uid, targetLawyerUserId],
                     createdAt: serverTimestamp(),
                     caseTitle: `Ticket สนทนา: ${initialMessage.substring(0, 30)}...`,
                     status: isManualTransfer ? 'pending_payment' : 'active',
@@ -121,12 +173,17 @@ function PaymentPageContent() {
                     userId: user.uid // Add userId for easier querying
                 };
 
+                console.log("Creating chat document...", chatPayload);
+
                 await setDoc(chatRef, chatPayload)
                     .catch(serverError => {
+                        console.error("Error creating chat:", serverError);
                         const permissionError = new FirestorePermissionError({ path: chatRef.path, operation: 'create', requestResourceData: chatPayload });
                         errorEmitter.emit('permission-error', permissionError);
                         throw serverError; // Re-throw to be caught by outer try-catch
                     });
+
+                console.log("Chat document created.");
 
                 if (!isManualTransfer) {
                     const messagePayload = {
@@ -143,6 +200,7 @@ function PaymentPageContent() {
                 }
 
                 if (isManualTransfer) {
+                    console.log("Setting payment success (manual)...");
                     setPaymentSuccess(true);
                 } else {
                     toast({
@@ -152,10 +210,12 @@ function PaymentPageContent() {
                     router.push(`/chat/${newChatId}?lawyerId=${lawyer.id}`);
                 }
             } else if (paymentType === 'appointment' && dateStr) {
+                console.log("Processing appointment payment...");
                 const appointmentRef = collection(firestore, 'appointments');
                 const appointmentPayload = {
                     userId: user.uid,
                     lawyerId: lawyer.id,
+                    lawyerUserId: targetLawyerUserId,
                     lawyerName: lawyer.name,
                     lawyerImageUrl: lawyer.imageUrl,
                     appointmentDate: new Date(dateStr),
@@ -164,8 +224,12 @@ function PaymentPageContent() {
                     createdAt: serverTimestamp(),
                     ...(isManualTransfer && { slipUrl })
                 };
+
+                console.log("Creating appointment...", appointmentPayload);
+
                 await addDoc(appointmentRef, appointmentPayload)
                     .catch(serverError => {
+                        console.error("Error creating appointment:", serverError);
                         const permissionError = new FirestorePermissionError({ path: appointmentRef.path, operation: 'create', requestResourceData: appointmentPayload });
                         errorEmitter.emit('permission-error', permissionError);
                         throw serverError;
@@ -226,7 +290,21 @@ function PaymentPageContent() {
 
     const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         if (event.target.files && event.target.files[0]) {
-            setSlipFile(event.target.files[0]);
+            const file = event.target.files[0];
+
+            if (file.size > MAX_FILE_SIZE_BYTES) {
+                toast({
+                    variant: "destructive",
+                    title: "ไฟล์มีขนาดใหญ่เกินไป",
+                    description: `กรุณาอัปโหลดไฟล์ขนาดไม่เกิน ${MAX_FILE_SIZE_MB}MB`
+                });
+                if (fileInputRef.current) {
+                    fileInputRef.current.value = '';
+                }
+                return;
+            }
+
+            setSlipFile(file);
         }
     };
 
@@ -336,9 +414,9 @@ function PaymentPageContent() {
                 <div className="space-y-4">
                     <h3 className="font-semibold text-lg">เลือกวิธีการชำระเงิน</h3>
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                        <TabsList className="grid w-full grid-cols-3">
-                            <TabsTrigger value="credit-card" disabled={isWaitingForPayment}><CreditCard className="mr-2 h-4 w-4" /> บัตรเครดิต</TabsTrigger>
-                            <TabsTrigger value="promptpay" disabled={isWaitingForPayment}><QrCode className="mr-2 h-4 w-4" /> PromptPay</TabsTrigger>
+                        <TabsList className="grid w-full grid-cols-1">
+                            {/* <TabsTrigger value="credit-card" disabled={isWaitingForPayment}><CreditCard className="mr-2 h-4 w-4" /> บัตรเครดิต</TabsTrigger> */}
+                            {/* <TabsTrigger value="promptpay" disabled={isWaitingForPayment}><QrCode className="mr-2 h-4 w-4" /> PromptPay</TabsTrigger> */}
                             <TabsTrigger value="bank-transfer" disabled={isWaitingForPayment}><Landmark className="mr-2 h-4 w-4" /> โอนเงิน</TabsTrigger>
                         </TabsList>
                         <TabsContent value="credit-card" className="mt-4">

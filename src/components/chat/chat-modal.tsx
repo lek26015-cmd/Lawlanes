@@ -28,14 +28,14 @@ const ChatRequestSchema = z.object({
   history: z.array(
     z.object({
       role: z.enum(['user', 'model']),
-      content: z.array(z.object({text: z.string()})),
+      content: z.array(z.object({ text: z.string() })),
     })
   ),
   prompt: z.string(),
 });
 
 const isChatResponse = (content: any): content is ChatResponse => {
-    return content && Array.isArray(content.sections) && content.sections.every((s: any) => typeof s.title === 'string' && typeof s.content === 'string');
+  return content && Array.isArray(content.sections) && content.sections.every((s: any) => typeof s.title === 'string' && typeof s.content === 'string');
 }
 
 export default function ChatModal() {
@@ -81,7 +81,7 @@ export default function ChatModal() {
       content: question,
     };
     setMessages((prev) => [...prev, userMessage]);
-    
+
     await processChat(question);
   };
 
@@ -97,15 +97,15 @@ export default function ChatModal() {
     };
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
-    
+
     await processChat(input);
   };
-  
+
   const processChat = async (prompt: string) => {
     try {
       const history = messages.map(msg => ({
-          role: msg.role === 'assistant' ? 'model' as const : 'user' as const,
-          content: [{text: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)}],
+        role: msg.role === 'assistant' ? 'model' as const : 'user' as const,
+        content: [{ text: typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content) }],
       }));
 
       const request: z.infer<typeof ChatRequestSchema> = { history, prompt };
@@ -133,105 +133,104 @@ export default function ChatModal() {
 
   return (
     <Dialog open={isAiChatOpen} onOpenChange={setAiChatOpen}>
-      <DialogContent 
+      <DialogContent
         hideCloseButton={true}
-        className="fixed inset-0 w-full h-full rounded-none sm:inset-auto sm:bottom-6 sm:right-6 sm:w-96 sm:h-[70vh] sm:rounded-2xl bg-white shadow-2xl border z-50 p-0 flex flex-col"
+        className="fixed inset-0 w-full h-full rounded-none sm:inset-auto sm:bottom-[88px] sm:right-6 sm:w-96 sm:h-[70vh] sm:rounded-2xl bg-white shadow-2xl border z-50 p-0 flex flex-col sm:translate-x-0 sm:translate-y-0 origin-bottom-right data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-0 transition-all duration-300"
       >
         <DialogHeader className="flex flex-row justify-between items-center p-4 border-b bg-foreground text-background sm:rounded-t-2xl">
-            <DialogTitle asChild>
-                <h3 className="text-xl font-bold">Lawlanes AI Assistant</h3>
-            </DialogTitle>
-             <DialogDescription className="sr-only">
-                Chat with the AI assistant to get legal advice.
-            </DialogDescription>
-            <button onClick={() => setAiChatOpen(false)} className="text-background/70 hover:text-white">
-                <X className="w-6 h-6" />
-            </button>
+          <DialogTitle asChild>
+            <h3 className="text-xl font-bold">Lawlanes AI Assistant</h3>
+          </DialogTitle>
+          <DialogDescription className="sr-only">
+            Chat with the AI assistant to get legal advice.
+          </DialogDescription>
+          <button onClick={() => setAiChatOpen(false)} className="text-background/70 hover:text-white">
+            <X className="w-6 h-6" />
+          </button>
         </DialogHeader>
 
         <ScrollArea className="flex-grow p-4 bg-gray-50">
           <div className="space-y-4">
             {messages.map((msg) => (
               <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : ''}`}>
-                 {msg.role === 'assistant' && (
-                    <div className="flex-shrink-0 mr-3">
-                        <div className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center shadow-md">
-                            <Sparkles className="w-5 h-5" />
-                        </div>
+                {msg.role === 'assistant' && (
+                  <div className="flex-shrink-0 mr-3">
+                    <div className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center shadow-md">
+                      <Sparkles className="w-5 h-5" />
                     </div>
-                 )}
+                  </div>
+                )}
                 <div className={`max-w-xs lg:max-w-sm xl:max-w-md`}>
-                    <div className={`p-3 rounded-lg shadow-sm ${
-                        msg.role === 'user' 
-                        ? 'bg-foreground text-background' 
-                        : 'bg-white border'
+                  <div className={`p-3 rounded-lg shadow-sm ${msg.role === 'user'
+                    ? 'bg-foreground text-background'
+                    : 'bg-white border'
                     }`}
-                    style={msg.role === 'user' ? {borderTopRightRadius: 0} : {borderTopLeftRadius: 0}}
-                    >
-                         {typeof msg.content === 'string' ? (
-                            <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                        ) : isChatResponse(msg.content) ? (
-                            <div className="space-y-3">
-                                {msg.content.sections.map((section, index) => (
-                                <div key={index}>
-                                    <h4 className="font-semibold text-sm mb-1">{section.title}</h4>
-                                    <p className="text-sm whitespace-pre-wrap">{section.content}</p>
-                                </div>
-                                ))}
-                            </div>
-                        ) : null}
-                    </div>
+                    style={msg.role === 'user' ? { borderTopRightRadius: 0 } : { borderTopLeftRadius: 0 }}
+                  >
+                    {typeof msg.content === 'string' ? (
+                      <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                    ) : isChatResponse(msg.content) ? (
+                      <div className="space-y-3">
+                        {msg.content.sections.map((section, index) => (
+                          <div key={index}>
+                            <h4 className="font-semibold text-sm mb-1">{section.title}</h4>
+                            <p className="text-sm whitespace-pre-wrap">{section.content}</p>
+                          </div>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
               </div>
             ))}
             {isLoading && (
-                 <div className="flex">
-                    <div className="flex-shrink-0 mr-3">
-                        <div className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center shadow-md">
-                            <Sparkles className="w-5 h-5" />
-                        </div>
-                    </div>
-                    <div>
-                        <div className="bg-white border p-3 rounded-lg shadow-sm" style={{borderTopLeftRadius: 0}}>
-                            <div className="flex items-center space-x-2">
-                                <Loader2 className="w-5 h-5 animate-spin" />
-                                <span className="text-sm text-muted-foreground">กำลังคิด...</span>
-                            </div>
-                        </div>
-                    </div>
+              <div className="flex">
+                <div className="flex-shrink-0 mr-3">
+                  <div className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center shadow-md">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
                 </div>
+                <div>
+                  <div className="bg-white border p-3 rounded-lg shadow-sm" style={{ borderTopLeftRadius: 0 }}>
+                    <div className="flex items-center space-x-2">
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span className="text-sm text-muted-foreground">กำลังคิด...</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         </ScrollArea>
-        
+
         <div className="p-3 border-t bg-gray-100">
-            <p className="text-xs font-semibold text-muted-foreground mb-2 ml-1">คำถามด่วน:</p>
-            <div className="flex flex-wrap gap-2">
-                {quickQuestions.map(q => (
-                    <button 
-                        key={q} 
-                        onClick={() => handleQuickQuestion(q)}
-                        disabled={isLoading}
-                        className="text-xs px-3 py-1 bg-white border border-border rounded-full hover:bg-accent transition disabled:opacity-50 disabled:cursor-not-allowed">
-                        {q}
-                    </button>
-                ))}
-            </div>
+          <p className="text-xs font-semibold text-muted-foreground mb-2 ml-1">คำถามด่วน:</p>
+          <div className="flex flex-wrap gap-2">
+            {quickQuestions.map(q => (
+              <button
+                key={q}
+                onClick={() => handleQuickQuestion(q)}
+                disabled={isLoading}
+                className="text-xs px-3 py-1 bg-white border border-border rounded-full hover:bg-accent transition disabled:opacity-50 disabled:cursor-not-allowed">
+                {q}
+              </button>
+            ))}
+          </div>
         </div>
 
         <div className="p-4 border-t bg-white sm:rounded-b-2xl">
-            <form onSubmit={handleSubmit} className="flex items-center space-x-2">
-                <Input
-                  value={input}
-                  onChange={handleInputChange}
-                  placeholder="พิมพ์คำถามของคุณ..."
-                  disabled={isLoading}
-                  className="flex-grow px-4 py-3 rounded-full bg-gray-100 border-2 border-transparent focus:bg-white focus:border-primary transition outline-none"
-                />
-                <Button type="submit" size="icon" disabled={isLoading} className="p-3 rounded-full bg-foreground text-background hover:bg-foreground/90 transition shadow-lg w-11 h-11">
-                    <Send className="w-5 h-5" />
-                </Button>
-            </form>
+          <form onSubmit={handleSubmit} className="flex items-center space-x-2">
+            <Input
+              value={input}
+              onChange={handleInputChange}
+              placeholder="พิมพ์คำถามของคุณ..."
+              disabled={isLoading}
+              className="flex-grow px-4 py-3 rounded-full bg-gray-100 border-2 border-transparent focus:bg-white focus:border-primary transition outline-none"
+            />
+            <Button type="submit" size="icon" disabled={isLoading} className="p-3 rounded-full bg-foreground text-background hover:bg-foreground/90 transition shadow-lg w-11 h-11">
+              <Send className="w-5 h-5" />
+            </Button>
+          </form>
         </div>
 
       </DialogContent>

@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useFirebase } from '@/firebase';
+import { LawyerPageSidebarAds } from '@/components/lawyer-page-sidebar-ads';
 
 function LawyersPageContent() {
   const searchParams = useSearchParams();
@@ -39,7 +40,7 @@ function LawyersPageContent() {
     }
     fetchData();
   }, [firestore]);
-  
+
   const specialtyArray = useMemo(() => specialties ? specialties.split(',') : [], [specialties]);
 
   useEffect(() => {
@@ -52,10 +53,10 @@ function LawyersPageContent() {
       const recommended = allLawyers.filter(lawyer =>
         lawyer.specialty.some(spec => specialtyArray.includes(spec))
       );
-      const remaining = allLawyers.filter(lawyer => 
+      const remaining = allLawyers.filter(lawyer =>
         !recommended.some(rec => rec.id === lawyer.id)
       );
-      
+
       setRecommendedLawyerIds(recommended.map(l => l.id));
       setProgress(70);
 
@@ -96,13 +97,14 @@ function LawyersPageContent() {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
         <div className="col-span-1 space-y-6">
           <LawyerFilterSidebar />
+          <LawyerPageSidebarAds />
         </div>
-        
+
         <div className="md:col-span-3">
           {isSorting && (
             <div className="mb-8 p-4 rounded-lg bg-secondary">
-                <p className="text-center font-semibold text-primary mb-2">กำลังวิเคราะห์และจัดเรียงทนายที่แนะนำ...</p>
-                <Progress value={progress} className="w-full" />
+              <p className="text-center font-semibold text-primary mb-2">กำลังวิเคราะห์และจัดเรียงทนายที่แนะนำ...</p>
+              <Progress value={progress} className="w-full" />
             </div>
           )}
 
@@ -116,9 +118,9 @@ function LawyersPageContent() {
                 พบทนายความ {filteredLawyers.length} ท่าน ที่ตรงกับเงื่อนไข
               </p>
               {filteredLawyers.map((lawyer) => (
-                 <div key={lawyer.id} className={`transition-all duration-500 rounded-xl ${recommendedLawyerIds.includes(lawyer.id) ? 'border-2 border-primary shadow-lg' : ''}`}>
-                    <LawyerCard lawyer={lawyer} />
-                 </div>
+                <div key={lawyer.id} className={`transition-all duration-500 rounded-xl ${recommendedLawyerIds.includes(lawyer.id) ? 'border-2 border-primary shadow-lg' : ''}`}>
+                  <LawyerCard lawyer={lawyer} />
+                </div>
               ))}
             </div>
           )}
@@ -130,9 +132,9 @@ function LawyersPageContent() {
 
 
 export default function LawyersPage() {
-    return (
-        <React.Suspense fallback={<div>Loading...</div>}>
-            <LawyersPageContent />
-        </React.Suspense>
-    )
+  return (
+    <React.Suspense fallback={<div>Loading...</div>}>
+      <LawyersPageContent />
+    </React.Suspense>
+  )
 }

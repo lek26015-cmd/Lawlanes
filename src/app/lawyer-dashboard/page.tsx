@@ -9,10 +9,11 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Briefcase, CheckCircle, Clock, DollarSign, FileText, Inbox, Percent, Star, User, Settings, BarChart, CalendarPlus, FileUp, Loader2 } from 'lucide-react';
-import { getLawyerDashboardData } from '@/lib/data';
-import type { LawyerCase, LawyerAppointmentRequest } from '@/lib/types';
+import { getLawyerDashboardData, getLawyerStats, getLawyerById } from '@/lib/data';
+import type { LawyerCase, LawyerAppointmentRequest, LawyerProfile } from '@/lib/types';
 import { format } from 'date-fns';
 import { th } from 'date-fns/locale';
+import profileLawyerImg from '@/pic/profile-lawyer.jpg';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -37,6 +38,8 @@ export default function LawyerDashboardPage() {
   const [requests, setRequests] = useState<LawyerAppointmentRequest[]>([]);
   const [activeCases, setActiveCases] = useState<LawyerCase[]>([]);
   const [completedCases, setCompletedCases] = useState<LawyerCase[]>([]);
+  const [stats, setStats] = useState({ incomeThisMonth: 0, totalIncome: 0, completedCases: 0, rating: 4.8, responseRate: 95 });
+  const [lawyerProfile, setLawyerProfile] = useState<LawyerProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
@@ -52,9 +55,14 @@ export default function LawyerDashboardPage() {
     async function fetchData() {
       setIsLoading(true);
       const data = await getLawyerDashboardData(firestore!, user!.uid);
+      const statsData = await getLawyerStats(firestore!, user!.uid);
+      const profile = await getLawyerById(firestore!, user!.uid);
+
       setRequests(data.newRequests);
       setActiveCases(data.activeCases);
       setCompletedCases(data.completedCases);
+      setStats(statsData);
+      setLawyerProfile(profile || null);
       setIsLoading(false);
     }
     fetchData();
@@ -77,11 +85,11 @@ export default function LawyerDashboardPage() {
     router.push(`/chat/${newChatId}?lawyerId=${user.uid}&clientId=...&view=lawyer`);
   };
 
-  const incomeStat = { icon: <DollarSign className="w-10 h-10" />, label: 'รายได้เดือนนี้', value: '฿75,000', color: 'text-green-500', href: '/lawyer-dashboard' };
+  const incomeStat = { icon: <DollarSign className="w-10 h-10" />, label: 'รายได้เดือนนี้', value: `฿${stats.incomeThisMonth.toLocaleString()}`, color: 'text-green-500', href: '/lawyer-dashboard/financials' };
   const otherStats = [
-    { icon: <Star />, label: 'คะแนนเฉลี่ย', value: '4.8/5', color: 'text-yellow-500', href: '#' },
-    { icon: <Percent />, label: 'อัตราการตอบรับ', value: '95%', color: 'text-blue-500', href: '#' },
-    { icon: <Briefcase />, label: 'เคสที่เสร็จสิ้น', value: '12', color: 'text-purple-500', href: '#' },
+    { icon: <Star />, label: 'คะแนนเฉลี่ย', value: `${lawyerProfile?.averageRating ? lawyerProfile.averageRating.toFixed(1) : stats.rating}/5`, color: 'text-yellow-500', href: '#' },
+    { icon: <Percent />, label: 'อัตราการตอบรับ', value: `${stats.responseRate}%`, color: 'text-blue-500', href: '#' },
+    { icon: <Briefcase />, label: 'เคสที่เสร็จสิ้น', value: `${stats.completedCases}`, color: 'text-purple-500', href: '#' },
   ];
 
   const caseStatusBadge = {
@@ -230,11 +238,28 @@ export default function LawyerDashboardPage() {
             <Card>
               <CardContent className="pt-6 flex flex-col items-center text-center">
                 <Avatar className="w-24 h-24 mb-4">
-                  <AvatarImage src={user.photoURL || "https://images.unsplash.com/photo-1658250646172-227c363047af?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxtYWxlJTIwbGF3eWVyfGVufDB8fHx8MTc2MzE5ODA0OXww&ixlib=rb-4.1.0&q=80&w=1080"} />
+                  <AvatarImage src={lawyerProfile?.imageUrl || user.photoURL || profileLawyerImg.src} />
                   <AvatarFallback>{user.displayName?.charAt(0) || 'L'}</AvatarFallback>
                 </Avatar>
-                <p className="font-bold text-xl">{user.displayName}</p>
-                <p className="text-sm text-muted-foreground">SME Fraud Expert</p>
+                <p className="font-bold text-xl">{lawyerProfile?.name || user.displayName}</p>
+                <p className="text-sm text-muted-foreground">{lawyerProfile?.specialty || 'ทนายความ'}</p>
+                <div className="mt-2">
+                  {lawyerProfile?.status === 'approved' && (
+                    <Badge className="bg-green-100 text-green-800 hover:bg-green-100 border-green-200">
+                      <CheckCircle className="w-3 h-3 mr-1" /> ยืนยันตัวตนแล้ว
+                    </Badge>
+                  )}
+                  {lawyerProfile?.status === 'pending' && (
+                    <Badge variant="outline" className="text-yellow-600 border-yellow-600 bg-yellow-50">
+                      <Clock className="w-3 h-3 mr-1" /> รอการตรวจสอบ
+                    </Badge>
+                  )}
+                  {lawyerProfile?.status === 'rejected' && (
+                    <Badge variant="destructive">
+                      <CheckCircle className="w-3 h-3 mr-1 rotate-45" /> ไม่ผ่านการอนุมัติ
+                    </Badge>
+                  )}
+                </div>
                 <div className="flex mt-4 gap-2">
                   <Link href={`/lawyers/${user.uid}`} passHref>
                     <Button variant="outline"><User className="mr-2" /> โปรไฟล์สาธารณะ</Button>

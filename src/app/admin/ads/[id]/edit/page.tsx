@@ -33,6 +33,8 @@ import { useFirebase } from '@/firebase'
 import { getAdById } from '@/lib/data'
 import { doc, updateDoc } from 'firebase/firestore'
 import { errorEmitter, FirestorePermissionError } from '@/firebase'
+import { compressImageToBase64 } from '@/lib/image-utils';
+import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '@/lib/constants';
 
 
 export default function AdminAdEditPage() {
@@ -45,6 +47,35 @@ export default function AdminAdEditPage() {
   const [ad, setAd] = React.useState<Ad | null>(null);
   const [isSaving, setIsSaving] = React.useState(false);
   const adminAdsPath = `/admin/ads`;
+
+  const [imageFile, setImageFile] = React.useState<File | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > MAX_FILE_SIZE_BYTES) {
+        toast({
+          variant: "destructive",
+          title: "ไฟล์มีขนาดใหญ่เกินไป",
+          description: `กรุณาอัปโหลดไฟล์ขนาดไม่เกิน ${MAX_FILE_SIZE_MB}MB`,
+        });
+        e.target.value = '';
+        return;
+      }
+
+      try {
+        toast({ title: "กำลังประมวลผลรูปภาพ...", description: "Compressing..." });
+        const base64 = await compressImageToBase64(file);
+        setAd(prev => prev ? { ...prev, imageUrl: base64 } : null);
+        setImageFile(file);
+        toast({ title: "รูปภาพพร้อมแล้ว", description: "กดบันทึกเพื่อยืนยันการเปลี่ยนแปลง" });
+      } catch (error) {
+        console.error("Compression failed:", error);
+        toast({ variant: "destructive", title: "เกิดข้อผิดพลาด", description: "ไม่สามารถประมวลผลรูปภาพได้" });
+      }
+    }
+  };
 
   React.useEffect(() => {
     if (!firestore || !id) return;
@@ -59,8 +90,10 @@ export default function AdminAdEditPage() {
     const updatedData = {
       title: ad.title,
       description: ad.description,
+      href: ad.href || '', // Update href
       placement: ad.placement,
       status: ad.status,
+      imageUrl: ad.imageUrl, // Ensure imageUrl is updated
     };
 
     updateDoc(adRef, updatedData).then(() => {
@@ -139,10 +172,16 @@ export default function AdminAdEditPage() {
                     src={ad.imageUrl}
                     width="160"
                   />
-                  <Button variant="outline">
-                    <Upload className="h-4 w-4 mr-2" />
-                    เปลี่ยนรูป (จำลอง)
-                  </Button>
+                  <div className="grid w-full max-w-sm items-center gap-1.5">
+                    <Input
+                      id="picture"
+                      type="file"
+                      accept="image/*"
+                      className="cursor-pointer"
+                      onChange={handleImageChange}
+                      ref={fileInputRef}
+                    />
+                  </div>
                 </div>
               </div>
               <div className="grid gap-3">
@@ -161,6 +200,17 @@ export default function AdminAdEditPage() {
                   id="description"
                   value={ad.description}
                   onChange={handleInputChange}
+                />
+              </div>
+              <div className="grid gap-3">
+                <Label htmlFor="href">ลิงก์ (URL) - ไม่บังคับ</Label>
+                <Input
+                  id="href"
+                  type="url"
+                  className="w-full"
+                  value={ad.href || ''}
+                  onChange={handleInputChange}
+                  placeholder="เช่น https://www.example.com"
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">

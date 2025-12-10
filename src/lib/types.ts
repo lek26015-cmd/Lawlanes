@@ -3,15 +3,15 @@ import { ChatResponse } from "@/ai/flows/chat-flow";
 import { ReactElement } from "react";
 
 export interface UserProfile {
-    uid: string;
-    name: string;
-    email: string;
-    phone?: string;
-    role: 'customer' | 'lawyer' | 'admin';
-    type: 'บุคคลทั่วไป' | 'SME';
-    registeredAt: any;
-    status: 'active' | 'suspended';
-    avatar?: string;
+  uid: string;
+  name: string;
+  email: string;
+  phone?: string;
+  role: 'customer' | 'lawyer' | 'admin';
+  type: 'บุคคลทั่วไป' | 'SME';
+  registeredAt: any;
+  status: 'active' | 'suspended';
+  avatar?: string;
 }
 
 export interface LawyerProfile {
@@ -36,6 +36,8 @@ export interface LawyerProfile {
   idCardUrl: string;
   licenseUrl: string;
   joinedAt: any;
+  averageRating?: number;
+  reviewCount?: number;
 }
 
 export interface ChatMessage {
@@ -47,10 +49,10 @@ export interface ChatMessage {
 }
 
 export interface HumanChatMessage {
-    id: string;
-    text: string;
-    senderId: string;
-    timestamp: any;
+  id: string;
+  text: string;
+  senderId: string;
+  timestamp: any;
 }
 
 
@@ -79,18 +81,18 @@ export interface Case {
 }
 
 export interface UpcomingAppointment {
-    id: string;
-    lawyer: Pick<LawyerProfile, 'name' | 'imageUrl' | 'imageHint'>;
-    date: Date;
-    description: string;
-    time: string;
+  id: string;
+  lawyer: Pick<LawyerProfile, 'name' | 'imageUrl' | 'imageHint'>;
+  date: Date;
+  description: string;
+  time: string;
 }
 
 export interface Document {
-    id: string;
-    name: string;
-    status: string;
-    isCompleted: boolean;
+  id: string;
+  name: string;
+  status: string;
+  isCompleted: boolean;
 }
 
 export interface ReportedTicket {

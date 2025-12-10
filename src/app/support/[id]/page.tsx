@@ -8,11 +8,11 @@ import type { ReportedTicket } from '@/lib/types';
 import { SupportChatBox } from '@/components/chat/support-chat-box';
 
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
 } from "@/components/ui/card";
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -21,13 +21,14 @@ import { format } from 'date-fns';
 import { th } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { useFirebase } from '@/firebase';
+import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '@/lib/constants';
 
 function SupportPageContent() {
     const params = useParams();
     const router = useRouter();
     const ticketId = params.id as string;
     const { firestore, user } = useFirebase();
-    
+
     const [ticket, setTicket] = useState<ReportedTicket | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [files, setFiles] = useState<{ name: string, size: number }[]>([]);
@@ -59,13 +60,11 @@ function SupportPageContent() {
         const file = event.target.files?.[0];
         if (!file) return;
 
-        const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-
-        if (file.size > MAX_FILE_SIZE) {
+        if (file.size > MAX_FILE_SIZE_BYTES) {
             toast({
                 variant: "destructive",
                 title: "ไฟล์มีขนาดใหญ่เกินไป",
-                description: `กรุณาเลือกไฟล์ที่มีขนาดไม่เกิน ${MAX_FILE_SIZE / 1024 / 1024}MB`,
+                description: `กรุณาเลือกไฟล์ที่มีขนาดไม่เกิน ${MAX_FILE_SIZE_MB}MB`,
             });
             return;
         }
@@ -76,11 +75,11 @@ function SupportPageContent() {
             description: `ไฟล์ "${file.name}" ถูกเพิ่มในรายการแล้ว`,
         });
 
-        if(event.target) {
+        if (event.target) {
             event.target.value = '';
         }
     };
-    
+
     const statusBadges: { [key: string]: React.ReactNode } = {
         pending: <Badge variant="outline" className="border-yellow-600 text-yellow-700 bg-yellow-50">กำลังตรวจสอบ</Badge>,
         resolved: <Badge variant="secondary" className="bg-green-100 text-green-800 border-green-200">แก้ไขแล้ว</Badge>,
@@ -93,7 +92,7 @@ function SupportPageContent() {
     if (!ticket) {
         return <div>Ticket not found.</div>
     }
-    
+
     const isResolved = ticket.status === 'resolved';
 
     return (
@@ -119,11 +118,11 @@ function SupportPageContent() {
                                 <span className="text-muted-foreground">เคสที่เกี่ยวข้อง:</span>
                                 <span className="font-mono">{ticket.caseId}</span>
                             </div>
-                             <div className="flex justify-between">
+                            <div className="flex justify-between">
                                 <span className="text-muted-foreground">ประเภทปัญหา:</span>
                                 <span className="font-semibold">{ticket.problemType}</span>
                             </div>
-                             <div className="flex justify-between">
+                            <div className="flex justify-between">
                                 <span className="text-muted-foreground">วันที่แจ้ง:</span>
                                 <span>{format(ticket.reportedAt, 'dd MMM yyyy', { locale: th })}</span>
                             </div>
@@ -160,9 +159,9 @@ function SupportPageContent() {
                                         ))
                                     )}
                                 </div>
-                                <input 
-                                    type="file" 
-                                    ref={fileInputRef} 
+                                <input
+                                    type="file"
+                                    ref={fileInputRef}
                                     onChange={handleFileChange}
                                     className="hidden"
                                     disabled={isResolved}

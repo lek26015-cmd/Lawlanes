@@ -27,6 +27,8 @@ import { CalendarIcon } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '@/lib/constants';
+import { compressImageToBase64 } from '@/lib/image-utils';
 // import { Locale } from '@/../i18n.config'; // Removed unused import
 
 const specialties = [
@@ -88,26 +90,64 @@ export default function LawyerSignupPage() {
   });
 
   const handleFileChange = (setter: React.Dispatch<React.SetStateAction<File | null>>) => (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files) {
-      setter(event.target.files[0]);
+    if (event.target.files && event.target.files[0]) {
+      const file = event.target.files[0];
+
+      if (file.size > MAX_FILE_SIZE_BYTES) {
+        toast({
+          variant: "destructive",
+          title: "ไฟล์มีขนาดใหญ่เกินไป",
+          description: `กรุณาอัปโหลดไฟล์ขนาดไม่เกิน ${MAX_FILE_SIZE_MB}MB`
+        });
+        event.target.value = ''; // Reset input
+        return;
+      }
+
+      setter(file);
     }
   };
 
-  async function uploadFile(file: File, path: string): Promise<string> {
-    if (!storage) throw new Error("Storage not initialized");
-    const storageRef = ref(storage, path);
-    const snapshot = await uploadBytes(storageRef, file);
-    return getDownloadURL(snapshot.ref);
+  async function uploadFileWithFallback(file: File, path: string): Promise<string> {
+    try {
+      if (!storage) throw new Error("Storage not initialized");
+
+      // Create a timeout promise
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Upload timed out")), 5000)
+      );
+
+      const storageRef = ref(storage, path);
+      const uploadPromise = uploadBytes(storageRef, file);
+
+      // Race between upload and timeout
+      const snapshot = await Promise.race([uploadPromise, timeout]) as any;
+
+      return await getDownloadURL(snapshot.ref);
+    } catch (error) {
+      console.warn(`Storage upload failed or timed out for ${path}, falling back to Base64:`, error);
+      try {
+        // Fallback to Base64
+        return await compressImageToBase64(file);
+      } catch (compressError) {
+        console.error("Base64 compression failed:", compressError);
+        throw error; // Throw original error if fallback also fails
+      }
+    }
   }
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!auth || !firestore || !storage) return;
-    if (!idCardFile || !licenseFile) {
+    console.log("Starting submission...");
+    if (!auth || !firestore || !storage) {
+      console.error("Firebase services missing");
       toast({
         variant: 'destructive',
-        title: 'ข้อมูลไม่ครบถ้วน',
-        description: 'กรุณาอัปโหลดไฟล์ บัตรประชาชน และ ใบอนุญาตทนายความ',
+        title: 'ระบบยังไม่พร้อม',
+        description: 'กำลังเชื่อมต่อกับ Firebase กรุณารอสักครู่แล้วลองใหม่',
       });
+      return;
+    }
+    if (!idCardFile || !licenseFile) {
+      toast({ variant: 'destructive', title: 'ข้อมูลไม่ครบ', description: 'กรุณาอัปโหลดไฟล์ให้ครบถ้วน' });
       return;
     }
 
@@ -115,17 +155,28 @@ export default function LawyerSignupPage() {
 
     try {
       // 1. Create user in Firebase Auth
+      console.log("Step 1: Creating User...");
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       const user = userCredential.user;
+      console.log("Step 1 Done: User created with UID:", user.uid);
+
+      // Force token refresh
+      console.log("Step 1.5: Refreshing Token...");
+      await user.getIdToken(true);
 
       // 2. Update user profile in Firebase Auth
+      console.log("Step 2: Updating Profile...");
       await updateProfile(user, { displayName: values.name });
 
       // 3. Upload Files
-      const idCardUrl = await uploadFile(idCardFile, `lawyer-documents/${user.uid}/id-card`);
-      const licenseUrl = await uploadFile(licenseFile, `lawyer-documents/${user.uid}/license`);
+      console.log("Step 3: Uploading Files...");
+      const idCardUrl = await uploadFileWithFallback(idCardFile, `lawyer-documents/${user.uid}/id-card`);
+      console.log("Step 3.1: ID Card Uploaded");
+      const licenseUrl = await uploadFileWithFallback(licenseFile, `lawyer-documents/${user.uid}/license`);
+      console.log("Step 3.2: License Uploaded");
 
       // 4. Create user profile document in Firestore (users collection)
+      console.log("Step 4: Creating User Doc...");
       const userDocRef = doc(firestore, 'users', user.uid);
       const userProfileData = {
         uid: user.uid,
@@ -139,16 +190,16 @@ export default function LawyerSignupPage() {
         avatar: '',
       };
 
-      setDoc(userDocRef, userProfileData).catch(serverError => {
-        const permissionError = new FirestorePermissionError({
-          path: userDocRef.path,
-          operation: 'create',
-          requestResourceData: userProfileData,
-        });
-        errorEmitter.emit('permission-error', permissionError);
-      });
+      try {
+        await setDoc(userDocRef, userProfileData);
+        console.log("Step 4 Done: User Doc Created");
+      } catch (e: any) {
+        console.error("Error creating user doc:", e);
+        throw new Error("สร้างข้อมูลผู้ใช้ไม่สำเร็จ (Users): " + e.message);
+      }
 
       // 5. Create lawyer profile document in Firestore (lawyerProfiles collection)
+      console.log("Step 5: Creating Lawyer Profile...");
       const lawyerProfileRef = doc(firestore, 'lawyerProfiles', user.uid);
       const lawyerProfileData = {
         userId: user.uid,
@@ -173,26 +224,27 @@ export default function LawyerSignupPage() {
         joinedAt: serverTimestamp(),
       };
 
-      setDoc(lawyerProfileRef, lawyerProfileData).catch(serverError => {
-        const permissionError = new FirestorePermissionError({
-          path: lawyerProfileRef.path,
-          operation: 'create',
-          requestResourceData: lawyerProfileData,
-        });
-        errorEmitter.emit('permission-error', permissionError);
-      });
+      try {
+        await setDoc(lawyerProfileRef, lawyerProfileData);
+        console.log("Step 5 Done: Lawyer Profile Created");
+      } catch (e: any) {
+        console.error("Error creating lawyer profile:", e);
+        throw new Error("สร้างข้อมูลทนายความไม่สำเร็จ (LawyerProfiles): " + e.message);
+      }
 
+      console.log("Step 6: Success! Signing out...");
       toast({
         title: 'สมัครเข้าร่วมสำเร็จ',
         description: 'เราได้รับใบสมัครของคุณแล้ว และจะติดต่อกลับหลังจากตรวจสอบข้อมูลเรียบร้อย',
       });
 
       await signOut(auth);
+      console.log("Step 7: Redirecting...");
       router.push(`/`);
 
     } catch (error: any) {
       console.error(error);
-      let errorMessage = 'เกิดข้อผิดพลาดที่ไม่รู้จัก';
+      let errorMessage = 'เกิดข้อผิดพลาดที่ไม่รู้จัก: ' + (error.message || error.code || JSON.stringify(error));
       if (error.code === 'auth/email-already-in-use') {
         errorMessage = 'อีเมลนี้ถูกใช้งานแล้ว กรุณาใช้อีเมลอื่น';
       }
@@ -223,7 +275,14 @@ export default function LawyerSignupPage() {
           </CardHeader>
           <CardContent>
             <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              <form onSubmit={form.handleSubmit(onSubmit, (errors) => {
+                console.error("Form Validation Errors:", errors);
+                toast({
+                  variant: "destructive",
+                  title: "กรุณากรอกข้อมูลให้ครบถ้วน",
+                  description: "มีบางช่องที่ยังไม่ได้กรอก หรือกรอกไม่ถูกต้อง (ดูสีแดงในฟอร์ม)",
+                });
+              })} className="space-y-6">
 
                 <h3 className="text-lg font-semibold border-b pb-2">ข้อมูลส่วนตัว</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -237,20 +296,75 @@ export default function LawyerSignupPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField control={form.control} name="dob" render={({ field }) => (
                     <FormItem className="flex flex-col"><FormLabel>วันเกิด</FormLabel>
-                      <Popover>
-                        <PopoverTrigger asChild>
+                      <div className="flex gap-2">
+                        {/* Day */}
+                        <Select
+                          value={field.value ? field.value.getDate().toString() : undefined}
+                          onValueChange={(value) => {
+                            const current = field.value || new Date();
+                            const newDate = new Date(current.getFullYear(), current.getMonth(), parseInt(value));
+                            field.onChange(newDate);
+                          }}
+                        >
                           <FormControl>
-                            <Button variant={"outline"} className={cn("pl-3 text-left font-normal", !field.value && "text-muted-foreground")}>
-                              {field.value ? format(field.value, "PPP") : <span>เลือกวันเกิด</span>}
-                              <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
-                            </Button>
+                            <SelectTrigger className="w-[80px]">
+                              <SelectValue placeholder="วัน" />
+                            </SelectTrigger>
                           </FormControl>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar mode="single" selected={field.value} onSelect={field.onChange} disabled={(date) => date > new Date() || date < new Date("1900-01-01")} initialFocus />
-                        </PopoverContent>
-                      </Popover>
-                      <FormMessage /></FormItem>
+                          <SelectContent>
+                            {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
+                              <SelectItem key={day} value={day.toString()}>{day}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+
+                        {/* Month */}
+                        <Select
+                          value={field.value ? field.value.getMonth().toString() : undefined}
+                          onValueChange={(value) => {
+                            const current = field.value || new Date();
+                            const newDate = new Date(current.getFullYear(), parseInt(value), current.getDate());
+                            field.onChange(newDate);
+                          }}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="flex-1">
+                              <SelectValue placeholder="เดือน" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {[
+                              "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+                              "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+                            ].map((month, index) => (
+                              <SelectItem key={index} value={index.toString()}>{month}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+
+                        {/* Year */}
+                        <Select
+                          value={field.value ? field.value.getFullYear().toString() : undefined}
+                          onValueChange={(value) => {
+                            const current = field.value || new Date();
+                            const newDate = new Date(parseInt(value), current.getMonth(), current.getDate());
+                            field.onChange(newDate);
+                          }}
+                        >
+                          <FormControl>
+                            <SelectTrigger className="w-[100px]">
+                              <SelectValue placeholder="ปี" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {Array.from({ length: 80 }, (_, i) => new Date().getFullYear() - i).map((year) => (
+                              <SelectItem key={year} value={year.toString()}>{year + 543}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <FormMessage />
+                    </FormItem>
                   )} />
                   <FormField control={form.control} name="gender" render={({ field }) => (
                     <FormItem><FormLabel>เพศ</FormLabel>

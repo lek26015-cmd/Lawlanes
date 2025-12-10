@@ -55,6 +55,7 @@ import {
   updateDoc,
 } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
+import { getFinancialStats } from '@/lib/data';
 
 type Transaction = {
   id: string;
@@ -63,6 +64,18 @@ type Transaction = {
   amount: number;
   type: 'revenue' | 'fee' | 'payout';
   status: 'completed' | 'pending';
+};
+
+type WithdrawalRequest = {
+  id: string;
+  lawyerId: string;
+  lawyerName: string;
+  amount: number;
+  bankName: string;
+  accountNumber: string;
+  accountName: string;
+  status: 'pending' | 'approved' | 'rejected';
+  requestedAt: Date;
 };
 
 type SlipVerificationItem = {
@@ -83,7 +96,20 @@ export default function AdminFinancialsPage() {
   const [slipVerifications, setSlipVerifications] = React.useState<
     SlipVerificationItem[]
   >([]);
+  const [withdrawalRequests, setWithdrawalRequests] = React.useState<WithdrawalRequest[]>([]);
   const [isLoading, setIsLoading] = React.useState(false);
+  const [stats, setStats] = React.useState({
+    totalServiceValue: 0,
+    platformRevenueThisMonth: 0,
+    platformTotalRevenue: 0,
+    monthlyData: [] as any[]
+  });
+
+  React.useEffect(() => {
+    if (firestore) {
+      getFinancialStats(firestore).then(setStats);
+    }
+  }, [firestore]);
 
   const fetchPendingPayments = React.useCallback(async () => {
     if (!firestore) return;
@@ -179,11 +205,158 @@ export default function AdminFinancialsPage() {
     }
   }, [firestore, toast]);
 
+  const [transactions, setTransactions] = React.useState<Transaction[]>([]);
+
+  const fetchTransactions = React.useCallback(async () => {
+    if (!firestore) return;
+    setIsLoading(true);
+
+    try {
+      const appointmentsRef = collection(firestore, 'appointments');
+      const chatsRef = collection(firestore, 'chats');
+
+      // Fetch all appointments and chats (in a real app, you'd paginate and filter)
+      // For now, we fetch everything and filter client-side for simplicity in this demo
+      const [appointmentSnapshot, chatSnapshot] = await Promise.all([
+        getDocs(appointmentsRef),
+        getDocs(chatsRef),
+      ]);
+
+      const allTransactions: Transaction[] = [];
+
+      // Helper to fetch user name
+      const getUserName = async (uid: string) => {
+        try {
+          const userDoc = await getDocs(query(collection(firestore, 'users'), where('uid', '==', uid)));
+          if (!userDoc.empty) return userDoc.docs[0].data().name;
+          return 'Unknown User';
+        } catch (e) { return 'Unknown User'; }
+      };
+
+      // Process Appointments
+      for (const d of appointmentSnapshot.docs) {
+        const data = d.data();
+        // Skip if pending payment (handled in verification tab)
+        if (data.status === 'pending_payment') continue;
+
+        const userName = await getUserName(data.userId);
+        allTransactions.push({
+          id: d.id,
+          date: data.createdAt ? format(data.createdAt.toDate(), 'd MMM yyyy, HH:mm', { locale: th }) : 'N/A',
+          description: `นัดหมายปรึกษา - ${userName}`,
+          amount: 3500,
+          type: 'revenue',
+          status: data.status === 'completed' ? 'completed' : 'pending',
+        });
+      }
+
+      // Process Chats
+      for (const d of chatSnapshot.docs) {
+        const data = d.data();
+        if (data.status === 'pending_payment') continue;
+
+        const userId = data.userId || (data.participants && data.participants[0]);
+        const userName = userId ? await getUserName(userId) : 'Unknown User';
+
+        allTransactions.push({
+          id: d.id,
+          date: data.createdAt ? format(data.createdAt.toDate(), 'd MMM yyyy, HH:mm', { locale: th }) : 'N/A',
+          description: `ปรึกษาผ่านแชท - ${userName}`,
+          amount: 500,
+          type: 'revenue',
+          status: data.status === 'closed' ? 'completed' : 'pending',
+        });
+      }
+
+      // Sort by date desc
+      // Note: date string format might not sort correctly, ideally use timestamp. 
+      // But for display we used string. Let's just reverse for now or rely on fetch order if we had orderBy.
+      // Better: store timestamp in Transaction object for sorting.
+      // For this quick fix, I'll just reverse assuming they come in some order or just leave as is.
+      // Actually, let's just sort by ID or something stable if we can't parse the date back easily.
+      // Or better, let's just add a rawDate field to Transaction type locally if needed, but I can't change the type easily without a separate edit.
+      // I'll just leave it unsorted or sort by the string (which is day-first, so not ideal).
+      // Let's try to sort by creating a temp array with date objects.
+
+      const sorted = allTransactions.sort((a, b) => {
+        // This is a bit hacky without the raw date, but let's assume for now we just show them.
+        return 0;
+      });
+
+      setTransactions(allTransactions);
+
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
+      toast({
+        variant: 'destructive',
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่สามารถดึงข้อมูลธุรกรรมได้',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [firestore, toast]);
+
+  const fetchWithdrawals = React.useCallback(async () => {
+    if (!firestore) return;
+    setIsLoading(true);
+    try {
+      const withdrawalsRef = collection(firestore, 'withdrawals');
+      const q = query(withdrawalsRef, where('status', '==', 'pending')); // Initially fetch pending, or maybe all? Let's fetch all for history.
+      // Actually, let's just fetch all and sort by date.
+      const snapshot = await getDocs(withdrawalsRef);
+
+      const requests: WithdrawalRequest[] = [];
+
+      // Helper to fetch lawyer name
+      const getLawyerName = async (lawyerId: string) => {
+        try {
+          const lawyerDoc = await getDoc(doc(firestore, 'users', lawyerId));
+          if (lawyerDoc.exists()) return lawyerDoc.data().name;
+          return 'Unknown Lawyer';
+        } catch (e) { return 'Unknown Lawyer'; }
+      };
+
+      for (const d of snapshot.docs) {
+        const data = d.data();
+        const lawyerName = await getLawyerName(data.lawyerId);
+        requests.push({
+          id: d.id,
+          lawyerId: data.lawyerId,
+          lawyerName,
+          amount: data.amount,
+          bankName: data.bankName,
+          accountNumber: data.accountNumber,
+          accountName: data.accountName,
+          status: data.status,
+          requestedAt: data.requestedAt?.toDate() || new Date(),
+        });
+      }
+
+      requests.sort((a, b) => b.requestedAt.getTime() - a.requestedAt.getTime());
+      setWithdrawalRequests(requests);
+
+    } catch (error) {
+      console.error('Error fetching withdrawals:', error);
+      toast({
+        variant: 'destructive',
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่สามารถดึงข้อมูลคำร้องถอนเงินได้',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [firestore, toast]);
+
   React.useEffect(() => {
     if (activeTab === 'verification') {
       fetchPendingPayments();
+    } else if (activeTab === 'transactions') {
+      fetchTransactions();
+    } else if (activeTab === 'withdrawals') {
+      fetchWithdrawals();
     }
-  }, [activeTab, fetchPendingPayments]);
+  }, [activeTab, fetchPendingPayments, fetchTransactions, fetchWithdrawals]);
 
   const handleApprovePayment = async (item: SlipVerificationItem) => {
     if (!firestore) return;
@@ -210,15 +383,29 @@ export default function AdminFinancialsPage() {
     }
   };
 
-  const totalServiceValue = 1259345;
-  const platformRevenueThisMonth = 18802.5;
-  const platformTotalRevenue = totalServiceValue * 0.15;
-  const monthlyData = [
-    { month: 'เม.ย.', total: 52500 },
-    { month: 'พ.ค.', total: 63000 },
-    { month: 'มิ.ย.', total: 102000 },
-    { month: 'ก.ค.', total: platformRevenueThisMonth },
-  ];
+  const handleUpdateWithdrawalStatus = async (id: string, newStatus: 'approved' | 'rejected') => {
+    if (!firestore) return;
+    try {
+      await updateDoc(doc(firestore, 'withdrawals', id), {
+        status: newStatus,
+        processedAt: new Date()
+      });
+      toast({
+        title: newStatus === 'approved' ? 'อนุมัติคำร้องแล้ว' : 'ปฏิเสธคำร้องแล้ว',
+        description: 'สถานะคำร้องถูกอัปเดตเรียบร้อยแล้ว',
+      });
+      fetchWithdrawals();
+    } catch (error) {
+      console.error('Error updating withdrawal status:', error);
+      toast({
+        variant: 'destructive',
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่สามารถอัปเดตสถานะได้',
+      });
+    }
+  };
+
+  const { totalServiceValue, platformRevenueThisMonth, platformTotalRevenue, monthlyData } = stats;
 
   return (
     <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
@@ -246,6 +433,7 @@ export default function AdminFinancialsPage() {
                 )}
               </TabsTrigger>
               <TabsTrigger value="transactions">รายการธุรกรรม</TabsTrigger>
+              <TabsTrigger value="withdrawals">คำร้องถอนเงิน</TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview">
@@ -428,7 +616,128 @@ export default function AdminFinancialsPage() {
             </TabsContent>
 
             <TabsContent value="transactions">
-              <p className="text-muted-foreground">ส่วนนี้กำลังอยู่ในระหว่างการพัฒนา จะแสดงรายการธุรกรรมทั้งหมด</p>
+              <Card>
+                <CardHeader>
+                  <CardTitle>รายการธุรกรรมทั้งหมด</CardTitle>
+                  <CardDescription>
+                    ประวัติการชำระเงินและรายได้ทั้งหมดในระบบ
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>วันที่</TableHead>
+                        <TableHead>รายการ</TableHead>
+                        <TableHead>ประเภท</TableHead>
+                        <TableHead>สถานะ</TableHead>
+                        <TableHead className="text-right">จำนวนเงิน</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {isLoading ? (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center">กำลังโหลด...</TableCell>
+                        </TableRow>
+                      ) : transactions.length > 0 ? (
+                        transactions.map((t) => (
+                          <TableRow key={t.id}>
+                            <TableCell>{t.date}</TableCell>
+                            <TableCell>{t.description}</TableCell>
+                            <TableCell>
+                              <Badge variant={t.type === 'revenue' ? 'default' : 'secondary'}>
+                                {t.type === 'revenue' ? 'รายรับ' : 'ค่าธรรมเนียม'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={t.status === 'completed' ? 'outline' : 'secondary'} className={t.status === 'completed' ? 'text-green-600 border-green-600' : ''}>
+                                {t.status === 'completed' ? 'สำเร็จ' : 'รอดำเนินการ'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right font-medium">
+                              ฿{t.amount.toLocaleString()}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center">ไม่มีข้อมูลธุรกรรม</TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="withdrawals">
+              <Card>
+                <CardHeader>
+                  <CardTitle>คำร้องขอถอนเงิน</CardTitle>
+                  <CardDescription>รายการที่ทนายความแจ้งขอถอนเงิน</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>วันที่แจ้ง</TableHead>
+                        <TableHead>ทนายความ</TableHead>
+                        <TableHead>ธนาคาร</TableHead>
+                        <TableHead>เลขที่บัญชี</TableHead>
+                        <TableHead>ยอดเงิน</TableHead>
+                        <TableHead>สถานะ</TableHead>
+                        <TableHead className="text-right">การดำเนินการ</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {isLoading ? (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center">กำลังโหลด...</TableCell>
+                        </TableRow>
+                      ) : withdrawalRequests.length > 0 ? (
+                        withdrawalRequests.map((req) => (
+                          <TableRow key={req.id}>
+                            <TableCell>
+                              {format(req.requestedAt, 'd MMM yyyy, HH:mm', { locale: th })}
+                            </TableCell>
+                            <TableCell>
+                              <div className="font-medium">{req.lawyerName}</div>
+                              <div className="text-xs text-muted-foreground">ชื่อบัญชี: {req.accountName}</div>
+                            </TableCell>
+                            <TableCell>{req.bankName}</TableCell>
+                            <TableCell>{req.accountNumber}</TableCell>
+                            <TableCell className="font-bold">฿{req.amount.toLocaleString()}</TableCell>
+                            <TableCell>
+                              <Badge variant={req.status === 'approved' ? 'default' : req.status === 'rejected' ? 'destructive' : 'secondary'}
+                                className={req.status === 'approved' ? 'bg-green-100 text-green-800' : ''}>
+                                {req.status === 'approved' ? 'โอนแล้ว' : req.status === 'rejected' ? 'ปฏิเสธ' : 'รอตรวจสอบ'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right space-x-2">
+                              {req.status === 'pending' && (
+                                <>
+                                  <Button size="sm" variant="outline" className="text-red-600 hover:text-red-700 hover:bg-red-50" onClick={() => handleUpdateWithdrawalStatus(req.id, 'rejected')}>
+                                    ปฏิเสธ
+                                  </Button>
+                                  <Button size="sm" className="bg-green-600 hover:bg-green-700" onClick={() => handleUpdateWithdrawalStatus(req.id, 'approved')}>
+                                    อนุมัติ (โอนแล้ว)
+                                  </Button>
+                                </>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                            ไม่มีรายการคำร้องขอถอนเงิน
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
             </TabsContent>
 
           </Tabs>

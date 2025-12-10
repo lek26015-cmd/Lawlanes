@@ -57,15 +57,27 @@ export default function LoginPage() {
   });
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
-    if (!auth) return;
+    if (!auth || !firestore) return;
     setIsLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, values.email, values.password);
+      const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
+      const user = userCredential.user;
+
+      // Check role
+      const userDocRef = doc(firestore, 'users', user.uid);
+      const userDoc = await getDoc(userDocRef);
+      const role = userDoc.exists() ? userDoc.data().role : 'customer';
+
       toast({
         title: 'เข้าสู่ระบบสำเร็จ',
         description: 'กำลังนำคุณไปยังแดชบอร์ด...',
       });
-      router.push(`/dashboard`);
+
+      if (role === 'lawyer') {
+        router.push('/lawyer-dashboard');
+      } else {
+        router.push('/dashboard');
+      }
     } catch (error: any) {
       console.error(error);
       let errorMessage = 'เกิดข้อผิดพลาดที่ไม่รู้จัก';
@@ -93,6 +105,7 @@ export default function LoginPage() {
       // Check if user profile already exists
       const userRef = doc(firestore, 'users', user.uid);
       const userSnap = await getDoc(userRef);
+      let role = 'customer';
 
       if (!userSnap.exists()) {
         // Create a new user profile if it doesn't exist
@@ -102,13 +115,20 @@ export default function LoginPage() {
           email: user.email,
           role: 'customer',
         });
+      } else {
+        role = userSnap.data().role;
       }
 
       toast({
         title: 'เข้าสู่ระบบด้วย Google สำเร็จ',
         description: 'กำลังนำคุณไปยังแดชบอร์ด...',
       });
-      router.push(`/dashboard`);
+
+      if (role === 'lawyer') {
+        router.push('/lawyer-dashboard');
+      } else {
+        router.push('/dashboard');
+      }
 
     } catch (error: any) {
       console.error("Google Sign-In Error:", error);

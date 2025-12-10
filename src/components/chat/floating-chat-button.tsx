@@ -8,7 +8,7 @@ import { useChat } from '@/context/chat-context';
 import { cn } from '@/lib/utils';
 
 export default function FloatingChatButton() {
-  const { setAiChatOpen } = useChat();
+  const { setAiChatOpen, isAiChatOpen } = useChat();
   const [isFooterVisible, setIsFooterVisible] = useState(false);
 
   useEffect(() => {
@@ -38,11 +38,14 @@ export default function FloatingChatButton() {
 
   return (
     <>
-      <div className="fixed bottom-6 right-6 z-40">
+      <div className={cn(
+        "fixed bottom-6 right-6 z-40 transition-all duration-300 ease-in-out transform origin-bottom-right",
+        isAiChatOpen ? "scale-0 opacity-0 pointer-events-none" : "scale-100 opacity-100"
+      )}>
         <div className="relative group">
           <div className={cn(
-              "absolute -inset-0.5 rounded-full blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-rainbow-border-spin",
-              isFooterVisible ? "bg-gradient-to-r from-gray-400 via-gray-500 to-gray-600" : "bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600"
+            "absolute -inset-0.5 rounded-full blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-rainbow-border-spin",
+            isFooterVisible ? "bg-gradient-to-r from-gray-400 via-gray-500 to-gray-600" : "bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600"
           )}></div>
           <Button
             onClick={() => setAiChatOpen(true)}

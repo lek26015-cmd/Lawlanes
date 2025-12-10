@@ -37,7 +37,9 @@ import { Textarea } from '@/components/ui/textarea';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, arrayUnion, onSnapshot, serverTimestamp, addDoc, collection, query, where, getDocs, setDoc } from 'firebase/firestore';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '@/lib/constants';
 
 function ChatPageContent() {
     const params = useParams();
@@ -46,18 +48,18 @@ function ChatPageContent() {
     const chatId = params.id as string;
     const lawyerId = searchParams.get('lawyerId');
     const clientId = searchParams.get('clientId'); // For lawyer's view
-    const status = searchParams.get('status');
     const view = searchParams.get('view');
     const additionalFeeRequested = searchParams.get('additionalFeeRequested');
 
     const [lawyer, setLawyer] = useState<LawyerProfile | null>(null);
     const [client, setClient] = useState<{ id: string, name: string, imageUrl: string } | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [files, setFiles] = useState<{ name: string, size: number }[]>([]);
+    const [files, setFiles] = useState<{ name: string, url: string, size: number }[]>([]);
+    const [chatStatus, setChatStatus] = useState<string>(searchParams.get('status') || 'active');
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { toast } = useToast();
 
-    const isCompleted = status === 'closed';
+    const isCompleted = chatStatus === 'closed';
     const isLawyerView = view === 'lawyer';
     const [isChatDisabled, setIsChatDisabled] = useState(isCompleted);
 
@@ -65,12 +67,36 @@ function ChatPageContent() {
     const [rating, setRating] = useState(0);
     const [reviewText, setReviewText] = useState("");
 
-    const { auth, firestore } = useFirebase();
+    const { auth, firestore, storage } = useFirebase();
     const { user } = useUser();
 
     const initialFee = 3500;
     const additionalFee = 1500;
     const totalFee = initialFee + additionalFee;
+
+    // Real-time listener for chat document (status and files)
+    useEffect(() => {
+        if (!firestore || !chatId || !user) return;
+
+        const chatRef = doc(firestore, 'chats', chatId);
+        const unsubscribe = onSnapshot(chatRef, (doc) => {
+            if (doc.exists()) {
+                const data = doc.data();
+                setChatStatus(data.status || 'active');
+                setIsChatDisabled(data.status === 'closed');
+                if (data.files) {
+                    setFiles(data.files);
+                }
+            }
+        }, (error) => {
+            // Suppress permission errors that might happen during logout race conditions
+            if (error.code !== 'permission-denied') {
+                console.error("Chat snapshot error:", error);
+            }
+        });
+
+        return () => unsubscribe();
+    }, [firestore, chatId, user]);
 
     useEffect(() => {
         if (!firestore) return;
@@ -83,8 +109,14 @@ function ChatPageContent() {
             }
             if (isLawyerView && clientId) {
                 const userDoc = await getDoc(doc(db, 'users', clientId));
-                if (userDoc.exists()) {
-                    const userData = userDoc.data();
+                // Note: getDoc takes a DocumentReference, so we need doc(db, 'users', clientId)
+                // But wait, the original code had getDoc(doc(db, 'users', clientId)). 
+                // Let's fix the previous implementation which might have been slightly off or just verbose.
+                const clientRef = doc(db, 'users', clientId);
+                const userDocSnap = await getDoc(clientRef);
+
+                if (userDocSnap.exists()) {
+                    const userData = userDocSnap.data();
                     setClient({ id: clientId, name: userData.name, imageUrl: userData.avatar || '' });
                 }
             }
@@ -97,26 +129,53 @@ function ChatPageContent() {
         fileInputRef.current?.click();
     };
 
-    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
-        if (!file) return;
+        if (!file || !storage || !firestore || !user) return;
 
-        const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-
-        if (file.size > MAX_FILE_SIZE) {
+        if (file.size > MAX_FILE_SIZE_BYTES) {
             toast({
                 variant: "destructive",
                 title: "ไฟล์มีขนาดใหญ่เกินไป",
-                description: `กรุณาเลือกไฟล์ที่มีขนาดไม่เกิน ${MAX_FILE_SIZE / 1024 / 1024}MB`,
+                description: `กรุณาเลือกไฟล์ที่มีขนาดไม่เกิน ${MAX_FILE_SIZE_MB}MB`,
             });
             return;
         }
 
-        setFiles(prevFiles => [...prevFiles, { name: file.name, size: file.size }]);
-        toast({
-            title: "อัปโหลดไฟล์สำเร็จ (จำลอง)",
-            description: `ไฟล์ "${file.name}" ถูกเพิ่มในรายการแล้ว`,
-        });
+        try {
+            toast({ title: "กำลังอัปโหลด...", description: "กรุณารอสักครู่" });
+
+            const timestamp = Date.now();
+            const storageRef = ref(storage, `chat-files/${chatId}/${timestamp}_${file.name}`);
+            const snapshot = await uploadBytes(storageRef, file);
+            const downloadUrl = await getDownloadURL(snapshot.ref);
+
+            const fileData = {
+                name: file.name,
+                url: downloadUrl,
+                size: file.size,
+                uploadedBy: user.uid,
+                uploadedAt: Date.now()
+            };
+
+            const chatRef = doc(firestore, 'chats', chatId);
+            await updateDoc(chatRef, {
+                files: arrayUnion(fileData)
+            });
+
+            toast({
+                title: "อัปโหลดไฟล์สำเร็จ",
+                description: `ไฟล์ "${file.name}" ถูกเพิ่มในรายการแล้ว`,
+            });
+
+        } catch (error) {
+            console.error("Upload error:", error);
+            toast({
+                variant: "destructive",
+                title: "อัปโหลดไม่สำเร็จ",
+                description: "เกิดข้อผิดพลาดในการอัปโหลดไฟล์",
+            });
+        }
 
         // Reset file input
         if (event.target) {
@@ -124,14 +183,36 @@ function ChatPageContent() {
         }
     };
 
-    const handleConfirmRelease = () => {
-        setIsChatDisabled(true);
-        toast({
-            title: "ดำเนินการสำเร็จ",
-            description: "เคสเสร็จสมบูรณ์แล้ว กำลังนำคุณไปยังหน้าให้คะแนน...",
-        });
+    const handleConfirmRelease = async () => {
+        if (!firestore) return;
 
-        router.push(`/review/${chatId}?lawyerId=${lawyerId}`);
+        try {
+            const chatRef = doc(firestore, 'chats', chatId);
+            await updateDoc(chatRef, {
+                status: 'closed',
+                closedAt: serverTimestamp()
+            });
+
+            toast({
+                title: "ดำเนินการสำเร็จ",
+                description: "เคสเสร็จสมบูรณ์แล้ว กำลังนำคุณไปยังหน้าให้คะแนน...",
+            });
+
+            // Wait a bit for the user to see the toast before redirecting
+            // Or rely on the real-time listener to update the UI to "Review" mode
+            // But the requirement says "redirect to review page"
+            setTimeout(() => {
+                router.push(`/review/${chatId}?lawyerId=${lawyerId}`);
+            }, 1500);
+
+        } catch (error) {
+            console.error("Error closing case:", error);
+            toast({
+                variant: "destructive",
+                title: "เกิดข้อผิดพลาด",
+                description: "ไม่สามารถปิดเคสได้ กรุณาลองใหม่อีกครั้ง",
+            });
+        }
     };
 
     const handleApproveAdditionalFee = () => {
@@ -143,7 +224,7 @@ function ChatPageContent() {
         router.push(`/payment?lawyerId=${lawyerId}&fee=${additionalFee}`);
     };
 
-    const handleSubmitReview = () => {
+    const handleSubmitReview = async () => {
         if (rating === 0) {
             toast({
                 variant: "destructive",
@@ -152,12 +233,74 @@ function ChatPageContent() {
             });
             return;
         }
-        console.log({ chatId, lawyerId, rating, reviewText });
-        toast({
-            title: "ส่งรีวิวสำเร็จ",
-            description: "ขอบคุณสำหรับความคิดเห็นของคุณ!",
-        });
-        router.push('/dashboard');
+
+        if (!firestore || !user || !lawyerId) {
+            toast({
+                variant: "destructive",
+                title: "เกิดข้อผิดพลาด",
+                description: "ไม่พบข้อมูลทนายความ หรือคุณยังไม่ได้เข้าสู่ระบบ",
+            });
+            return;
+        }
+
+        try {
+            // 1. Add the review document
+            await addDoc(collection(firestore, 'reviews'), {
+                lawyerId,
+                userId: user.uid,
+                author: client?.name || user.displayName || 'Anonymous',
+                avatar: client?.imageUrl || user.photoURL || '',
+                rating: Number(rating),
+                comment: reviewText,
+                createdAt: serverTimestamp(),
+                caseId: chatId
+            });
+
+            // 2. Calculate new average rating and review count
+            // We fetch all reviews to ensure accuracy
+            const reviewsRef = collection(firestore, 'reviews');
+            const q = query(reviewsRef, where('lawyerId', '==', lawyerId));
+            const querySnapshot = await getDocs(q);
+
+            const totalReviews = querySnapshot.size;
+            const totalRating = querySnapshot.docs.reduce((acc: number, doc: any) => acc + (Number(doc.data().rating) || 0), 0);
+            const newAverageRating = totalReviews > 0 ? totalRating / totalReviews : 0;
+
+            console.log(`Updating stats for lawyer ${lawyerId}: Avg ${newAverageRating}, Count ${totalReviews}`);
+
+            // 3. Update lawyer document
+            // Use setDoc with merge: true to handle cases where doc might not exist yet or is in a different collection
+            const lawyerRef = doc(firestore, 'lawyerProfiles', lawyerId);
+
+            try {
+                await setDoc(lawyerRef, {
+                    averageRating: newAverageRating,
+                    reviewCount: totalReviews
+                }, { merge: true });
+            } catch (e) {
+                console.warn("Could not update lawyerProfiles, trying users collection", e);
+                // Fallback to users collection if lawyerProfiles fails (though setDoc should create it)
+                // This is just in case of permission issues or logical separation
+                const userRef = doc(firestore, 'users', lawyerId);
+                await setDoc(userRef, {
+                    averageRating: newAverageRating,
+                    reviewCount: totalReviews
+                }, { merge: true });
+            }
+
+            toast({
+                title: "ส่งรีวิวสำเร็จ",
+                description: "ขอบคุณสำหรับความคิดเห็นของคุณ!",
+            });
+            router.push('/dashboard');
+        } catch (error) {
+            console.error("Error submitting review:", error);
+            toast({
+                variant: "destructive",
+                title: "เกิดข้อผิดพลาด",
+                description: "ไม่สามารถส่งรีวิวได้ กรุณาลองใหม่อีกครั้ง",
+            });
+        }
     };
 
     if (isLoading) {
@@ -171,7 +314,7 @@ function ChatPageContent() {
 
     const otherUser = {
         name: isLawyerView ? (client?.name ?? 'Client') : (lawyer?.name ?? 'Lawyer'),
-        userId: isLawyerView ? (client?.id ?? '') : (lawyer?.userId ?? ''),
+        userId: isLawyerView ? (client?.id ?? '') : (lawyer?.userId || lawyer?.id || ''), // Fallback to lawyer.id if userId is missing
         imageUrl: isLawyerView ? (client?.imageUrl ?? "https://picsum.photos/seed/user-avatar/100/100") : (lawyer?.imageUrl ?? ''),
     };
 
@@ -361,11 +504,11 @@ function ChatPageContent() {
                                     )}
                                     {files.map((file, index) => (
                                         <div key={index} className="flex justify-between items-center p-2 rounded-md hover:bg-gray-100">
-                                            <div className="flex items-center gap-2 overflow-hidden">
+                                            <a href={file.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 overflow-hidden flex-1">
                                                 <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-                                                <span className="truncate" title={file.name}>{file.name}</span>
-                                            </div>
-                                            <span className="text-muted-foreground text-xs flex-shrink-0">
+                                                <span className="truncate hover:underline text-primary" title={file.name}>{file.name}</span>
+                                            </a>
+                                            <span className="text-muted-foreground text-xs flex-shrink-0 ml-2">
                                                 {(file.size / 1024 / 1024).toFixed(2)}MB
                                             </span>
                                         </div>

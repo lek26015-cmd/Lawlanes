@@ -95,10 +95,67 @@ export async function chat(
 ): Promise<ChatResponse> {
   const { history, prompt } = request;
 
-  const { output } = await chatPrompt({
-    history,
-    prompt,
-  });
+  try {
+    // Check if API key is set (basic check)
+    if (!process.env.GOOGLE_GENAI_API_KEY && !process.env.GOOGLE_API_KEY) {
+      console.warn("[ChatFlow] No Google API Key found. Falling back to manual mode.");
+      throw new Error("No API Key");
+    }
 
-  return output!;
+    const { output } = await chatPrompt({
+      history,
+      prompt,
+    });
+
+    return output!;
+  } catch (error) {
+    console.error("[ChatFlow] AI generation failed:", error);
+
+    // Fallback: Manual RAG (Search + Template)
+    // This ensures the chat "works" even without a valid API key or if the model is overloaded.
+    return await fallbackChat(prompt);
+  }
+}
+
+async function fallbackChat(prompt: string): Promise<ChatResponse> {
+  console.log("[ChatFlow] Running fallback chat logic...");
+  const { firestore } = initializeFirebase();
+  const articles = await getAllArticles(firestore);
+  const lowerCaseQuery = prompt.toLowerCase();
+
+  // Simple keyword search
+  const relevantArticles = articles
+    .filter(article =>
+      article.title.toLowerCase().includes(lowerCaseQuery) ||
+      article.content.toLowerCase().includes(lowerCaseQuery)
+    )
+    .slice(0, 2);
+
+  const sections = [];
+
+  if (relevantArticles.length > 0) {
+    sections.push({
+      title: "ข้อมูลจากฐานความรู้ (โหมดสำรอง)",
+      content: "จากการค้นหาข้อมูลเบื้องต้น พบประเด็นที่เกี่ยวข้องดังนี้ครับ:"
+    });
+
+    relevantArticles.forEach(article => {
+      sections.push({
+        title: article.title,
+        content: article.content.substring(0, 300) + "..." // Summary
+      });
+    });
+
+    sections.push({
+      title: "คำแนะนำเพิ่มเติม",
+      content: "ระบบ AI หลักกำลังปรับปรุงหรือขัดข้อง ข้อมูลข้างต้นเป็นเพียงการค้นหาเบื้องต้น แนะนำให้ปรึกษาทนายความเพื่อความถูกต้องครับ"
+    });
+  } else {
+    sections.push({
+      title: "ไม่พบข้อมูลที่ตรงกัน (โหมดสำรอง)",
+      content: "ขออภัยครับ ระบบไม่พบข้อมูลที่ตรงกับคำถามในฐานข้อมูลเบื้องต้น และไม่สามารถเชื่อมต่อกับ AI หลักได้ในขณะนี้\n\nแนะนำให้ท่าน:\n1. ลองใช้คำค้นหาอื่น\n2. กดปุ่ม 'ปรึกษาทนายความ' เพื่อคุยกับทนายตัวจริง"
+    });
+  }
+
+  return { sections };
 }

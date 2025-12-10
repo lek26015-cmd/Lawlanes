@@ -12,6 +12,7 @@ import { useState, useEffect } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { useUser as useAuthUser, useFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
+import { useToast } from '@/hooks/use-toast';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -22,6 +23,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { doc, getDoc } from 'firebase/firestore';
+import profileLawyerImg from '@/pic/profile-lawyer.jpg';
 
 
 export default function Header({ setUserRole }: { setUserRole: (role: string | null) => void }) {
@@ -34,19 +36,51 @@ export default function Header({ setUserRole }: { setUserRole: (role: string | n
   const { auth, firestore } = useFirebase();
   const { user, isUserLoading: isLoading } = useAuthUser();
 
+  const [role, setRole] = useState<string | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+
   useEffect(() => {
-    if (isLoading || !firestore) return;
-    if (user) {
-      const userDocRef = doc(firestore, "users", user.uid);
-      getDoc(userDocRef).then(docSnap => {
-        if (docSnap.exists()) {
-          setUserRole(docSnap.data().role);
-        } else {
-          setUserRole(null);
+    async function fetchRole() {
+      if (!user || !firestore) return;
+
+      try {
+        // 1. Check Lawyer Profile FIRST (Priority)
+        const lawyerDocRef = doc(firestore, "lawyerProfiles", user.uid);
+        const lawyerSnap = await getDoc(lawyerDocRef);
+
+        // Hotfix for specific user
+        if (lawyerSnap.exists() || user.uid === 'N5ehLbkYXbQQLX5KEuwJbeL3cXO2') {
+          console.log("User is a lawyer:", user.uid);
+          setRole('lawyer');
+          setUserRole('lawyer');
+          setAvatarUrl(lawyerSnap.exists() ? lawyerSnap.data().imageUrl : user.photoURL);
+          return; // Exit early if lawyer
         }
-      });
-    } else {
-      setUserRole(null);
+
+        // 2. Check User Profile
+        const userDocRef = doc(firestore, "users", user.uid);
+        const userSnap = await getDoc(userDocRef);
+
+        if (userSnap.exists()) {
+          const data = userSnap.data();
+          console.log("User is a regular user:", data.role);
+          setRole(data.role || 'user');
+          setUserRole(data.role || 'user');
+          setAvatarUrl(data.avatar || user.photoURL);
+        } else {
+          // No profile found
+          setRole('user');
+          setUserRole('user');
+          setAvatarUrl(user.photoURL);
+        }
+
+      } catch (error) {
+        console.error("Error fetching role:", error);
+      }
+    }
+
+    if (!isLoading) {
+      fetchRole();
     }
   }, [user, isLoading, firestore, setUserRole]);
 
@@ -75,9 +109,15 @@ export default function Header({ setUserRole }: { setUserRole: (role: string | n
 
   const useTransparentHeader = isHomePage && !isScrolled;
 
+  const { toast } = useToast();
+
   const handleLogout = async () => {
     if (auth) {
       await signOut(auth);
+      toast({
+        title: "ออกจากระบบแล้ว!",
+        description: "คุณได้ออกจากระบบเรียบร้อยแล้ว",
+      });
     }
   }
 
@@ -158,7 +198,7 @@ export default function Header({ setUserRole }: { setUserRole: (role: string | n
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className={cn("flex items-center gap-2", loginButtonClasses)}>
                   <Avatar className="w-8 h-8">
-                    <AvatarImage src={user.photoURL || "https://picsum.photos/seed/user-avatar/100/100"} />
+                    <AvatarImage src={avatarUrl || profileLawyerImg.src} />
                     <AvatarFallback>{user.displayName?.charAt(0) || user.email?.charAt(0)}</AvatarFallback>
                   </Avatar>
                   <span className="hidden lg:inline">{user.displayName || user.email}</span>
@@ -169,7 +209,7 @@ export default function Header({ setUserRole }: { setUserRole: (role: string | n
                 <DropdownMenuLabel>บัญชีของฉัน</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link href="/dashboard"><LayoutDashboard className="mr-2" />แดชบอร์ด</Link>
+                  <Link href={(role === 'lawyer' || user.uid === 'N5ehLbkYXbQQLX5KEuwJbeL3cXO2') ? "/lawyer-dashboard" : "/dashboard"}><LayoutDashboard className="mr-2" />แดชบอร์ด</Link>
                 </DropdownMenuItem>
                 <DropdownMenuItem asChild>
                   <Link href="/account"><User className="mr-2" />จัดการบัญชี</Link>

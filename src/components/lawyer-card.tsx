@@ -8,6 +8,7 @@ import { Mail, Scale, Phone } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import profileLawyerImg from '@/pic/profile-lawyer.jpg';
 
 interface LawyerCardProps {
   lawyer: LawyerProfile;
@@ -15,9 +16,9 @@ interface LawyerCardProps {
 
 export default function LawyerCard({ lawyer }: LawyerCardProps) {
   const router = useRouter();
-  // Mock data for rating and reviews
-  const rating = (Number(lawyer.id) % 2) + 3.5;
-  const reviewCount = Number(lawyer.id) * 7 + 5;
+  // Use real data if available, otherwise default to 0 (or hide)
+  const rating = lawyer.averageRating || 0;
+  const reviewCount = lawyer.reviewCount || 0;
 
   const handleStartChat = () => {
     router.push(`/payment?type=chat&lawyerId=${lawyer.id}`);
@@ -28,7 +29,7 @@ export default function LawyerCard({ lawyer }: LawyerCardProps) {
       <div className="flex-shrink-0 flex flex-col items-center gap-2 w-full md:w-24">
         <div className="relative h-20 w-20 flex-shrink-0">
           <Image
-            src={lawyer.imageUrl}
+            src={lawyer.imageUrl || profileLawyerImg}
             alt={lawyer.name}
             fill
             className="rounded-full object-cover"
@@ -61,7 +62,7 @@ export default function LawyerCard({ lawyer }: LawyerCardProps) {
           </Button>
         </Link>
         <Button variant="outline" className="w-full" onClick={handleStartChat}>
-            <Mail className="mr-2 h-4 w-4" /> ส่งข้อความ
+          <Mail className="mr-2 h-4 w-4" /> ส่งข้อความ
         </Button>
       </div>
     </div>

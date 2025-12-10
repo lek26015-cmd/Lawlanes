@@ -42,13 +42,24 @@ export async function getAllArticles(db: Firestore | null): Promise<Article[]> {
   if (!db) return [];
   const articlesRef = collection(db, 'articles');
   const q = query(articlesRef, orderBy('publishedAt', 'desc'));
+  // const q = query(articlesRef);
   const querySnapshot = await getDocs(q);
   return querySnapshot.docs.map(doc => {
     const data = doc.data();
+    let publishedAtStr = new Date().toISOString();
+
+    if (data.publishedAt?.toDate) {
+      publishedAtStr = data.publishedAt.toDate().toISOString();
+    } else if (data.publishedAt instanceof Date) {
+      publishedAtStr = data.publishedAt.toISOString();
+    } else if (typeof data.publishedAt === 'string') {
+      publishedAtStr = data.publishedAt;
+    }
+
     return {
       id: doc.id,
       ...data,
-      publishedAt: data.publishedAt?.toDate().toISOString() // Convert timestamp to string
+      publishedAt: publishedAtStr
     } as Article
   });
 }
@@ -282,7 +293,26 @@ export async function getAllUsers(db: Firestore): Promise<UserProfile[]> {
     return {
       uid: doc.id,
       ...data,
-      registeredAt: data.registeredAt?.toDate().toLocaleDateString('th-TH') || 'N/A'
+      type: data.type || 'บุคคลทั่วไป',
+      status: data.status || 'active',
+      registeredAt: (data.registeredAt || data.createdAt)?.toDate().toLocaleDateString('th-TH') || 'N/A'
+    } as UserProfile;
+  });
+}
+
+export async function getAdmins(db: Firestore): Promise<UserProfile[]> {
+  if (!db) return [];
+  const usersRef = collection(db, 'users');
+  const q = query(usersRef, where('role', '==', 'admin'));
+  const querySnapshot = await getDocs(q);
+  return querySnapshot.docs.map(doc => {
+    const data = doc.data();
+    return {
+      uid: doc.id,
+      ...data,
+      type: data.type || 'บุคคลทั่วไป',
+      status: data.status || 'active',
+      registeredAt: (data.registeredAt || data.createdAt)?.toDate().toLocaleDateString('th-TH') || 'N/A'
     } as UserProfile;
   });
 }
@@ -290,16 +320,34 @@ export async function getAllUsers(db: Firestore): Promise<UserProfile[]> {
 
 export async function getAllLawyers(db: Firestore): Promise<LawyerProfile[]> {
   if (!db) return [];
-  const lawyersRef = collection(db, 'lawyerProfiles');
-  const querySnapshot = await getDocs(lawyersRef);
-  return querySnapshot.docs.map(doc => {
-    const data = doc.data();
-    return {
-      id: doc.id,
-      ...data,
-      joinedAt: data.joinedAt?.toDate().toLocaleDateString('th-TH') || 'N/A'
-    } as LawyerProfile
-  });
+  try {
+    const lawyersRef = collection(db, 'lawyerProfiles');
+    const querySnapshot = await getDocs(lawyersRef);
+    console.log(`[getAllLawyers] Fetched ${querySnapshot.size} lawyers`);
+
+    return querySnapshot.docs.map(doc => {
+      const data = doc.data();
+      let joinedAtStr = 'N/A';
+      try {
+        if (data.joinedAt?.toDate) {
+          joinedAtStr = data.joinedAt.toDate().toLocaleDateString('th-TH');
+        } else if (data.joinedAt instanceof Date) {
+          joinedAtStr = data.joinedAt.toLocaleDateString('th-TH');
+        }
+      } catch (e) {
+        console.warn(`[getAllLawyers] Date error for ${doc.id}:`, e);
+      }
+
+      return {
+        id: doc.id,
+        ...data,
+        joinedAt: joinedAtStr
+      } as LawyerProfile
+    });
+  } catch (error) {
+    console.error("[getAllLawyers] Error fetching lawyers:", error);
+    return [];
+  }
 }
 
 export async function getAllAds(db: Firestore): Promise<Ad[]> {
@@ -356,32 +404,49 @@ export async function getAdminStats(db: Firestore) {
     newUsers: 0,
     activeTicketsCount: 0,
     pendingLawyersCount: 0,
-    totalRevenue: 0 // Placeholder
+    totalRevenue: 0
   };
 
-  // 1. Users Stats
-  const usersRef = collection(db, 'users');
-  const usersSnapshot = await getDocs(usersRef);
-  const totalUsers = usersSnapshot.size;
+  let totalUsers = 0;
+  let newUsers = 0;
+  let activeTicketsCount = 0;
+  let pendingLawyersCount = 0;
 
-  const now = new Date();
-  const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const newUsers = usersSnapshot.docs.filter(doc => {
-    const data = doc.data();
-    return data.registeredAt && data.registeredAt.toDate() >= firstDayOfMonth;
-  }).length;
+  try {
+    // 1. Users Stats
+    const usersRef = collection(db, 'users');
+    const usersSnapshot = await getDocs(usersRef);
+    totalUsers = usersSnapshot.size;
 
-  // 2. Tickets Stats
-  const ticketsRef = collection(db, 'tickets');
-  const ticketsQuery = query(ticketsRef, where('status', '==', 'pending'));
-  const ticketsSnapshot = await getDocs(ticketsQuery);
-  const activeTicketsCount = ticketsSnapshot.size;
+    const now = new Date();
+    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    newUsers = usersSnapshot.docs.filter(doc => {
+      const data = doc.data();
+      return data.registeredAt && data.registeredAt.toDate() >= firstDayOfMonth;
+    }).length;
+  } catch (error) {
+    console.warn("Failed to fetch user stats (likely permission error):", error);
+  }
 
-  // 3. Lawyers Stats
-  const lawyersRef = collection(db, 'lawyerProfiles');
-  const lawyersQuery = query(lawyersRef, where('status', '==', 'pending'));
-  const lawyersSnapshot = await getDocs(lawyersQuery);
-  const pendingLawyersCount = lawyersSnapshot.size;
+  try {
+    // 2. Tickets Stats
+    const ticketsRef = collection(db, 'tickets');
+    const ticketsQuery = query(ticketsRef, where('status', '==', 'pending'));
+    const ticketsSnapshot = await getDocs(ticketsQuery);
+    activeTicketsCount = ticketsSnapshot.size;
+  } catch (error) {
+    console.warn("Failed to fetch ticket stats:", error);
+  }
+
+  try {
+    // 3. Lawyers Stats
+    const lawyersRef = collection(db, 'lawyerProfiles');
+    const lawyersQuery = query(lawyersRef, where('status', '==', 'pending'));
+    const lawyersSnapshot = await getDocs(lawyersQuery);
+    pendingLawyersCount = lawyersSnapshot.size;
+  } catch (error) {
+    console.warn("Failed to fetch lawyer stats:", error);
+  }
 
   return {
     totalUsers,
@@ -389,5 +454,159 @@ export async function getAdminStats(db: Firestore) {
     activeTicketsCount,
     pendingLawyersCount,
     totalRevenue: 0
+  };
+}
+
+export async function getFinancialStats(db: Firestore) {
+  if (!db) return {
+    totalServiceValue: 0,
+    platformRevenueThisMonth: 0,
+    platformTotalRevenue: 0,
+    monthlyData: []
+  };
+
+  let totalServiceValue = 0;
+  let platformRevenueThisMonth = 0;
+  let platformTotalRevenue = 0;
+  const monthlyRevenue: { [key: string]: number } = {};
+
+  try {
+    // 1. Calculate from Appointments (assuming 3500 THB per appointment)
+    const appointmentsRef = collection(db, 'appointments');
+    // Consider 'active' or 'completed' as paid. 'pending_payment' is not paid.
+    // For simplicity, let's assume 'active', 'completed', 'closed' are paid.
+    // In a real app, we should have a 'paymentStatus' field.
+    // Let's use status != 'pending_payment' and != 'cancelled'
+    const appointmentsSnapshot = await getDocs(appointmentsRef);
+
+    appointmentsSnapshot.docs.forEach(doc => {
+      const data = doc.data();
+      if (data.status !== 'pending_payment' && data.status !== 'cancelled' && data.status !== 'pending') {
+        const amount = 3500; // Fixed price for now
+        totalServiceValue += amount;
+
+        const date = data.createdAt ? data.createdAt.toDate() : new Date();
+        const monthKey = format(date, 'MMM', { locale: th });
+        monthlyRevenue[monthKey] = (monthlyRevenue[monthKey] || 0) + (amount * 0.15); // Platform share
+
+        const now = new Date();
+        if (date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()) {
+          platformRevenueThisMonth += amount * 0.15;
+        }
+      }
+    });
+
+    // 2. Calculate from Chats (assuming 500 THB per chat)
+    const chatsRef = collection(db, 'chats');
+    const chatsSnapshot = await getDocs(chatsRef);
+
+    chatsSnapshot.docs.forEach(doc => {
+      const data = doc.data();
+      // Assuming chats created are paid if not 'pending_payment'
+      if (data.status !== 'pending_payment') {
+        const amount = 500; // Fixed price
+        totalServiceValue += amount;
+
+        const date = data.createdAt ? data.createdAt.toDate() : new Date();
+        const monthKey = format(date, 'MMM', { locale: th });
+        monthlyRevenue[monthKey] = (monthlyRevenue[monthKey] || 0) + (amount * 0.15);
+
+        const now = new Date();
+        if (date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()) {
+          platformRevenueThisMonth += amount * 0.15;
+        }
+      }
+    });
+
+    platformTotalRevenue = totalServiceValue * 0.15;
+
+  } catch (error) {
+    console.error("Error calculating financial stats:", error);
+  }
+
+  // Format monthly data for chart
+  const monthsOrder = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+  const monthlyData = monthsOrder.map(month => ({
+    month,
+    total: monthlyRevenue[month] || 0
+  })).filter(d => d.total > 0); // Only show months with revenue
+
+  return {
+    totalServiceValue,
+    platformRevenueThisMonth,
+    platformTotalRevenue,
+    monthlyData
+  };
+}
+
+export async function getLawyerStats(db: Firestore, lawyerId: string) {
+  if (!db) return {
+    incomeThisMonth: 0,
+    totalIncome: 0,
+    completedCases: 0,
+    rating: 4.8, // Mock for now
+    responseRate: 95 // Mock for now
+  };
+
+  let incomeThisMonth = 0;
+  let totalIncome = 0;
+  let completedCases = 0;
+
+  try {
+    // 1. Calculate from Appointments
+    const appointmentsRef = collection(db, 'appointments');
+    const aptQuery = query(appointmentsRef, where('lawyerId', '==', lawyerId), where('status', '==', 'completed'));
+    const appointmentsSnapshot = await getDocs(aptQuery);
+
+    appointmentsSnapshot.docs.forEach(doc => {
+      const data = doc.data();
+      const amount = 3500; // Fixed price
+      const lawyerShare = amount * 0.85; // 85% share
+
+      totalIncome += lawyerShare;
+
+      const date = data.createdAt ? data.createdAt.toDate() : new Date();
+      const now = new Date();
+      if (date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()) {
+        incomeThisMonth += lawyerShare;
+      }
+      completedCases++;
+    });
+
+    // 2. Calculate from Chats
+    const chatsRef = collection(db, 'chats');
+    // Note: 'participants' array contains lawyerId. We need to filter by status 'closed'.
+    // However, Firestore array-contains is already used. We can filter in memory or use composite index.
+    // Let's fetch all chats for this lawyer and filter.
+    const chatsQuery = query(chatsRef, where('participants', 'array-contains', lawyerId));
+    const chatsSnapshot = await getDocs(chatsQuery);
+
+    chatsSnapshot.docs.forEach(doc => {
+      const data = doc.data();
+      if (data.status === 'closed') {
+        const amount = 500; // Fixed price
+        const lawyerShare = amount * 0.85; // 85% share
+
+        totalIncome += lawyerShare;
+
+        const date = data.createdAt ? data.createdAt.toDate() : new Date();
+        const now = new Date();
+        if (date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()) {
+          incomeThisMonth += lawyerShare;
+        }
+        completedCases++;
+      }
+    });
+
+  } catch (error) {
+    console.error("Error calculating lawyer stats:", error);
+  }
+
+  return {
+    incomeThisMonth,
+    totalIncome,
+    completedCases,
+    rating: 4.8, // Placeholder
+    responseRate: 95 // Placeholder
   };
 }
