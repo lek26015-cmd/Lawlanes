@@ -126,10 +126,19 @@ export default function LoginPage() {
   }
 
   async function handleGoogleSignIn() {
-    if (!auth || !firestore) return;
+    if (!auth || !firestore) {
+      toast({
+        variant: 'destructive',
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่สามารถเชื่อมต่อกับระบบยืนยันตัวตนได้ กรุณารีเฟรชหน้าจอ',
+      });
+      return;
+    }
     setIsGoogleLoading(true);
     try {
       const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+
       const result = await signInWithPopup(auth, provider);
       const user = result.user;
 
@@ -163,10 +172,24 @@ export default function LoginPage() {
 
     } catch (error: any) {
       console.error("Google Sign-In Error:", error);
+      let errorMessage = 'เกิดข้อผิดพลาดในการเข้าสู่ระบบด้วย Google';
+
+      if (error.code === 'auth/popup-blocked') {
+        errorMessage = 'เบราว์เซอร์ของคุณบล็อกป๊อปอัป กรุณาอนุญาตให้แสดงป๊อปอัปสำหรับเว็บไซต์นี้';
+      } else if (error.code === 'auth/popup-closed-by-user') {
+        errorMessage = 'คุณปิดหน้าต่างป๊อปอัปก่อนการเข้าสู่ระบบจะเสร็จสมบูรณ์';
+      } else if (error.code === 'auth/cancelled-popup-request') {
+        errorMessage = 'มีการร้องขอป๊อปอัปซ้อนกัน กรุณาลองใหม่อีกครั้ง';
+      } else if (error.code === 'auth/unauthorized-domain') {
+        errorMessage = 'โดเมนนี้ยังไม่ได้รับอนุญาตให้ใช้ Google Sign-In (กรุณาแจ้งผู้ดูแลระบบ)';
+      } else if (error.message) {
+        errorMessage = `${errorMessage}: ${error.message}`;
+      }
+
       toast({
         variant: 'destructive',
         title: 'เข้าสู่ระบบด้วย Google ไม่สำเร็จ',
-        description: error.message || 'เกิดข้อผิดพลาดบางอย่าง',
+        description: errorMessage,
       });
     } finally {
       setIsGoogleLoading(false);
