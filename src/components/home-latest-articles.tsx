@@ -10,6 +10,7 @@ import { ArrowRight } from 'lucide-react';
 import { useFirebase } from '@/firebase';
 import { getAllArticles } from '@/lib/data';
 import { Article } from '@/lib/types';
+import { EmptyState } from '@/components/ui/empty-state';
 
 export function HomeLatestArticles() {
     const { firestore } = useFirebase();
@@ -112,7 +113,10 @@ export function HomeLatestArticles() {
                         </div>
                     </div>
                 ) : (
-                    <p>ไม่พบบทความ</p>
+                    <EmptyState
+                        title="ไม่พบบทความ"
+                        description="ขณะนี้ยังไม่มีบทความกฎหมายในระบบ กรุณาลองใหม่ภายหลัง"
+                    />
                 )}
 
             </div>

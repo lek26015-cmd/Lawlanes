@@ -169,7 +169,7 @@ export default function SMEPage() {
                                         </div>
                                         <div>
                                             <p className="font-semibold text-lg">เบอร์โทรศัพท์</p>
-                                            <p className="text-muted-foreground">02-123-4567</p>
+                                            <p className="text-muted-foreground">0972275494</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-4">
@@ -178,7 +178,7 @@ export default function SMEPage() {
                                         </div>
                                         <div>
                                             <p className="font-semibold text-lg">อีเมล</p>
-                                            <p className="text-muted-foreground">business@lawslane.com</p>
+                                            <p className="text-muted-foreground">admin@lawslane.com</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-4">

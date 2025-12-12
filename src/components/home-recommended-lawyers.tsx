@@ -8,6 +8,7 @@ import LawyerCard from '@/components/lawyer-card';
 import { useFirebase } from '@/firebase';
 import { getApprovedLawyers } from '@/lib/data';
 import { LawyerProfile } from '@/lib/types';
+import { EmptyState } from '@/components/ui/empty-state';
 
 export function HomeRecommendedLawyers() {
     const { firestore } = useFirebase();
@@ -62,9 +63,10 @@ export function HomeRecommendedLawyers() {
                         ))}
                     </div>
                 ) : (
-                    <div className="text-center text-muted-foreground">
-                        ไม่พบทนายความแนะนำในขณะนี้
-                    </div>
+                    <EmptyState
+                        title="ไม่พบทนายความแนะนำ"
+                        description="ขณะนี้ยังไม่มีทนายความแนะนำในระบบ กรุณาลองใหม่ภายหลัง"
+                    />
                 )}
 
                 <div className="mt-12 text-center">
