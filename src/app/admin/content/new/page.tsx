@@ -47,7 +47,7 @@ export default function AdminArticleCreatePage() {
     const [description, setDescription] = React.useState('');
     const [content, setContent] = React.useState('');
     const [category, setCategory] = React.useState('');
-    const [authorName, setAuthorName] = React.useState('ทีมงาน Lawlanes');
+    const [authorName, setAuthorName] = React.useState('ทีมงาน Lawslane');
     const [isSaving, setIsSaving] = React.useState(false);
     const [imageFile, setImageFile] = React.useState<File | null>(null);
     const [imageUrl, setImageUrl] = React.useState<string | null>(null);

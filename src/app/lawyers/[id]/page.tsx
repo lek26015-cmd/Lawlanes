@@ -1,7 +1,7 @@
 
 'use client';
 
-import { getLawyerById } from '@/lib/data';
+import { getLawyerById, getLawyerStats } from '@/lib/data';
 import { notFound, useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
@@ -26,6 +26,7 @@ export default function LawyerProfilePage() {
     const [lawyer, setLawyer] = useState<LawyerProfile | null>(null);
     const [reviews, setReviews] = useState<any[]>([]);
     const [isLawyer, setIsLawyer] = useState(false);
+    const [stats, setStats] = useState({ responseRate: 0, completedCases: 0 });
 
     useEffect(() => {
         async function checkUserRole() {
@@ -52,8 +53,10 @@ export default function LawyerProfilePage() {
     }, [id, firestore]);
 
     useEffect(() => {
-        async function fetchReviews() {
+        async function fetchReviewsAndStats() {
             if (!id || !firestore) return;
+
+            // Fetch Reviews
             const reviewsRef = collection(firestore, 'reviews');
             const q = query(reviewsRef, where('lawyerId', '==', id), orderBy('createdAt', 'desc'));
             try {
@@ -67,8 +70,19 @@ export default function LawyerProfilePage() {
             } catch (error) {
                 console.error("Error fetching reviews:", error);
             }
+
+            // Fetch Stats
+            try {
+                const lawyerStats = await getLawyerStats(firestore, id);
+                setStats({
+                    responseRate: lawyerStats.responseRate,
+                    completedCases: lawyerStats.completedCases
+                });
+            } catch (error) {
+                console.error("Error fetching stats:", error);
+            }
         }
-        fetchReviews();
+        fetchReviewsAndStats();
     }, [id, firestore]);
 
     if (!lawyer) {
@@ -81,8 +95,8 @@ export default function LawyerProfilePage() {
         : 0;
 
     // Use mock stats for now, but real reviews
-    const caseWinRate = 92;
-    const totalCases = 150;
+    // const caseWinRate = 92;
+    // const totalCases = 150;
 
     const handleStartChat = () => {
         if (lawyer) {
@@ -183,19 +197,19 @@ export default function LawyerProfilePage() {
 
                                 <Card className="mt-6">
                                     <CardHeader>
-                                        <CardTitle>สถิติการว่าความ (จำลอง)</CardTitle>
+                                        <CardTitle>สถิติการทำงาน</CardTitle>
                                     </CardHeader>
                                     <CardContent>
                                         <div className="grid grid-cols-2 gap-4 text-center">
                                             <div className="p-4 bg-secondary/50 rounded-lg">
                                                 <Trophy className="mx-auto h-8 w-8 text-yellow-500 mb-2" />
-                                                <p className="text-2xl font-bold">{caseWinRate}%</p>
-                                                <p className="text-sm text-muted-foreground">อัตราการชนะคดี</p>
+                                                <p className="text-2xl font-bold">{stats.responseRate}%</p>
+                                                <p className="text-sm text-muted-foreground">อัตราการตอบกลับ</p>
                                             </div>
                                             <div className="p-4 bg-secondary/50 rounded-lg">
                                                 <BookCopy className="mx-auto h-8 w-8 text-foreground/70 mb-2" />
-                                                <p className="text-2xl font-bold">{totalCases}+</p>
-                                                <p className="text-sm text-muted-foreground">คดีที่ให้คำปรึกษา</p>
+                                                <p className="text-2xl font-bold">{stats.completedCases}</p>
+                                                <p className="text-sm text-muted-foreground">คดีที่สำเร็จ</p>
                                             </div>
                                         </div>
                                     </CardContent>

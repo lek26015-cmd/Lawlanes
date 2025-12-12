@@ -1,11 +1,12 @@
-
 import type { Metadata } from 'next';
 import './globals.css';
 import React from 'react';
 import { ClientProviders } from './client-providers';
 
+
+
 export const metadata: Metadata = {
-  title: 'Lawlanes AI Legal Advisor',
+  title: 'Lawslane AI Legal Advisor',
   description: 'Preliminary legal assessments for SMEs in Thailand.',
 };
 

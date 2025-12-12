@@ -38,6 +38,7 @@ export interface LawyerProfile {
   joinedAt: any;
   averageRating?: number;
   reviewCount?: number;
+  firmId?: string;
 }
 
 export interface ChatMessage {
@@ -103,6 +104,7 @@ export interface ReportedTicket {
   problemType: string;
   status: 'pending' | 'resolved';
   reportedAt: Date;
+  clientName?: string;
 }
 
 // Types for Lawyer Dashboard
@@ -158,3 +160,14 @@ export type ImagePlaceholder = {
   imageUrl: string;
   imageHint: string;
 };
+
+export interface AdminNotification {
+  id: string;
+  type: 'ticket' | 'lawyer_registration' | 'withdrawal';
+  title: string;
+  message: string;
+  createdAt: any; // Firestore Timestamp
+  read: boolean;
+  link: string; // URL to navigate to
+  relatedId?: string; // ID of the ticket/lawyer/withdrawal
+}

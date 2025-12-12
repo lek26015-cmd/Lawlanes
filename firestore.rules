@@ -94,5 +94,22 @@ service cloud.firestore {
         allow update: if isAdmin();
         allow list: if isSignedIn() || isAdmin();
     }
+
+    match /sme_inquiries/{inquiryId} {
+        allow create: if true; // Public contact form
+        allow read, update, delete: if isAdmin();
+    }
+
+    match /email_logs/{logId} {
+        allow read, write: if isAdmin();
+    }
+    match /notifications/{notificationId} {
+        // Allow creating notifications (e.g. from chat or admin actions)
+        allow create: if isSignedIn();
+        // Allow reading own notifications
+        allow read: if isSignedIn() && (resource.data.recipient == request.auth.uid || resource.data.recipient == 'admin' && isAdmin());
+        // Allow updating (marking as read) own notifications
+        allow update: if isSignedIn() && (resource.data.recipient == request.auth.uid || resource.data.recipient == 'admin' && isAdmin());
+    }
   }
 }

@@ -26,7 +26,7 @@ export default function ArticlePage() {
     async function fetchArticleData() {
       if (!firestore || !slug) return;
       setIsLoading(true);
-      
+
       const currentArticle = await getArticleBySlug(firestore, slug as string);
       if (!currentArticle) {
         notFound();
@@ -81,41 +81,41 @@ export default function ArticlePage() {
                       <AvatarFallback>ทน</AvatarFallback>
                     </Avatar>
                     <div>
-                      <p className="font-semibold text-foreground">{article.authorName || 'ทีมงาน Lawlanes'}</p>
+                      <p className="font-semibold text-foreground">{article.authorName || 'ทีมงาน Lawslane'}</p>
                       <p>เผยแพร่เมื่อ: {article.publishedAt ? format(new Date(article.publishedAt), 'd MMMM yyyy', { locale: th }) : 'N/A'}</p>
                     </div>
                   </div>
                 </div>
               </header>
 
-              <div 
+              <div
                 className="prose prose-lg max-w-none text-foreground/90"
                 style={{
-                    // @ts-ignore
-                    '--tw-prose-body': 'hsl(var(--foreground) / 0.9)',
-                    '--tw-prose-headings': 'hsl(var(--foreground))',
-                    '--tw-prose-lead': 'hsl(var(--foreground))',
-                    '--tw-prose-links': 'hsl(var(--primary))',
-                    '--tw-prose-bold': 'hsl(var(--foreground))',
-                    '--tw-prose-counters': 'hsl(var(--muted-foreground))',
-                    '--tw-prose-bullets': 'hsl(var(--border))',
-                    '--tw-prose-hr': 'hsl(var(--border))',
-                    '--tw-prose-quotes': 'hsl(var(--foreground))',
-                    '--tw-prose-quote-borders': 'hsl(var(--border))',
-                    '--tw-prose-captions': 'hsl(var(--muted-foreground))',
-                    '--tw-prose-code': 'hsl(var(--foreground))',
-                    '--tw-prose-pre-code': 'hsl(var(--card-foreground))',
-                    '--tw-prose-pre-bg': 'hsl(var(--card))',
-                    '--tw-prose-th-borders': 'hsl(var(--border))',
-                    '--tw-prose-td-borders': 'hsl(var(--border))',
+                  // @ts-ignore
+                  '--tw-prose-body': 'hsl(var(--foreground) / 0.9)',
+                  '--tw-prose-headings': 'hsl(var(--foreground))',
+                  '--tw-prose-lead': 'hsl(var(--foreground))',
+                  '--tw-prose-links': 'hsl(var(--primary))',
+                  '--tw-prose-bold': 'hsl(var(--foreground))',
+                  '--tw-prose-counters': 'hsl(var(--muted-foreground))',
+                  '--tw-prose-bullets': 'hsl(var(--border))',
+                  '--tw-prose-hr': 'hsl(var(--border))',
+                  '--tw-prose-quotes': 'hsl(var(--foreground))',
+                  '--tw-prose-quote-borders': 'hsl(var(--border))',
+                  '--tw-prose-captions': 'hsl(var(--muted-foreground))',
+                  '--tw-prose-code': 'hsl(var(--foreground))',
+                  '--tw-prose-pre-code': 'hsl(var(--card-foreground))',
+                  '--tw-prose-pre-bg': 'hsl(var(--card))',
+                  '--tw-prose-th-borders': 'hsl(var(--border))',
+                  '--tw-prose-td-borders': 'hsl(var(--border))',
                 }}
               >
                 <p className="lead">{article.description}</p>
                 {article.content.split('\n\n').map((paragraph, index) => {
-                    if (paragraph.startsWith('**') && paragraph.endsWith('**')) {
-                        return <h2 key={index} className="text-2xl font-semibold mt-8 mb-4">{paragraph.replaceAll('**','')}</h2>
-                    }
-                     return <p key={index} className="mb-4">{paragraph}</p>
+                  if (paragraph.startsWith('**') && paragraph.endsWith('**')) {
+                    return <h2 key={index} className="text-2xl font-semibold mt-8 mb-4">{paragraph.replaceAll('**', '')}</h2>
+                  }
+                  return <p key={index} className="mb-4">{paragraph}</p>
                 })}
               </div>
             </article>
@@ -129,9 +129,9 @@ export default function ArticlePage() {
                     <Card className="overflow-hidden transition-shadow hover:shadow-md">
                       <div className="flex items-center gap-4 p-3">
                         <div className="relative w-24 h-24 flex-shrink-0">
-                          <Image 
-                            src={other.imageUrl} 
-                            alt={other.title} 
+                          <Image
+                            src={other.imageUrl}
+                            alt={other.title}
                             fill
                             className="object-cover rounded-md"
                             data-ai-hint={other.imageHint}

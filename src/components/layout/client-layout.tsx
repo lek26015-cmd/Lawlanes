@@ -16,18 +16,13 @@ export default function ClientLayout({
 }) {
   const pathname = usePathname();
   const [userRole, setUserRole] = useState<string | null>(null);
-  
-  const isAdminPage = pathname.startsWith('/admin');
-  const isAuthPage = pathname.includes('/login') || pathname.includes('/signup') || pathname.includes('/lawyer-signup');
 
+  const isAdminPage = pathname.startsWith('/admin');
 
   if (isAdminPage) {
     return <>{children}</>;
   }
-  
-  if (isAuthPage) {
-    return <div className="flex min-h-screen flex-col"><main className="flex-1">{children}</main></div>;
-  }
+
 
   return (
     <>

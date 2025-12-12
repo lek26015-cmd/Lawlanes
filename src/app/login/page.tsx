@@ -7,8 +7,8 @@ import Link from 'next/link';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { signInWithEmailAndPassword, signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
+import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { useFirebase } from '@/firebase';
 
 import { Button } from '@/components/ui/button';
@@ -32,6 +32,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import Logo from '@/components/logo';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { TurnstileWidget } from '@/components/turnstile-widget';
+import { validateTurnstile } from '@/app/actions/turnstile';
 // import { Locale } from '@/../i18n.config'; // Removed unused import
 
 const formSchema = z.object({
@@ -47,6 +49,7 @@ export default function LoginPage() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string>('');
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -60,20 +63,46 @@ export default function LoginPage() {
     if (!auth || !firestore) return;
     setIsLoading(true);
     try {
+      if (!turnstileToken) {
+        throw new Error('กรุณายืนยันตัวตนผ่าน Cloudflare Turnstile');
+      }
+
+      const validation = await validateTurnstile(turnstileToken);
+      if (!validation.success) {
+        throw new Error('การยืนยันตัวตนล้มเหลว กรุณาลองใหม่');
+      }
+
       const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
       const user = userCredential.user;
 
       // Check role
       const userDocRef = doc(firestore, 'users', user.uid);
       const userDoc = await getDoc(userDocRef);
-      const role = userDoc.exists() ? userDoc.data().role : 'customer';
+      let role = 'customer';
 
-      toast({
-        title: 'เข้าสู่ระบบสำเร็จ',
-        description: 'กำลังนำคุณไปยังแดชบอร์ด...',
-      });
+      if (userDoc.exists()) {
+        role = userDoc.data().role;
+      } else {
+        // Recreate user doc if missing (e.g. after database clear)
+        await setDoc(userDocRef, {
+          uid: user.uid,
+          name: user.displayName || user.email?.split('@')[0] || 'User',
+          email: user.email,
+          role: 'customer',
+          createdAt: serverTimestamp(),
+        });
+      }
 
       if (role === 'lawyer') {
+        if (!user.emailVerified) {
+          toast({
+            variant: 'destructive',
+            title: 'กรุณายืนยันอีเมล',
+            description: 'ระบบได้ส่งลิงก์ยืนยันไปที่อีเมลของคุณแล้ว กรุณาตรวจสอบและยืนยันก่อนเข้าใช้งาน',
+          });
+          await signOut(auth);
+          return;
+        }
         router.push('/lawyer-dashboard');
       } else {
         router.push('/dashboard');
@@ -83,6 +112,8 @@ export default function LoginPage() {
       let errorMessage = 'เกิดข้อผิดพลาดที่ไม่รู้จัก';
       if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
         errorMessage = 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
+      } else if (error.message) {
+        errorMessage = error.message;
       }
       toast({
         variant: 'destructive',
@@ -164,7 +195,7 @@ export default function LoginPage() {
               เข้าสู่ระบบ
             </CardTitle>
             <CardDescription>
-              ยินดีต้อนรับกลับสู่ Lawlanes
+              ยินดีต้อนรับกลับสู่ Lawslane
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -216,6 +247,7 @@ export default function LoginPage() {
                     </FormItem>
                   )}
                 />
+                <TurnstileWidget onVerify={setTurnstileToken} />
                 <Button type="submit" className="w-full" disabled={isLoading || isGoogleLoading}>
                   {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   เข้าสู่ระบบ

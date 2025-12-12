@@ -31,6 +31,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import Logo from '@/components/logo';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { TurnstileWidget } from '@/components/turnstile-widget';
+import { validateTurnstile } from '@/app/actions/turnstile';
 // import { Locale } from '@/../i18n.config'; // Removed unused import
 
 const formSchema = z.object({
@@ -45,6 +47,7 @@ export default function LawyerLoginPage() {
   const { auth } = useFirebase();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string>('');
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -58,6 +61,15 @@ export default function LawyerLoginPage() {
     if (!auth) return;
     setIsLoading(true);
     try {
+      if (!turnstileToken) {
+        throw new Error('กรุณายืนยันตัวตนผ่าน Cloudflare Turnstile');
+      }
+
+      const validation = await validateTurnstile(turnstileToken);
+      if (!validation.success) {
+        throw new Error('การยืนยันตัวตนล้มเหลว กรุณาลองใหม่');
+      }
+
       await signInWithEmailAndPassword(auth, values.email, values.password);
       toast({
         title: 'เข้าสู่ระบบสำเร็จ',
@@ -69,6 +81,8 @@ export default function LawyerLoginPage() {
       let errorMessage = 'เกิดข้อผิดพลาดที่ไม่รู้จัก';
       if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
         errorMessage = 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
+      } else if (error.message) {
+        errorMessage = error.message;
       }
       toast({
         variant: 'destructive',
@@ -102,7 +116,7 @@ export default function LawyerLoginPage() {
               เข้าสู่ระบบสำหรับทนายความ
             </CardTitle>
             <CardDescription>
-              ยินดีต้อนรับกลับสู่ Lawlanes
+              ยินดีต้อนรับกลับสู่ Lawslane
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -134,6 +148,7 @@ export default function LawyerLoginPage() {
                     </FormItem>
                   )}
                 />
+                <TurnstileWidget onVerify={setTurnstileToken} />
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   เข้าสู่ระบบ
@@ -143,8 +158,8 @@ export default function LawyerLoginPage() {
             <div className="mt-4 text-center text-sm">
               <p>
                 ยังไม่มีบัญชีทนายความ?{' '}
-                <Link href={`/lawyer-signup`} className="underline hover:text-primary">
-                  สมัครเข้าร่วมที่นี่
+                <Link href="/for-lawyers" className="underline hover:text-primary">
+                  สมัครสมาชิก
                 </Link>
               </p>
             </div>

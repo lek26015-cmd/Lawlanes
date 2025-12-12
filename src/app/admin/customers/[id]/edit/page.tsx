@@ -31,7 +31,7 @@ import { useToast } from '@/hooks/use-toast'
 import { useFirebase } from '@/firebase'
 import { doc, getDoc, updateDoc } from 'firebase/firestore'
 import type { UserProfile } from '@/lib/types'
-import { compressImageToBase64 } from '@/lib/image-utils';
+import { uploadToR2 } from '@/app/actions/upload-r2';
 import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '@/lib/constants';
 
 
@@ -73,15 +73,19 @@ export default function AdminCustomerEditPage() {
       }
 
       try {
-        toast({ title: "กำลังประมวลผลรูปภาพ...", description: "Compressing..." });
-        const base64 = await compressImageToBase64(file);
+        toast({ title: "กำลังอัปโหลดรูปภาพ...", description: "Uploading to R2..." });
+
+        const formData = new FormData();
+        formData.append('file', file);
+        const url = await uploadToR2(formData, 'profile-images');
+
         // @ts-ignore
-        setCustomer(prev => prev ? { ...prev, avatar: base64 } : null);
+        setCustomer(prev => prev ? { ...prev, avatar: url } : null);
         setImageFile(file);
         toast({ title: "รูปภาพพร้อมแล้ว", description: "กดบันทึกเพื่อยืนยันการเปลี่ยนแปลง" });
       } catch (error) {
-        console.error("Compression failed:", error);
-        toast({ variant: "destructive", title: "เกิดข้อผิดพลาด", description: "ไม่สามารถประมวลผลรูปภาพได้" });
+        console.error("Upload failed:", error);
+        toast({ variant: "destructive", title: "เกิดข้อผิดพลาด", description: "ไม่สามารถอัปโหลดรูปภาพได้" });
       }
     }
   };

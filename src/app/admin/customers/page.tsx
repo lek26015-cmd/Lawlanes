@@ -4,6 +4,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
     File,
     ListFilter,
@@ -55,6 +56,7 @@ import type { UserProfile } from '@/lib/types';
 
 
 export default function AdminCustomersPage() {
+    const router = useRouter();
     const { firestore } = useFirebase();
     const { toast } = useToast();
     const [allCustomers, setAllCustomers] = React.useState<UserProfile[]>([]);
@@ -199,7 +201,11 @@ export default function AdminCustomersPage() {
                                 </TableHeader>
                                 <TableBody>
                                     {filteredCustomers.map(customer => (
-                                        <TableRow key={customer.uid}>
+                                        <TableRow
+                                            key={customer.uid}
+                                            className="cursor-pointer hover:bg-muted/50"
+                                            onClick={() => router.push(`/admin/customers/${customer.uid}`)}
+                                        >
                                             <TableCell className="hidden sm:table-cell">
                                                 <Avatar className="h-9 w-9">
                                                     <AvatarImage src={customer.avatar} alt={customer.name} />

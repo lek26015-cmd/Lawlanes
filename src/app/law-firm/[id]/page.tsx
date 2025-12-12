@@ -36,9 +36,12 @@ export default function LawFirmPage() {
       }
       setFirm(firmData);
 
-      // Fetch sample lawyers for the firm
-      const allLawyers = await getApprovedLawyers(firestore);
-      setLawyers(allLawyers.slice(0, 2)); // Mock: show first 2 lawyers
+      // Fetch real lawyers for the firm
+      import('@/lib/data').then(({ getLawyersByFirm }) => {
+        getLawyersByFirm(firestore, id).then(firmLawyers => {
+          setLawyers(firmLawyers);
+        });
+      });
 
       setIsLoading(false);
     }
@@ -87,48 +90,48 @@ export default function LawFirmPage() {
               <div className="md:col-span-2 space-y-8">
                 <section>
                   <h2 className="text-2xl font-bold font-headline mb-4 flex items-center gap-2"><Building /> เกี่ยวกับเรา</h2>
-                  <p className="text-muted-foreground">
-                    {firm.title} เป็นสำนักงานกฎหมายชั้นนำที่ให้บริการที่ปรึกษาด้านกฎหมายธุรกิจครบวงจรสำหรับผู้ประกอบการ SME ด้วยทีมงานทนายความผู้มีประสบการณ์และความเชี่ยวชาญเฉพาะทาง เรามุ่งมั่นที่จะมอบบริการที่มีคุณภาพสูงสุดเพื่อปกป้องและส่งเสริมธุรกิจของคุณให้เติบโตอย่างยั่งยืน (เนื้อหาจำลอง)
+                  <p className="text-muted-foreground leading-relaxed">
+                    {firm.title} เป็นสำนักงานกฎหมายชั้นนำที่ให้บริการที่ปรึกษาด้านกฎหมายธุรกิจครบวงจรสำหรับผู้ประกอบการ SME ด้วยทีมงานทนายความผู้มีประสบการณ์และความเชี่ยวชาญเฉพาะทาง เรามุ่งมั่นที่จะมอบบริการที่มีคุณภาพสูงสุดเพื่อปกป้องและส่งเสริมธุรกิจของคุณให้เติบโตอย่างยั่งยืน
                   </p>
                 </section>
-                
+
                 <Separator />
 
                 <section>
                   <h2 className="text-2xl font-bold font-headline mb-4 flex items-center gap-2"><Users /> ทีมทนายความของเรา</h2>
                   <div className="space-y-4">
                     {lawyers.map(lawyer => (
-                        <LawyerCard key={lawyer.id} lawyer={lawyer} />
+                      <LawyerCard key={lawyer.id} lawyer={lawyer} />
                     ))}
                   </div>
                 </section>
 
               </div>
               <div className="space-y-6">
-                 <Card>
-                    <CardHeader>
-                        <CardTitle>ข้อมูลติดต่อ</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4 text-sm">
-                        <div className="flex items-start gap-3">
-                            <MapPin className="w-5 h-5 mt-1 text-muted-foreground flex-shrink-0" />
-                            <p className="text-muted-foreground">123 อาคารซิตี้ ทาวเวอร์, ถนนสาทร, กรุงเทพมหานคร 10120 (ข้อมูลจำลอง)</p>
-                        </div>
-                         <div className="flex items-start gap-3">
-                            <Phone className="w-5 h-5 mt-1 text-muted-foreground flex-shrink-0" />
-                            <p className="text-muted-foreground">02-123-4567</p>
-                        </div>
-                         <div className="flex items-start gap-3">
-                            <Mail className="w-5 h-5 mt-1 text-muted-foreground flex-shrink-0" />
-                            <p className="text-muted-foreground">contact@{firm.id}.law</p>
-                        </div>
-                    </CardContent>
-                 </Card>
+                <Card>
+                  <CardHeader>
+                    <CardTitle>ข้อมูลติดต่อ</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4 text-sm">
+                    <div className="flex items-start gap-3">
+                      <MapPin className="w-5 h-5 mt-1 text-muted-foreground flex-shrink-0" />
+                      <p className="text-muted-foreground">123 อาคารซิตี้ ทาวเวอร์, ถนนสาทร, กรุงเทพมหานคร 10120</p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <Phone className="w-5 h-5 mt-1 text-muted-foreground flex-shrink-0" />
+                      <p className="text-muted-foreground">02-123-4567</p>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <Mail className="w-5 h-5 mt-1 text-muted-foreground flex-shrink-0" />
+                      <p className="text-muted-foreground">contact@{firm.id}.law</p>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             </CardContent>
           </Card>
         </div>
       </div>
-    </div>
+    </div >
   );
 }

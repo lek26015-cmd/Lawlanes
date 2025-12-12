@@ -52,7 +52,10 @@ import {
   where,
   getDocs,
   doc,
+  getDoc,
   updateDoc,
+  addDoc,
+  serverTimestamp,
 } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { getFinancialStats } from '@/lib/data';
@@ -87,6 +90,8 @@ type SlipVerificationItem = {
   submittedAt: Date;
   collectionName: 'appointments' | 'chats';
   slipUrl?: string;
+  userId: string;
+  lawyerId?: string;
 };
 
 export default function AdminFinancialsPage() {
@@ -165,7 +170,9 @@ export default function AdminFinancialsPage() {
           amount: 3500,
           submittedAt: data.createdAt?.toDate() || new Date(),
           collectionName: 'appointments',
-          slipUrl: data.slipUrl
+          slipUrl: data.slipUrl,
+          userId: data.userId,
+          lawyerId: data.lawyerId
         });
       }
 
@@ -188,7 +195,9 @@ export default function AdminFinancialsPage() {
           amount: 500,
           submittedAt: data.createdAt?.toDate() || new Date(),
           collectionName: 'chats',
-          slipUrl: data.slipUrl
+          slipUrl: data.slipUrl,
+          userId: userId,
+          lawyerId: lawyerId
         });
       }
 
@@ -371,6 +380,32 @@ export default function AdminFinancialsPage() {
         title: 'อนุมัติสำเร็จ',
         description: `รายการของ ${item.userName} ได้รับการอนุมัติแล้ว`,
       });
+
+      // Notify Client
+      await addDoc(collection(firestore, 'notifications'), {
+        type: 'payment_approved',
+        title: 'การชำระเงินได้รับการอนุมัติ',
+        message: `การชำระเงินสำหรับบริการ ${item.type} ได้รับการอนุมัติแล้ว`,
+        createdAt: serverTimestamp(),
+        read: false,
+        recipient: item.userId,
+        link: '/dashboard',
+        relatedId: item.id
+      });
+
+      // Notify Lawyer (Money In)
+      if (item.lawyerId) {
+        await addDoc(collection(firestore, 'notifications'), {
+          type: 'money_in',
+          title: 'คุณได้รับยอดเงินใหม่',
+          message: `คุณได้รับยอดเงิน ฿${item.amount.toLocaleString()} จากบริการ ${item.type} ของคุณ ${item.userName}`,
+          createdAt: serverTimestamp(),
+          read: false,
+          recipient: item.lawyerId,
+          link: '/lawyer-dashboard/financials',
+          relatedId: item.id
+        });
+      }
       // Refetch the list after approval
       fetchPendingPayments();
     } catch (error) {
@@ -390,6 +425,24 @@ export default function AdminFinancialsPage() {
         status: newStatus,
         processedAt: new Date()
       });
+
+      // Get withdrawal details to notify the lawyer
+      const withdrawal = withdrawalRequests.find(w => w.id === id);
+      if (withdrawal) {
+        await addDoc(collection(firestore, 'notifications'), {
+          type: 'withdrawal_update',
+          title: newStatus === 'approved' ? 'คำร้องถอนเงินอนุมัติแล้ว' : 'คำร้องถอนเงินถูกปฏิเสธ',
+          message: newStatus === 'approved'
+            ? `คำร้องถอนเงินจำนวน ฿${withdrawal.amount.toLocaleString()} ได้รับการอนุมัติและโอนเงินเรียบร้อยแล้ว`
+            : `คำร้องถอนเงินจำนวน ฿${withdrawal.amount.toLocaleString()} ถูกปฏิเสธ กรุณาติดต่อเจ้าหน้าที่`,
+          createdAt: serverTimestamp(),
+          read: false,
+          recipient: withdrawal.lawyerId,
+          link: '/lawyer-dashboard/financials',
+          relatedId: id
+        });
+      }
+
       toast({
         title: newStatus === 'approved' ? 'อนุมัติคำร้องแล้ว' : 'ปฏิเสธคำร้องแล้ว',
         description: 'สถานะคำร้องถูกอัปเดตเรียบร้อยแล้ว',

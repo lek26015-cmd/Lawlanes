@@ -23,23 +23,30 @@ export type FindLawyersOutput = z.infer<typeof FindLawyersOutputSchema>;
 
 // This function now dynamically fetches specialties from Firestore
 async function getDynamicLawyerSpecialties(db: Firestore): Promise<string[]> {
-    const lawyers = await getAllLawyers(db);
-    const allSpecialties = lawyers.flatMap(lawyer => lawyer.specialty);
-    // Return unique specialties
-    return [...new Set(allSpecialties)];
+  const lawyers = await getAllLawyers(db);
+  const allSpecialties = lawyers.flatMap(lawyer => lawyer.specialty);
+  // Return unique specialties
+  return [...new Set(allSpecialties)];
 }
 
 
 const findLawyersPrompt = ai.definePrompt({
   name: 'findLawyersPrompt',
-  input: { schema: z.object({
+  input: {
+    schema: z.object({
       problem: z.string(),
       specialties: z.array(z.string()),
-  }) },
+    })
+  },
   output: { schema: FindLawyersOutputSchema },
-  prompt: `You are an AI assistant that categorizes legal problems to help users find the right lawyer.
-Based on the user's problem description, identify the relevant specialties from the following list.
-Return one or more matching specialties. If no specialty matches, return an empty array.
+  prompt: `You are an expert legal AI assistant for Lawslane (Thailand).
+Your task is to analyze the user's legal problem and identify the most relevant lawyer specialties from the provided list.
+
+Instructions:
+1.  **Analyze the Core Issue**: Read the user's problem carefully to understand the specific legal domain (e.g., Family, Criminal, Corporate, Property).
+2.  **Match Precisely**: Select ONLY the specialties that directly address the core issue. Do not select loosely related specialties.
+3.  **Limit Selection**: Return at most 2 specialties, prioritizing the most critical one.
+4.  **Language**: The input will be in Thai. Ensure you understand Thai legal context.
 
 Available Specialties:
 {{#each specialties}}
@@ -51,12 +58,12 @@ User's Problem: {{{problem}}}
 });
 
 export async function findLawyerSpecialties(input: FindLawyersInput): Promise<FindLawyersOutput> {
-    const { firestore } = initializeFirebase();
-    const dynamicSpecialties = await getDynamicLawyerSpecialties(firestore);
+  const { firestore } = initializeFirebase();
+  const dynamicSpecialties = await getDynamicLawyerSpecialties(firestore);
 
-    const { output } = await findLawyersPrompt({
-        problem: input.problem,
-        specialties: dynamicSpecialties,
-    });
-    return output!;
+  const { output } = await findLawyersPrompt({
+    problem: input.problem,
+    specialties: dynamicSpecialties,
+  });
+  return output!;
 }

@@ -3,29 +3,29 @@
 
 import * as React from 'react'
 import {
-  ChevronLeft,
-  Upload,
-  Info,
-  PlusCircle
+    ChevronLeft,
+    Upload,
+    Info,
+    PlusCircle
 } from 'lucide-react'
 import { useParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
 } from '@/components/ui/card'
 import Link from 'next/link'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
 } from '@/components/ui/select'
 import { useToast } from '@/hooks/use-toast'
 import { Textarea } from '@/components/ui/textarea'
@@ -36,276 +36,337 @@ import { useFirebase } from '@/firebase'
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore'
 import { errorEmitter, FirestorePermissionError } from '@/firebase'
 import Image from 'next/image'
+import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '@/lib/constants'
+import { compressImageToBase64 } from '@/lib/image-utils'
 
 export default function AdminArticleEditPage() {
-  const router = useRouter()
-  const params = useParams()
-  const { id } = params
-  const { toast } = useToast()
-  const { firestore } = useFirebase();
+    const router = useRouter()
+    const params = useParams()
+    const { id } = params
+    const { toast } = useToast()
+    const { firestore } = useFirebase();
 
-  const [article, setArticle] = React.useState<Article | null>(null);
-  const [isLoading, setIsLoading] = React.useState(true);
-  const [isSaving, setIsSaving] = React.useState(false);
-  const [categories, setCategories] = React.useState(['กฎหมายแรงงาน', 'กฎหมายธุรกิจ', 'ทรัพย์สินทางปัญญา', 'คดีฉ้อโกง', 'กฎหมายแพ่ง']);
-  const [newCategory, setNewCategory] = React.useState('');
+    const [article, setArticle] = React.useState<Article | null>(null);
+    const [isLoading, setIsLoading] = React.useState(true);
+    const [isSaving, setIsSaving] = React.useState(false);
+    const [categories, setCategories] = React.useState(['กฎหมายแรงงาน', 'กฎหมายธุรกิจ', 'ทรัพย์สินทางปัญญา', 'คดีฉ้อโกง', 'กฎหมายแพ่ง']);
+    const [newCategory, setNewCategory] = React.useState('');
+    const [imageFile, setImageFile] = React.useState<File | null>(null);
+    const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
+    const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  React.useEffect(() => {
-    if (!firestore || !id) return;
-    setIsLoading(true);
-    getArticleById(firestore, id as string).then(foundArticle => {
-      if (foundArticle) {
-        setArticle(foundArticle);
-      }
-      setIsLoading(false);
-    });
-  }, [id, firestore]);
+    React.useEffect(() => {
+        if (!firestore || !id) return;
+        setIsLoading(true);
+        getArticleById(firestore, id as string).then(foundArticle => {
+            if (foundArticle) {
+                setArticle(foundArticle);
+            }
+            setIsLoading(false);
+        });
+    }, [id, firestore]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    if (!article) return;
-    const { id, value } = e.target;
-    
-    if (id === 'title') {
-        const newSlug = value.toString()
-            .normalize('NFD')
-            .replace(/[\u0300-\u036f]/g, '')
-            .toLowerCase()
-            .trim()
-            .replace(/\s+/g, '-')
-            .replace(/[^\w-]+/g, '')
-            .replace(/--+/g, '-');
-        setArticle({ ...article, title: value, slug: newSlug });
-    } else {
-        setArticle({ ...article, [id]: value });
-    }
-  };
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        if (!article) return;
+        const { id, value } = e.target;
 
-  const handleSelectChange = (value: string) => {
-      if (!article) return;
-      setArticle({ ...article, category: value });
-  }
-
-  const handleSaveChanges = () => {
-    if (!firestore || !article) return;
-    setIsSaving(true);
-    
-    const articleRef = doc(firestore, 'articles', article.id);
-    const updatedData = {
-        title: article.title,
-        slug: article.slug,
-        description: article.description,
-        content: article.content,
-        category: article.category,
-        authorName: article.authorName, // Assuming you might want to edit this too
+        if (id === 'title') {
+            const newSlug = value.toString()
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .toLowerCase()
+                .trim()
+                .replace(/\s+/g, '-')
+                .replace(/[^\w-]+/g, '')
+                .replace(/--+/g, '-');
+            setArticle({ ...article, title: value, slug: newSlug });
+        } else {
+            setArticle({ ...article, [id]: value });
+        }
     };
 
-    updateDoc(articleRef, updatedData).then(() => {
-        toast({
-            title: "แก้ไขบทความสำเร็จ",
-            description: `บทความ "${article.title}" ได้รับการอัปเดตแล้ว`,
-        });
-        router.push('/admin/content');
-    }).catch(error => {
-        const permissionError = new FirestorePermissionError({
-            path: articleRef.path,
-            operation: 'update',
-            requestResourceData: updatedData,
-        });
-        errorEmitter.emit('permission-error', permissionError);
-    }).finally(() => {
-        setIsSaving(false);
-    });
-  }
-  
-  const handleAddNewCategory = () => {
-    if (newCategory && !categories.includes(newCategory)) {
-        setCategories(prev => [...prev, newCategory]);
-        setNewCategory('');
-        toast({
-            title: 'เพิ่มหมวดหมู่สำเร็จ',
-            description: `หมวดหมู่ "${newCategory}" ได้ถูกเพิ่มในรายการแล้ว`,
-        });
-    } else {
-        toast({
-            variant: 'destructive',
-            title: 'ไม่สามารถเพิ่มหมวดหมู่ได้',
-            description: 'อาจเป็นเพราะช่องว่างหรือมีหมวดหมู่นี้อยู่แล้ว',
-        })
+    const handleSelectChange = (value: string) => {
+        if (!article) return;
+        setArticle({ ...article, category: value });
     }
-  }
-  
-  if (isLoading || !article) {
-      return <div>กำลังโหลด...</div>
-  }
+
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            if (file.size > MAX_FILE_SIZE_BYTES) {
+                toast({
+                    variant: "destructive",
+                    title: "ไฟล์มีขนาดใหญ่เกินไป",
+                    description: `กรุณาอัปโหลดไฟล์ขนาดไม่เกิน ${MAX_FILE_SIZE_MB}MB`,
+                });
+                e.target.value = ''; // Reset input
+                return;
+            }
+            setImageFile(file);
+            const url = URL.createObjectURL(file);
+            setPreviewUrl(url);
+        }
+    };
+
+    const handleSaveChanges = async () => {
+        if (!firestore || !article) return;
+        setIsSaving(true);
+
+        try {
+            let finalImageUrl = article.imageUrl;
+
+            if (imageFile) {
+                try {
+                    finalImageUrl = await compressImageToBase64(imageFile);
+                } catch (compressError) {
+                    console.error("Compression failed:", compressError);
+                    toast({
+                        variant: "destructive",
+                        title: "รูปภาพมีปัญหา",
+                        description: "ไม่สามารถประมวลผลรูปภาพได้"
+                    });
+                    setIsSaving(false);
+                    return;
+                }
+            }
+
+            const articleRef = doc(firestore, 'articles', article.id);
+            const updatedData = {
+                title: article.title || '',
+                slug: article.slug || '',
+                description: article.description || '',
+                content: article.content || '',
+                category: article.category || '',
+                authorName: article.authorName || 'ทีมงาน Lawslane',
+                imageUrl: finalImageUrl || '',
+            };
+
+            await updateDoc(articleRef, updatedData);
+
+            toast({
+                title: "แก้ไขบทความสำเร็จ",
+                description: `บทความ "${article.title}" ได้รับการอัปเดตแล้ว`,
+            });
+            router.push('/admin/content');
+
+        } catch (error: any) {
+            console.error("Error updating article:", error);
+            if (error.code === 'permission-denied') {
+                const permissionError = new FirestorePermissionError({
+                    path: `articles/${article.id}`,
+                    operation: 'update',
+                    requestResourceData: { title: article.title }, // Simplified
+                });
+                errorEmitter.emit('permission-error', permissionError);
+            } else {
+                toast({
+                    variant: "destructive",
+                    title: "เกิดข้อผิดพลาด",
+                    description: error.message || "ไม่สามารถบันทึกการเปลี่ยนแปลงได้",
+                });
+            }
+        } finally {
+            setIsSaving(false);
+        }
+    }
+
+    const handleAddNewCategory = () => {
+        if (newCategory && !categories.includes(newCategory)) {
+            setCategories(prev => [...prev, newCategory]);
+            setNewCategory('');
+            toast({
+                title: 'เพิ่มหมวดหมู่สำเร็จ',
+                description: `หมวดหมู่ "${newCategory}" ได้ถูกเพิ่มในรายการแล้ว`,
+            });
+        } else {
+            toast({
+                variant: 'destructive',
+                title: 'ไม่สามารถเพิ่มหมวดหมู่ได้',
+                description: 'อาจเป็นเพราะช่องว่างหรือมีหมวดหมู่นี้อยู่แล้ว',
+            })
+        }
+    }
+
+    if (isLoading || !article) {
+        return <div>กำลังโหลด...</div>
+    }
 
 
-  return (
-      <main className="flex-1 p-4 sm:px-6 sm:py-0 md:p-8">
-        <div className="mx-auto grid max-w-3xl flex-1 auto-rows-max gap-4">
-          <div className="flex items-center gap-4">
-            <Link href="/admin/content">
-                <Button variant="outline" size="icon" className="h-7 w-7" disabled={isSaving}>
-                <ChevronLeft className="h-4 w-4" />
-                <span className="sr-only">กลับ</span>
-                </Button>
-            </Link>
-            <h1 className="flex-1 shrink-0 whitespace-nowrap text-xl font-semibold tracking-tight sm:grow-0">
-              แก้ไขบทความ
-            </h1>
-            <div className="hidden items-center gap-2 md:ml-auto md:flex">
-              <Link href="/admin/content">
-                <Button variant="outline" size="sm" disabled={isSaving}>
-                    ยกเลิก
-                </Button>
-              </Link>
-              <Button size="sm" onClick={handleSaveChanges} disabled={isSaving}>
-                {isSaving ? 'กำลังบันทึก...' : 'บันทึกการเปลี่ยนแปลง'}
-              </Button>
-            </div>
-          </div>
-          <div className="grid gap-4 md:grid-cols-[1fr_250px] lg:grid-cols-3 lg:gap-8">
-            <div className="grid auto-rows-max items-start gap-4 lg:col-span-2 lg:gap-8">
-                <Card>
-                    <CardHeader>
-                    <CardTitle>เนื้อหาบทความ</CardTitle>
-                    <CardDescription>
-                        แก้ไขเนื้อหาหลักและรูปภาพสำหรับบทความ
-                    </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                    <div className="grid gap-6">
-                        <div className="grid gap-3">
-                            <Label htmlFor="title">หัวข้อบทความ (H1)</Label>
-                            <Input
-                                id="title"
-                                type="text"
-                                className="w-full"
-                                value={article.title}
-                                onChange={handleInputChange}
-                            />
-                        </div>
-                        <div className="grid gap-3">
-                            <Label htmlFor="picture">รูปภาพหน้าปก</Label>
-                            <div className="flex items-center gap-4">
-                                <Image
-                                    alt={article.title}
-                                    className="aspect-video w-48 rounded-md object-contain bg-white p-1 border"
-                                    height="90"
-                                    src={article.imageUrl}
-                                    width="160"
-                                />
-                                <Button variant="outline">
-                                <Upload className="h-4 w-4 mr-2"/>
-                                เปลี่ยนรูป
-                                </Button>
-                            </div>
-                        </div>
-                         <div className="grid gap-3">
-                            <Label htmlFor="content">เนื้อหาบทความ</Label>
-                            <Textarea
-                                id="content"
-                                value={article.content}
-                                onChange={handleInputChange}
-                                rows={15}
-                            />
-                        </div>
+    return (
+        <main className="flex-1 p-4 sm:px-6 sm:py-0 md:p-8">
+            <div className="mx-auto grid max-w-3xl flex-1 auto-rows-max gap-4">
+                <div className="flex items-center gap-4">
+                    <Link href="/admin/content">
+                        <Button variant="outline" size="icon" className="h-7 w-7" disabled={isSaving}>
+                            <ChevronLeft className="h-4 w-4" />
+                            <span className="sr-only">กลับ</span>
+                        </Button>
+                    </Link>
+                    <h1 className="flex-1 shrink-0 whitespace-nowrap text-xl font-semibold tracking-tight sm:grow-0">
+                        แก้ไขบทความ
+                    </h1>
+                    <div className="hidden items-center gap-2 md:ml-auto md:flex">
+                        <Link href="/admin/content">
+                            <Button variant="outline" size="sm" disabled={isSaving}>
+                                ยกเลิก
+                            </Button>
+                        </Link>
+                        <Button size="sm" onClick={handleSaveChanges} disabled={isSaving}>
+                            {isSaving ? 'กำลังบันทึก...' : 'บันทึกการเปลี่ยนแปลง'}
+                        </Button>
                     </div>
-                    </CardContent>
-                </Card>
-                 <Card>
-                    <CardHeader>
-                        <CardTitle>Search Engine Optimization (SEO)</CardTitle>
-                        <CardDescription>
-                            ปรับแต่งการแสดงผลบนหน้าการค้นหาของ Google
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="grid gap-6">
-                         <div className="grid gap-3">
-                            <Label htmlFor="slug">Slug (URL Path)</Label>
-                            <Input
-                                id="slug"
-                                type="text"
-                                value={article.slug}
-                                onChange={handleInputChange}
-                            />
-                             <Alert variant="default" className="bg-blue-50 border-blue-200 text-blue-800">
-                                <Info className="h-4 w-4 !text-blue-600" />
-                                <AlertDescription>
-                                    Slug จะถูกสร้างจากหัวข้อโดยอัตโนมัติ แต่สามารถแก้ไขได้ ควรใช้ภาษาอังกฤษและคั่นด้วย -
-                                </AlertDescription>
-                            </Alert>
-                        </div>
-                         <div className="grid gap-3">
-                            <Label htmlFor="meta-title">Meta Title</Label>
-                            <Input
-                                id="meta-title"
-                                type="text"
-                                defaultValue={article.title}
-                            />
-                        </div>
-                         <div className="grid gap-3">
-                            <Label htmlFor="meta-description">Meta Description</Label>
-                            <Textarea
-                                id="description"
-                                value={article.description}
-                                onChange={handleInputChange}
-                                rows={3}
-                            />
-                        </div>
-                    </CardContent>
-                 </Card>
-            </div>
-            <div className="grid auto-rows-max items-start gap-4 lg:gap-8">
-                 <Card>
-                    <CardHeader>
-                        <CardTitle>การจัดหมวดหมู่</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                       <div className="grid gap-6">
-                         <div className="grid gap-3">
-                            <Label htmlFor="category">หมวดหมู่</Label>
-                            <Select value={article.category} onValueChange={handleSelectChange}>
-                                <SelectTrigger id="category">
-                                    <SelectValue placeholder="เลือกหมวดหมู่" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {categories.map(cat => (
-                                        <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </div>
-                         <div className="grid gap-3">
-                            <Label htmlFor="new-category">เพิ่มหมวดหมู่ใหม่</Label>
-                            <div className="flex gap-2">
-                                <Input 
-                                    id="new-category" 
-                                    placeholder="เช่น กฎหมายครอบครัว"
-                                    value={newCategory}
-                                    onChange={(e) => setNewCategory(e.target.value)}
-                                />
-                                <Button variant="outline" size="icon" onClick={handleAddNewCategory}>
-                                    <PlusCircle className="h-4 w-4" />
-                                </Button>
-                            </div>
-                        </div>
-                       </div>
-                    </CardContent>
-                 </Card>
-            </div>
-          </div>
+                </div>
+                <div className="grid gap-4 md:grid-cols-[1fr_250px] lg:grid-cols-3 lg:gap-8">
+                    <div className="grid auto-rows-max items-start gap-4 lg:col-span-2 lg:gap-8">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>เนื้อหาบทความ</CardTitle>
+                                <CardDescription>
+                                    แก้ไขเนื้อหาหลักและรูปภาพสำหรับบทความ
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="grid gap-6">
+                                    <div className="grid gap-3">
+                                        <Label htmlFor="title">หัวข้อบทความ (H1)</Label>
+                                        <Input
+                                            id="title"
+                                            type="text"
+                                            className="w-full"
+                                            value={article.title}
+                                            onChange={handleInputChange}
+                                        />
+                                    </div>
+                                    <div className="grid gap-3">
+                                        <Label htmlFor="picture">รูปภาพหน้าปก</Label>
+                                        <div className="flex items-center gap-4">
+                                            <Image
+                                                alt={article.title}
+                                                className="aspect-video w-48 rounded-md object-contain bg-white p-1 border"
+                                                height="90"
+                                                src={previewUrl || article.imageUrl}
+                                                width="160"
+                                            />
+                                            <Input
+                                                id="picture"
+                                                type="file"
+                                                accept="image/*"
+                                                className="hidden"
+                                                ref={fileInputRef}
+                                                onChange={handleImageChange}
+                                            />
+                                            <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
+                                                <Upload className="h-4 w-4 mr-2" />
+                                                เปลี่ยนรูป
+                                            </Button>
+                                        </div>
+                                    </div>
+                                    <div className="grid gap-3">
+                                        <Label htmlFor="content">เนื้อหาบทความ</Label>
+                                        <Textarea
+                                            id="content"
+                                            value={article.content}
+                                            onChange={handleInputChange}
+                                            rows={15}
+                                        />
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Search Engine Optimization (SEO)</CardTitle>
+                                <CardDescription>
+                                    ปรับแต่งการแสดงผลบนหน้าการค้นหาของ Google
+                                </CardDescription>
+                            </CardHeader>
+                            <CardContent className="grid gap-6">
+                                <div className="grid gap-3">
+                                    <Label htmlFor="slug">Slug (URL Path)</Label>
+                                    <Input
+                                        id="slug"
+                                        type="text"
+                                        value={article.slug}
+                                        onChange={handleInputChange}
+                                    />
+                                    <Alert variant="default" className="bg-blue-50 border-blue-200 text-blue-800">
+                                        <Info className="h-4 w-4 !text-blue-600" />
+                                        <AlertDescription>
+                                            Slug จะถูกสร้างจากหัวข้อโดยอัตโนมัติ แต่สามารถแก้ไขได้ ควรใช้ภาษาอังกฤษและคั่นด้วย -
+                                        </AlertDescription>
+                                    </Alert>
+                                </div>
+                                <div className="grid gap-3">
+                                    <Label htmlFor="meta-title">Meta Title</Label>
+                                    <Input
+                                        id="meta-title"
+                                        type="text"
+                                        defaultValue={article.title}
+                                    />
+                                </div>
+                                <div className="grid gap-3">
+                                    <Label htmlFor="meta-description">Meta Description</Label>
+                                    <Textarea
+                                        id="description"
+                                        value={article.description}
+                                        onChange={handleInputChange}
+                                        rows={3}
+                                    />
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+                    <div className="grid auto-rows-max items-start gap-4 lg:gap-8">
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>การจัดหมวดหมู่</CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                <div className="grid gap-6">
+                                    <div className="grid gap-3">
+                                        <Label htmlFor="category">หมวดหมู่</Label>
+                                        <Select value={article.category} onValueChange={handleSelectChange}>
+                                            <SelectTrigger id="category">
+                                                <SelectValue placeholder="เลือกหมวดหมู่" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {categories.map(cat => (
+                                                    <SelectItem key={cat} value={cat}>{cat}</SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                    <div className="grid gap-3">
+                                        <Label htmlFor="new-category">เพิ่มหมวดหมู่ใหม่</Label>
+                                        <div className="flex gap-2">
+                                            <Input
+                                                id="new-category"
+                                                placeholder="เช่น กฎหมายครอบครัว"
+                                                value={newCategory}
+                                                onChange={(e) => setNewCategory(e.target.value)}
+                                            />
+                                            <Button variant="outline" size="icon" onClick={handleAddNewCategory}>
+                                                <PlusCircle className="h-4 w-4" />
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </div>
 
-           <div className="flex items-center justify-end gap-2 md:hidden">
-              <Link href="/admin/content">
-                <Button variant="outline" size="sm" disabled={isSaving}>
-                    ยกเลิก
-                </Button>
-              </Link>
-              <Button size="sm" onClick={handleSaveChanges} disabled={isSaving}>
-                {isSaving ? 'กำลังบันทึก...' : 'บันทึกการเปลี่ยนแปลง'}
-              </Button>
+                <div className="flex items-center justify-end gap-2 md:hidden">
+                    <Link href="/admin/content">
+                        <Button variant="outline" size="sm" disabled={isSaving}>
+                            ยกเลิก
+                        </Button>
+                    </Link>
+                    <Button size="sm" onClick={handleSaveChanges} disabled={isSaving}>
+                        {isSaving ? 'กำลังบันทึก...' : 'บันทึกการเปลี่ยนแปลง'}
+                    </Button>
+                </div>
             </div>
-        </div>
-      </main>
-  )
+        </main>
+    )
 }

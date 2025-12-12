@@ -1,0 +1,12 @@
+name = "lawslane-rag-api"
+main = "src/index.ts"
+compatibility_date = "2024-04-05"
+
+# Enable Vectorize
+[[vectorize]]
+binding = "VECTORIZE_INDEX"
+index_name = "lawslane-index"
+
+# Enable Workers AI
+[ai]
+binding = "AI"

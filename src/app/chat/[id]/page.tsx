@@ -9,6 +9,7 @@ import type { LawyerProfile } from '@/lib/types';
 import { useFirebase, useUser } from '@/firebase';
 // import { useUser } from '@/firebase/auth/use-user';
 import { ChatBox } from '@/components/chat/chat-box';
+import { uploadFileAction } from '../actions';
 
 import {
     Card,
@@ -38,7 +39,6 @@ import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { doc, getDoc, updateDoc, arrayUnion, onSnapshot, serverTimestamp, addDoc, collection, query, where, getDocs, setDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '@/lib/constants';
 
 function ChatPageContent() {
@@ -131,9 +131,31 @@ function ChatPageContent() {
 
     const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
-        if (!file || !storage || !firestore || !user) return;
+        if (!file) return;
+
+        // DEBUG ALERTS
+        alert(`Selected file: ${file.name} (${file.size} bytes)`);
+
+        if (!user) {
+            alert("Error: User is not logged in!");
+            console.error("Upload failed: User not logged in");
+            toast({ variant: "destructive", title: "กรุณาเข้าสู่ระบบ", description: "คุณต้องเข้าสู่ระบบก่อนอัปโหลดไฟล์" });
+            return;
+        }
+        if (!storage) {
+            alert("Error: Firebase Storage is not initialized! Check your .env.local config.");
+            console.error("Upload failed: Storage not initialized");
+            toast({ variant: "destructive", title: "ระบบขัดข้อง", description: "ไม่สามารถเชื่อมต่อกับระบบจัดเก็บไฟล์ได้ (Storage is null)" });
+            return;
+        }
+        if (!firestore) {
+            alert("Error: Firestore is not initialized!");
+            console.error("Upload failed: Firestore not initialized");
+            return;
+        }
 
         if (file.size > MAX_FILE_SIZE_BYTES) {
+            alert(`File too large! Max ${MAX_FILE_SIZE_MB}MB`);
             toast({
                 variant: "destructive",
                 title: "ไฟล์มีขนาดใหญ่เกินไป",
@@ -145,10 +167,19 @@ function ChatPageContent() {
         try {
             toast({ title: "กำลังอัปโหลด...", description: "กรุณารอสักครู่" });
 
-            const timestamp = Date.now();
-            const storageRef = ref(storage, `chat-files/${chatId}/${timestamp}_${file.name}`);
-            const snapshot = await uploadBytes(storageRef, file);
-            const downloadUrl = await getDownloadURL(snapshot.ref);
+            // Get ID Token for server-side auth (still good practice even for local)
+            const idToken = user ? await user.getIdToken() : '';
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            // Call Server Action
+            const result = await uploadFileAction(formData, idToken, chatId);
+
+            let downloadUrl = result.fullPath;
+
+            // If it's NOT local, we use the returned fullPath (which is the Public URL for R2)
+            // No need to call getDownloadURL for R2
 
             const fileData = {
                 name: file.name,
@@ -168,12 +199,12 @@ function ChatPageContent() {
                 description: `ไฟล์ "${file.name}" ถูกเพิ่มในรายการแล้ว`,
             });
 
-        } catch (error) {
+        } catch (error: any) {
             console.error("Upload error:", error);
             toast({
                 variant: "destructive",
                 title: "อัปโหลดไม่สำเร็จ",
-                description: "เกิดข้อผิดพลาดในการอัปโหลดไฟล์",
+                description: `เกิดข้อผิดพลาด: ${error.message}`,
             });
         }
 

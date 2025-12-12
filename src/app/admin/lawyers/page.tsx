@@ -3,6 +3,7 @@
 
 import * as React from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
     File,
     ListFilter,
@@ -65,6 +66,7 @@ import { doc, updateDoc } from 'firebase/firestore';
 
 
 export default function AdminLawyersPage() {
+    const router = useRouter();
     const { toast } = useToast();
     const { firestore } = useFirebase();
     const [allLawyers, setAllLawyers] = React.useState<LawyerProfile[]>([]);
@@ -238,7 +240,11 @@ export default function AdminLawyersPage() {
                                 </TableHeader>
                                 <TableBody>
                                     {filteredLawyers.map(lawyer => (
-                                        <TableRow key={lawyer.id}>
+                                        <TableRow
+                                            key={lawyer.id}
+                                            className="cursor-pointer hover:bg-muted/50"
+                                            onClick={() => router.push(`/admin/lawyers/${lawyer.id}`)}
+                                        >
                                             <TableCell className="font-medium">
                                                 <div className="flex items-center gap-3">
                                                     <Avatar className="h-9 w-9">

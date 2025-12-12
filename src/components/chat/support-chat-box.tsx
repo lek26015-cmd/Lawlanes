@@ -14,17 +14,18 @@ import { useFirebase } from '@/firebase';
 interface SupportChatBoxProps {
   ticket: ReportedTicket;
   isDisabled?: boolean;
+  isAdmin?: boolean;
 }
 
 interface SupportMessage {
-    id: string;
-    role: 'user' | 'admin';
-    text: string;
-    senderName: string;
-    avatarUrl?: string;
+  id: string;
+  role: 'user' | 'admin';
+  text: string;
+  senderName: string;
+  avatarUrl?: string;
 }
 
-export function SupportChatBox({ ticket, isDisabled = false }: SupportChatBoxProps) {
+export function SupportChatBox({ ticket, isDisabled = false, isAdmin = false }: SupportChatBoxProps) {
   const [messages, setMessages] = useState<SupportMessage[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -34,34 +35,34 @@ export function SupportChatBox({ ticket, isDisabled = false }: SupportChatBoxPro
   const { data: user } = useUser(auth);
 
   const adminProfile = {
-      name: 'ฝ่ายสนับสนุน',
-      avatar: "https://picsum.photos/seed/admin-avatar/100/100"
+    name: 'ฝ่ายสนับสนุน',
+    avatar: "https://picsum.photos/seed/admin-avatar/100/100"
   };
 
   useEffect(() => {
     // Simulate fetching initial messages for the ticket
     setIsLoading(true);
     setTimeout(() => {
-        setMessages([
-            {
-                id: '1',
-                role: 'admin',
-                text: `สวัสดีครับคุณสมหญิง ผม 'แอดมินพัฒน์' จากฝ่ายสนับสนุนลูกค้า Lawlanes ครับ ขอทราบรายละเอียดของปัญหาเกี่ยวกับเคส "${ticket.caseTitle}" เพิ่มเติมได้ไหมครับ`,
-                senderName: adminProfile.name,
-                avatarUrl: adminProfile.avatar
-            }
-        ]);
-        setIsLoading(false);
+      setMessages([
+        {
+          id: '1',
+          role: 'admin',
+          text: `สวัสดีครับคุณสมหญิง ผม 'แอดมินพัฒน์' จากฝ่ายสนับสนุนลูกค้า Lawslane ครับ ขอทราบรายละเอียดของปัญหาเกี่ยวกับเคส "${ticket.caseTitle}" เพิ่มเติมได้ไหมครับ`,
+          senderName: adminProfile.name,
+          avatarUrl: adminProfile.avatar
+        }
+      ]);
+      setIsLoading(false);
     }, 1000);
   }, [ticket.id, ticket.caseTitle]);
-  
-   useEffect(() => {
+
+  useEffect(() => {
     // Auto-scroll to bottom
     if (scrollAreaRef.current) {
-        const scrollableNode = scrollAreaRef.current.querySelector('div[style*="overflow: scroll"]');
-        if(scrollableNode) {
-            scrollableNode.scrollTop = scrollableNode.scrollHeight;
-        }
+      const scrollableNode = scrollAreaRef.current.querySelector('div[style*="overflow: scroll"]');
+      if (scrollableNode) {
+        scrollableNode.scrollTop = scrollableNode.scrollHeight;
+      }
     }
   }, [messages]);
 
@@ -71,26 +72,26 @@ export function SupportChatBox({ ticket, isDisabled = false }: SupportChatBoxPro
 
     const userMessage: SupportMessage = {
       id: Date.now().toString(),
-      role: 'user',
+      role: isAdmin ? 'admin' : 'user', // If admin sends, role is admin
       text: input,
-      senderName: user.displayName || 'ลูกค้า',
+      senderName: user.displayName || (isAdmin ? 'Admin' : 'ลูกค้า'),
     };
-    
+
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
 
     // Simulate admin response
     setTimeout(() => {
-        const adminResponse: SupportMessage = {
-            id: (Date.now() + 1).toString(),
-            role: 'admin',
-            text: 'ขอบคุณสำหรับข้อมูลครับ ทางเราได้รับเรื่องแล้วและกำลังดำเนินการตรวจสอบให้อย่างเร่งด่วนครับ จะแจ้งความคืบหน้าให้ทราบอีกครั้งภายใน 24 ชั่วโมงครับ',
-            senderName: adminProfile.name,
-            avatarUrl: adminProfile.avatar,
-        };
-        setMessages(prev => [...prev, adminResponse]);
-        setIsLoading(false);
+      const adminResponse: SupportMessage = {
+        id: (Date.now() + 1).toString(),
+        role: isAdmin ? 'user' : 'admin', // If admin is user, response is from user
+        text: isAdmin ? 'ขอบคุณครับ เดี๋ยวผมตรวจสอบให้นะครับ' : 'ขอบคุณสำหรับข้อมูลครับ ทางเราได้รับเรื่องแล้วและกำลังดำเนินการตรวจสอบให้อย่างเร่งด่วนครับ จะแจ้งความคืบหน้าให้ทราบอีกครั้งภายใน 24 ชั่วโมงครับ',
+        senderName: isAdmin ? (ticket.clientName || 'ลูกค้า') : adminProfile.name,
+        avatarUrl: isAdmin ? undefined : adminProfile.avatar,
+      };
+      setMessages(prev => [...prev, adminResponse]);
+      setIsLoading(false);
     }, 1500);
   };
 
@@ -100,64 +101,67 @@ export function SupportChatBox({ ticket, isDisabled = false }: SupportChatBoxPro
         <CardTitle className="text-xl">Ticket: {ticket.id}</CardTitle>
         <p className="text-sm text-muted-foreground">พูดคุยกับฝ่ายสนับสนุนเกี่ยวกับเคส "{ticket.caseTitle}"</p>
       </CardHeader>
-      
+
       <CardContent className="flex-grow p-0 flex flex-col min-h-0">
-          <ScrollArea className="flex-grow p-6" ref={scrollAreaRef}>
-            <div className="space-y-6">
-                 {isLoading && messages.length === 0 ? (
-                    <div className="flex justify-center items-center h-full">
-                        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-                    </div>
-                 ) : (
-                    messages.map((msg) => (
-                      <div
-                        key={msg.id}
-                        className={`flex items-start gap-3 ${
-                          msg.role === 'user' ? 'justify-end' : 'justify-start'
+        <ScrollArea className="flex-grow p-6" ref={scrollAreaRef}>
+          <div className="space-y-6">
+            {isLoading && messages.length === 0 ? (
+              <div className="flex justify-center items-center h-full">
+                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : (
+              messages.map((msg) => (
+                <div
+                  key={msg.id}
+                  className={`flex items-start gap-3 ${(msg.role === 'user' && !isAdmin) || (msg.role === 'admin' && isAdmin)
+                    ? 'justify-end'
+                    : 'justify-start'
+                    }`}
+                >
+                  {((msg.role === 'admin' && !isAdmin) || (msg.role === 'user' && isAdmin)) && (
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage src={msg.avatarUrl} />
+                      <AvatarFallback>
+                        {msg.role === 'admin' ? <UserCog className="w-5 h-5" /> : <UserCog className="w-5 h-5" />}
+                        {/* TODO: Fix icon for user if admin view */}
+                      </AvatarFallback>
+                    </Avatar>
+                  )}
+                  <div className="flex flex-col gap-1 items-end">
+                    <div
+                      className={`max-w-md rounded-lg px-4 py-2 shadow-sm text-sm ${(msg.role === 'user' && !isAdmin) || (msg.role === 'admin' && isAdmin)
+                        ? 'bg-foreground text-background self-end'
+                        : 'bg-gray-200'
                         }`}
-                      >
-                        {msg.role === 'admin' && (
-                          <Avatar className="h-10 w-10">
-                            <AvatarImage src={msg.avatarUrl} />
-                            <AvatarFallback><UserCog className="w-5 h-5"/></AvatarFallback>
-                          </Avatar>
-                        )}
-                        <div className="flex flex-col gap-1 items-end">
-                            <div
-                            className={`max-w-md rounded-lg px-4 py-2 shadow-sm text-sm ${
-                                msg.role === 'user'
-                                ? 'bg-foreground text-background self-end'
-                                : 'bg-gray-200'
-                            }`}
-                            >
-                            <p>{msg.text}</p>
-                            </div>
-                             <span className="text-xs text-muted-foreground">
-                                {msg.senderName}
-                            </span>
-                        </div>
-                        {msg.role === 'user' && (
-                             <Avatar className="h-10 w-10">
-                                <AvatarImage src="https://picsum.photos/seed/user-avatar/100/100" />
-                                <AvatarFallback>สใ</AvatarFallback>
-                            </Avatar>
-                        )}
-                      </div>
-                    ))
-                 )}
-                  {isLoading && messages.length > 0 && (
-                    <div className="flex items-center gap-3 justify-start">
-                         <Avatar className="h-10 w-10">
-                             <AvatarImage src={adminProfile.avatar} />
-                            <AvatarFallback><UserCog className="w-5 h-5"/></AvatarFallback>
-                        </Avatar>
-                        <div className="p-3 bg-gray-200 rounded-lg">
-                           <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-                        </div>
+                    >
+                      <p>{msg.text}</p>
                     </div>
-                 )}
-            </div>
-          </ScrollArea>
+                    <span className="text-xs text-muted-foreground">
+                      {msg.senderName}
+                    </span>
+                  </div>
+                  {((msg.role === 'user' && !isAdmin) || (msg.role === 'admin' && isAdmin)) && (
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage src={isAdmin ? adminProfile.avatar : "https://picsum.photos/seed/user-avatar/100/100"} />
+                      <AvatarFallback>{isAdmin ? <UserCog className="w-5 h-5" /> : "สใ"}</AvatarFallback>
+                    </Avatar>
+                  )}
+                </div>
+              ))
+            )}
+            {isLoading && messages.length > 0 && (
+              <div className="flex items-center gap-3 justify-start">
+                <Avatar className="h-10 w-10">
+                  <AvatarImage src={adminProfile.avatar} />
+                  <AvatarFallback><UserCog className="w-5 h-5" /></AvatarFallback>
+                </Avatar>
+                <div className="p-3 bg-gray-200 rounded-lg">
+                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                </div>
+              </div>
+            )}
+          </div>
+        </ScrollArea>
       </CardContent>
       <CardFooter className="p-4 border-t bg-white">
         <form onSubmit={handleSendMessage} className="flex items-center w-full space-x-2">

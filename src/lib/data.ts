@@ -41,8 +41,8 @@ export async function getLawyerById(db: Firestore, id: string): Promise<LawyerPr
 export async function getAllArticles(db: Firestore | null): Promise<Article[]> {
   if (!db) return [];
   const articlesRef = collection(db, 'articles');
-  const q = query(articlesRef, orderBy('publishedAt', 'desc'));
-  // const q = query(articlesRef);
+  // const q = query(articlesRef, orderBy('publishedAt', 'desc'));
+  const q = query(articlesRef);
   const querySnapshot = await getDocs(q);
   return querySnapshot.docs.map(doc => {
     const data = doc.data();
@@ -72,10 +72,20 @@ export async function getArticleBySlug(db: Firestore, slug: string): Promise<Art
   if (!querySnapshot.empty) {
     const docSnap = querySnapshot.docs[0];
     const data = docSnap.data();
+    let publishedAtStr = new Date().toISOString();
+
+    if (data.publishedAt?.toDate) {
+      publishedAtStr = data.publishedAt.toDate().toISOString();
+    } else if (data.publishedAt instanceof Date) {
+      publishedAtStr = data.publishedAt.toISOString();
+    } else if (typeof data.publishedAt === 'string') {
+      publishedAtStr = data.publishedAt;
+    }
+
     return {
       id: docSnap.id,
       ...data,
-      publishedAt: data.publishedAt?.toDate().toISOString()
+      publishedAt: publishedAtStr
     } as Article;
   }
   return undefined;
@@ -544,8 +554,8 @@ export async function getLawyerStats(db: Firestore, lawyerId: string) {
     incomeThisMonth: 0,
     totalIncome: 0,
     completedCases: 0,
-    rating: 4.8, // Mock for now
-    responseRate: 95 // Mock for now
+    rating: 0,
+    responseRate: 0
   };
 
   let incomeThisMonth = 0;
@@ -602,11 +612,68 @@ export async function getLawyerStats(db: Firestore, lawyerId: string) {
     console.error("Error calculating lawyer stats:", error);
   }
 
+  let rating = 0;
+  let responseRate = 0;
+
+  try {
+    // 3. Calculate Rating from Reviews
+    const reviewsRef = collection(db, 'reviews');
+    const reviewsQuery = query(reviewsRef, where('lawyerId', '==', lawyerId));
+    const reviewsSnapshot = await getDocs(reviewsQuery);
+
+    if (!reviewsSnapshot.empty) {
+      const totalRating = reviewsSnapshot.docs.reduce((acc, doc) => acc + (doc.data().rating || 0), 0);
+      rating = totalRating / reviewsSnapshot.size;
+    }
+
+    // 4. Calculate Response Rate (Simplified)
+    // We'll define response rate as % of chats where the lawyer has sent at least one message.
+    // This is an approximation. A better way would be to track "replied" status on the chat doc.
+    const allChatsQuery = query(collection(db, 'chats'), where('participants', 'array-contains', lawyerId));
+    const allChatsSnapshot = await getDocs(allChatsQuery);
+
+    if (!allChatsSnapshot.empty) {
+      let repliedChats = 0;
+      // We need to check messages for each chat, which is expensive.
+      // Optimization: Check if 'lastMessage' was sent by lawyer? No, lastMessage could be client's.
+      // Alternative: Add 'hasLawyerReplied' field to chat doc in the future.
+      // For now, let's assume if status is NOT 'pending_payment' and NOT 'pending', the lawyer "responded" (accepted the case).
+      // Or better: use the 'status' field. 'active', 'closed' implies engagement. 'pending' implies waiting.
+
+      const engagedChats = allChatsSnapshot.docs.filter(doc => {
+        const data = doc.data();
+        return data.status === 'active' || data.status === 'closed';
+      }).length;
+
+      // Total valid requests (excluding pending payment which are not yet "requests" really)
+      const totalRequests = allChatsSnapshot.docs.filter(doc => doc.data().status !== 'pending_payment').length;
+
+      if (totalRequests > 0) {
+        responseRate = (engagedChats / totalRequests) * 100;
+      } else {
+        responseRate = 100; // No requests yet, give benefit of doubt
+      }
+    } else {
+      responseRate = 100;
+    }
+
+  } catch (error) {
+    console.error("Error calculating extra stats:", error);
+  }
+
   return {
     incomeThisMonth,
     totalIncome,
     completedCases,
-    rating: 4.8, // Placeholder
-    responseRate: 95 // Placeholder
+    rating: Number(rating.toFixed(1)),
+    responseRate: Math.round(responseRate)
   };
+}
+
+export async function getLawyersByFirm(db: Firestore, firmId: string): Promise<LawyerProfile[]> {
+  if (!db) return [];
+  const lawyersRef = collection(db, 'lawyerProfiles');
+  const q = query(lawyersRef, where('firmId', '==', firmId), where('status', '==', 'approved'));
+  const querySnapshot = await getDocs(q);
+  return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as LawyerProfile));
 }

@@ -1,4 +1,5 @@
-import type { NextConfig } from 'next';
+import type { NextConfig } from "next";
+// Force restart
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -23,6 +24,12 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'picsum.photos',
+        port: '',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: '*.r2.dev',
         port: '',
         pathname: '/**',
       },

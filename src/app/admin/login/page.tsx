@@ -53,12 +53,12 @@ export default function AdminLoginPage() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (!auth) {
-        toast({
-            variant: 'destructive',
-            title: 'เกิดข้อผิดพลาด',
-            description: 'ไม่สามารถเชื่อมต่อกับระบบยืนยันตัวตนได้',
-        });
-        return;
+      toast({
+        variant: 'destructive',
+        title: 'เกิดข้อผิดพลาด',
+        description: 'ไม่สามารถเชื่อมต่อกับระบบยืนยันตัวตนได้',
+      });
+      return;
     }
     setIsLoading(true);
     try {
@@ -73,7 +73,7 @@ export default function AdminLoginPage() {
     } catch (error: any) {
       console.error(error);
       let errorMessage = 'เกิดข้อผิดพลาดที่ไม่รู้จัก';
-       if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
+      if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
         errorMessage = 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
       }
       toast({
@@ -85,20 +85,20 @@ export default function AdminLoginPage() {
       setIsLoading(false);
     }
   }
-  
+
   async function handleGoogleSignIn() {
     if (!auth || !firestore) return;
     setIsGoogleLoading(true);
     try {
       const provider = new GoogleAuthProvider();
       await signInWithPopup(auth, provider);
-      
+
       // The admin layout will handle role verification and document creation
       toast({
         title: 'เข้าสู่ระบบด้วย Google สำเร็จ',
         description: 'กำลังตรวจสอบสิทธิ์และนำคุณไปยังแดชบอร์ด...',
       });
-      
+
     } catch (error: any) {
       console.error("Google Sign-In Error:", error);
       toast({
@@ -124,11 +124,11 @@ export default function AdminLoginPage() {
               Administrator Login
             </CardTitle>
             <CardDescription className="text-gray-400">
-              สำหรับผู้ดูแลระบบ Lawlanes เท่านั้น
+              สำหรับผู้ดูแลระบบ Lawslane เท่านั้น
             </CardDescription>
           </CardHeader>
           <CardContent>
-             <Button variant="outline" className="w-full bg-white text-black hover:bg-gray-200" onClick={handleGoogleSignIn} disabled={isGoogleLoading || isLoading}>
+            <Button variant="outline" className="w-full bg-white text-black hover:bg-gray-200" onClick={handleGoogleSignIn} disabled={isGoogleLoading || isLoading}>
               {isGoogleLoading ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
@@ -157,11 +157,11 @@ export default function AdminLoginPage() {
                     <FormItem>
                       <FormLabel className="text-gray-300">อีเมล</FormLabel>
                       <FormControl>
-                        <Input 
-                            placeholder="admin@lawlanes.com" 
-                            {...field} 
-                            disabled={isLoading}
-                            className="bg-gray-700 border-gray-600 text-white" 
+                        <Input
+                          placeholder="admin@lawslane.com"
+                          {...field}
+                          disabled={isLoading}
+                          className="bg-gray-700 border-gray-600 text-white"
                         />
                       </FormControl>
                       <FormMessage />
@@ -175,12 +175,12 @@ export default function AdminLoginPage() {
                     <FormItem>
                       <FormLabel className="text-gray-300">รหัสผ่าน</FormLabel>
                       <FormControl>
-                        <Input 
-                            type="password" 
-                            placeholder="********" 
-                            {...field} 
-                            disabled={isLoading}
-                            className="bg-gray-700 border-gray-600 text-white"
+                        <Input
+                          type="password"
+                          placeholder="********"
+                          {...field}
+                          disabled={isLoading}
+                          className="bg-gray-700 border-gray-600 text-white"
                         />
                       </FormControl>
                       <FormMessage />

@@ -33,7 +33,7 @@ import { useFirebase } from '@/firebase'
 import { getAdById } from '@/lib/data'
 import { doc, updateDoc } from 'firebase/firestore'
 import { errorEmitter, FirestorePermissionError } from '@/firebase'
-import { compressImageToBase64 } from '@/lib/image-utils';
+import { uploadToR2 } from '@/app/actions/upload-r2';
 import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '@/lib/constants';
 
 
@@ -65,14 +65,18 @@ export default function AdminAdEditPage() {
       }
 
       try {
-        toast({ title: "กำลังประมวลผลรูปภาพ...", description: "Compressing..." });
-        const base64 = await compressImageToBase64(file);
-        setAd(prev => prev ? { ...prev, imageUrl: base64 } : null);
+        toast({ title: "กำลังอัปโหลดรูปภาพ...", description: "Uploading to R2..." });
+
+        const formData = new FormData();
+        formData.append('file', file);
+        const url = await uploadToR2(formData, 'ads');
+
+        setAd(prev => prev ? { ...prev, imageUrl: url } : null);
         setImageFile(file);
         toast({ title: "รูปภาพพร้อมแล้ว", description: "กดบันทึกเพื่อยืนยันการเปลี่ยนแปลง" });
       } catch (error) {
-        console.error("Compression failed:", error);
-        toast({ variant: "destructive", title: "เกิดข้อผิดพลาด", description: "ไม่สามารถประมวลผลรูปภาพได้" });
+        console.error("Upload failed:", error);
+        toast({ variant: "destructive", title: "เกิดข้อผิดพลาด", description: "ไม่สามารถอัปโหลดรูปภาพได้" });
       }
     }
   };

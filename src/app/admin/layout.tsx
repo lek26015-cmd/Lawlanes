@@ -14,7 +14,9 @@ import {
     FileText,
     ArrowLeftCircle,
     LogOut,
-    ChevronDown
+    ChevronDown,
+    Menu,
+    Mail
 } from 'lucide-react';
 import React, { useState, useEffect, useContext } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
@@ -31,8 +33,10 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
+import { NotificationBell } from '@/components/admin/notification-bell';
 
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -60,6 +64,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 getDoc(userDocRef).then(userDoc => {
                     if (!userDoc.exists()) {
                         const designatedSuperAdminUID = 'wS9w7ysNYUajNsBYZ6C7n2Afe9H3';
+
+                        const allowedDomain = '@lawslane.com';
+                        const exceptionEmail = 'lek.26015@gmail.com';
+                        const userEmail = user.email || '';
+
+                        if (!userEmail.endsWith(allowedDomain) && userEmail !== exceptionEmail) {
+                            // Invalid domain, sign out
+                            setIsAdmin(false);
+                            setCurrentUser(null);
+                            setUserRole(null);
+                            signOut(auth);
+                            router.push('/admin/login?error=invalid_domain');
+                            return;
+                        }
 
                         if (user.uid === designatedSuperAdminUID) {
                             const newAdminData = {
@@ -167,7 +185,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         { href: "/admin/financials", icon: <Landmark className="h-4 w-4" />, label: "การเงิน" },
         { href: "/admin/tickets", icon: <Ticket className="h-4 w-4" />, label: "Ticket ช่วยเหลือ" },
         { href: "/admin/ads", icon: <Megaphone className="h-4 w-4" />, label: "จัดการโฆษณา" },
+        { href: "/admin/email", icon: <Mail className="h-4 w-4" />, label: "ระบบอีเมล" },
         { href: "/admin/content", icon: <FileText className="h-4 w-4" />, label: "จัดการเนื้อหา" },
+        { href: "/admin/knowledge", icon: <Landmark className="h-4 w-4" />, label: "คลังความรู้ AI" },
     ];
 
     const isActive = (href: string) => {
@@ -190,8 +210,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                     <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
                         <Link href="/admin" className="flex items-center gap-2 font-semibold">
                             <Gavel className="h-6 w-6" />
-                            <span className="">Lawlanes Admin</span>
+                            <span className="">Lawslane Admin</span>
                         </Link>
+                        <div className="ml-auto flex items-center gap-2 md:hidden">
+                            {/* Mobile Bell could go here if not in sidebar */}
+                        </div>
                     </div>
                     <div className="flex-1 overflow-auto py-2">
                         <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
@@ -207,10 +230,22 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                                     {item.label}
                                 </Link>
                             ))}
+
+                            <div className="my-2 border-t border-border/50" />
+                            <Link
+                                href="/"
+                                className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
+                            >
+                                <ArrowLeftCircle className="h-4 w-4" />
+                                กลับไปหน้าเว็บไซต์
+                            </Link>
                         </nav>
                     </div>
                     <div className="mt-auto p-4 space-y-4">
                         <div className="border-t pt-4">
+                            <div className="flex justify-end mb-2 px-2 md:hidden">
+                                <NotificationBell />
+                            </div>
                             <DropdownMenu>
                                 <DropdownMenuTrigger asChild>
                                     <Button variant="ghost" className="w-full justify-start px-2 h-auto">
@@ -261,8 +296,52 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 </div>
             </div>
             <div className="flex flex-col overflow-auto bg-muted/40">
-                {React.cloneElement(children as React.ReactElement, { userRole })}
+                <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-6 lg:h-[60px]">
+                    <Sheet>
+                        <SheetTrigger asChild>
+                            <Button variant="outline" size="icon" className="shrink-0 md:hidden">
+                                <Menu className="h-5 w-5" />
+                                <span className="sr-only">Toggle navigation menu</span>
+                            </Button>
+                        </SheetTrigger>
+                        <SheetContent side="left" className="flex flex-col">
+                            <SheetTitle className="sr-only">Admin Navigation</SheetTitle>
+                            <nav className="grid gap-2 text-lg font-medium">
+                                <Link href="/admin" className="flex items-center gap-2 text-lg font-semibold mb-4">
+                                    <Gavel className="h-6 w-6" />
+                                    <span className="sr-only">Lawslane Admin</span>
+                                </Link>
+                                {navItems.map((item) => (
+                                    <Link
+                                        key={item.label}
+                                        href={item.href}
+                                        className={cn("mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground",
+                                            isActive(item.href) && "bg-muted text-foreground"
+                                        )}
+                                    >
+                                        {item.icon}
+                                        {item.label}
+                                    </Link>
+                                ))}
+
+                                <div className="my-2 border-t border-border/50" />
+                                <Link
+                                    href="/"
+                                    className="mx-[-0.65rem] flex items-center gap-4 rounded-xl px-3 py-2 text-muted-foreground hover:text-foreground"
+                                >
+                                    <ArrowLeftCircle className="h-5 w-5" />
+                                    กลับไปหน้าเว็บไซต์
+                                </Link>
+                            </nav>
+                        </SheetContent>
+                    </Sheet>
+                    <div className="w-full flex-1">
+                        {/* Add search or breadcrumbs here if needed */}
+                    </div>
+                    <NotificationBell />
+                </header>
+                {React.isValidElement(children) ? React.cloneElement(children as any, { userRole }) : children}
             </div>
-        </div>
+        </div >
     );
 }

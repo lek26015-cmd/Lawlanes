@@ -273,6 +273,18 @@ export default function LawyerFinancialsPage() {
                 requestedAt: serverTimestamp()
             });
 
+            // Create Admin Notification
+            await addDoc(collection(firestore, 'notifications'), {
+                type: 'withdrawal',
+                title: 'คำร้องขอถอนเงินใหม่',
+                message: `มีคำร้องขอถอนเงินจากทนายความ (฿${amount.toLocaleString()})`,
+                createdAt: serverTimestamp(),
+                read: false,
+                recipient: 'admin',
+                link: `/admin/financials`,
+                relatedId: user.uid // Or withdrawal ID if we had it, but user ID is fine for linking
+            });
+
             toast({ title: "ส่งคำร้องสำเร็จ", description: "คำร้องขอถอนเงินของคุณถูกส่งเรียบร้อยแล้ว" });
             setIsWithdrawOpen(false);
             setWithdrawAmount('');

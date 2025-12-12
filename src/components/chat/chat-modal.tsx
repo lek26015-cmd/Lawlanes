@@ -16,6 +16,7 @@ import { chat, type ChatResponse } from '@/ai/flows/chat-flow';
 import type { ChatMessage } from '@/lib/types';
 import { z } from 'zod';
 import { useChat } from '@/context/chat-context';
+import Link from 'next/link';
 
 const quickQuestions = [
   'ร่างสัญญา',
@@ -45,7 +46,7 @@ export default function ChatModal() {
       id: '1',
       role: 'assistant',
       content:
-        'สวัสดีครับ! ผมคือผู้ช่วย AI ด้านกฎหมายจาก Lawlanes มีอะไรให้ผมช่วยวิเคราะห์เบื้องต้นไหมครับ? (นี่คือเวอร์ชันสาธิต)',
+        'สวัสดีครับ! ผมคือผู้ช่วย AI ด้านกฎหมายจาก Lawslane มีอะไรให้ผมช่วยวิเคราะห์เบื้องต้นไหมครับ?',
     },
   ]);
   const [input, setInput] = useState('');
@@ -139,7 +140,7 @@ export default function ChatModal() {
       >
         <DialogHeader className="flex flex-row justify-between items-center p-4 border-b bg-foreground text-background sm:rounded-t-2xl">
           <DialogTitle asChild>
-            <h3 className="text-xl font-bold">Lawlanes AI Assistant</h3>
+            <h3 className="text-xl font-bold">Lawslane AI Assistant</h3>
           </DialogTitle>
           <DialogDescription className="sr-only">
             Chat with the AI assistant to get legal advice.
@@ -175,6 +176,15 @@ export default function ChatModal() {
                           <div key={index}>
                             <h4 className="font-semibold text-sm mb-1">{section.title}</h4>
                             <p className="text-sm whitespace-pre-wrap">{section.content}</p>
+                            {section.link && section.linkText && (
+                              <div className="mt-2">
+                                <Link href={section.link} onClick={() => setAiChatOpen(false)}>
+                                  <Button variant="default" size="sm" className="w-full sm:w-auto">
+                                    {section.linkText}
+                                  </Button>
+                                </Link>
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>

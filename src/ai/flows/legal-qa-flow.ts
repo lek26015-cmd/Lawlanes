@@ -18,7 +18,7 @@ export async function generateLegalAdvice(question: string) {
         }
 
         const prompt = `
-      คุณคือผู้ช่วยทนายความอัจฉริยะ (AI Legal Advisor) ของ Lawlanes
+      คุณคือผู้ช่วยทนายความอัจฉริยะ (AI Legal Advisor) ของ Lawslane
       หน้าที่ของคุณคือการตอบคำถามทางกฎหมายโดยอ้างอิงจากข้อมูลในเอกสารที่แนบมานี้เท่านั้น
       
       --- ข้อมูลอ้างอิง (Context) ---

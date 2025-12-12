@@ -9,6 +9,8 @@ import { Label } from '@/components/ui/label';
 import { useFirebase } from '@/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { Loader2, CheckCircle2, AlertCircle } from 'lucide-react';
+import { TurnstileWidget } from '@/components/turnstile-widget';
+import { validateTurnstile } from '@/app/actions/turnstile';
 
 export function SmeContactForm() {
     const { firestore } = useFirebase();
@@ -22,6 +24,7 @@ export function SmeContactForm() {
         tel: '',
         message: ''
     });
+    const [turnstileToken, setTurnstileToken] = useState<string>('');
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { id, value } = e.target;
@@ -35,6 +38,15 @@ export function SmeContactForm() {
         setIsLoading(true);
         setError(null);
         try {
+            if (!turnstileToken) {
+                throw new Error('กรุณายืนยันตัวตนผ่าน Cloudflare Turnstile');
+            }
+
+            const validation = await validateTurnstile(turnstileToken);
+            if (!validation.success) {
+                throw new Error('การยืนยันตัวตนล้มเหลว กรุณาลองใหม่');
+            }
+
             await addDoc(collection(firestore, 'sme_inquiries'), {
                 ...formData,
                 status: 'new',
@@ -43,7 +55,7 @@ export function SmeContactForm() {
             setIsSuccess(true);
         } catch (error) {
             console.error("Error submitting form:", error);
-            setError('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
+            setError(error instanceof Error ? error.message : 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
         } finally {
             setIsLoading(false);
         }
@@ -58,7 +70,7 @@ export function SmeContactForm() {
                     </div>
                     <h3 className="text-2xl font-bold text-green-800">ส่งข้อมูลสำเร็จ!</h3>
                     <p className="text-green-700 max-w-xs mx-auto">
-                        ขอบคุณที่สนใจบริการของเรา ทีมงาน Lawlanes จะติดต่อกลับไปยังคุณ {formData.name} โดยเร็วที่สุดครับ
+                        ขอบคุณที่สนใจบริการของเรา ทีมงาน Lawslane จะติดต่อกลับไปยังคุณ {formData.name} โดยเร็วที่สุดครับ
                     </p>
                     <Button variant="outline" onClick={() => setIsSuccess(false)} className="mt-4">
                         ส่งข้อความเพิ่ม
@@ -134,6 +146,7 @@ export function SmeContactForm() {
                             onChange={handleChange}
                         />
                     </div>
+                    <TurnstileWidget onVerify={setTurnstileToken} />
                     <Button type="submit" className="w-full text-lg h-12" disabled={isLoading}>
                         {isLoading ? (
                             <>

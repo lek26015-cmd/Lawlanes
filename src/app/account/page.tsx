@@ -1,5 +1,7 @@
 'use client';
 
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
+
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -9,7 +11,9 @@ import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, User, Lock, Bell, ShieldAlert, Loader2 } from 'lucide-react';
+import { ArrowLeft, User, Lock, Bell, ShieldAlert, Loader2, X } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { THAI_PROVINCES } from '@/lib/thai-provinces';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,11 +27,51 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useFirebase, useUser } from '@/firebase';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { updatePassword, updateProfile } from 'firebase/auth';
+import { uploadToR2 } from '../actions/upload-r2';
 import { useToast } from '@/hooks/use-toast';
 import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '@/lib/constants';
+import { formatPhoneNumber, formatBankAccount } from '@/lib/utils';
+import Image from 'next/image';
 
+import bblLogo from '@/pic/logo-bank/กรุงเทพ.png';
+import kbankLogo from '@/pic/logo-bank/กสิกร.png';
+import ktbLogo from '@/pic/logo-bank/กรุงไทย.png';
+import scbLogo from '@/pic/logo-bank/ไทยพาณิช.png';
+import bayLogo from '@/pic/logo-bank/กรุงศรี.png';
+import ttbLogo from '@/pic/logo-bank/ttb.png';
+import gsbLogo from '@/pic/logo-bank/ออมสิน.png';
+import baacLogo from '@/pic/logo-bank/ธนาคาร ธกส.png';
+import cimbLogo from '@/pic/logo-bank/Cimb.png';
+import uobLogo from '@/pic/logo-bank/UOB.png';
+import tiscoLogo from '@/pic/logo-bank/ทิสโก้.png';
+import ibankLogo from '@/pic/logo-bank/ธนาคารอิสลาม.png';
+import ghbLogo from '@/pic/logo-bank/ธอส.png';
+import kkpLogo from '@/pic/logo-bank/เกียรตินาคิน.png';
+import lhLogo from '@/pic/logo-bank/แลนด์แลนด์เฮ้าท์ .png';
+import icbcLogo from '@/pic/logo-bank/ICBC.png';
+import bocLogo from '@/pic/logo-bank/ธนาคารแห่งประเทศจีน.png';
+
+
+const banks = [
+  { name: "ธนาคารกรุงเทพ", logo: bblLogo, color: "#1e4598" },
+  { name: "ธนาคารกสิกรไทย", logo: kbankLogo, color: "#138f2d" },
+  { name: "ธนาคารกรุงไทย", logo: ktbLogo, color: "#1ba5e1" },
+  { name: "ธนาคารไทยพาณิชย์", logo: scbLogo, color: "#4e2e7f" },
+  { name: "ธนาคารกรุงศรีอยุธยา", logo: bayLogo, color: "#fec43b" },
+  { name: "ธนาคารทหารไทยธนชาต", logo: ttbLogo, color: "#102a4d" },
+  { name: "ธนาคารออมสิน", logo: gsbLogo, color: "#eb198d" },
+  { name: "ธนาคารเพื่อการเกษตรและสหกรณ์การเกษตร", logo: baacLogo, color: "#4b9b1d" },
+  { name: "ธนาคารซีไอเอ็มบี ไทย", logo: cimbLogo, color: "#7e2f36" },
+  { name: "ธนาคารยูโอบี", logo: uobLogo, color: "#0b3979" },
+  { name: "ธนาคารทิสโก้", logo: tiscoLogo, color: "#1a4d8d" },
+  { name: "ธนาคารอิสลามแห่งประเทศไทย", logo: ibankLogo, color: "#164134" },
+  { name: "ธนาคารอาคารสงเคราะห์", logo: ghbLogo, color: "#f58523" },
+  { name: "ธนาคารเกียรตินาคินภัทร", logo: kkpLogo, color: "#6e5a9c" },
+  { name: "ธนาคารแลนด์ แอนด์ เฮ้าส์", logo: lhLogo, color: "#6d6e71" },
+  { name: "ธนาคารไอซีบีซี (ไทย)", logo: icbcLogo, color: "#c4161c" },
+  { name: "ธนาคารแห่งประเทศจีน (ไทย)", logo: bocLogo, color: "#b40026" },
+];
 
 export default function AccountPage() {
   const { firestore, storage, auth } = useFirebase();
@@ -57,6 +101,7 @@ export default function AccountPage() {
     licenseNumber: '',
     address: '',
     bankName: '',
+    bankAccountName: '',
     bankAccountNumber: '',
     serviceProvinces: '',
     specialty: '',
@@ -103,6 +148,7 @@ export default function AccountPage() {
             licenseNumber: lData.licenseNumber || '',
             address: lData.address || '',
             bankName: lData.bankName || '',
+            bankAccountName: lData.bankAccountName || '',
             bankAccountNumber: lData.bankAccountNumber || '',
             serviceProvinces: Array.isArray(lData.serviceProvinces) ? lData.serviceProvinces.join(', ') : lData.serviceProvinces || '',
             specialty: Array.isArray(lData.specialty) ? lData.specialty.join(', ') : lData.specialty || '',
@@ -156,29 +202,21 @@ export default function AccountPage() {
 
       // 1. Upload Image if changed
       if (imageFile) {
-        if (storage) {
-          try {
-            const storageRef = ref(storage, `profile-images/${user.uid}/${Date.now()}_${imageFile.name}`);
-            const snapshot = await uploadBytes(storageRef, imageFile);
-            newPhotoURL = await getDownloadURL(snapshot.ref);
-          } catch (uploadError) {
-            console.error("Error uploading image:", uploadError);
-            toast({
-              variant: "destructive",
-              title: "อัปโหลดรูปภาพไม่สำเร็จ",
-              description: "โปรดตรวจสอบการเชื่อมต่ออินเทอร์เน็ตหรือลองใหม่อีกครั้ง"
-            });
-            // Don't stop saving profile, just keep old photo or skip update
-            newPhotoURL = profileData.photoURL.startsWith('blob:') ? user.photoURL || '' : profileData.photoURL;
-          }
-        } else {
-          console.warn("Firebase Storage is not initialized.");
+        try {
+          const formData = new FormData();
+          formData.append('file', imageFile);
+
+          // Upload to R2 via Server Action
+          newPhotoURL = await uploadToR2(formData, 'profile-images');
+
+        } catch (uploadError) {
+          console.error("Error uploading image:", uploadError);
           toast({
             variant: "destructive",
-            title: "ระบบจัดเก็บไฟล์ไม่พร้อมใช้งาน",
-            description: "ไม่สามารถอัปโหลดรูปภาพได้ในขณะนี้"
+            title: "อัปโหลดรูปภาพไม่สำเร็จ",
+            description: "โปรดตรวจสอบการเชื่อมต่ออินเทอร์เน็ตหรือลองใหม่อีกครั้ง"
           });
-          // Revert to original photoURL if it was a blob
+          // Don't stop saving profile, just keep old photo or skip update
           newPhotoURL = profileData.photoURL.startsWith('blob:') ? user.photoURL || '' : profileData.photoURL;
         }
       }
@@ -231,6 +269,7 @@ export default function AccountPage() {
           licenseNumber: lawyerData.licenseNumber,
           address: lawyerData.address,
           bankName: lawyerData.bankName,
+          bankAccountName: lawyerData.bankAccountName,
           bankAccountNumber: lawyerData.bankAccountNumber,
           serviceProvinces: lawyerData.serviceProvinces.split(',').map(s => s.trim()).filter(s => s),
           specialty: lawyerData.specialty.split(',').map(s => s.trim()).filter(s => s),
@@ -396,8 +435,9 @@ export default function AccountPage() {
                       <Input
                         id="phone"
                         value={lawyerData.phone}
-                        onChange={(e) => setLawyerData({ ...lawyerData, phone: e.target.value })}
+                        onChange={(e) => setLawyerData({ ...lawyerData, phone: formatPhoneNumber(e.target.value) })}
                         disabled={!isEditingProfile || isSaving}
+                        maxLength={12}
                       />
                     </div>
                     <div className="space-y-2">
@@ -428,14 +468,59 @@ export default function AccountPage() {
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="provinces">จังหวัดที่ให้บริการ (คั่นด้วยจุลภาค)</Label>
-                      <Input
-                        id="provinces"
-                        value={lawyerData.serviceProvinces}
-                        onChange={(e) => setLawyerData({ ...lawyerData, serviceProvinces: e.target.value })}
-                        disabled={!isEditingProfile || isSaving}
-                        placeholder="กรุงเทพฯ, นนทบุรี"
-                      />
+                      <Label htmlFor="provinces">จังหวัดที่ให้บริการ (เลือกได้มากกว่า 1 จังหวัด)</Label>
+                      <div className="space-y-3">
+                        <Select
+                          onValueChange={(value) => {
+                            const currentProvinces = lawyerData.serviceProvinces ? lawyerData.serviceProvinces.split(',').map(s => s.trim()).filter(s => s) : [];
+                            if (!currentProvinces.includes(value)) {
+                              const newProvinces = [...currentProvinces, value];
+                              setLawyerData({ ...lawyerData, serviceProvinces: newProvinces.join(',') });
+                            }
+                          }}
+                          disabled={!isEditingProfile || isSaving}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="เลือกจังหวัดที่ให้บริการ" />
+                          </SelectTrigger>
+                          <SelectContent className="max-h-[300px]">
+                            {THAI_PROVINCES.map((region) => (
+                              <SelectGroup key={region.region}>
+                                <SelectLabel>{region.region}</SelectLabel>
+                                {region.provinces.map((province) => (
+                                  <SelectItem key={province} value={province}>
+                                    {province}
+                                  </SelectItem>
+                                ))}
+                              </SelectGroup>
+                            ))}
+                          </SelectContent>
+                        </Select>
+
+                        <div className="flex flex-wrap gap-2">
+                          {lawyerData.serviceProvinces ? lawyerData.serviceProvinces.split(',').map(s => s.trim()).filter(s => s).map((province) => (
+                            <Badge key={province} variant="secondary" className="flex items-center gap-1">
+                              {province}
+                              {isEditingProfile && !isSaving && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const currentProvinces = lawyerData.serviceProvinces.split(',').map(s => s.trim()).filter(s => s);
+                                    const newProvinces = currentProvinces.filter(p => p !== province);
+                                    setLawyerData({ ...lawyerData, serviceProvinces: newProvinces.join(',') });
+                                  }}
+                                  className="hover:bg-muted rounded-full p-0.5"
+                                >
+                                  <X className="h-3 w-3" />
+                                  <span className="sr-only">ลบ {province}</span>
+                                </button>
+                              )}
+                            </Badge>
+                          )) : (
+                            <span className="text-sm text-muted-foreground">ยังไม่ได้เลือกจังหวัด</span>
+                          )}
+                        </div>
+                      </div>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="specialty">ความเชี่ยวชาญ (คั่นด้วยจุลภาค)</Label>
@@ -454,22 +539,56 @@ export default function AccountPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="bankName">ธนาคาร</Label>
-                      <Input
-                        id="bankName"
+                      <Label htmlFor="bankName">ธนาคาร</Label>
+                      <Select
                         value={lawyerData.bankName}
-                        onChange={(e) => setLawyerData({ ...lawyerData, bankName: e.target.value })}
+                        onValueChange={(value) => setLawyerData({ ...lawyerData, bankName: value })}
                         disabled={!isEditingProfile || isSaving}
-                        placeholder="เช่น กสิกรไทย"
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="เลือกธนาคาร" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {banks.map(bank => (
+                            <SelectItem key={bank.name} value={bank.name}>
+                              <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 relative rounded-full overflow-hidden border bg-white flex items-center justify-center">
+                                  <Image
+                                    src={bank.logo}
+                                    alt={bank.name}
+                                    className="object-contain p-0.5"
+                                    fill
+                                  />
+                                </div>
+                                <span>{bank.name}</span>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="bankAccountName">ชื่อบัญชี</Label>
+                      <Input
+                        id="bankAccountName"
+                        value={lawyerData.bankAccountName}
+                        onChange={(e) => setLawyerData({ ...lawyerData, bankAccountName: e.target.value })}
+                        disabled={!isEditingProfile || isSaving}
+                        placeholder="ต้องตรงกับชื่อผู้สมัคร"
                       />
+                      {lawyerData.bankAccountName && lawyerData.bankAccountName !== profileData.name && (
+                        <p className="text-xs text-red-500">ชื่อบัญชีต้องตรงกับชื่อ-นามสกุลของคุณ</p>
+                      )}
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="bankAccount">เลขที่บัญชี</Label>
                       <Input
                         id="bankAccount"
                         value={lawyerData.bankAccountNumber}
-                        onChange={(e) => setLawyerData({ ...lawyerData, bankAccountNumber: e.target.value })}
+                        onChange={(e) => setLawyerData({ ...lawyerData, bankAccountNumber: formatBankAccount(e.target.value) })}
                         disabled={!isEditingProfile || isSaving}
                         placeholder="xxx-x-xxxxx-x"
+                        maxLength={14}
                       />
                     </div>
                   </div>

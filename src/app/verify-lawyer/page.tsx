@@ -16,6 +16,7 @@ import Link from 'next/link';
 import { useFirebase } from '@/firebase';
 import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '@/lib/constants';
 import { useToast } from '@/hooks/use-toast';
+import { collection, query, where, getDocs } from 'firebase/firestore';
 
 function VerifyLawyerContent() {
   const searchParams = useSearchParams();
@@ -61,28 +62,40 @@ function VerifyLawyerContent() {
     setVerificationResult(null);
     setVerifiedLawyer(null);
 
-    // Simulate API call and verification logic
-    setTimeout(async () => {
-      try {
-        // Simulate logic: if input is '12345/2550', we find a specific lawyer.
-        // In a real scenario, this would be an API call to a database.
-        if (targetLicenseNumber === '12345/2550' || uploadedFile) {
-          const lawyer = await getLawyerById(firestore, '1'); // Get a mock lawyer
-          if (lawyer) {
-            setVerifiedLawyer(lawyer);
-            setVerificationResult('found');
-          } else {
-            setVerificationResult('not_found');
-          }
+    try {
+      if (targetLicenseNumber) {
+        // Query Firestore for lawyer with this license number
+        const lawyersRef = collection(firestore, 'lawyerProfiles');
+        const q = query(lawyersRef, where('licenseNumber', '==', targetLicenseNumber), where('status', '==', 'approved'));
+        const querySnapshot = await getDocs(q);
+
+        if (!querySnapshot.empty) {
+          const lawyerDoc = querySnapshot.docs[0];
+          setVerifiedLawyer({ id: lawyerDoc.id, ...lawyerDoc.data() } as LawyerProfile);
+          setVerificationResult('found');
         } else {
           setVerificationResult('not_found');
         }
-      } catch (error) {
-        setVerificationResult('error');
-      } finally {
-        setIsVerifying(false);
+      } else if (uploadedFile) {
+        // For file upload, we can't easily "verify" against a DB without OCR or manual review.
+        // For now, we'll show a message that it's sent for manual verification, or just keep it as a "search by ID" if we had OCR.
+        // Since the user asked for "Real Data", and we don't have OCR, we should probably inform them.
+        // However, to keep the flow working as a "Request", we might want to just say "Not Found" or handle it differently.
+        // Let's assume for this feature, we only support Real Verification via License Number for now.
+        // Or we can simulate a "Pending Manual Review" state.
+        // Let's stick to License Number for real-time verification.
+        toast({
+          title: "ระบบตรวจสอบรูปภาพยังไม่เปิดให้บริการ",
+          description: "กรุณาระบุเลขใบอนุญาตว่าความเพื่อตรวจสอบทันที",
+        });
+        setVerificationResult(null);
       }
-    }, 1500);
+    } catch (error) {
+      console.error("Verification error:", error);
+      setVerificationResult('error');
+    } finally {
+      setIsVerifying(false);
+    }
   };
 
   const ResultCard = () => {
@@ -96,7 +109,7 @@ function VerifyLawyerContent() {
             <CardHeader className="text-center">
               <ShieldCheck className="w-12 h-12 mx-auto text-green-600" />
               <CardTitle className="text-green-800">ตรวจสอบพบข้อมูล</CardTitle>
-              <CardDescription>ทนายความนี้ได้รับการยืนยันในระบบ Lawlanes</CardDescription>
+              <CardDescription>ทนายความนี้ได้รับการยืนยันในระบบ Lawslane</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col items-center text-center">
               <Image
@@ -107,7 +120,7 @@ function VerifyLawyerContent() {
                 className="rounded-full object-cover border-4 border-white shadow-lg"
               />
               <p className="font-bold text-xl mt-4">{verifiedLawyer.name}</p>
-              <p className="text-muted-foreground">เลขที่ใบอนุญาต: 12345/2550 (ข้อมูลจำลอง)</p>
+              <p className="text-muted-foreground">เลขที่ใบอนุญาต: {verifiedLawyer.licenseNumber}</p>
               <p className="text-primary font-semibold mt-1">{verifiedLawyer.specialty.join(', ')}</p>
               <Button asChild className="mt-4">
                 <Link href={`/lawyers/${verifiedLawyer.id}`}>
@@ -187,7 +200,7 @@ function VerifyLawyerContent() {
               </div>
 
               <div className="space-y-2">
-                <Label>อัปโหลดรูปภาพบัตรทนายความ (จำลอง)</Label>
+                <Label>อัปโหลดรูปภาพบัตรทนายความ</Label>
                 <div
                   className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100"
                   onClick={() => document.getElementById('file-upload')?.click()}

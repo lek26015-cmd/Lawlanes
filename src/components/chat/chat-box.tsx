@@ -11,6 +11,7 @@ import {
   onSnapshot,
   orderBy,
   doc,
+  getDoc,
   setDoc,
   updateDoc,
   Firestore,
@@ -62,11 +63,9 @@ export function ChatBox({
     const chatRef = doc(firestore, 'chats', chatId);
 
     const ensureChatExists = async () => {
-      const chatDocQuery = query(collection(firestore, 'chats'), where('__name__', '==', chatId));
-
       try {
-        const chatDoc = await getDocs(chatDocQuery);
-        if (chatDoc.empty) {
+        const chatSnap = await getDoc(chatRef);
+        if (!chatSnap.exists()) {
           const newChatData = {
             participants: [currentUser.uid, otherUser.userId],
             createdAt: serverTimestamp(),
@@ -91,7 +90,7 @@ export function ChatBox({
         console.error("Error ensuring chat exists:", error);
         const permissionError = new FirestorePermissionError({
           path: 'chats',
-          operation: 'list',
+          operation: 'get',
         });
         errorEmitter.emit('permission-error', permissionError);
         setIsLoading(false); // Stop loading on error
@@ -188,6 +187,30 @@ export function ChatBox({
         });
         errorEmitter.emit('permission-error', permissionError);
       });
+
+    // Create Notification for the other user
+    const recipientId = otherUser.userId;
+    const senderName = currentUser.displayName || 'คู่สนทนา';
+
+    let notificationLink = '';
+    if (isLawyerView) {
+      // Lawyer sending to Client
+      notificationLink = `/chat/${chatId}?lawyerId=${currentUser.uid}`;
+    } else {
+      // Client sending to Lawyer
+      notificationLink = `/chat/${chatId}?lawyerId=${otherUser.userId}&clientId=${currentUser.uid}&view=lawyer`;
+    }
+
+    addDoc(collection(firestore, 'notifications'), {
+      type: 'chat_message',
+      title: `ข้อความใหม่จาก ${senderName}`,
+      message: input.length > 50 ? input.substring(0, 50) + '...' : input,
+      createdAt: serverTimestamp(),
+      read: false,
+      recipient: recipientId,
+      link: notificationLink,
+      relatedId: chatId
+    }).catch(err => console.error("Error creating notification:", err));
   };
 
   // Mark as read by lawyer

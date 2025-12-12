@@ -18,11 +18,18 @@ import { ArrowLeft, HelpCircle, Ticket } from "lucide-react"
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import Link from 'next/link';
+import { useToast } from '@/hooks/use-toast';
+import { useFirebase, useUser } from '@/firebase';
+import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 
 function HelpPageContent() {
   const searchParams = useSearchParams();
   const ticketIdParam = searchParams.get('ticketId');
   const [ticketId, setTicketId] = useState('');
+  const { toast } = useToast();
+  const { firestore } = useFirebase();
+  const { user } = useUser();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     if (ticketIdParam) {
@@ -36,11 +43,11 @@ function HelpPageContent() {
       answer: "ผู้ช่วย AI ของเราได้รับการฝึกฝนให้วิเคราะห์ปัญหาทางกฎหมายเบื้องต้นจากข้อมูลที่คุณให้มา เพื่อประเมินสถานการณ์และแนะนำประเภทของทนายความที่มีความเชี่ยวชาญตรงกับปัญหาของคุณ อย่างไรก็ตาม คำแนะนำจาก AI เป็นเพียงการประเมินเบื้องต้นและไม่สามารถใช้แทนคำปรึกษาจากทนายความมืออาชีพได้"
     },
     {
-      question: "ทนายความบนแพลตฟอร์ม Lawlanes ได้รับการตรวจสอบหรือไม่?",
+      question: "ทนายความบนแพลตฟอร์ม Lawslane ได้รับการตรวจสอบหรือไม่?",
       answer: "ใช่ครับ ทนายความทุกคนที่เข้าร่วมกับเราจะต้องผ่านกระบวนการตรวจสอบคุณสมบัติอย่างเข้มงวด ทั้งใบอนุญาตว่าความ ประวัติการทำงาน และความเชี่ยวชาญเฉพาะทาง เพื่อให้คุณมั่นใจได้ว่าจะได้รับบริการจากผู้เชี่ยวชาญตัวจริง"
     },
     {
-      question: "ขั้นตอนการจ้างทนายความผ่าน Lawlanes เป็นอย่างไร?",
+      question: "ขั้นตอนการจ้างทนายความผ่าน Lawslane เป็นอย่างไร?",
       answer: "คุณสามารถเริ่มต้นได้จากการใช้ AI วิเคราะห์ปัญหา, ค้นหาทนายความจากรายชื่อ, หรือนัดหมายเพื่อพูดคุยโดยตรง เมื่อคุณเลือกทนายที่ต้องการได้แล้ว คุณสามารถเปิดเคสและชำระเงินผ่านระบบ Escrow ของเราเพื่อเริ่มการทำงานได้ทันที"
     },
     {
@@ -49,14 +56,14 @@ function HelpPageContent() {
     },
     {
       question: "ระบบชำระเงินแบบ Escrow คืออะไรและทำงานอย่างไร?",
-      answer: "Escrow คือระบบที่ Lawlanes ทำหน้าที่เป็นคนกลางในการถือเงินค่าบริการไว้ เงินของคุณจะยังคงปลอดภัยกับเรา และจะถูกโอนให้กับทนายความก็ต่อเมื่อคุณได้กดยืนยันว่างานเสร็จสิ้นและพึงพอใจกับบริการแล้วเท่านั้น วิธีนี้ช่วยสร้างความมั่นใจให้กับทั้งสองฝ่าย"
+      answer: "Escrow คือระบบที่ Lawslane ทำหน้าที่เป็นคนกลางในการถือเงินค่าบริการไว้ เงินของคุณจะยังคงปลอดภัยกับเรา และจะถูกโอนให้กับทนายความก็ต่อเมื่อคุณได้กดยืนยันว่างานเสร็จสิ้นและพึงพอใจกับบริการแล้วเท่านั้น วิธีนี้ช่วยสร้างความมั่นใจให้กับทั้งสองฝ่าย"
     },
     {
       question: "หากมีปัญหากับทนายความควรทำอย่างไร?",
       answer: "หากคุณพบปัญหาหรือมีความไม่พอใจในการบริการ คุณสามารถใช้ปุ่ม 'รายงานปัญหา' ในหน้าแชทของเคสนั้นๆ เพื่อติดต่อทีมงานสนับสนุนลูกค้าของเราได้ทันที เราจะรีบเข้ามาตรวจสอบและให้ความช่วยเหลือโดยเร็วที่สุด"
     }
   ];
-  
+
   const problemTypes = [
     "ปัญหาการสื่อสารกับทนาย",
     "ปัญหาการชำระเงิน/Escrow",
@@ -70,10 +77,10 @@ function HelpPageContent() {
     <div className="bg-white">
       <div className="container mx-auto px-4 md:px-6 py-12 md:py-20">
         <div className="max-w-4xl mx-auto space-y-12">
-            <Link href="/" className="text-sm text-muted-foreground hover:text-foreground mb-4 inline-flex items-center gap-2">
-                <ArrowLeft className="w-4 h-4" />
-                กลับไปหน้าแรก
-            </Link>
+          <Link href="/" className="text-sm text-muted-foreground hover:text-foreground mb-4 inline-flex items-center gap-2">
+            <ArrowLeft className="w-4 h-4" />
+            กลับไปหน้าแรก
+          </Link>
           <div className="text-center">
             <HelpCircle className="mx-auto h-12 w-12 text-foreground mb-4" />
             <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl font-headline text-foreground">
@@ -93,43 +100,104 @@ function HelpPageContent() {
               <CardDescription>หากคุณพบปัญหากับเคสใดๆ โปรดกรอกข้อมูลด้านล่างเพื่อส่งเรื่องให้เจ้าหน้าที่ตรวจสอบ</CardDescription>
             </CardHeader>
             <CardContent>
-              <form className="space-y-4">
-                 <div className="space-y-2">
-                    <Label htmlFor="ticket-id">หมายเลขเคส / Ticket ID</Label>
-                    <Input 
-                      id="ticket-id" 
-                      placeholder="เช่น case-001" 
-                      value={ticketId} 
-                      onChange={(e) => setTicketId(e.target.value)} 
-                    />
-                  </div>
-                 <div className="space-y-2">
-                    <Label htmlFor="problem-type">ประเภทของปัญหา</Label>
-                     <Select>
-                        <SelectTrigger id="problem-type">
-                            <SelectValue placeholder="เลือกประเภทของปัญหา" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {problemTypes.map((type) => (
-                                <SelectItem key={type} value={type}>{type}</SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                  </div>
-                 <div className="space-y-2">
-                    <Label htmlFor="problem-description">รายละเอียดปัญหา</Label>
-                    <Textarea id="problem-description" placeholder="กรุณาอธิบายปัญหาที่ท่านพบโดยละเอียด..." rows={4} />
-                  </div>
-                <Button className="w-full sm:w-auto">ส่งเรื่อง</Button>
+              <form className="space-y-4" onSubmit={async (e) => {
+                e.preventDefault();
+                if (!firestore || !user) {
+                  toast({
+                    title: "กรุณาเข้าสู่ระบบ",
+                    description: "คุณต้องเข้าสู่ระบบก่อนแจ้งปัญหา",
+                    variant: "destructive"
+                  });
+                  return;
+                }
+
+                setIsSubmitting(true);
+                const formData = new FormData(e.target as HTMLFormElement);
+                const problemType = formData.get('problemType') as string;
+                const description = formData.get('description') as string;
+
+                try {
+                  const docRef = await addDoc(collection(firestore, 'tickets'), {
+                    userId: user.uid,
+                    caseId: ticketId, // Using ticketId input as caseId
+                    problemType: problemType,
+                    description: description,
+                    status: 'pending',
+                    reportedAt: serverTimestamp(),
+                    clientName: user.displayName || 'Anonymous', // Fallback
+                    email: user.email
+                  });
+
+                  // Create Admin Notification
+                  await addDoc(collection(firestore, 'notifications'), {
+                    type: 'ticket',
+                    title: 'Ticket ใหม่',
+                    message: `มี Ticket ใหม่จาก ${user.displayName || 'ผู้ใช้งาน'} หัวข้อ: ${problemType}`,
+                    createdAt: serverTimestamp(),
+                    read: false,
+                    recipient: 'admin',
+                    link: `/admin/tickets/${docRef.id}`,
+                    relatedId: docRef.id
+                  });
+
+                  toast({
+                    title: "ส่งเรื่องเรียบร้อยแล้ว",
+                    description: "เราได้รับข้อมูลปัญหาของคุณแล้ว และจะรีบดำเนินการตรวจสอบโดยเร็วที่สุด",
+                    className: "bg-green-600 text-white border-none",
+                  });
+
+                  setTicketId('');
+                  (e.target as HTMLFormElement).reset();
+                } catch (error) {
+                  console.error("Error submitting ticket:", error);
+                  toast({
+                    title: "เกิดข้อผิดพลาด",
+                    description: "ไม่สามารถส่งเรื่องได้ กรุณาลองใหม่อีกครั้ง",
+                    variant: "destructive"
+                  });
+                } finally {
+                  setIsSubmitting(false);
+                }
+              }}>
+                <div className="space-y-2">
+                  <Label htmlFor="ticket-id">หมายเลขเคส / Ticket ID</Label>
+                  <Input
+                    id="ticket-id"
+                    name="ticketId"
+                    placeholder="เช่น case-001"
+                    value={ticketId}
+                    onChange={(e) => setTicketId(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="problem-type">ประเภทของปัญหา</Label>
+                  <Select name="problemType">
+                    <SelectTrigger id="problem-type">
+                      <SelectValue placeholder="เลือกประเภทของปัญหา" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {problemTypes.map((type) => (
+                        <SelectItem key={type} value={type}>{type}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="problem-description">รายละเอียดปัญหา</Label>
+                  <Textarea id="problem-description" name="description" placeholder="กรุณาอธิบายปัญหาที่ท่านพบโดยละเอียด..." rows={4} />
+                </div>
+                <Button className="w-full sm:w-auto" disabled={isSubmitting}>
+                  {isSubmitting ? 'กำลังส่ง...' : 'ส่งเรื่อง'}
+                </Button>
               </form>
             </CardContent>
           </Card>
 
           <div>
-             <h2 className="text-3xl font-bold text-center mb-8 font-headline">คำถามที่พบบ่อย (FAQ)</h2>
+            <h2 className="text-3xl font-bold text-center mb-8 font-headline">คำถามที่พบบ่อย (FAQ)</h2>
             <Accordion type="single" collapsible className="w-full">
               {faqs.map((faq, index) => (
-                 <AccordionItem key={index} value={`item-${index + 1}`}>
+                <AccordionItem key={index} value={`item-${index + 1}`}>
                   <AccordionTrigger className="text-lg font-semibold text-left hover:no-underline">
                     {faq.question}
                   </AccordionTrigger>
@@ -147,9 +215,9 @@ function HelpPageContent() {
 }
 
 export default function HelpPage() {
-    return (
-        <React.Suspense fallback={<div>Loading...</div>}>
-            <HelpPageContent />
-        </React.Suspense>
-    )
+  return (
+    <React.Suspense fallback={<div>Loading...</div>}>
+      <HelpPageContent />
+    </React.Suspense>
+  )
 }

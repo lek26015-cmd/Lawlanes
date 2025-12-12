@@ -21,7 +21,7 @@ export default function AdminSettingsNotificationsPage() {
         <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
             <div className="mx-auto grid w-full max-w-4xl gap-2">
                 <h1 className="text-3xl font-semibold">ตั้งค่าระบบ</h1>
-                <p className="text-muted-foreground">จัดการการตั้งค่าทั่วไปของแพลตฟอร์ม Lawlanes</p>
+                <p className="text-muted-foreground">จัดการการตั้งค่าทั่วไปของแพลตฟอร์ม Lawslane</p>
             </div>
             <div className="mx-auto grid w-full max-w-4xl items-start gap-6 md:grid-cols-[180px_1fr] lg:grid-cols-[250px_1fr]">
                 <nav

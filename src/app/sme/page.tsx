@@ -39,7 +39,7 @@ export default function SMEPage() {
     const benefits = [
         "ลดความเสี่ยงทางกฎหมายในการทำธุรกิจ",
         "ประหยัดค่าใช้จ่ายกว่าการจ้างฝ่ายกฎหมายประจำ",
-        "เข้าถึงทีมทนายความผู้เชี่ยวชาญเฉพาะด้านจาก Lawlanes",
+        "เข้าถึงทีมทนายความผู้เชี่ยวชาญเฉพาะด้านจาก Lawslane",
         "จัดการเอกสารและสัญญาได้อย่างมืออาชีพ",
         "มีความลับทางการค้าปลอดภัยสูงสุด"
     ];
@@ -90,7 +90,7 @@ export default function SMEPage() {
                         <div className="text-center mb-12">
                             <h2 className="text-3xl md:text-4xl font-bold font-headline text-foreground">บริการทางกฎหมายเพื่อธุรกิจ</h2>
                             <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-                                Lawlanes ให้บริการที่ครอบคลุมทุกความต้องการทางกฎหมายของธุรกิจ SME
+                                Lawslane ให้บริการที่ครอบคลุมทุกความต้องการทางกฎหมายของธุรกิจ SME
                             </p>
                         </div>
                     </FadeIn>
@@ -134,7 +134,7 @@ export default function SMEPage() {
                         <div className="space-y-8">
                             <FadeIn direction="left">
                                 <h2 className="text-3xl md:text-4xl font-bold font-headline text-foreground">
-                                    ทำไมต้องใช้บริการ Lawlanes for Business?
+                                    ทำไมต้องใช้บริการ Lawslane for Business?
                                 </h2>
                             </FadeIn>
                             <div className="space-y-4">
@@ -158,7 +158,7 @@ export default function SMEPage() {
                     <div className="grid lg:grid-cols-2 gap-12">
                         <FadeIn direction="right">
                             <div>
-                                <h2 className="text-3xl font-bold font-headline mb-6">ติดต่อ Lawlanes สำหรับธุรกิจ</h2>
+                                <h2 className="text-3xl font-bold font-headline mb-6">ติดต่อ Lawslane สำหรับธุรกิจ</h2>
                                 <p className="text-lg text-muted-foreground mb-8">
                                     สนใจบริการที่ปรึกษากฎหมายสำหรับองค์กร กรอกข้อมูลเพื่อให้เจ้าหน้าที่ติดต่อกลับ หรือติดต่อเราผ่านช่องทางด้านล่าง
                                 </p>
@@ -178,7 +178,7 @@ export default function SMEPage() {
                                         </div>
                                         <div>
                                             <p className="font-semibold text-lg">อีเมล</p>
-                                            <p className="text-muted-foreground">business@lawlanes.com</p>
+                                            <p className="text-muted-foreground">business@lawslane.com</p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-4">
@@ -187,7 +187,7 @@ export default function SMEPage() {
                                         </div>
                                         <div>
                                             <p className="font-semibold text-lg">LINE Official</p>
-                                            <p className="text-muted-foreground">@lawlanes_biz</p>
+                                            <p className="text-muted-foreground">@lawslane_biz</p>
                                         </div>
                                     </div>
                                 </div>

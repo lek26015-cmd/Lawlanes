@@ -128,14 +128,14 @@
     },
     {
       "id": "lawyer-team-working",
-      "description": "Lawlanes Hero Cover",
-      "imageUrl": "/images/lawlanes-hero-cover.jpg",
+      "description": "Lawslane Hero Cover",
+      "imageUrl": "/images/lawslane-hero-cover.jpg",
       "imageHint": "lawyer team"
     },
     {
       "id": "hero-main",
-      "description": "Lawlanes Hero Main",
-      "imageUrl": "/images/lawlanes-hero.jpg",
+      "description": "Lawslane Hero Main",
+      "imageUrl": "/images/lawslane-hero.jpg",
       "imageHint": "lawyer hero"
     }
   ]

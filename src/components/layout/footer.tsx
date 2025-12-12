@@ -7,7 +7,7 @@ import { usePathname } from 'next/navigation';
 
 export default function Footer({ userRole }: { userRole: string | null }) {
   const pathname = usePathname();
-  const isAuthPage = pathname.endsWith('/login') || pathname.endsWith('/signup') || pathname.endsWith('/lawyer-signup') || pathname.endsWith('/lawyer-login');
+  const isAuthPage = pathname.endsWith('/login') || pathname.endsWith('/signup') || pathname.endsWith('/lawyer-login');
 
   let quickLinks = [
     { href: `/`, label: 'หน้าแรก' },
@@ -21,16 +21,16 @@ export default function Footer({ userRole }: { userRole: string | null }) {
   }
 
   let forLawyersLinks = [
-    { href: `/for-lawyers`, label: 'เข้าร่วมเป็นทนาย Lawlanes' },
+    { href: `/for-lawyers`, label: 'เข้าร่วมเป็นทนาย Lawslane' },
     { href: `/lawyer-login`, label: 'เข้าสู่ระบบทนาย' },
   ];
-  
+
   if (userRole === 'lawyer') {
     forLawyersLinks.push({ href: `/lawyer-dashboard`, label: 'Dashboard ทนาย' });
   }
-  
+
   if (userRole === 'admin') {
-     forLawyersLinks.push({ href: `/admin`, label: 'แดชบอร์ดผู้ดูแล' });
+    forLawyersLinks.push({ href: `/admin`, label: 'แดชบอร์ดผู้ดูแล' });
   }
 
 
@@ -39,7 +39,7 @@ export default function Footer({ userRole }: { userRole: string | null }) {
     { href: `/terms`, label: 'ข้อกำหนดการใช้งาน' },
     { href: `/help`, label: 'ศูนย์ช่วยเหลือ' },
   ];
-  
+
   if (isAuthPage) {
     return null; // Don't render footer on auth pages
   }
@@ -55,7 +55,7 @@ export default function Footer({ userRole }: { userRole: string | null }) {
               ตลาดกลางทนายความออนไลน์ เชื่อมต่อคุณกับผู้เชี่ยวชาญกฎหมาย
             </p>
           </div>
-          
+
           <div>
             <h3 className="font-semibold text-white mb-4">ลิงก์ด่วน</h3>
             <ul className="space-y-2">
@@ -68,7 +68,7 @@ export default function Footer({ userRole }: { userRole: string | null }) {
               ))}
             </ul>
           </div>
-          
+
           <div>
             <h3 className="font-semibold text-white mb-4">สำหรับทนายความ</h3>
             <ul className="space-y-2">
@@ -97,7 +97,7 @@ export default function Footer({ userRole }: { userRole: string | null }) {
         </div>
 
         <div className="border-t border-gray-800 mt-12 pt-6 text-center text-sm text-gray-500">
-          <p>&copy; {new Date().getFullYear()} Lawlanes. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} Lawslane. All rights reserved.</p>
         </div>
       </div>
     </footer>

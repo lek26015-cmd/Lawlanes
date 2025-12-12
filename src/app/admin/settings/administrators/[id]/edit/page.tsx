@@ -21,9 +21,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Separator } from '@/components/ui/separator';
 
 const mockAdmins = [
-    { id: 'admin-1', name: 'แอดมินหลัก', email: 'admin@lawlanes.com', role: 'Super Admin' },
-    { id: 'admin-2', name: 'สมศรี มีชัย', email: 'somsri.m@lawlanes.com', role: 'Content Manager' },
-    { id: 'admin-3', name: 'วิชัย รักดี', email: 'wichai.r@lawlanes.com', role: 'Support Lead' },
+  { id: 'admin-1', name: 'แอดมินหลัก', email: 'admin@lawslane.com', role: 'Super Admin' },
+  { id: 'admin-2', name: 'สมศรี มีชัย', email: 'somsri.m@lawslane.com', role: 'Content Manager' },
+  { id: 'admin-3', name: 'วิชัย รักดี', email: 'wichai.r@lawslane.com', role: 'Support Lead' },
 ];
 
 const permissionsConfig = [
@@ -52,12 +52,12 @@ export default function AdminEditAdministratorPage() {
   const { toast } = useToast();
 
   const [admin, setAdmin] = React.useState<(typeof mockAdmins[0]) | null>(null);
-  
+
   // Mock permissions state for the selected admin
   const [permissions, setPermissions] = React.useState<Record<string, string[]>>({
-      customers: ['view', 'edit'],
-      lawyers: ['view'],
-      tickets: ['view', 'reply']
+    customers: ['view', 'edit'],
+    lawyers: ['view'],
+    tickets: ['view', 'reply']
   });
 
   React.useEffect(() => {
@@ -68,12 +68,12 @@ export default function AdminEditAdministratorPage() {
 
   const handlePermissionChange = (menuId: string, action: string, checked: boolean) => {
     setPermissions(prev => {
-        const currentActions = prev[menuId] || [];
-        if (checked) {
-            return { ...prev, [menuId]: [...currentActions, action] };
-        } else {
-            return { ...prev, [menuId]: currentActions.filter(a => a !== action) };
-        }
+      const currentActions = prev[menuId] || [];
+      if (checked) {
+        return { ...prev, [menuId]: [...currentActions, action] };
+      } else {
+        return { ...prev, [menuId]: currentActions.filter(a => a !== action) };
+      }
     });
   }
 
@@ -86,9 +86,9 @@ export default function AdminEditAdministratorPage() {
     });
     router.push('/admin/settings/administrators');
   };
-  
+
   if (!admin) {
-      return <div>Loading...</div>
+    return <div>Loading...</div>
   }
 
   return (
@@ -116,68 +116,68 @@ export default function AdminEditAdministratorPage() {
           </div>
         </div>
         <div className="grid gap-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle>ข้อมูลผู้ใช้</CardTitle>
-                </CardHeader>
-                <CardContent>
-                     <div className="grid grid-cols-2 gap-4">
-                        <div className="grid gap-3">
-                            <Label htmlFor="name">ชื่อ-นามสกุล</Label>
-                            <Input id="name" type="text" className="w-full" defaultValue={admin.name}/>
-                        </div>
-                        <div className="grid gap-3">
-                            <Label htmlFor="email">อีเมล</Label>
-                            <Input id="email" type="email" className="w-full" defaultValue={admin.email} disabled/>
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>กำหนดสิทธิ์การเข้าถึง</CardTitle>
-                <CardDescription>
-                  เลือกเมนูและกำหนดการกระทำที่ <span className="font-semibold">{admin.name}</span> สามารถทำได้
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {permissionsConfig.map((menu, index) => (
-                    <React.Fragment key={menu.id}>
-                        <div className="grid grid-cols-[1fr_2fr] gap-4 items-start">
-                            <Label className="font-semibold text-base pt-3">{menu.label}</Label>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-4 border rounded-lg bg-secondary/50">
-                                {menu.actions.map(action => (
-                                    <div key={action} className="flex items-center space-x-2">
-                                        <Checkbox 
-                                            id={`${menu.id}-${action}`}
-                                            checked={permissions[menu.id]?.includes(action)}
-                                            onCheckedChange={(checked) => handlePermissionChange(menu.id, action, !!checked)}
-                                        />
-                                        <Label htmlFor={`${menu.id}-${action}`} className="font-normal text-sm">
-                                            {actionLabels[action]}
-                                        </Label>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                        {index < permissionsConfig.length - 1 && <Separator />}
-                    </React.Fragment>
-                  ))}
+          <Card>
+            <CardHeader>
+              <CardTitle>ข้อมูลผู้ใช้</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid gap-3">
+                  <Label htmlFor="name">ชื่อ-นามสกุล</Label>
+                  <Input id="name" type="text" className="w-full" defaultValue={admin.name} />
                 </div>
-              </CardContent>
-            </Card>
+                <div className="grid gap-3">
+                  <Label htmlFor="email">อีเมล</Label>
+                  <Input id="email" type="email" className="w-full" defaultValue={admin.email} disabled />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>กำหนดสิทธิ์การเข้าถึง</CardTitle>
+              <CardDescription>
+                เลือกเมนูและกำหนดการกระทำที่ <span className="font-semibold">{admin.name}</span> สามารถทำได้
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {permissionsConfig.map((menu, index) => (
+                  <React.Fragment key={menu.id}>
+                    <div className="grid grid-cols-[1fr_2fr] gap-4 items-start">
+                      <Label className="font-semibold text-base pt-3">{menu.label}</Label>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-4 border rounded-lg bg-secondary/50">
+                        {menu.actions.map(action => (
+                          <div key={action} className="flex items-center space-x-2">
+                            <Checkbox
+                              id={`${menu.id}-${action}`}
+                              checked={permissions[menu.id]?.includes(action)}
+                              onCheckedChange={(checked) => handlePermissionChange(menu.id, action, !!checked)}
+                            />
+                            <Label htmlFor={`${menu.id}-${action}`} className="font-normal text-sm">
+                              {actionLabels[action]}
+                            </Label>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                    {index < permissionsConfig.length - 1 && <Separator />}
+                  </React.Fragment>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
         </div>
         <div className="flex items-center justify-end gap-2 md:hidden">
-            <Link href="/admin/settings/administrators">
-              <Button variant="outline" size="sm">
-                ยกเลิก
-              </Button>
-            </Link>
-            <Button size="sm" onClick={handleSaveChanges}>
-              บันทึกการเปลี่ยนแปลง
+          <Link href="/admin/settings/administrators">
+            <Button variant="outline" size="sm">
+              ยกเลิก
             </Button>
+          </Link>
+          <Button size="sm" onClick={handleSaveChanges}>
+            บันทึกการเปลี่ยนแปลง
+          </Button>
         </div>
       </div>
     </main>

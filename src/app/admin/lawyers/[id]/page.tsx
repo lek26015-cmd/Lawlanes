@@ -70,8 +70,7 @@ export default function AdminLawyerDetailPage() {
   const { toast } = useToast()
   const { firestore } = useFirebase();
 
-  const [lawyer, setLawyer] = React.useState<LawyerProfile | null>(null);
-  const [currentDate, setCurrentDate] = React.useState<string | null>(null);
+  const [cases, setCases] = React.useState<any[]>([]);
 
   React.useEffect(() => {
     setCurrentDate(new Date().toISOString());
@@ -80,6 +79,14 @@ export default function AdminLawyerDetailPage() {
     getLawyerById(firestore, id as string).then(foundLawyer => {
       setLawyer(foundLawyer || null);
     });
+
+    // Fetch real cases
+    import('@/lib/data').then(({ getLawyerDashboardData }) => {
+      getLawyerDashboardData(firestore, id as string).then(data => {
+        setCases([...data.activeCases, ...data.completedCases]);
+      });
+    });
+
   }, [id, firestore]);
 
   const handleStatusChange = (newStatus: LawyerProfile['status']) => {
@@ -108,16 +115,11 @@ export default function AdminLawyerDetailPage() {
     rejected: <Badge variant="destructive" className="bg-red-100/50 text-red-800 border-red-200/50 gap-1"><ShieldX className="w-3 h-3" />ถูกปฏิเสธ</Badge>,
   }
 
-  const mockCases = [
-    { id: 'case-001', title: 'ตรวจสอบสัญญาเช่า', client: 'สมหญิง ใจดี', fee: 3500, status: 'เสร็จสิ้น' },
-    { id: 'case-002', title: 'จดทะเบียนบริษัท', client: 'บริษัท เติบโต จำกัด', fee: 5000, status: 'เสร็จสิ้น' },
-  ]
-
-  const mockDocuments = [
-    { name: 'ใบอนุญาตว่าความ.pdf', url: '#' },
-    { name: 'สำเนาบัตรประชาชน.pdf', url: '#' },
-    { name: 'transcript.pdf', url: '#' },
-  ]
+  // Use real documents if available, otherwise fallback to empty array
+  const documents = [
+    { name: 'ใบอนุญาตว่าความ', url: lawyer.licenseUrl },
+    { name: 'สำเนาบัตรประชาชน', url: lawyer.idCardUrl },
+  ].filter(d => d.url); // Only show if URL exists
   const handleViewDocument = (url: string | undefined) => {
     if (!url || url === '#' || url === '') {
       toast({
@@ -147,7 +149,7 @@ export default function AdminLawyerDetailPage() {
           </div>
           <div className="hidden items-center gap-2 md:ml-auto md:flex">
             <Link href={`/admin/lawyers/${id}/edit`}>
-              <Button variant="outline" size="sm">แก้ไขข้อมูล (จำลอง)</Button>
+              <Button variant="outline" size="sm">แก้ไขข้อมูล</Button>
             </Link>
             <AlertDialog>
               <DropdownMenu>
@@ -183,7 +185,7 @@ export default function AdminLawyerDetailPage() {
         </div>
         <Card>
           <CardHeader>
-            <CardTitle>ประวัติเคสล่าสุด (จำลอง)</CardTitle>
+            <CardTitle>ประวัติเคสล่าสุด</CardTitle>
           </CardHeader>
           <CardContent>
             <Table>
@@ -193,48 +195,63 @@ export default function AdminLawyerDetailPage() {
                   <TableHead>หัวข้อ</TableHead>
                   <TableHead>ลูกค้า</TableHead>
                   <TableHead>สถานะ</TableHead>
-                  <TableHead>ค่าบริการ</TableHead>
+                  <TableHead>อัปเดตล่าสุด</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {mockCases.map(c => (
-                  <TableRow key={c.id}>
-                    <TableCell>{c.id}</TableCell>
-                    <TableCell>{c.title}</TableCell>
-                    <TableCell>{c.client}</TableCell>
-                    <TableCell><Badge variant="secondary">{c.status}</Badge></TableCell>
-                    <TableCell>฿{c.fee.toLocaleString()}</TableCell>
+                {cases.length > 0 ? (
+                  cases.map(c => (
+                    <TableRow key={c.id}>
+                      <TableCell>{c.id.slice(0, 8)}...</TableCell>
+                      <TableCell>{c.title}</TableCell>
+                      <TableCell>{c.clientName}</TableCell>
+                      <TableCell>
+                        <Badge variant={c.status === 'closed' ? 'secondary' : 'default'}>
+                          {c.status === 'active' ? 'กำลังดำเนินการ' : c.status === 'closed' ? 'เสร็จสิ้น' : c.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{c.lastUpdate}</TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-muted-foreground">
+                      ไม่มีประวัติเคส
+                    </TableCell>
                   </TableRow>
-                ))}
+                )}
               </TableBody>
             </Table>
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>เอกสารประกอบการสมัคร (จำลอง)</CardTitle>
+            <CardTitle>เอกสารประกอบการสมัคร</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid gap-3">
-              {[
-                { name: 'ใบอนุญาตว่าความ', url: lawyer.licenseUrl },
-                { name: 'สำเนาบัตรประชาชน', url: lawyer.idCardUrl },
-              ].map((doc, index) => (
-                <div key={index} className="flex items-center justify-between rounded-lg border bg-background p-3">
-                  <div className="flex items-center gap-3">
-                    <FileText className="h-5 w-5 text-muted-foreground" />
-                    <span className="font-medium">{doc.name}</span>
+              {documents.length > 0 ? (
+                documents.map((doc, index) => (
+                  <div key={index} className="flex items-center justify-between rounded-lg border bg-background p-3">
+                    <div className="flex items-center gap-3">
+                      <FileText className="h-5 w-5 text-muted-foreground" />
+                      <span className="font-medium">{doc.name}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button variant="ghost" size="sm" onClick={() => handleViewDocument(doc.url)}>
+                        <Eye className="mr-2 h-4 w-4" />ดูเอกสาร
+                      </Button>
+                      <Button variant="outline" size="sm" asChild disabled={!doc.url}>
+                        <a href={doc.url} download target="_blank"><Download className="mr-2 h-4 w-4" />ดาวน์โหลด</a>
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Button variant="ghost" size="sm" onClick={() => handleViewDocument(doc.url)}>
-                      <Eye className="mr-2 h-4 w-4" />ดูเอกสาร
-                    </Button>
-                    <Button variant="outline" size="sm" asChild disabled={!doc.url}>
-                      <a href={doc.url} download target="_blank"><Download className="mr-2 h-4 w-4" />ดาวน์โหลด</a>
-                    </Button>
-                  </div>
+                ))
+              ) : (
+                <div className="text-center text-muted-foreground p-4">
+                  ไม่พบเอกสารแนบ
                 </div>
-              ))}
+              )}
             </div>
           </CardContent>
         </Card>

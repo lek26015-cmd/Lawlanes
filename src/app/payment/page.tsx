@@ -23,7 +23,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { useFirebase } from '@/firebase';
 import { addDoc, collection, doc, serverTimestamp, setDoc, getDoc, query, where, getDocs } from 'firebase/firestore';
 import { errorEmitter, FirestorePermissionError } from '@/firebase';
-import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { uploadToR2 } from '../actions/upload-r2';
 import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '@/lib/constants';
 import { compressImageToBase64 } from '@/lib/image-utils';
 
@@ -89,18 +89,17 @@ function PaymentPageContent() {
     }, [lawyerId, firestore, user, router, toast]);
 
     useEffect(() => {
-        // This is a mock phone number for QR generation
-        const mobileNumber = '081-234-5678';
+        // Use configured PromptPay number or default to company number
+        const mobileNumber = process.env.NEXT_PUBLIC_PROMPTPAY_NUMBER || '081-234-5678';
         const payload = generatePayload(mobileNumber, { amount: fee });
         setPromptPayPayload(payload);
     }, [fee]);
 
     const uploadSlip = async (file: File, userId: string) => {
-        if (!storage) throw new Error("Storage not initialized");
-        const timestamp = Date.now();
-        const storageRef = ref(storage, `payment-slips/${userId}/${timestamp}_${file.name}`);
-        const snapshot = await uploadBytes(storageRef, file);
-        return await getDownloadURL(snapshot.ref);
+        const formData = new FormData();
+        formData.append('file', file);
+        // Use generic R2 upload action
+        return await uploadToR2(formData, 'payment-slips');
     };
 
     const processPayment = async (isManualTransfer = false) => {
@@ -128,9 +127,9 @@ function PaymentPageContent() {
                 try {
                     // Add timeout to upload
                     const uploadPromise = uploadSlip(slipFile, user.uid);
-                    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Upload timed out")), 15000)); // 15s timeout
+                    // const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Upload timed out")), 15000)); // 15s timeout
 
-                    slipUrl = await Promise.race([uploadPromise, timeoutPromise]) as string;
+                    slipUrl = await uploadPromise as string; // await Promise.race([uploadPromise, timeoutPromise]) as string;
                     console.log("Slip uploaded:", slipUrl);
                 } catch (uploadError) {
                     console.warn("Upload failed or timed out:", uploadError);
@@ -209,6 +208,18 @@ function PaymentPageContent() {
                     });
                     router.push(`/chat/${newChatId}?lawyerId=${lawyer.id}`);
                 }
+
+                // Send Email Notification to Lawyer
+                import('../actions/email').then(({ sendLawyerNewCaseEmail }) => {
+                    const caseLink = `${window.location.origin}/chat/${newChatId}?lawyerId=${lawyer.id}&clientId=${user.uid}&view=lawyer`;
+                    sendLawyerNewCaseEmail(
+                        lawyer.email,
+                        lawyer.name,
+                        user.displayName || 'ลูกค้า',
+                        `Ticket สนทนา: ${initialMessage.substring(0, 30)}...`,
+                        caseLink
+                    ).then(res => console.log("Email sent:", res));
+                });
             } else if (paymentType === 'appointment' && dateStr) {
                 console.log("Processing appointment payment...");
                 const appointmentRef = collection(firestore, 'appointments');
@@ -255,29 +266,22 @@ function PaymentPageContent() {
 
     const handlePayment = async (e?: React.FormEvent) => {
         e?.preventDefault();
-        if (paymentType === 'chat' && !initialMessage.trim()) {
-            toast({
-                variant: "destructive",
-                title: "ข้อมูลไม่ครบถ้วน",
-                description: "กรุณาพิมพ์คำถามแรกที่จะส่งถึงทนายความ",
-            });
-            return;
-        }
-
-        // Simulate API call to payment gateway
-        setIsProcessing(true);
-        setTimeout(() => {
-            processPayment();
-        }, 2000); // Simulate 2 second payment processing
+        // Credit Card is currently disabled/removed as per requirements for Real Data
+        toast({
+            variant: "destructive",
+            title: "ยังไม่เปิดให้บริการ",
+            description: "ระบบตัดบัตรเครดิตยังไม่เปิดให้บริการในขณะนี้ กรุณาเลือกโอนเงิน",
+        });
     };
 
     const handlePromptPaySelect = () => {
-        setIsWaitingForPayment(true);
-        // Simulate waiting for payment confirmation webhook
-        setTimeout(() => {
-            setIsWaitingForPayment(false);
-            processPayment();
-        }, 5000); // Simulate 5 second wait for user to scan and pay
+        // For PromptPay, we also require slip upload to verify
+        // So we just switch tab to bank-transfer or show a dialog
+        toast({
+            title: "กรุณาแนบสลิป",
+            description: "เมื่อชำระเงินแล้ว กรุณาแนบสลิปในช่อง 'โอนเงิน' เพื่อยืนยัน",
+        });
+        setActiveTab("bank-transfer");
     };
 
     const handleBankTransferSubmit = () => {
@@ -420,29 +424,10 @@ function PaymentPageContent() {
                             <TabsTrigger value="bank-transfer" disabled={isWaitingForPayment}><Landmark className="mr-2 h-4 w-4" /> โอนเงิน</TabsTrigger>
                         </TabsList>
                         <TabsContent value="credit-card" className="mt-4">
-                            <form onSubmit={handlePayment} className="space-y-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="cardNumber">หมายเลขบัตรเครดิต</Label>
-                                    <Input id="cardNumber" placeholder="0000 0000 0000 0000" disabled={isProcessing} />
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="expiryDate">วันหมดอายุ (MM/YY)</Label>
-                                        <Input id="expiryDate" placeholder="MM/YY" disabled={isProcessing} />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="cvc">CVC</Label>
-                                        <Input id="cvc" placeholder="123" disabled={isProcessing} />
-                                    </div>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="cardName">ชื่อบนบัตร</Label>
-                                    <Input id="cardName" placeholder="สมชาย กฎหมายดี" disabled={isProcessing} />
-                                </div>
-                                <Button type="submit" className="w-full" size="lg" disabled={isProcessing}>
-                                    {isProcessing ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" />กำลังดำเนินการ...</> : `ยืนยันและชำระเงิน ${new Intl.NumberFormat('th-TH').format(fee)} บาท`}
-                                </Button>
-                            </form>
+                            <div className="text-center py-8 text-muted-foreground">
+                                <p>ระบบตัดบัตรเครดิตอยู่ระหว่างการปรับปรุง</p>
+                                <p>กรุณาเลือกช่องทาง "โอนเงิน" หรือ "PromptPay"</p>
+                            </div>
                         </TabsContent>
                         <TabsContent value="promptpay" className="mt-4">
                             <div className="flex flex-col items-center justify-center space-y-4 p-4 border rounded-md bg-white">
@@ -450,7 +435,7 @@ function PaymentPageContent() {
                                     <div className="flex flex-col items-center justify-center space-y-4 h-[300px]">
                                         <Loader2 className="w-12 h-12 animate-spin text-primary" />
                                         <p className="font-semibold text-lg">กำลังรอการชำระเงิน</p>
-                                        <p className="text-sm text-muted-foreground text-center">กรุณาชำระเงินภายใน 5 นาที... (จำลอง)</p>
+                                        <p className="text-sm text-muted-foreground text-center">กรุณาชำระเงินและแนบสลิป</p>
                                     </div>
                                 ) : (
                                     <>
@@ -461,7 +446,7 @@ function PaymentPageContent() {
                                         <p className="text-sm text-muted-foreground">ยอดชำระ: {new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(fee)}</p>
                                         <p className="text-xs text-muted-foreground text-center">ใช้แอปพลิเคชันธนาคารของคุณสแกน QR Code นี้เพื่อชำระเงิน เมื่อชำระเงินแล้ว ระบบจะตรวจสอบอัตโนมัติ</p>
                                         <Button onClick={handlePromptPaySelect} className="w-full mt-4" size="lg">
-                                            ฉันสแกนจ่ายเงินแล้ว
+                                            แนบสลิปการโอนเงิน
                                         </Button>
                                     </>
                                 )}
@@ -472,8 +457,8 @@ function PaymentPageContent() {
                                 <p className="font-semibold text-center">โอนเงินเพื่อชำระค่าบริการ</p>
                                 <div className="p-4 bg-gray-100 rounded-lg text-center space-y-1">
                                     <p className="text-sm text-muted-foreground">ธนาคารกสิกรไทย</p>
-                                    <p className="font-bold text-lg tracking-widest">123-4-56789-0</p>
-                                    <p className="font-semibold">บริษัท ลอว์เลนส์ จำกัด</p>
+                                    <p className="font-bold text-lg tracking-widest">144-3-46310-7</p>
+                                    <p className="font-semibold">วิศรุต บุ่งอุทุม</p>
                                 </div>
                                 <div className="text-center font-bold text-lg">
                                     ยอดที่ต้องชำระ: {new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(fee)}

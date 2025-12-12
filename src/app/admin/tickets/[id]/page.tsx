@@ -18,6 +18,8 @@ import { FileText, Ticket, Upload, ChevronLeft, User, Briefcase, CheckCircle, Cl
 import { useToast } from '@/hooks/use-toast';
 import { SupportChatBox } from '@/components/chat/support-chat-box';
 import { Separator } from '@/components/ui/separator';
+import { useFirebase } from '@/firebase';
+import { doc, getDoc, updateDoc, addDoc, collection, serverTimestamp } from 'firebase/firestore';
 
 const mockTickets = [
     {
@@ -54,24 +56,86 @@ function AdminTicketDetailPageContent() {
     const router = useRouter();
     const ticketId = params.id as string;
 
-    const [ticket, setTicket] = React.useState<typeof mockTickets[0] | null>(null);
+    const [ticket, setTicket] = React.useState<any | null>(null);
     const [isLoading, setIsLoading] = React.useState(true);
     const { toast } = useToast();
+    const { firestore } = useFirebase();
 
     React.useEffect(() => {
-        setIsLoading(true);
-        const currentTicket = mockTickets.find(t => t.id === ticketId);
-        setTicket(currentTicket || null);
-        setIsLoading(false);
-    }, [ticketId]);
+        if (!firestore || !ticketId) return;
 
-    const handleResolveTicket = () => {
-        if (!ticket) return;
-        setTicket({ ...ticket, status: 'resolved' });
-        toast({
-            title: "ดำเนินการสำเร็จ",
-            description: `Ticket ${ticket.id} ถูกเปลี่ยนสถานะเป็น 'แก้ไขแล้ว'`,
-        });
+        const fetchTicket = async () => {
+            setIsLoading(true);
+            try {
+                const docRef = doc(firestore, 'tickets', ticketId);
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    // Format date
+                    let reportedAtStr = "N/A";
+                    if (data.reportedAt?.toDate) {
+                        reportedAtStr = data.reportedAt.toDate().toLocaleDateString('th-TH');
+                    }
+
+                    setTicket({
+                        id: docSnap.id,
+                        ...data,
+                        reportedAt: reportedAtStr,
+                        // Ensure required fields for UI
+                        clientName: data.clientName || 'Unknown',
+                        problemType: data.problemType || 'General',
+                        caseId: data.caseId || 'N/A'
+                    });
+                } else {
+                    setTicket(null);
+                }
+            } catch (error) {
+                console.error("Error fetching ticket:", error);
+                toast({
+                    title: "Error",
+                    description: "Failed to fetch ticket details",
+                    variant: "destructive"
+                });
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchTicket();
+    }, [firestore, ticketId]);
+
+    const handleResolveTicket = async () => {
+        if (!ticket || !firestore) return;
+        try {
+            const docRef = doc(firestore, 'tickets', ticket.id);
+            await updateDoc(docRef, { status: 'resolved' });
+
+            // Notify User
+            await addDoc(collection(firestore, 'notifications'), {
+                type: 'ticket_resolved',
+                title: 'Ticket ของคุณได้รับการแก้ไขแล้ว',
+                message: `Ticket ${ticket.id} (${ticket.problemType}) ได้รับการตรวจสอบและแก้ไขแล้ว`,
+                createdAt: serverTimestamp(),
+                read: false,
+                recipient: ticket.userId,
+                link: `/help`, // Or a specific ticket detail page for users if it exists
+                relatedId: ticket.id
+            });
+
+            setTicket({ ...ticket, status: 'resolved' });
+            toast({
+                title: "ดำเนินการสำเร็จ",
+                description: `Ticket ${ticket.id} ถูกเปลี่ยนสถานะเป็น 'แก้ไขแล้ว'`,
+            });
+        } catch (error) {
+            console.error("Error updating ticket:", error);
+            toast({
+                title: "Error",
+                description: "Failed to update ticket status",
+                variant: "destructive"
+            });
+        }
     };
 
     const statusBadges: { [key: string]: React.ReactNode } = {
@@ -113,7 +177,7 @@ function AdminTicketDetailPageContent() {
                         {statusBadges[ticket.status]}
                     </div>
                 </div>
-                <SupportChatBox ticket={reportedTicket} isDisabled={isResolved} />
+                <SupportChatBox ticket={reportedTicket} isDisabled={isResolved} isAdmin={true} />
             </div>
 
             <div className="space-y-6">

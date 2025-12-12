@@ -24,6 +24,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { doc, getDoc } from 'firebase/firestore';
 import profileLawyerImg from '@/pic/profile-lawyer.jpg';
+import { NotificationBell } from '@/components/admin/notification-bell';
 
 
 export default function Header({ setUserRole }: { setUserRole: (role: string | null) => void }) {
@@ -181,6 +182,7 @@ export default function Header({ setUserRole }: { setUserRole: (role: string | n
               )} />
             </Button>
           </div>
+
         </div>
 
         <nav className="hidden items-center gap-4 text-sm font-medium md:flex whitespace-nowrap">
@@ -225,9 +227,29 @@ export default function Header({ setUserRole }: { setUserRole: (role: string | n
               <Button variant="ghost" className={loginButtonClasses}>เข้าสู่ระบบ</Button>
             </Link>
           )}
+          {user && (
+            <div className={cn(useTransparentHeader ? "text-foreground" : "text-background")}>
+              <NotificationBell recipientId={role === 'admin' || role === 'Super Admin' ? 'admin' : user.uid} />
+            </div>
+          )}
         </div>
 
-        <div className="md:hidden">
+        <div className="flex items-center gap-2 md:hidden">
+          {user ? (
+            <Link href="/account">
+              <Avatar className="w-8 h-8 border border-border/50">
+                <AvatarImage src={avatarUrl || profileLawyerImg.src} />
+                <AvatarFallback>{user.displayName?.charAt(0) || user.email?.charAt(0)}</AvatarFallback>
+              </Avatar>
+            </Link>
+          ) : (
+            <Link href="/login">
+              <Button variant="ghost" size="icon" className={cn(useTransparentHeader ? 'text-foreground' : 'text-background')}>
+                <User className="w-5 h-5" />
+                <span className="sr-only">เข้าสู่ระบบ</span>
+              </Button>
+            </Link>
+          )}
           <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
             <SheetTrigger asChild>
               <Button variant="ghost" size="icon" className={cn(useTransparentHeader ? 'text-foreground' : 'text-background')}>
@@ -250,7 +272,27 @@ export default function Header({ setUserRole }: { setUserRole: (role: string | n
                 </nav>
                 <div className="border-t pt-6">
                   {user ? (
-                    <Button onClick={handleLogout} className="w-full" variant="destructive">ออกจากระบบ</Button>
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3 px-2">
+                        <Avatar className="w-10 h-10">
+                          <AvatarImage src={avatarUrl || profileLawyerImg.src} />
+                          <AvatarFallback>{user.displayName?.charAt(0) || user.email?.charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col">
+                          <span className="font-semibold">{user.displayName || user.email}</span>
+                          <span className="text-xs text-muted-foreground capitalize">{role === 'lawyer' ? 'ทนายความ' : role === 'admin' ? 'ผู้ดูแลระบบ' : 'ลูกค้า'}</span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col gap-2">
+                        <Link href={(role === 'lawyer' || user.uid === 'N5ehLbkYXbQQLX5KEuwJbeL3cXO2') ? "/lawyer-dashboard" : "/dashboard"} className="flex items-center gap-2 p-2 hover:bg-muted rounded-md">
+                          <LayoutDashboard className="w-4 h-4" /> แดชบอร์ด
+                        </Link>
+                        <Link href="/account" className="flex items-center gap-2 p-2 hover:bg-muted rounded-md">
+                          <User className="w-4 h-4" /> จัดการบัญชี
+                        </Link>
+                      </div>
+                      <Button onClick={handleLogout} className="w-full mt-2" variant="destructive">ออกจากระบบ</Button>
+                    </div>
                   ) : (
                     <Link href="/login">
                       <Button className="w-full">เข้าสู่ระบบ</Button>

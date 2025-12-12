@@ -32,8 +32,7 @@ import { useFirebase } from '@/firebase'
 import { addDoc, collection, serverTimestamp, doc, getDoc } from 'firebase/firestore'
 import { errorEmitter, FirestorePermissionError } from '@/firebase'
 
-import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
-import { compressImageToBase64 } from '@/lib/image-utils';
+import { uploadToR2 } from '@/app/actions/upload-r2';
 import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '@/lib/constants';
 
 export default function AdminAdCreatePage() {
@@ -141,23 +140,21 @@ export default function AdminAdCreatePage() {
 
       if (imageFile) {
         toast({
-          title: "กำลังประมวลผลรูปภาพ...",
-          description: "Compressing image..."
+          title: "กำลังอัปโหลดรูปภาพ...",
+          description: "Uploading image to R2..."
         });
-        console.log("Starting compression...");
 
-        // Bypass Storage and use Base64 directly
-        // This avoids CORS/Network issues completely
         try {
-          finalImageUrl = await compressImageToBase64(imageFile);
-          console.log("Compression finished, length:", finalImageUrl.length);
-          toast({ title: "รูปภาพพร้อมแล้ว", description: "กำลังบันทึกข้อมูล..." });
-        } catch (compressError) {
-          console.error("Compression failed:", compressError);
+          const formData = new FormData();
+          formData.append('file', imageFile);
+          finalImageUrl = await uploadToR2(formData, 'ads');
+          toast({ title: "รูปภาพพร้อมแล้ว", description: "อัปโหลดสำเร็จ" });
+        } catch (uploadError) {
+          console.error("Upload failed:", uploadError);
           toast({
             variant: "destructive",
-            title: "รูปภาพมีปัญหา",
-            description: "ไม่สามารถประมวลผลรูปภาพได้"
+            title: "อัปโหลดรูปภาพไม่สำเร็จ",
+            description: "ไม่สามารถอัปโหลดรูปภาพได้"
           });
           setIsSaving(false);
           return;

@@ -19,6 +19,8 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
 import Logo from '@/components/logo';
 import { Separator } from '@/components/ui/separator';
+import { TurnstileWidget } from '@/components/turnstile-widget';
+import { validateTurnstile } from '@/app/actions/turnstile';
 // import { Locale } from '@/../i18n.config';
 
 const formSchema = z.object({
@@ -35,6 +37,7 @@ export default function SignupPage() {
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string>('');
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -49,6 +52,15 @@ export default function SignupPage() {
     if (!auth || !firestore) return;
     setIsLoading(true);
     try {
+      if (!turnstileToken) {
+        throw new Error('กรุณายืนยันตัวตนผ่าน Cloudflare Turnstile');
+      }
+
+      const validation = await validateTurnstile(turnstileToken);
+      if (!validation.success) {
+        throw new Error('การยืนยันตัวตนล้มเหลว กรุณาลองใหม่');
+      }
+
       // 1. Create user in Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       const user = userCredential.user;
@@ -87,6 +99,8 @@ export default function SignupPage() {
       let errorMessage = 'เกิดข้อผิดพลาดที่ไม่รู้จัก';
       if (error.code === 'auth/email-already-in-use') {
         errorMessage = 'อีเมลนี้ถูกใช้งานแล้ว กรุณาใช้อีเมลอื่น';
+      } else if (error.message) {
+        errorMessage = error.message;
       }
       toast({
         variant: 'destructive',
@@ -159,7 +173,7 @@ export default function SignupPage() {
               สร้างบัญชีใหม่
             </CardTitle>
             <CardDescription>
-              เข้าร่วม Lawlanes เพื่อเข้าถึงบริการด้านกฎหมาย
+              เข้าร่วม Lawslane เพื่อเข้าถึงบริการด้านกฎหมาย
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -224,6 +238,7 @@ export default function SignupPage() {
                     </FormItem>
                   )}
                 />
+                <TurnstileWidget onVerify={setTurnstileToken} />
                 <Button type="submit" className="w-full" disabled={isLoading || isGoogleLoading}>
                   {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   สมัครสมาชิก

@@ -1,168 +1,120 @@
-
 'use client';
 
-import * as React from 'react';
-import { ChevronLeft, PlusCircle, Trash2 } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import Link from 'next/link';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Separator } from '@/components/ui/separator';
+import { ArrowLeftCircle, Loader2, ShieldAlert } from 'lucide-react';
+import Link from 'next/link';
+import { useState } from 'react';
+import { createAdminUser } from '@/app/actions/admin-management';
+import { useRouter } from 'next/navigation';
 
-const permissionsConfig = [
-  { id: 'customers', label: 'ลูกค้า', actions: ['view', 'create', 'edit', 'delete', 'download'] },
-  { id: 'lawyers', label: 'ทนายความ', actions: ['view', 'create', 'edit', 'delete', 'download'] },
-  { id: 'financials', label: 'การเงิน', actions: ['view', 'download'] },
-  { id: 'tickets', label: 'Ticket ช่วยเหลือ', actions: ['view', 'reply'] },
-  { id: 'ads', label: 'จัดการโฆษณา', actions: ['view', 'create', 'edit', 'delete'] },
-  { id: 'content', label: 'จัดการเนื้อหา', actions: ['view', 'create', 'edit', 'delete'] },
-  { id: 'settings', label: 'ตั้งค่าระบบ', actions: ['view', 'edit'] },
-];
-
-const actionLabels: { [key: string]: string } = {
-  view: 'ดู',
-  create: 'สร้าง',
-  edit: 'แก้ไข',
-  delete: 'ลบ',
-  download: 'ดาวน์โหลด',
-  reply: 'ตอบกลับ',
-};
-
-export default function AdminCreateAdministratorPage() {
-  const router = useRouter();
+export default function NewAdminPage() {
   const { toast } = useToast();
-  const [name, setName] = React.useState('');
-  const [permissions, setPermissions] = React.useState<Record<string, string[]>>({});
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+  const [role, setRole] = useState('admin');
 
-  const handlePermissionChange = (menuId: string, action: string, checked: boolean) => {
-    setPermissions(prev => {
-        const currentActions = prev[menuId] || [];
-        if (checked) {
-            return { ...prev, [menuId]: [...currentActions, action] };
-        } else {
-            return { ...prev, [menuId]: currentActions.filter(a => a !== action) };
-        }
-    });
+  async function handleSubmit(formData: FormData) {
+    setIsLoading(true);
+    formData.append('role', role);
+
+    try {
+      const result = await createAdminUser(null, formData);
+
+      if (result.success) {
+        toast({
+          title: "สร้างผู้ดูแลระบบสำเร็จ",
+          description: result.message,
+        });
+        router.push('/admin/settings/administrators');
+      } else {
+        toast({
+          variant: "destructive",
+          title: "สร้างไม่สำเร็จ",
+          description: result.message,
+        });
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่สามารถเชื่อมต่อกับเซิร์ฟเวอร์ได้",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   }
-
-  const handleSaveChanges = () => {
-    toast({
-      title: 'เพิ่มผู้ดูแลสำเร็จ',
-      description: `ผู้ดูแลระบบ "${name || 'ผู้ใช้ใหม่'}" ได้ถูกเพิ่มเข้าสู่ระบบพร้อมสิทธิ์ที่กำหนดแล้ว`,
-    });
-    console.log("Creating new admin with permissions:", permissions);
-    router.push('/admin/settings/administrators');
-  };
 
   return (
     <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-8">
-      <div className="mx-auto grid w-full max-w-4xl flex-1 auto-rows-max gap-4">
+      <div className="mx-auto grid w-full max-w-2xl gap-2">
         <div className="flex items-center gap-4">
-          <Link href="/admin/settings/administrators">
-            <Button variant="outline" size="icon" className="h-7 w-7">
-              <ChevronLeft className="h-4 w-4" />
-              <span className="sr-only">กลับ</span>
-            </Button>
-          </Link>
-          <h1 className="flex-1 shrink-0 whitespace-nowrap text-xl font-semibold tracking-tight sm:grow-0">
-            เพิ่มผู้ดูแลระบบใหม่
-          </h1>
-          <div className="hidden items-center gap-2 md:ml-auto md:flex">
+          <Button variant="ghost" size="icon" asChild>
             <Link href="/admin/settings/administrators">
-              <Button variant="outline" size="sm">
-                ยกเลิก
-              </Button>
+              <ArrowLeftCircle className="h-5 w-5" />
             </Link>
-            <Button size="sm" onClick={handleSaveChanges}>
-              บันทึก
-            </Button>
-          </div>
+          </Button>
+          <h1 className="text-3xl font-semibold">เพิ่มผู้ดูแลระบบ</h1>
         </div>
-        <div className="grid gap-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle>ข้อมูลผู้ดูแลระบบ</CardTitle>
-                    <CardDescription>กรอกข้อมูลส่วนตัวของผู้ดูแลใหม่</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-                        <div className="grid gap-3">
-                            <Label htmlFor="name">ชื่อ-นามสกุล</Label>
-                            <Input
-                                id="name"
-                                type="text"
-                                className="w-full"
-                                value={name}
-                                onChange={(e) => setName(e.target.value)}
-                                placeholder="สมชาย ใจดี"
-                            />
-                        </div>
-                        <div className="grid gap-3">
-                            <Label htmlFor="email">อีเมล</Label>
-                            <Input
-                                id="email"
-                                type="email"
-                                className="w-full"
-                                placeholder="somchai.j@lawlanes.com"
-                            />
-                        </div>
-                        <div className="grid gap-3 sm:col-span-2">
-                            <Label htmlFor="password">รหัสผ่านชั่วคราว</Label>
-                            <Input id="password" type="password" />
-                        </div>
-                    </div>
-                </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>กำหนดสิทธิ์การเข้าถึง</CardTitle>
-                <CardDescription>
-                  เลือกเมนูและกำหนดการกระทำที่ผู้ดูแลใหม่สามารถทำได้
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {permissionsConfig.map((menu, index) => (
-                    <React.Fragment key={menu.id}>
-                        <div className="grid grid-cols-[1fr_2fr] gap-4 items-start">
-                            <Label className="font-semibold text-base pt-3">{menu.label}</Label>
-                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 p-4 border rounded-lg bg-secondary/50">
-                                {menu.actions.map(action => (
-                                    <div key={action} className="flex items-center space-x-2">
-                                        <Checkbox 
-                                            id={`${menu.id}-${action}`}
-                                            checked={permissions[menu.id]?.includes(action) || false}
-                                            onCheckedChange={(checked) => handlePermissionChange(menu.id, action, !!checked)}
-                                        />
-                                        <Label htmlFor={`${menu.id}-${action}`} className="font-normal text-sm">
-                                            {actionLabels[action]}
-                                        </Label>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                        {index < permissionsConfig.length - 1 && <Separator />}
-                    </React.Fragment>
-                  ))}
+      </div>
+      <div className="mx-auto grid w-full max-w-2xl">
+        <Card>
+          <CardHeader>
+            <CardTitle>ข้อมูลผู้ดูแลระบบใหม่</CardTitle>
+            <CardDescription>
+              สร้างบัญชีสำหรับเจ้าหน้าที่ Lawslane (เฉพาะ @lawslane.com)
+            </CardDescription>
+          </CardHeader>
+          <form action={handleSubmit}>
+            <CardContent className="grid gap-6">
+              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 flex gap-3">
+                <ShieldAlert className="h-5 w-5 text-yellow-600" />
+                <div className="text-sm text-yellow-700">
+                  <p className="font-semibold">ข้อจำกัดความปลอดภัย</p>
+                  <p>อีเมลต้องลงท้ายด้วย <strong>@lawslane.com</strong> เท่านั้น (ยกเว้น lek.26015@gmail.com)</p>
                 </div>
-              </CardContent>
-            </Card>
-        </div>
-        <div className="flex items-center justify-end gap-2 md:hidden">
-            <Link href="/admin/settings/administrators">
-              <Button variant="outline" size="sm">
-                ยกเลิก
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="name">ชื่อ-นามสกุล</Label>
+                <Input id="name" name="name" placeholder="สมชาย ใจดี" required />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="email">อีเมล (@lawslane.com)</Label>
+                <Input id="email" name="email" type="email" placeholder="name@lawslane.com" required />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="password">รหัสผ่าน</Label>
+                <Input id="password" name="password" type="password" required minLength={6} />
+              </div>
+
+              <div className="grid gap-2">
+                <Label htmlFor="role">ระดับสิทธิ์</Label>
+                <Select value={role} onValueChange={setRole}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="admin">ผู้ดูแลทั่วไป (Admin)</SelectItem>
+                    <SelectItem value="super_admin">ผู้ดูแลสูงสุด (Super Admin)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardContent>
+            <CardFooter className="justify-end border-t p-4">
+              <Button type="submit" disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                สร้างบัญชี
               </Button>
-            </Link>
-            <Button size="sm" onClick={handleSaveChanges}>
-              บันทึก
-            </Button>
-        </div>
+            </CardFooter>
+          </form>
+        </Card>
       </div>
     </main>
   );
