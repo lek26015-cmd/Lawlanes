@@ -45,7 +45,7 @@ service cloud.firestore {
         return isSignedIn() && request.auth.uid in resource.data.participants;
       }
       
-      allow get: if isParticipant() || isAdmin();
+      allow get: if resource == null || isParticipant() || isAdmin();
       allow list: if (isSignedIn() && request.auth.uid in query.filters[0][2]) || isAdmin();
       // Allow creation for any signed-in user
       allow create: if isSignedIn();
