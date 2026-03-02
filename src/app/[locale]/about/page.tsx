@@ -1,5 +1,3 @@
-'use client';
-
 import { Shield, Award, Heart, Globe, Mail, Phone, MapPin, Scale, ArrowRight } from 'lucide-react';
 import Image from 'next/image';
 import groupPhoto from '@/pic/lawslane-photo-group.png';
@@ -7,10 +5,12 @@ import { Link } from '@/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { FadeIn } from '@/components/fade-in';
-import { useTranslations } from 'next-intl';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 
-export default function AboutPage() {
-    const t = useTranslations('AboutPage');
+export default async function AboutPage({ params }: { params: Promise<{ locale: string }> }) {
+    const { locale: l } = await params;
+    setRequestLocale(l);
+    const t = await getTranslations('AboutPage');
 
     const teamValues = [
         {

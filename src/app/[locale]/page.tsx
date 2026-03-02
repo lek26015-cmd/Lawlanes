@@ -20,11 +20,14 @@ import { initializeFirebase } from '@/firebase';
 import { HomeRecommendedLawyers } from '@/components/home-recommended-lawyers';
 import { HomeServicesSection } from '@/components/home-services-section';
 import { FadeIn } from '@/components/fade-in';
+import { getTranslations, setRequestLocale } from 'next-intl/server';
 
-export const revalidate = 3600; // ISR: revalidate every 1 hour
+export const dynamic = 'error';
 
-export default function HomePage() {
-  const t = useTranslations('HomePage');
+export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+  const t = await getTranslations('HomePage');
   const { firestore: db } = initializeFirebase();
 
   // ข้อมูล Feature แบบภาษาไทย

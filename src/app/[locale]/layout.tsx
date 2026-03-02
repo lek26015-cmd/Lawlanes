@@ -1,12 +1,20 @@
 import type { Metadata } from 'next';
-export const runtime = 'edge';
 import { locales } from '@/navigation';
 import '../globals.css';
 import React from 'react';
+import { useTranslations } from 'next-intl';
+import { setRequestLocale } from 'next-intl/server';
 import { ClientProviders } from '../client-providers';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import ScrollToTopButton from '@/components/ui/scroll-to-top';
+
+export const runtime = 'edge';
+
+// Removed generateStaticParams to reduce the number of Edge Functions (131 -> 1)
+// Cloudflare handles the [locale] dynamic segment with a single function.
+
+export const dynamicParams = false;
 
 export const metadata: Metadata = {
   title: 'Lawslane - ค้นหาทนายมืออาชีพ',
@@ -32,12 +40,16 @@ export const metadata: Metadata = {
 export default async function RootLayout({
   children,
   params
-}: Readonly<{
+}: {
   children: React.ReactNode;
   params: Promise<{ locale: string }>;
-}>) {
+}) {
   const { locale } = await params;
-  const messages = await getMessages();
+
+  // Enable static rendering
+  setRequestLocale(locale);
+
+  const messages = await getMessages({ locale });
   const domainType = 'main'; // Default for SSR, will be updated on client
 
   return (
