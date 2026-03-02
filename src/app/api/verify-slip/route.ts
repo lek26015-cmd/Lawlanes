@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { initAdmin } from '@/lib/firebase-admin';
 import { getFirestore } from 'firebase-admin/firestore';
-import { notifyAdmins } from '@/app/actions/admin-notifications';
 
 export async function POST(request: Request) {
     try {
@@ -56,11 +55,7 @@ export async function POST(request: Request) {
 
                 // Check thresholds
                 if ([90, 95, 99, 100].includes(currentCount)) {
-                    // Trigger notification (fire and forget to not block response)
-                    notifyAdmins('slip_limit_warning', {
-                        count: currentCount,
-                        month: monthKey
-                    }).catch(err => console.error("Failed to send slip warning:", err));
+                    // Trigger notification (fire and forget to not block response) - removed
                 }
             });
 

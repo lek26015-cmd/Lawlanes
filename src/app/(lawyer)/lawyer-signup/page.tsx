@@ -23,7 +23,6 @@ import Logo from '@/components/logo';
 import Image from 'next/image';
 import { TurnstileWidget } from '@/components/turnstile-widget';
 import { validateTurnstile } from '@/app/actions/turnstile';
-import { notifyAdmins } from '@/app/actions/admin-notifications';
 
 const specialties = [
     'คดีฉ้อโกง SMEs',
@@ -243,13 +242,7 @@ export default function LawyerExpressSignupPage() {
                     relatedId: user.uid
                 });
 
-                // Send Email Notification to Admins
-                await notifyAdmins('new_lawyer', {
-                    name: values.name,
-                    email: values.email,
-                    licenseNumber: values.licenseNumber,
-                    uid: user.uid
-                });
+                // Send Email Notification to Admins (removed)
             } catch (e) {
                 console.error("Error creating notification:", e);
             }

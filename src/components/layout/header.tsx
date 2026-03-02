@@ -25,7 +25,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { doc, getDoc } from 'firebase/firestore';
 import profileLawyerImg from '@/pic/profile-lawyer.jpg';
-import { NotificationBell } from '@/components/admin/notification-bell';
+
 import { getMainLink, getBusinessLink } from '@/lib/domain-utils';
 
 
@@ -315,11 +315,7 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
                 </Button>
               </Link>
             )}
-            {user && (
-              <div className={cn(useTransparentHeader ? "text-white" : "text-slate-900")}>
-                <NotificationBell recipientId={role === 'admin' || role === 'Super Admin' ? 'admin' : user.uid} />
-              </div>
-            )}
+
             <div className={cn(
               "transition-all duration-300 ease-in-out ml-2",
               useTransparentHeader ? "text-white" : "text-slate-900"

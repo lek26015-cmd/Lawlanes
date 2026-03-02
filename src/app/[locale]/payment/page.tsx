@@ -306,14 +306,7 @@ function PaymentPageContent() {
                         ).then(res => console.log("Email sent:", res));
                     });
                 } else {
-                    // Notify Admin for Manual Payment
-                    import('@/app/actions/admin-notifications').then(({ notifyAdmins }) => {
-                        notifyAdmins('payment', {
-                            lawyerName: lawyer.name,
-                            amount: fee,
-                            slipUrl: slipUrl
-                        });
-                    });
+                    // Notify Admin for Manual Payment - removed
                 }
                 if (appliedCoupon) {
                     // Update Coupon Usage
@@ -370,15 +363,7 @@ function PaymentPageContent() {
                     // Send Email Notification for Appointment (Instant)
                     // (Assuming there was email logic here, otherwise add it if needed, but for now focus on blocking manual)
                 } else {
-                    // Notify Admin for Manual Payment (Appointment)
-                    import('@/app/actions/admin-notifications').then(({ notifyAdmins }) => {
-                        notifyAdmins('payment', {
-                            lawyerName: lawyer.name,
-                            amount: fee,
-                            slipUrl: slipUrl,
-                            type: 'Appointment'
-                        });
-                    });
+                    // Notify Admin for Manual Payment (Appointment) - removed
                 }
 
                 if (appliedCoupon) {

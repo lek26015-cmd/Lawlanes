@@ -1,6 +1,6 @@
-import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { NextRequest, NextResponse } from 'next/server';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const TranslateSchema = z.object({
     title: z.string(),
@@ -8,6 +8,8 @@ const TranslateSchema = z.object({
     content: z.string(),
     targetLanguage: z.enum(['en', 'zh']),
 });
+
+export const runtime = 'edge';
 
 export async function POST(req: NextRequest) {
     try {
@@ -25,7 +27,7 @@ export async function POST(req: NextRequest) {
       Description: ${description}
       Content: ${content}
 
-      Output JSON format:
+      Output strict JSON format matching:
       {
         "title": "Translated Title",
         "description": "Translated Description",
@@ -33,18 +35,18 @@ export async function POST(req: NextRequest) {
       }
     `;
 
-        const { text } = await ai.generate({
-            prompt: prompt,
-            output: {
-                schema: z.object({
-                    title: z.string(),
-                    description: z.string(),
-                    content: z.string(),
-                }),
+        const apiKey = process.env.GOOGLE_API_KEY || process.env.GOOGLE_GENAI_API_KEY || '';
+        if (!apiKey) throw new Error("API Key not found");
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({
+            model: "gemini-1.5-flash",
+            generationConfig: {
+                responseMimeType: "application/json"
             }
         });
 
-        return NextResponse.json(text);
+        const result = await model.generateContent(prompt);
+        return NextResponse.json(JSON.parse(result.response.text()));
 
     } catch (error) {
         console.error('Translation error:', error);

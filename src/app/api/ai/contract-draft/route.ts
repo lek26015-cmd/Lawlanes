@@ -1,21 +1,6 @@
-
-import { ai } from '@/ai/genkit';
 import { z } from 'zod';
 import { NextRequest, NextResponse } from 'next/server';
-
-// Define the schema using Zod
-const ContractDraftSchema = z.object({
-    employer: z.string().describe('The name of the employer or customer'),
-    contractor: z.string().describe('The name of the contractor or freelancer'),
-    task: z.string().describe('The description of the task or work to be done'),
-    price: z.number().describe('The total price of the work'),
-    deposit: z.number().describe('The deposit amount already paid or to be paid'),
-    deadline: z.string().describe('The completion deadline in a human readable format, e.g., "Friday 16th Feb"'),
-    paymentTerms: z.string().describe('Condition for the remaining payment'),
-    missingInfo: z.array(z.string()).describe('List of important information missing from the chat, e.g., daily penalty for delay'),
-    riskyTerms: z.array(z.string()).describe('List of risky terms found in the chat, e.g., "lifetime warranty"'),
-});
-
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Define the schema using Zod
 const RequestSchema = z.object({
@@ -23,6 +8,8 @@ const RequestSchema = z.object({
     image: z.string().optional(), // Backwards compatibility
     locale: z.string().optional(),
 });
+
+export const runtime = 'edge';
 
 export async function POST(req: NextRequest) {
     try {
@@ -37,10 +24,7 @@ export async function POST(req: NextRequest) {
 
         const language = locale === 'en' ? 'English' : 'Thai';
 
-        // Convert base64 images to Genkit compatible format
-        const content = [
-            {
-                text: `
+        const prompt = `
       You are a legal AI assistant. Analyze the screenshot(s) of a chat conversation between a craftsman/freelancer and a customer.
       Extract the following information to draft a simple agreement.
       
@@ -71,39 +55,56 @@ export async function POST(req: NextRequest) {
       - Missing Info: Identify any critical legal terms missing in ${language}.
       - Risky Terms: Identify any vague or dangerous promises in ${language}.
       
-      Output strictly in JSON format matching the schema.
-    ` },
-            ...imageList.map(img => {
-                // Extract mime type if it's a data URL
-                let contentType = 'image/jpeg';
-                if (img.startsWith('data:')) {
-                    const matches = img.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,/);
-                    if (matches && matches[1]) {
-                        contentType = matches[1];
-                    }
-                }
-                return {
-                    media: {
-                        url: img,
-                        contentType
-                    }
-                };
-            })
-        ];
+      Output strictly in JSON format matching this schema:
+      {
+        "employer": "string",
+        "contractor": "string",
+        "task": "string",
+        "price": number,
+        "deposit": number,
+        "deadline": "string",
+        "paymentTerms": "string",
+        "missingInfo": ["string"],
+        "riskyTerms": ["string"]
+      }
+    `;
 
-        const { output } = await ai.generate({
-            model: 'googleai/gemini-flash-latest',
-            prompt: content,
-            output: {
-                schema: ContractDraftSchema,
+        const apiKey = process.env.GOOGLE_API_KEY || process.env.GOOGLE_GENAI_API_KEY || '';
+        if (!apiKey) throw new Error("API Key not found");
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({
+            model: "gemini-1.5-flash",
+            generationConfig: {
+                responseMimeType: "application/json"
             }
         });
 
-        if (!output) {
+        const imageParts = imageList.map(img => {
+            let mimeType = 'image/jpeg';
+            let data = img;
+            if (img.startsWith('data:')) {
+                const matches = img.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
+                if (matches && matches[1] && matches[2]) {
+                    mimeType = matches[1];
+                    data = matches[2];
+                }
+            }
+            return {
+                inlineData: {
+                    data,
+                    mimeType
+                }
+            };
+        });
+
+        const result = await model.generateContent([prompt, ...imageParts]);
+
+        if (!result || !result.response) {
             throw new Error('Failed to generate contract draft');
         }
 
-        return NextResponse.json(output);
+        const jsonString = result.response.text();
+        return NextResponse.json(JSON.parse(jsonString));
 
     } catch (error: any) {
         console.error('Contract draft generation error:', error);

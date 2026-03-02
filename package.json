@@ -10,16 +10,12 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "build:cloudflare": "npx @cloudflare/next-on-pages",
-    "deploy:cloudflare": "npm run build:cloudflare && npx wrangler pages deploy .vercel/output/static",
-    "deploy": "echo 'For Vercel deployment, simply git push. For Cloudflare, run npm run deploy:cloudflare'"
+    "deploy": "echo 'For Vercel deployment, simply git push.'"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.948.0",
     "@aws-sdk/s3-request-presigner": "^3.948.0",
     "@formatjs/intl-localematcher": "^0.5.4",
-    "@genkit-ai/google-genai": "^1.20.0",
-    "@genkit-ai/next": "^1.20.0",
     "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^4.1.3",
     "@pdf-lib/fontkit": "^1.1.1",
@@ -56,7 +52,6 @@
     "firebase": "^11.9.0",
     "firebase-admin": "^13.6.0",
     "framer-motion": "^12.25.0",
-    "genkit": "^1.20.0",
     "input-otp": "^1.2.4",
     "jsqr": "^1.4.0",
     "lucide-react": "^0.475.0",
@@ -87,7 +82,6 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
-    "@cloudflare/next-on-pages": "^1.13.16",
     "@types/negotiator": "^0.6.3",
     "@types/node": "^20",
     "@types/pdf-parse": "^1.1.5",
@@ -98,11 +92,9 @@
     "eslint": "9.39.1",
     "eslint-config-next": "latest",
     "firebase-tools": "^14.27.0",
-    "genkit-cli": "^1.20.0",
     "postcss": "^8",
     "tailwindcss": "^3.4.1",
-    "typescript": "^5",
-    "wrangler": "^3.67.1"
+    "typescript": "^5"
   },
   "browserslist": [
     "last 2 Chrome versions",

@@ -1,8 +1,8 @@
 'use server';
 
-import { ai } from '@/ai/genkit';
 import { retrieveContext } from '@/lib/rag';
 import { z } from 'zod';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 const LegalQaInputSchema = z.object({
     question: z.string(),
@@ -55,8 +55,13 @@ export async function generateLegalAdvice(question: string, locale: string = 'th
            - **ห้าม** แนะนำให้หาทนายพร่ำเพรื่อในทุกคำตอบ
     `;
 
-        const { text } = await ai.generate(prompt);
-        return text;
+        const apiKey = process.env.GOOGLE_API_KEY || process.env.GOOGLE_GENAI_API_KEY || '';
+        if (!apiKey) throw new Error("API Key not found");
+        const genAI = new GoogleGenerativeAI(apiKey);
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+        const result = await model.generateContent(prompt);
+        return result.response.text();
 
     } catch (error) {
         console.error('Error generating legal advice:', error);

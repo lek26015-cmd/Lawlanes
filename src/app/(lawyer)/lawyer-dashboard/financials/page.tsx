@@ -46,7 +46,6 @@ import {
 } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from '@/hooks/use-toast';
-import { notifyAdmins } from '@/app/actions/admin-notifications';
 
 type Transaction = {
     id: string;
@@ -375,13 +374,7 @@ function LawyerFinancialsContent() {
             });
 
             // Send Email Notification to Admins
-            // We don't await this to prevent blocking the UI response
-            notifyAdmins('withdrawal', {
-                lawyerName: user.displayName || accountName || 'Unknown Lawyer',
-                amount: amount,
-                bankName: bankName,
-                accountNumber: accountNumber
-            });
+            // We don't await this to prevent blocking the UI response (removed)
 
             toast({ title: "ส่งคำร้องสำเร็จ", description: "คำร้องขอถอนเงินของคุณถูกส่งเรียบร้อยแล้ว" });
             setIsWithdrawOpen(false);

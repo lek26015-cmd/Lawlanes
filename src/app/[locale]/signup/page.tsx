@@ -23,7 +23,6 @@ import { TurnstileWidget } from '@/components/turnstile-widget';
 import { validateTurnstile } from '@/app/actions/turnstile';
 // import { Locale } from '@/../i18n.config';
 import { Checkbox } from '@/components/ui/checkbox';
-import { notifyAdmins } from '@/app/actions/admin-notifications';
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'ชื่อต้องมีอย่างน้อย 2 ตัวอักษร' }),
@@ -115,11 +114,7 @@ export default function SignupPage() {
 
       setDoc(userRef, userProfileData)
         .then(() => {
-          // Notify admins
-          notifyAdmins('new_user', {
-            name: values.name,
-            email: values.email
-          });
+          // Notify admins - removed
         })
         .catch(error => {
           const permissionError = new FirestorePermissionError({

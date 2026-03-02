@@ -21,7 +21,6 @@ import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { useFirebase, useUser } from '@/firebase';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
-import { notifyAdmins } from '@/app/actions/admin-notifications';
 import { useTranslations, useLocale } from 'next-intl';
 
 function HelpPageContent() {
@@ -141,14 +140,7 @@ function HelpPageContent() {
                     relatedId: docRef.id
                   });
 
-                  // Send Email Notification
-                  notifyAdmins('new_ticket', {
-                    ticketId: docRef.id,
-                    problemType: problemType,
-                    description: description,
-                    clientName: user.displayName || 'ผู้ใช้งาน',
-                    email: user.email
-                  });
+                  // Send Email Notification - removed
 
                   toast({
                     title: t('successTitle'),

@@ -1,85 +1,65 @@
-
 'use server';
 /**
  * @fileOverview A simple chat flow that uses the Gemini model with RAG.
- *
- * - chat - A function that handles the chat process.
  */
 
-import { ai } from '@/ai/genkit';
-import { MessageData } from 'genkit';
 import { z } from 'zod';
-import { getAllArticles } from '@/lib/data';
-import { Article } from '@/lib/types';
-
 import { initializeFirebase } from '@/firebase';
-
-// Define the tool for searching articles
-import { retrieveContext, retrieveDocuments } from '@/lib/rag';
+import { retrieveDocuments } from '@/lib/rag';
 import { callTyphoonAI } from '@/lib/typhoon';
+import { GoogleGenerativeAI, FunctionDeclaration, SchemaType as GenAISchemaType, Content } from '@google/generative-ai';
+import { collection, getDocs, limit, query } from 'firebase/firestore';
 
-// Define the tool for searching articles and RAG context
-const searchArticlesTool = ai.defineTool(
-  {
-    name: 'searchArticles',
-    description: 'Search for relevant legal information from the knowledge base (PDFs and Articles).',
-    inputSchema: z.object({
-      query: z.string().describe('The search query to find relevant information.'),
-    }),
-    outputSchema: z.object({
-      results: z.array(
-        z.object({
-          title: z.string(),
-          content: z.string(),
-        })
-      ),
-    }),
+const searchArticlesDeclaration: FunctionDeclaration = {
+  name: "searchArticles",
+  description: "Search for relevant legal information from the knowledge base (PDFs and Articles).",
+  parameters: {
+    type: GenAISchemaType.OBJECT,
+    properties: {
+      query: {
+        type: GenAISchemaType.STRING,
+        description: "The search query to find relevant information.",
+      },
+    },
+    required: ["query"],
   },
-  async (input) => {
-    console.log(`[searchArticlesTool] Searching for: ${input.query}`);
+};
 
-    // 1. Search RAG (Cloudflare)
-    let ragDocs: Array<{ source: string, content: string, score: number }> = [];
-    try {
-      const allDocs = await retrieveDocuments(input.query);
-      // Filter by similarity score (threshold 0.6)
-      ragDocs = allDocs.filter(doc => doc.score > 0.6);
-      console.log(`[searchArticlesTool] RAG found ${allDocs.length} docs, ${ragDocs.length} passed threshold.`);
-    } catch (err) {
-      console.error("RAG search failed:", err);
-    }
+async function executeSearchArticles(queryStr: string) {
+  console.log(`[searchArticlesTool] Searching for: ${queryStr}`);
 
-    const results = [];
-
-    if (ragDocs.length > 0) {
-      // Case A: Found specific legal documents
-      ragDocs.forEach(doc => {
-        results.push({
-          title: "ข้อมูลจากเอกสารกฎหมาย (PDF)",
-          content: doc.content
-        });
-      });
-    } else {
-      // Case B: No documents found -> Ask Typhoon (General Knowledge Fallback)
-      console.log("[searchArticlesTool] No relevant RAG docs. Asking Typhoon...");
-      const typhoonResponse = await callTyphoonAI(input.query);
-      if (typhoonResponse) {
-        results.push({
-          title: "ข้อมูลความรู้ทั่วไป (จาก Typhoon AI)",
-          content: typhoonResponse
-        });
-      }
-    }
-
-    // 2. Search Articles (Firestore) - Keep as secondary source if RAG failed? 
-    // For now, let's prioritize RAG/Typhoon to keep it clean, or append if RAG found nothing.
-    // Let's append Firestore only if we have results, to avoid noise? 
-    // Actually, existing logic appended it. Let's keep it but maybe filter strictly.
-
-    return { results };
+  // 1. Search RAG (Cloudflare)
+  let ragDocs: Array<{ source: string, content: string, score: number }> = [];
+  try {
+    const allDocs = await retrieveDocuments(queryStr);
+    ragDocs = allDocs.filter(doc => doc.score > 0.6);
+    console.log(`[searchArticlesTool] RAG found ${allDocs.length} docs, ${ragDocs.length} passed threshold.`);
+  } catch (err) {
+    console.error("RAG search failed:", err);
   }
-);
 
+  const results = [];
+
+  if (ragDocs.length > 0) {
+    ragDocs.forEach(doc => {
+      results.push({
+        title: "ข้อมูลจากเอกสารกฎหมาย (PDF)",
+        content: doc.content
+      });
+    });
+  } else {
+    console.log("[searchArticlesTool] No relevant RAG docs. Asking Typhoon...");
+    const typhoonResponse = await callTyphoonAI(queryStr);
+    if (typhoonResponse) {
+      results.push({
+        title: "ข้อมูลความรู้ทั่วไป (จาก Typhoon AI)",
+        content: typhoonResponse
+      });
+    }
+  }
+
+  return { results };
+}
 
 const ChatRequestSchema = z.object({
   history: z.array(
@@ -103,49 +83,18 @@ const ChatResponseSchema = z.object({
 
 export type ChatResponse = z.infer<typeof ChatResponseSchema>;
 
-const chatPrompt = ai.definePrompt({
-  name: 'chatPrompt',
-  input: { schema: ChatRequestSchema },
-  output: { schema: ChatResponseSchema },
-  tools: [searchArticlesTool],
-  system: `You are an AI legal assistant for Lawslane, a legal tech platform in Thailand.
-    Your role is to provide preliminary analysis and information, not definitive legal advice.
-    
-    Always follow these steps:
-    1.  First, use the \`searchArticles\` tool to find relevant information.
-    2.  If the tool returns "Legal Documents (PDF)", treat this as high-confidence legal information. Base your answer primarily on this.
-    3.  If the tool returns "General Knowledge (Typhoon AI)", this means no specific legal document was found. Use this information to answer the user's question but explicitly state that it is general knowledge, not specific legal advice from the database.
-    4.  If no information is found at all, answer based on your own general knowledge.
-    5.  Always conclude your response by reminding the user that your analysis is for informational purposes only and they should consult with a qualified lawyer for formal advice.
-    6.  **SERVICE RECOMMENDATIONS (CRITICAL)**:
-        -   **Contracts (Drafting/Review)**: If the user asks about drafting, reviewing, or creating contracts (agreements, MOUs, NDAs, etc.), you **MUST** recommend the "Contract Service" and provide this link: \`/services/contracts\`. Do NOT recommend finding a lawyer generally for this.
-        -   **Business Registration**: If the user asks about registering a company, partnership, or business entity, you **MUST** recommend the "Registration Service" and provide this link: \`/services/registration\`.
-        -   **SME Consulting/General Business**: If the user is an SME asking for general advice or has a business dispute, recommend the "SME Consultant" and provide this link: \`/b2b#contact\`.
-        -   **Find a Lawyer**: ONLY recommend "Find a Lawyer" (\`/lawyers\`) if:
-            -   The user explicitly asks to find a lawyer.
-            -   The issue involves **litigation**, **court proceedings**, **suing**, or **criminal cases**.
-            -   The issue is complex and does not fit into the specific services above.
-            -   **DO NOT** recommend finding a lawyer for every single query. Use it sparingly.
-    7.  **CRITICAL**: In the **very first response** of the conversation, you **MUST** introduce yourself as the AI assistant for Lawslane AND explicitly state that your advice is preliminary and not a substitute for a lawyer (Limitation of Liability).
-    8.  For all **subsequent messages** (after the first one), **DO NOT** introduce yourself, **DO NOT** say "Hello" or "Sawasdee", and **DO NOT** repeat the disclaimer. Answer the user's question directly and immediately.
-    `,
-  prompt: `User prompt: {{{prompt}}}`,
-});
-
-
 export async function chat(
   request: z.infer<typeof ChatRequestSchema>
 ): Promise<ChatResponse> {
   const { history, prompt, locale = 'th' } = request;
 
   try {
-    // Check if API key is set (basic check)
-    if (!process.env.GOOGLE_GENAI_API_KEY && !process.env.GOOGLE_API_KEY) {
+    const apiKey = process.env.GOOGLE_API_KEY || process.env.GOOGLE_GENAI_API_KEY || '';
+    if (!apiKey) {
       console.warn("[ChatFlow] No Google API Key found. Falling back to manual mode.");
       throw new Error("No API Key");
     }
 
-    // Determine language instruction
     let languageInstruction = "Answer in Thai.";
     if (locale.startsWith('en')) {
       languageInstruction = "Answer in English. IMPORTANT: For any specific legal terms, laws, or sensitive legal advice, you MUST provide the original Thai text alongside the English translation (e.g., 'Civil Code (ประมวลกฎหมายแพ่ง)').";
@@ -154,37 +103,96 @@ export async function chat(
       languageInstruction = "Answer in Chinese (Simplified). IMPORTANT: For any specific legal terms, laws, or sensitive legal advice, you MUST provide the original Thai text alongside the Chinese translation.";
     }
 
-    // Check if this is a subsequent message (history exists)
     let finalPrompt = `${prompt}\n\n[System Instruction: ${languageInstruction}]`;
 
     if (history && history.length > 0) {
       finalPrompt += `\n\n[System Note: This is a continuing conversation. Do NOT introduce yourself again. Do NOT say 'Hello' or 'Sawasdee'. Answer the question directly.]`;
     }
 
-    const { output } = await chatPrompt({
-      history,
-      prompt: finalPrompt,
+    const genAI = new GoogleGenerativeAI(apiKey);
+    const model = genAI.getGenerativeModel({
+      model: "gemini-1.5-flash",
+      tools: [{ functionDeclarations: [searchArticlesDeclaration] }],
+      systemInstruction: `You are an AI legal assistant for Lawslane, a legal tech platform in Thailand.
+Your role is to provide preliminary analysis and information, not definitive legal advice.
+
+Always follow these steps:
+1.  First, use the \`searchArticles\` tool to find relevant information.
+2.  If the tool returns "Legal Documents (PDF)", treat this as high-confidence legal information. Base your answer primarily on this.
+3.  If the tool returns "General Knowledge (Typhoon AI)", this means no specific legal document was found. Use this information to answer the user's question but explicitly state that it is general knowledge, not specific legal advice from the database.
+4.  If no information is found at all, answer based on your own general knowledge.
+5.  Always conclude your response by reminding the user that your analysis is for informational purposes only and they should consult with a qualified lawyer for formal advice.
+6.  **SERVICE RECOMMENDATIONS (CRITICAL)**:
+    -   **Contracts (Drafting/Review)**: If the user asks about drafting, reviewing, or creating contracts (agreements, MOUs, NDAs, etc.), you **MUST** recommend the "Contract Service" and provide this link: \`/services/contracts\`. Do NOT recommend finding a lawyer generally for this.
+    -   **Business Registration**: If the user asks about registering a company, partnership, or business entity, you **MUST** recommend the "Registration Service" and provide this link: \`/services/registration\`.
+    -   **SME Consulting/General Business**: If the user is an SME asking for general advice or has a business dispute, recommend the "SME Consultant" and provide this link: \`/b2b#contact\`.
+    -   **Find a Lawyer**: ONLY recommend "Find a Lawyer" (\`/lawyers\`) if:
+        -   The user explicitly asks to find a lawyer.
+        -   The issue involves **litigation**, **court proceedings**, **suing**, or **criminal cases**.
+        -   The issue is complex and does not fit into the specific services above.
+        -   **DO NOT** recommend finding a lawyer for every single query. Use it sparingly.
+7.  **CRITICAL**: In the **very first response** of the conversation, you **MUST** introduce yourself as the AI assistant for Lawslane AND explicitly state that your advice is preliminary and not a substitute for a lawyer (Limitation of Liability).
+8.  For all **subsequent messages** (after the first one), **DO NOT** introduce yourself, **DO NOT** say "Hello" or "Sawasdee", and **DO NOT** repeat the disclaimer. Answer the user's question directly and immediately.
+
+Output MUST be a valid JSON object matching this structure:
+{
+  "sections": [
+    {
+      "title": "Section Title",
+      "content": "Section Content",
+      "link": "Optional URL",
+      "linkText": "Optional Link Text"
+    }
+  ]
+}
+`,
+      generationConfig: {
+        responseMimeType: "application/json"
+      }
     });
 
-    return output!;
+    const formattedHistory: Content[] = history ? history.map(h => ({
+      role: h.role,
+      parts: h.content.map(c => ({ text: c.text }))
+    })) : [];
+
+    const chatSession = model.startChat({
+      history: formattedHistory,
+    });
+
+    let result = await chatSession.sendMessage(finalPrompt);
+
+    // Handle function calls if any
+    if (result.response.functionCalls()) {
+      const calls = result.response.functionCalls();
+      for (const call of calls || []) {
+        if (call.name === "searchArticles") {
+          const args = call.args as { query: string };
+          const toolResult = await executeSearchArticles(args.query);
+          result = await chatSession.sendMessage([{
+            functionResponse: {
+              name: "searchArticles",
+              response: toolResult
+            }
+          }]);
+        }
+      }
+    }
+
+    const text = result.response.text();
+    return JSON.parse(text) as ChatResponse;
+
   } catch (error) {
     console.error("[ChatFlow] AI generation failed:", error);
-
-    // Fallback: Manual RAG (Search + Template)
-    // This ensures the chat "works" even without a valid API key or if the model is overloaded.
     return await fallbackChat(prompt, locale);
   }
 }
 
-import { collection, getDocs, limit, query } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
-
 async function fallbackChat(prompt: string, locale: string = 'th'): Promise<ChatResponse> {
   console.log("[ChatFlow] Running fallback chat logic...");
   try {
-    const { firestore, auth } = initializeFirebase();
+    const { firestore } = initializeFirebase();
 
-    // Determine language instruction for Typhoon
     let languageInstruction = "ตอบเป็นภาษาไทย";
     if (locale.startsWith('en')) {
       languageInstruction = "Answer in English. IMPORTANT: For any specific legal terms, laws, or sensitive legal advice, you MUST provide the original Thai text alongside the English translation (e.g., 'Civil Code (ประมวลกฎหมายแพ่ง)').";
@@ -193,7 +201,6 @@ async function fallbackChat(prompt: string, locale: string = 'th'): Promise<Chat
       languageInstruction = "Answer in Chinese (Simplified). IMPORTANT: For any specific legal terms, laws, or sensitive legal advice, you MUST provide the original Thai text alongside the Chinese translation.";
     }
 
-    // Localized strings
     const t = {
       th: {
         greetingTitle: "สวัสดีครับ (โหมดสำรอง)",
@@ -256,7 +263,7 @@ async function fallbackChat(prompt: string, locale: string = 'th'): Promise<Chat
 
     const strings = locale.startsWith('en') ? t.en : (locale.startsWith('zh') ? t.zh : t.th);
 
-    // Use Client SDK with simple query
+    if (!firestore) throw new Error("Firestore not initialized");
     const articlesRef = collection(firestore, 'articles');
     const q = query(articlesRef, limit(20));
     const snapshot = await getDocs(q);
@@ -272,7 +279,6 @@ async function fallbackChat(prompt: string, locale: string = 'th'): Promise<Chat
 
     const lowerCaseQuery = prompt.toLowerCase();
 
-    // 1. Handle Greetings
     const greetings = ['สวัสดี', 'หวัดดี', 'hello', 'hi', 'ทักทาย', '你好'];
     if (greetings.some(g => lowerCaseQuery.includes(g))) {
       return {
@@ -283,15 +289,11 @@ async function fallbackChat(prompt: string, locale: string = 'th'): Promise<Chat
       };
     }
 
-    // 2. Smart Keyword Search
-    // Remove common Thai prefixes to find the core keyword
-    // e.g. "คดีมรดก" -> "มรดก", "กฎหมายที่ดิน" -> "ที่ดิน"
     const cleanPrompt = lowerCaseQuery
       .replace(/^(คดี|กฎหมาย|เรื่อง|การ|ความ|ข้อหา)/, '')
       .trim();
 
     const searchTerms = cleanPrompt.split(/\s+/).filter(w => w.length > 1);
-    // Add the original prompt back just in case
     if (cleanPrompt !== lowerCaseQuery) {
       searchTerms.push(lowerCaseQuery);
     }
@@ -300,18 +302,15 @@ async function fallbackChat(prompt: string, locale: string = 'th'): Promise<Chat
       .filter(article => {
         const title = article.title.toLowerCase();
         const content = article.content.toLowerCase();
-        // Match if ANY search term is found in title or content
         return searchTerms.some(term => title.includes(term) || content.includes(term));
       })
       .slice(0, 3);
 
     const sections = [];
 
-    // 3. Search RAG (Cloudflare) for Fallback
     let ragDocs: Array<{ source: string, content: string, score: number }> = [];
     try {
       const allDocs = await retrieveDocuments(cleanPrompt);
-      // Filter by similarity score (threshold 0.6 to avoid irrelevant garbage)
       ragDocs = allDocs.filter(doc => doc.score > 0.6);
       console.log(`[ChatFlow] RAG found ${allDocs.length} docs, ${ragDocs.length} passed threshold.`);
     } catch (err) {
@@ -339,7 +338,7 @@ async function fallbackChat(prompt: string, locale: string = 'th'): Promise<Chat
       relevantArticles.forEach(article => {
         sections.push({
           title: `${strings.article}: ${article.title}`,
-          content: article.content.substring(0, 300) + "..." // Summary
+          content: article.content.substring(0, 300) + "..."
         });
       });
 
@@ -350,7 +349,6 @@ async function fallbackChat(prompt: string, locale: string = 'th'): Promise<Chat
         linkText: strings.findLawyer
       });
     } else {
-      // 4. If no RAG/Articles, try Typhoon AI (General Knowledge)
       console.log("[ChatFlow] No RAG results, asking Typhoon...");
       const typhoonResponse = await callTyphoonAI(prompt, languageInstruction);
 
@@ -375,13 +373,9 @@ async function fallbackChat(prompt: string, locale: string = 'th'): Promise<Chat
       }
     }
 
-
     return { sections };
   } catch (error: any) {
     console.error("[ChatFlow] Fallback logic failed:", error);
-    console.error("[ChatFlow] Error details:", JSON.stringify(error, null, 2));
-    // Ultimate fallback if even Firestore fails
-    // Simple fallback string since we can't easily access t here without re-defining or passing
     const errorMsg = locale.startsWith('en')
       ? `Sorry, we cannot access the database at this time (${error?.message || 'Unknown Error'}). Please try again.`
       : (locale.startsWith('zh')

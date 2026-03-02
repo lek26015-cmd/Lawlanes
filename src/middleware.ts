@@ -13,15 +13,9 @@ export default async function middleware(request: NextRequest) {
     const { pathname } = request.nextUrl;
     const hostname = request.headers.get('host');
 
-    // 0. Subdomain Routing (admin.lawslane.com -> /admin, business.lawslane.com -> /dashboard/b2b)
+    // 0. Subdomain Routing (business.lawslane.com -> /dashboard/b2b)
     if (hostname) {
-        if (hostname.startsWith('admin.')) {
-            if (!pathname.includes('/admin')) {
-                const newPath = `/admin${pathname.replace(/^\/(th|en|zh)/, '')}`;
-                return NextResponse.rewrite(new URL(newPath, request.url));
-            }
-        }
-        else if (hostname.startsWith('business.')) {
+        if (hostname.startsWith('business.')) {
             // Check for both session and session_hint for extra robustness in dev
             // session_hint from Client helps skip redirects during auto-sync
             const hasSession = request.cookies.has('session') ||
@@ -65,20 +59,8 @@ export default async function middleware(request: NextRequest) {
         }
     }
 
-    // Redirect /admin or /dashboard/b2b or /b2b on main domain to subdomains
-    if (hostname && !hostname.startsWith('admin.') && !hostname.startsWith('business.')) {
-        const isLocalhost = hostname.includes('localhost');
-        const [hostOnly, port] = hostname.split(':');
-        const rootDomain = isLocalhost ? hostOnly : (process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'lawslane.com');
-        const protocol = process.env.NODE_ENV === 'production' ? 'https' : 'http';
-        const portSuffix = port ? `:${port}` : '';
-
-        if (pathname.includes('/admin')) {
-            const newPath = pathname.replace(/^\/(th|en|zh)?\/admin/, '') || '/';
-            const targetHost = `admin.${rootDomain}${portSuffix}`;
-            return NextResponse.redirect(`${protocol}://${targetHost}${newPath}`);
-        }
-
+    // Redirect /dashboard/b2b or /b2b on main domain to subdomains
+    if (hostname && !hostname.startsWith('business.')) {
         if (pathname.includes('/dashboard/b2b') || pathname.match(/^\/(th|en|zh)?\/b2b/)) {
             const localeMatch = pathname.match(/^\/(th|en|zh)(\/|$)/);
             const locale = localeMatch ? localeMatch[1] : 'th';
@@ -86,22 +68,15 @@ export default async function middleware(request: NextRequest) {
         }
     }
 
-    // 0.5 Redirect localized lawyer/admin routes to root (e.g. /th/admin -> /admin)
-    const localizedSystemRegex = /^\/[a-z]{2}\/(admin|lawyer-)(.*)/;
+    // 0.5 Redirect localized lawyer routes to root
+    const localizedSystemRegex = /^\/[a-z]{2}\/(lawyer-)(.*)/;
     if (localizedSystemRegex.test(pathname)) {
         const newPath = pathname.replace(/^\/[a-z]{2}/, '');
         return NextResponse.redirect(new URL(newPath, request.url));
     }
 
-    // 1. Admin & Lawyer System Exclusion (No i18n)
-    if (pathname.startsWith('/admin') || pathname.startsWith('/lawyer-')) {
-        // Admin Auth Check
-        if (pathname.startsWith('/admin') && pathname !== '/admin/login') {
-            const session = request.cookies.get('session');
-            if (!session) {
-                return NextResponse.redirect(new URL('/admin/login', request.url));
-            }
-        }
+    // 1. Lawyer System Exclusion (No i18n)
+    if (pathname.startsWith('/lawyer-')) {
 
         // For these systems, simply proceed without i18n
         const response = NextResponse.next();
@@ -109,7 +84,7 @@ export default async function middleware(request: NextRequest) {
         return response;
     }
 
-    // 2. Internationalization Middleware (Only for non-admin routes)
+    // 2. Internationalization Middleware (Only for non-lawyer routes)
     const response = intlMiddleware(request);
 
     // Add Security Headers
