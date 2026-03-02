@@ -1,5 +1,6 @@
 
-'use client';
+'use client'
+export const runtime = 'edge';;
 
 import React from 'react';
 import { Button } from '@/components/ui/button';

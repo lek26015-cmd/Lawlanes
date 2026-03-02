@@ -1,7 +1,6 @@
 import { cookies, headers } from 'next/headers';
-import { NextResponse } from 'next/server';
-
 export const runtime = 'edge';
+import { NextResponse } from 'next/server';
 
 // NOTE: We are intentionally avoiding 'firebase-admin' here because it is not compatible with the Edge Runtime.
 // This is a "Lightweight Session" implementation for Cloudflare Pages.

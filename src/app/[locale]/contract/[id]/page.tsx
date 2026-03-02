@@ -1,4 +1,5 @@
 'use client';
+export const runtime = 'edge';
 
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
@@ -108,7 +109,7 @@ export default function ContractSigningPage() {
                         </div>
                         {contract.status === 'signed' && (
                             <Button
-                                onClick={() => generateContractPDF(contract)}
+                                onClick={() => generateContractPDF(contract as any)}
                                 className="bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-900/10"
                             >
                                 <Download className="w-4 h-4 mr-2" />

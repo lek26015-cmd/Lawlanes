@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { locales } from '@/navigation';
 import '../globals.css';
 import React from 'react';
 import { ClientProviders } from '../client-providers';
@@ -27,7 +28,7 @@ export const metadata: Metadata = {
 };
 
 export function generateStaticParams() {
-  return [{ locale: 'th' }, { locale: 'en' }, { locale: 'zh' }];
+  return locales.map((locale) => ({ locale }));
 }
 
 export default async function RootLayout({
