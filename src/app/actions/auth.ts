@@ -1,11 +1,9 @@
 'use server';
 
-import { getAuth } from 'firebase-admin/auth';
 import { Resend } from 'resend';
-import { initAdmin } from '@/lib/firebase-admin';
 
-// Initialize Firebase Admin
-initAdmin();
+// NOTE: firebase-admin imports removed for Cloudflare Pages (Edge) compatibility.
+// generateEmailVerificationLink and generatePasswordResetLink are not supported in the Edge Runtime.
 
 // Helper function to generate premium HTML email
 function generateEmailHtml(title: string, content: string, buttonText: string, link: string) {
@@ -63,36 +61,22 @@ function generateEmailHtml(title: string, content: string, buttonText: string, l
 
 export async function sendCustomVerificationEmail(email: string, name: string) {
   try {
-    const auth = getAuth();
+    // In Edge Runtime, we cannot generate the Firebase link server-side without admin.
+    // For now, we return a message indicating this must be initiated by the client.
+    console.warn("sendCustomVerificationEmail: Server-side link generation is disabled on Cloudflare Edge.");
 
-    // Generate the email verification link
-    const link = await auth.generateEmailVerificationLink(email);
+    return {
+      success: false,
+      error: 'อีเมลยืนยันตัวตนควรถูกส่งจากฝั่งผู้ใช้ (Client-side) เนื่องจากข้อจำกัดของระบบ Edge'
+    };
 
-    if (!process.env.RESEND_API_KEY) {
-      console.error('RESEND_API_KEY is missing');
-      return { success: false, error: 'Server configuration error: Missing Email API Key' };
-    }
-    const resend = new Resend(process.env.RESEND_API_KEY);
-
-    // Send the email using Resend
-    const subject = 'ยืนยันอีเมลเพื่อเริ่มใช้งาน Lawslane';
-    const encodedSubject = `=?UTF-8?B?${Buffer.from(subject).toString('base64')}?=`;
-
-    const content = `
-      <p>สวัสดีคุณ <strong>${name}</strong>,</p>
-      <p>ขอบคุณที่สมัครสมาชิก Lawslane แพลตฟอร์มสำหรับทนายความมืออาชีพ</p>
-      <p>เพื่อให้มั่นใจว่านี่คืออีเมลของคุณจริงๆ กรุณากดยืนยันตัวตนเพื่อเริ่มใช้งานระบบได้ทันที</p>
-    `;
-
-    await resend.emails.send({
-      from: 'Lawslane <noreply@lawslane.com>',
-      to: email,
-      subject: encodedSubject,
-      html: generateEmailHtml('ยืนยันอีเมลของคุณ', content, 'ยืนยันอีเมล', link),
-      text: `สวัสดีคุณ ${name},\n\nขอบคุณที่สมัครสมาชิก Lawslane\nกรุณาคลิกลิงก์ด้านล่างเพื่อยืนยันที่อยู่อีเมลของคุณ:\n\n${link}\n\nหากคุณไม่ได้เป็นผู้ทำการสมัครนี้ กรุณาเพิกเฉยต่ออีเมลฉบับนี้\n\nทีมงาน Lawslane`,
+    /* 
+    Optional Implementation: Use Firebase Auth REST API for link generation
+    const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${process.env.NEXT_PUBLIC_FIREBASE_API_KEY}`, {
+        method: 'POST',
+        body: JSON.stringify({ requestType: 'VERIFY_EMAIL', email })
     });
-
-    return { success: true };
+    */
   } catch (error: any) {
     console.error('Error sending verification email:', error);
     return { success: false, error: error.message };
@@ -101,53 +85,11 @@ export async function sendCustomVerificationEmail(email: string, name: string) {
 
 export async function sendCustomPasswordResetEmailV2(email: string) {
   try {
-    const auth = getAuth();
-
-    // Generate the password reset link (default Firebase link)
-    const firebaseLink = await auth.generatePasswordResetLink(email);
-
-    // Extract the oobCode from the Firebase link
-    const url = new URL(firebaseLink);
-    const oobCode = url.searchParams.get('oobCode');
-
-    if (!oobCode) {
-      throw new Error('Could not extract reset code');
-    }
-
-    // Construct the custom link
-    // Dynamically determine the base URL from the request headers
-    const headersList = await import('next/headers').then(mod => mod.headers());
-    const host = headersList.get('host') || 'lawslane.com';
-    const protocol = host.includes('localhost') ? 'http' : 'https';
-    const baseUrl = `${protocol}://${host}`;
-
-    const link = `${baseUrl}/reset-password?oobCode=${oobCode}`;
-
-    if (!process.env.RESEND_API_KEY) {
-      console.error('RESEND_API_KEY is missing');
-      return { success: false, error: 'Server configuration error: Missing Email API Key' };
-    }
-    const resend = new Resend(process.env.RESEND_API_KEY);
-
-    // Send the email using Resend
-    const subject = 'รีเซ็ตรหัสผ่านของคุณ (Lawslane Password Reset)';
-    const encodedSubject = `=?UTF-8?B?${Buffer.from(subject).toString('base64')}?=`;
-
-    const content = `
-      <p>เราได้รับคำขอให้รีเซ็ตรหัสผ่านสำหรับบัญชี Lawslane ของคุณ</p>
-      <p>หากคุณเป็นผู้ร้องขอ กรุณากดปุ่มด้านล่างเพื่อตั้งรหัสผ่านใหม่ได้เลยครับ</p>
-      <p style="margin-top: 20px; font-size: 14px; color: #64748b;">หากคุณไม่ได้เป็นผู้ร้องขอ กรุณาเพิกเฉยต่ออีเมลฉบับนี้ รหัสผ่านของคุณจะยังคงปลอดภัยเหมือนเดิม</p>
-    `;
-
-    await resend.emails.send({
-      from: 'Lawslane <noreply@lawslane.com>',
-      to: email,
-      subject: encodedSubject,
-      html: generateEmailHtml('รีเซ็ตรหัสผ่าน', content, 'ตั้งรหัสผ่านใหม่', link),
-      text: `รีเซ็ตรหัสผ่าน\n\nเราได้รับคำขอให้รีเซ็ตรหัสผ่านสำหรับบัญชี Lawslane ของคุณ\nกรุณาคลิกลิงก์ด้านล่างเพื่อตั้งรหัสผ่านใหม่:\n\n${link}\n\nหากคุณไม่ได้เป็นผู้ร้องขอ กรุณาเพิกเฉยต่ออีเมลฉบับนี้ รหัสผ่านของคุณจะยังคงเหมือนเดิม\n\nทีมงาน Lawslane`,
-    });
-
-    return { success: true };
+    console.warn("sendCustomPasswordResetEmailV2: Server-side link generation is disabled on Cloudflare Edge.");
+    return {
+      success: false,
+      error: 'ระบบรีเซ็ตรหัสผ่านควรถูกส่งจากฝั่งผู้ใช้ (Client-side) เนื่องจากข้อจำกัดของระบบ Edge'
+    };
   } catch (error: any) {
     console.error('Error sending password reset email:', error);
     return { success: false, error: error.message };

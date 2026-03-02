@@ -1,7 +1,7 @@
 'use server';
 
-import { initAdmin } from '@/lib/firebase-admin';
-import { getFirestore } from 'firebase-admin/firestore';
+import { initializeFirebase } from '@/firebase';
+import { doc, setDoc } from 'firebase/firestore';
 
 export async function addToVerifiedRegistry(data: {
     licenseNumber: string;
@@ -10,16 +10,15 @@ export async function addToVerifiedRegistry(data: {
     province: string;
 }) {
     try {
-        const app = await initAdmin();
-        if (!app) {
-            return { success: false, error: 'Firebase Admin initialization failed' };
+        const { firestore: db } = initializeFirebase();
+        if (!db) {
+            return { success: false, error: 'Firebase Firestore initialization failed' };
         }
-        const db = getFirestore();
 
         // Sanitize ID
         const docId = data.licenseNumber.replace(/\//g, '-');
 
-        await db.collection('verifiedLawyers').doc(docId).set({
+        await setDoc(doc(db, 'verifiedLawyers', docId), {
             licenseNumber: data.licenseNumber,
             firstName: data.firstName,
             lastName: data.lastName,

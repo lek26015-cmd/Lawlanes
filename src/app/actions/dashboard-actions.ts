@@ -1,36 +1,29 @@
 'use server';
 
-import { initAdmin } from '@/lib/firebase-admin';
-import { getFirestore } from 'firebase-admin/firestore';
+import { initializeFirebase } from '@/firebase';
+import { collection, getDocs, query, where, doc, getDoc, Timestamp, orderBy } from 'firebase/firestore';
 import type { Case, UpcomingAppointment, ReportedTicket } from '@/lib/types';
-import { Timestamp } from 'firebase-admin/firestore';
 
 export async function getUserDashboardData(userId: string) {
-    const app = await initAdmin();
-    if (!app) {
-        throw new Error('Firebase Admin not initialized');
+    const { firestore: db } = initializeFirebase();
+    if (!db) {
+        throw new Error('Firebase Firestore not initialized');
     }
 
-    const db = getFirestore(app);
-
     // 1. Fetch Cases (Chats)
-    const chatsRef = db.collection('chats');
+    const chatsRef = collection(db, 'chats');
 
-    // Use simple OR logic by fetching twice (admin SDK doesn't support 'OR' queries well yet in all versions, or simple merging is safer)
-    // Actually, Admin SDK supports 'OR' in newer versions, but let's stick to safe separate queries merged.
     // Query by participants
-    const participantsQuery = await chatsRef.where('participants', 'array-contains', userId).get();
-    // Query by userId
-    const userIdQuery = await chatsRef.where('userId', '==', userId).get();
+    const q1 = query(chatsRef, where('participants', 'array-contains', userId));
+    const q2 = query(chatsRef, where('userId', '==', userId));
+
+    const [pSnap, uSnap] = await Promise.all([getDocs(q1), getDocs(q2)]);
 
     const chatDocs = new Map();
-    participantsQuery.docs.forEach(doc => chatDocs.set(doc.id, doc));
-    userIdQuery.docs.forEach(doc => chatDocs.set(doc.id, doc));
+    pSnap.docs.forEach(d => chatDocs.set(d.id, d));
+    uSnap.docs.forEach(d => chatDocs.set(d.id, d));
 
     const cases: Case[] = [];
-
-    // Helper to get lawyer details
-    // Optimization: Cache lawyer profiles to avoid repetitive fetches
     const lawyerCache = new Map();
 
     const getLawyerDetails = async (lawyerIdParam: string | undefined): Promise<any> => {
@@ -39,23 +32,21 @@ export async function getUserDashboardData(userId: string) {
 
         let lawyerData = { id: lawyerIdParam, name: 'Unknown Lawyer', imageUrl: '', imageHint: '' };
 
-        // Try lawyerProfiles first
-        const lawyerDoc = await db.collection('lawyerProfiles').doc(lawyerIdParam).get();
-        if (lawyerDoc.exists) {
-            const d = lawyerDoc.data();
+        const lawyerDocSnap = await getDoc(doc(db, 'lawyerProfiles', lawyerIdParam));
+        if (lawyerDocSnap.exists()) {
+            const d = lawyerDocSnap.data();
             lawyerData = {
-                id: lawyerDoc.id,
+                id: lawyerDocSnap.id,
                 name: d?.name || 'Unknown Lawyer',
                 imageUrl: d?.imageUrl || '',
                 imageHint: d?.imageHint || ''
             };
         } else {
-            // Fallback to users
-            const userDoc = await db.collection('users').doc(lawyerIdParam).get();
-            if (userDoc.exists) {
-                const d = userDoc.data();
+            const userDocSnap = await getDoc(doc(db, 'users', lawyerIdParam));
+            if (userDocSnap.exists()) {
+                const d = userDocSnap.data();
                 lawyerData = {
-                    id: userDoc.id,
+                    id: userDocSnap.id,
                     name: d?.name || 'Unknown Lawyer',
                     imageUrl: '',
                     imageHint: ''
@@ -66,10 +57,8 @@ export async function getUserDashboardData(userId: string) {
         return lawyerData;
     };
 
-    for (const doc of chatDocs.values()) {
-        const data = doc.data();
-
-        // Logic to find lawyerId (same as client-side)
+    for (const d of chatDocs.values()) {
+        const data = d.data();
         let lawyerId = data.lawyerId;
         if (!lawyerId && data.participants && Array.isArray(data.participants)) {
             lawyerId = data.participants.find((p: string) => p !== userId);
@@ -77,7 +66,6 @@ export async function getUserDashboardData(userId: string) {
 
         const lawyer = await getLawyerDetails(lawyerId);
 
-        // Date handling: timestamps from Admin SDK need to be converted to Date or String
         const lastMessageAt = data.lastMessageAt instanceof Timestamp
             ? data.lastMessageAt.toDate().toISOString()
             : new Date().toISOString();
@@ -87,38 +75,35 @@ export async function getUserDashboardData(userId: string) {
             : (data.createdAt instanceof Timestamp ? data.createdAt.toDate() : new Date());
 
         cases.push({
-            id: doc.id,
+            id: d.id,
             title: data.caseTitle || '',
             status: data.status || 'active',
             lastMessage: data.lastMessage || '',
             lastMessageTimestamp: lastMessageAt,
             lawyer: lawyer,
-            updatedAt: updatedAt, // Note: Case type expects Date object, but for Client Component passing we might need serialization if direct. 
-            // However, Next.js Server Actions can return Date objects which are serialized.
+            updatedAt: updatedAt,
             rejectReason: data.rejectReason || '',
         });
     }
 
-    // Sort cases by updated most recent
     cases.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
 
     // 2. Fetch Appointments
-    const appointmentsRef = db.collection('appointments');
-    const aptSnapshot = await appointmentsRef.where('userId', '==', userId).get();
+    const appointmentsRef = collection(db, 'appointments');
+    const aptSnap = await getDocs(query(appointmentsRef, where('userId', '==', userId)));
 
     const appointments: UpcomingAppointment[] = [];
-    for (const doc of aptSnapshot.docs) {
-        const data = doc.data();
+    for (const d of aptSnap.docs) {
+        const data = d.data();
         const lawyer = await getLawyerDetails(data.lawyerId);
 
-        // Filter future only
         const date = data.date instanceof Timestamp ? data.date.toDate() : new Date();
         const todayStart = new Date();
         todayStart.setHours(0, 0, 0, 0);
 
         if (date >= todayStart) {
             appointments.push({
-                id: doc.id,
+                id: d.id,
                 date: date,
                 time: data.timeSlot || 'N/A',
                 description: data.description || '',
@@ -129,13 +114,13 @@ export async function getUserDashboardData(userId: string) {
     }
 
     // 3. Fetch Tickets
-    const ticketsRef = db.collection('tickets');
-    const ticketSnapshot = await ticketsRef.where('userId', '==', userId).get();
+    const ticketsRef = collection(db, 'tickets');
+    const ticketSnap = await getDocs(query(ticketsRef, where('userId', '==', userId)));
 
-    const tickets: ReportedTicket[] = ticketSnapshot.docs.map(doc => {
-        const data = doc.data();
+    const tickets: ReportedTicket[] = ticketSnap.docs.map(d => {
+        const data = d.data();
         return {
-            id: doc.id,
+            id: d.id,
             caseId: data.caseId || '',
             lawyerId: data.lawyerId || '',
             caseTitle: data.caseTitle || '',

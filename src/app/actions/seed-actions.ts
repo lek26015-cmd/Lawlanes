@@ -1,46 +1,44 @@
 'use server';
 
-import { initAdmin } from '@/lib/firebase-admin';
-import { getFirestore } from 'firebase-admin/firestore';
+import { initializeFirebase } from '@/firebase';
+import { collection, getDocs, query, doc, deleteDoc, writeBatch, getDoc } from 'firebase/firestore';
 
 export async function deleteTestData() {
-    const app = await initAdmin();
-    if (!app) {
-        return { success: false, error: 'Firebase Admin not initialized' };
+    const { firestore: db } = initializeFirebase();
+    if (!db) {
+        return { success: false, error: 'Firebase Firestore not initialized' };
     }
-
-    const db = getFirestore(app);
 
     try {
         let deletedChats = 0;
         let deletedLawyers = 0;
 
-        // Delete mock chats (those with [ทดสอบ] in caseTitle or with mock-lawyer-001)
-        const chatsRef = db.collection('chats');
-        const chatsSnapshot = await chatsRef.get();
+        // Delete mock chats
+        const chatsRef = collection(db, 'chats');
+        const chatsSnapshot = await getDocs(chatsRef);
 
         for (const chatDoc of chatsSnapshot.docs) {
             const data = chatDoc.data();
             if (data.caseTitle?.includes('[ทดสอบ]') || data.lawyerId === 'mock-lawyer-001') {
-                // Delete messages subcollection first
-                const messagesRef = chatDoc.ref.collection('messages');
-                const messagesSnapshot = await messagesRef.get();
+                // Delete messages subcollection
+                const messagesRef = collection(db, 'chats', chatDoc.id, 'messages');
+                const messagesSnapshot = await getDocs(messagesRef);
 
-                const batch = db.batch();
-                messagesSnapshot.docs.forEach((msgDoc: FirebaseFirestore.QueryDocumentSnapshot) => {
+                const batch = writeBatch(db);
+                messagesSnapshot.docs.forEach((msgDoc) => {
                     batch.delete(msgDoc.ref);
                 });
                 await batch.commit();
 
                 // Delete chat document
-                await chatDoc.ref.delete();
+                await deleteDoc(chatDoc.ref);
                 deletedChats++;
             }
         }
 
-        // Delete mock lawyer profiles (with mock ID or test names)
-        const lawyersRef = db.collection('lawyerProfiles');
-        const lawyersSnapshot = await lawyersRef.get();
+        // Delete mock lawyer profiles
+        const lawyersRef = collection(db, 'lawyerProfiles');
+        const lawyersSnapshot = await getDocs(lawyersRef);
 
         for (const lawyerDoc of lawyersSnapshot.docs) {
             const data = lawyerDoc.data();
@@ -51,7 +49,7 @@ export async function deleteTestData() {
                 name.includes('จำลอง') ||
                 name.includes('ทดสอบ')
             ) {
-                await lawyerDoc.ref.delete();
+                await deleteDoc(lawyerDoc.ref);
                 deletedLawyers++;
             }
         }
@@ -68,23 +66,20 @@ export async function deleteTestData() {
 }
 
 export async function deleteLawyerById(lawyerId: string) {
-    const app = await initAdmin();
-    if (!app) {
-        return { success: false, error: 'Firebase Admin not initialized' };
+    const { firestore: db } = initializeFirebase();
+    if (!db) {
+        return { success: false, error: 'Firebase Firestore not initialized' };
     }
 
-    const db = getFirestore(app);
-
     try {
-        // Delete lawyer profile
-        const lawyerRef = db.collection('lawyerProfiles').doc(lawyerId);
-        const lawyerDoc = await lawyerRef.get();
+        const lawyerRef = doc(db, 'lawyerProfiles', lawyerId);
+        const lawyerDoc = await getDoc(lawyerRef);
 
-        if (!lawyerDoc.exists) {
+        if (!lawyerDoc.exists()) {
             return { success: false, error: 'ไม่พบข้อมูลทนายความ' };
         }
 
-        await lawyerRef.delete();
+        await deleteDoc(lawyerRef);
 
         return { success: true };
     } catch (error: any) {
