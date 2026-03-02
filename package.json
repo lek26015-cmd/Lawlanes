@@ -12,9 +12,9 @@
     "typecheck": "tsc --noEmit",
     "deploy": "echo 'For Vercel deployment, simply git push.'",
     "pages:build": "npx @cloudflare/next-on-pages",
-    "pages:deploy": "npm run pages:build && npx wrangler pages deploy .next-on-pages",
+    "pages:deploy": "npm run pages:build && npx wrangler pages deploy .vercel/output/static",
     "pages:watch": "npx @cloudflare/next-on-pages --watch",
-    "pages:dev": "npx wrangler pages dev .next-on-pages"
+    "pages:dev": "npx wrangler pages dev .vercel/output/static"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.948.0",
