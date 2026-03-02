@@ -52,7 +52,9 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  serverExternalPackages: ['pdf-parse', 'firebase-admin'],
+  serverExternalPackages: [
+    'isomorphic-dompurify',
+  ],
   experimental: {
     serverActions: {
       bodySizeLimit: '50mb',

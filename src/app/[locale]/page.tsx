@@ -1,5 +1,4 @@
-import LanguageSwitcher from '@/components/LanguageSwitcher';
-export const runtime = 'edge';
+import { locales } from '@/navigation';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
@@ -24,7 +23,7 @@ import { FadeIn } from '@/components/fade-in';
 
 export const revalidate = 3600; // ISR: revalidate every 1 hour
 
-export default function Home() {
+export default function HomePage() {
   const t = useTranslations('HomePage');
   const { firestore: db } = initializeFirebase();
 

@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+export const runtime = 'edge';
 import { locales } from '@/navigation';
 import '../globals.css';
 import React from 'react';
@@ -27,9 +28,6 @@ export const metadata: Metadata = {
   },
 };
 
-export function generateStaticParams() {
-  return locales.map((locale) => ({ locale }));
-}
 
 export default async function RootLayout({
   children,
@@ -39,7 +37,6 @@ export default async function RootLayout({
   params: Promise<{ locale: string }>;
 }>) {
   const { locale } = await params;
-
   const messages = await getMessages();
   const domainType = 'main'; // Default for SSR, will be updated on client
 

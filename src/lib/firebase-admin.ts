@@ -1,4 +1,9 @@
 import 'server-only';
+
+if (process.env.NEXT_RUNTIME === 'edge') {
+    throw new Error('firebase-admin cannot be used in the Edge Runtime. Please use the client SDK instead.');
+}
+
 import * as admin from 'firebase-admin';
 
 interface FirebaseAdminAppParams {

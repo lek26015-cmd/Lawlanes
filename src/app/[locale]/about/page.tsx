@@ -1,5 +1,4 @@
 'use client';
-export const runtime = 'edge';
 
 import { Shield, Award, Heart, Globe, Mail, Phone, MapPin, Scale, ArrowRight } from 'lucide-react';
 import Image from 'next/image';
