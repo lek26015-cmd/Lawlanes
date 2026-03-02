@@ -1,6 +1,4 @@
-export const runtime = 'edge';
 import type { Metadata } from 'next';
-import { headers } from 'next/headers';
 import '../globals.css';
 import React from 'react';
 import { ClientProviders } from '../client-providers';
@@ -28,6 +26,10 @@ export const metadata: Metadata = {
   },
 };
 
+export function generateStaticParams() {
+  return [{ locale: 'th' }, { locale: 'en' }, { locale: 'zh' }];
+}
+
 export default async function RootLayout({
   children,
   params
@@ -37,19 +39,8 @@ export default async function RootLayout({
 }>) {
   const { locale } = await params;
 
-  const headersList = await headers();
-  const domain = headersList.get('host') || "";
-  let domainType = 'main';
-
-  if (domain.includes('admin.')) domainType = 'admin';
-  else if (domain.includes('business.')) domainType = 'business';
-  else if (domain.includes('lawyer.')) domainType = 'lawyer';
-
-  if (process.env.NODE_ENV !== 'production') {
-    console.log(`[RootLayout] Domain: ${domain}, Detected Type: ${domainType}, Locale: ${locale}`);
-  }
-
   const messages = await getMessages();
+  const domainType = 'main'; // Default for SSR, will be updated on client
 
   return (
     <html lang={locale} suppressHydrationWarning>
