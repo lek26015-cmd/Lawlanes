@@ -197,9 +197,9 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
             <Link href={getMainLink('/forms', domainType)} className={pathname.startsWith(`/forms`) ? activeNavLinkClasses : navLinkClasses}>
               {t('forms')}
             </Link>
-            <Link href={getMainLink('/services/contracts/screenshot', domainType)} className={pathname.startsWith(`/services/contracts/screenshot`) ? activeNavLinkClasses : navLinkClasses}>
+            <a href="https://capdeal.lawslane.com" target="_blank" rel="noopener noreferrer" className={pathname.startsWith(`/services/contracts/screenshot`) ? activeNavLinkClasses : navLinkClasses}>
               <span className="flex items-center gap-1"><Camera className="h-4 w-4" />{t('capAndDeal')}</span>
-            </Link>
+            </a>
             <Link href={getMainLink('/articles', domainType)} className={pathname.startsWith(`/articles`) ? activeNavLinkClasses : navLinkClasses}>
               {t('articles')}
             </Link>
@@ -386,7 +386,7 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
                   <Link href={getMainLink('/lawyers', domainType)} className="hover:text-primary">{t('findLawyer')}</Link>
                   <Link href={getMainLink('/verify-lawyer', domainType)} className="hover:text-primary">{t('verifyLawyer')}</Link>
                   <Link href={getMainLink('/forms', domainType)} className="hover:text-primary">{t('forms')}</Link>
-                  <Link href={getMainLink('/services/contracts/screenshot', domainType)} className="flex items-center gap-2 hover:text-primary"><Camera className="h-5 w-5" />{t('capAndDeal')}</Link>
+                  <a href="https://capdeal.lawslane.com" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:text-primary"><Camera className="h-5 w-5" />{t('capAndDeal')}</a>
                   <Link href={getMainLink('/articles', domainType)} className="hover:text-primary">{t('articles')}</Link>
                   <Link href={getMainLink('/for-lawyers', domainType)} className="hover:text-primary">{t('forLawyers')}</Link>
 

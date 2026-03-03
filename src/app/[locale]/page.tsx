@@ -212,10 +212,10 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                     ))}
                   </div>
                   <div className="pt-2">
-                    <Link href="/services/contracts/screenshot" className="inline-flex items-center justify-center px-8 py-3 text-base font-bold text-white bg-yellow-500 rounded-full hover:bg-yellow-600 shadow-lg shadow-yellow-400/30 hover:shadow-xl transition-all duration-300 group">
+                    <a href="https://capdeal.lawslane.com" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center px-8 py-3 text-base font-bold text-white bg-yellow-500 rounded-full hover:bg-yellow-600 shadow-lg shadow-yellow-400/30 hover:shadow-xl transition-all duration-300 group">
                       {t('capAndDeal.cta')}
                       <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                    </Link>
+                    </a>
                   </div>
                 </div>
               </FadeIn>
