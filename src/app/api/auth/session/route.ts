@@ -1,5 +1,6 @@
 import { cookies, headers } from 'next/headers';
 import { NextResponse } from 'next/server';
+import { initAdmin } from '@/lib/firebase-admin';
 
 // NOTE: We are intentionally avoiding 'firebase-admin' here because it is not compatible with the Edge Runtime.
 // This is a "Lightweight Session" implementation for Cloudflare Pages.
@@ -36,8 +37,17 @@ export async function POST(request: Request) {
         // Store the raw ID token as the session cookie
         cookieStore.set('session', idToken, cookieOptions);
 
+        const auth = await initAdmin();
+        if (!auth) {
+            return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+        }
+        
+        const sessionCookie = await auth.auth().createSessionCookie(idToken, { expiresIn });
+
+        // Store the verified session cookie
+        cookieStore.set('session', sessionCookie, cookieOptions);
+
         // Add a non-httpOnly hint for the client
-        // We can't verify the token here without jose, so we trust it was just sent from a successful login
         cookieStore.set('session_hint', 'authenticated', {
             ...cookieOptions,
             httpOnly: false,
@@ -59,12 +69,17 @@ export async function GET() {
             return NextResponse.json({ authenticated: false }, { status: 401 });
         }
 
-        // For Edge Runtime, we return a basic status. 
-        // Real validation would happen via JWT decoding.
-        return NextResponse.json({
-            authenticated: true,
-            note: "Authenticated via lightweight edge session"
-        });
+        // Validate via Firebase Admin
+        const auth = await initAdmin();
+        if (!auth) {
+             return NextResponse.json({ authenticated: false }, { status: 401 });
+        }
+        try {
+            const decodedToken = await auth.auth().verifySessionCookie(sessionCookie, true);
+            return NextResponse.json({ authenticated: true, uid: decodedToken.uid });
+        } catch (error) {
+            return NextResponse.json({ authenticated: false }, { status: 401 });
+        }
     } catch (error) {
         return NextResponse.json({ authenticated: false }, { status: 401 });
     }

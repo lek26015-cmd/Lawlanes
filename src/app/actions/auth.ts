@@ -1,9 +1,7 @@
 'use server';
 
 import { Resend } from 'resend';
-
-// NOTE: firebase-admin imports removed for Cloudflare Pages (Edge) compatibility.
-// generateEmailVerificationLink and generatePasswordResetLink are not supported in the Edge Runtime.
+import { initAdmin } from '@/lib/firebase-admin';
 
 // Helper function to generate premium HTML email
 function generateEmailHtml(title: string, content: string, buttonText: string, link: string) {
@@ -61,37 +59,82 @@ function generateEmailHtml(title: string, content: string, buttonText: string, l
 
 export async function sendCustomVerificationEmail(email: string, name: string) {
   try {
-    // In Edge Runtime, we cannot generate the Firebase link server-side without admin.
-    // For now, we return a message indicating this must be initiated by the client.
-    console.warn("sendCustomVerificationEmail: Server-side link generation is disabled on Cloudflare Edge.");
+    const auth = await initAdmin();
+    if (!auth) {
+      const errorMsg = 'ระบบไม่สามารถเชื่อมต่อ Server ทางเลือกได้ในขณะนี้'
+      console.error(errorMsg);
+      return { success: false, error: errorMsg };
+    }
 
-    return {
-      success: false,
-      error: 'อีเมลยืนยันตัวตนควรถูกส่งจากฝั่งผู้ใช้ (Client-side) เนื่องจากข้อจำกัดของระบบ Edge'
+    const actionCodeSettings = {
+      url: `https://lawslane.com/login`,
     };
 
-    /* 
-    Optional Implementation: Use Firebase Auth REST API for link generation
-    const response = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=${process.env.NEXT_PUBLIC_FIREBASE_API_KEY}`, {
-        method: 'POST',
-        body: JSON.stringify({ requestType: 'VERIFY_EMAIL', email })
+    const link = await auth.auth().generateEmailVerificationLink(email, actionCodeSettings);
+
+    const emailHtml = generateEmailHtml(
+      `ยินดีต้อนรับคุณ ${name}`,
+      `ขอบคุณที่ลงทะเบียนกับ Lawslane<br>กรุณายืนยันที่อยู่อีเมลของคุณเพื่อเริ่มต้นใช้งาน`,
+      'ยืนยันอีเมล',
+      link
+    );
+
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    const result = await resend.emails.send({
+      from: 'Lawslane <noreply@lawslane.com>',
+      to: email,
+      subject: 'ยินดีต้อนรับสู่ Lawslane - กรุณายืนยันอีเมลของคุณ',
+      html: emailHtml
     });
-    */
+
+    if (result.error) {
+      console.error('Error sending verification email with Resend:', result.error);
+      return { success: false, error: result.error.message };
+    }
+
+    return { success: true };
   } catch (error: any) {
-    console.error('Error sending verification email:', error);
+    console.error('Error creating custom verification email:', error);
     return { success: false, error: error.message };
   }
 }
 
 export async function sendCustomPasswordResetEmailV2(email: string) {
   try {
-    console.warn("sendCustomPasswordResetEmailV2: Server-side link generation is disabled on Cloudflare Edge.");
-    return {
-      success: false,
-      error: 'ระบบรีเซ็ตรหัสผ่านควรถูกส่งจากฝั่งผู้ใช้ (Client-side) เนื่องจากข้อจำกัดของระบบ Edge'
+    const auth = await initAdmin();
+    if (!auth) {
+      return { success: false, error: 'ระบบทำงานผิดพลาด กำลังแก้ไขโดยเร็วที่สุด' };
+    }
+
+    const actionCodeSettings = {
+      url: `https://lawslane.com/login`,
     };
+
+    const link = await auth.auth().generatePasswordResetLink(email, actionCodeSettings);
+
+    const emailHtml = generateEmailHtml(
+      'รีเซ็ตรหัสผ่าน',
+      `เราได้รับคำขอรีเซ็ตรหัสผ่านสำหรับบัญชีที่เชื่อมโยงกับอีเมลนี้<br>คลิกปุ่มด้านล่างเพื่อตั้งรหัสผ่านใหม่`,
+      'รีเซ็ตรหัสผ่าน',
+      link
+    );
+
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    const result = await resend.emails.send({
+      from: 'Lawslane <noreply@lawslane.com>',
+      to: email,
+      subject: 'รีเซ็ตรหัสผ่านบัญชี Lawslane ของคุณ',
+      html: emailHtml
+    });
+
+    if (result.error) {
+      console.error('Error sending reset email with Resend:', result.error);
+      return { success: false, error: result.error.message };
+    }
+
+    return { success: true };
   } catch (error: any) {
-    console.error('Error sending password reset email:', error);
+    console.error('Error in custom password reset:', error);
     return { success: false, error: error.message };
   }
 }
