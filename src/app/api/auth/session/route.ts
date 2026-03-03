@@ -1,5 +1,4 @@
 import { cookies, headers } from 'next/headers';
-export const runtime = 'edge';
 import { NextResponse } from 'next/server';
 
 // NOTE: We are intentionally avoiding 'firebase-admin' here because it is not compatible with the Edge Runtime.

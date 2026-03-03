@@ -2,7 +2,6 @@ import { ImageResponse } from 'next/og';
 import { Scale } from 'lucide-react';
 
 // Route segment config
-export const runtime = 'edge';
 
 // Image metadata
 export const size = {

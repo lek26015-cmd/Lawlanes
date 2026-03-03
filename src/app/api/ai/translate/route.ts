@@ -9,7 +9,6 @@ const TranslateSchema = z.object({
     targetLanguage: z.enum(['en', 'zh']),
 });
 
-export const runtime = 'edge';
 
 export async function POST(req: NextRequest) {
     try {

@@ -9,7 +9,6 @@ const RequestSchema = z.object({
     locale: z.string().optional(),
 });
 
-export const runtime = 'edge';
 
 export async function POST(req: NextRequest) {
     try {

@@ -9,10 +9,9 @@ import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import ScrollToTopButton from '@/components/ui/scroll-to-top';
 
-export const runtime = 'edge';
-
-// Removed generateStaticParams to reduce the number of Edge Functions (131 -> 1)
-// Cloudflare handles the [locale] dynamic segment with a single function.
+export function generateStaticParams() {
+  return locales.map((locale) => ({ locale }));
+}
 
 export const dynamicParams = false;
 

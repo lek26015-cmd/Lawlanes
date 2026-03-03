@@ -39,3 +39,7 @@ next-env.d.ts
 apphosting.yaml
 docs/backend.json
 # wrangler.toml
+
+# OpenNext build output
+.open-next
+

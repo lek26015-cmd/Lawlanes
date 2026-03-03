@@ -1,5 +1,4 @@
 'use client'
-export const runtime = 'edge';;
 
 import { useState, useEffect, useCallback, Suspense } from 'react';
 import { useUser, useFirebase } from '@/firebase';

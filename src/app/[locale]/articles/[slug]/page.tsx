@@ -1,4 +1,3 @@
-export const runtime = 'edge';
 import { getArticleBySlug } from '@/lib/data';
 import { notFound } from 'next/navigation';
 import { initializeFirebase } from '@/firebase';

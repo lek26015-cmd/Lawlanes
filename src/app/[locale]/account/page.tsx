@@ -1,5 +1,4 @@
 'use client';
-export const runtime = 'edge';
 
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
 
