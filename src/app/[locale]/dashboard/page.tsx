@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Calendar, Briefcase, FileText, Loader2, Search, MessageSquare, Building, FileUp, HelpCircle, CheckCircle, User, Ticket } from 'lucide-react';
+import { Calendar, Briefcase, FileText, Loader2, Search, MessageSquare, Building, FileUp, HelpCircle, CheckCircle, User, Ticket, FileSignature, Camera } from 'lucide-react';
 import type { Case, UpcomingAppointment, ReportedTicket } from '@/lib/types';
 import { format } from 'date-fns';
 import { th, enUS, zhCN } from 'date-fns/locale';
@@ -27,6 +27,7 @@ export default function DashboardPage() {
     const [cases, setCases] = useState<Case[]>([]);
     const [appointments, setAppointments] = useState<UpcomingAppointment[]>([]);
     const [tickets, setTickets] = useState<ReportedTicket[]>([]);
+    const [capDeals, setCapDeals] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     const dateLocale = locale === 'th' ? th : locale === 'zh' ? zhCN : enUS;
@@ -49,16 +50,23 @@ export default function DashboardPage() {
                     setCases(data.cases);
                     setAppointments(data.appointments);
                     setTickets(data.tickets);
+
+                    // The dashboard actions now returns capDeals
+                    if (data.capDeals) {
+                        setCapDeals(data.capDeals);
+                    }
                 } catch (error) {
                     console.error("Error fetching dashboard data:", error);
                     setCases([]);
                     setAppointments([]);
                     setTickets([]);
+                    setCapDeals([]);
                 }
             } else {
                 setCases([]);
                 setAppointments([]);
                 setTickets([]);
+                setCapDeals([]);
             }
             setIsLoading(false);
         }
@@ -230,6 +238,64 @@ export default function DashboardPage() {
                                 </CardContent>
                             </Card>
                         )}
+
+
+                        {/* Cap Deal - Recent Contracts */}
+                        <Card className="rounded-3xl shadow-sm border-none">
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2 font-bold">
+                                    <FileSignature className="w-5 h-5" />
+                                    แคปดีล — สัญญาล่าสุด
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                {capDeals.length > 0 ? (
+                                    <div className="space-y-3">
+                                        {capDeals.map((deal: any) => (
+                                            <Link href={`https://capdeal.lawslane.com/${locale}/contract/${deal.id}`} key={deal.id} target="_blank">
+                                                <div className="flex items-center justify-between p-4 rounded-3xl bg-blue-50 border border-blue-100 hover:bg-blue-100/50 transition-colors">
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className="font-semibold text-blue-900 truncate flex items-center gap-2">
+                                                            {deal.title || 'สัญญาจ้างทำของ'}
+                                                            <Badge variant="outline" className={`text-xs ${deal.status === 'signed' ? 'text-green-700 border-green-600 bg-green-50' :
+                                                                deal.status === 'draft' ? 'text-slate-600 border-slate-400 bg-slate-50' :
+                                                                    'text-blue-700 border-blue-600 bg-blue-50'
+                                                                }`}>
+                                                                {deal.status === 'signed' ? 'เซ็นแล้ว' : deal.status === 'draft' ? 'ร่าง' : deal.status === 'pending' ? 'อยากเซ็น' : deal.status}
+                                                            </Badge>
+                                                        </p>
+                                                        <p className="text-sm text-blue-700 truncate">
+                                                            {deal.task ? `งาน: ${deal.task.substring(0, 50)}${deal.task.length > 50 ? '...' : ''}` : 'ไม่มีรายละเอียด'}
+                                                            {deal.price ? ` | ราคา: ${Number(deal.price).toLocaleString()} บาท` : ''}
+                                                        </p>
+                                                    </div>
+                                                    <Button size="sm" className="bg-foreground hover:bg-foreground/90 text-background rounded-full ml-3 shrink-0">ดูสัญญา</Button>
+                                                </div>
+                                            </Link>
+                                        ))}
+                                        <div className="text-center pt-2">
+                                            <Link href={`https://capdeal.lawslane.com/${locale}/services/contracts/screenshot`} target="_blank">
+                                                <Button variant="outline" className="rounded-full">
+                                                    <Camera className="w-4 h-4 mr-2" />
+                                                    สร้างสัญญาใหม่
+                                                </Button>
+                                            </Link>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-8 text-muted-foreground">
+                                        <FileSignature className="mx-auto h-10 w-10 mb-2" />
+                                        <p>ยังไม่มีสัญญาที่สร้างจากแคปดีล</p>
+                                        <Link href={`https://capdeal.lawslane.com/${locale}/services/contracts/screenshot`} target="_blank">
+                                            <Button className="mt-4 rounded-full">
+                                                <Camera className="w-4 h-4 mr-2" />
+                                                เริ่มแคปแล้วดีลเลย!
+                                            </Button>
+                                        </Link>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
 
 
                     </div>

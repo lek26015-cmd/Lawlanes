@@ -130,5 +130,21 @@ export async function getUserDashboardData(userId: string) {
         };
     });
 
-    return { cases, appointments, tickets };
+    // 4. Fetch Cap Deals (Contracts)
+    const contractsRef = collection(db, 'contracts');
+    const contractSnap = await getDocs(query(contractsRef, where('userId', '==', userId)));
+
+    const capDeals = contractSnap.docs.map(d => {
+        const data = d.data();
+        return {
+            id: d.id,
+            ...data,
+            createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : new Date().toISOString(),
+            updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate().toISOString() : new Date().toISOString(),
+        };
+    });
+    // Sort cap deals by createdAt descending
+    capDeals.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+    return { cases, appointments, tickets, capDeals };
 }
