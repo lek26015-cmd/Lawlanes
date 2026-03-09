@@ -58,7 +58,7 @@ export async function POST(req: NextRequest) {
                     body: new URLSearchParams({
                         id_token: idToken,
                         client_id: process.env.LINE_LOGIN_CHANNEL_ID || '',
-                    }),
+                    }).toString(),
                 });
                 if (idTokenRes.ok) {
                     const idTokenData = await idTokenRes.json();

@@ -146,7 +146,8 @@ function LoginPageContent() {
             const user = userCredential.user;
 
             const idToken = await user.getIdToken();
-            await fetch('/api/auth/session', {
+            const baseUrl = window.location.origin;
+            await fetch(`${baseUrl}/api/auth/session`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ idToken }),
@@ -229,7 +230,8 @@ function LoginPageContent() {
             const user = result.user;
 
             const idToken = await user.getIdToken();
-            await fetch('/api/auth/session', {
+            const baseUrl = window.location.origin;
+            await fetch(`${baseUrl}/api/auth/session`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ idToken }),
@@ -324,7 +326,8 @@ function LoginPageContent() {
 
                 if (!accessToken) throw new Error('No LINE access token');
 
-                const lineRes = await fetch('/api/auth/line', {
+                const baseUrl = window.location.origin;
+                const lineRes = await fetch(`${baseUrl}/api/auth/line`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ accessToken, idToken }),
