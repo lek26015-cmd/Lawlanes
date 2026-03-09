@@ -146,8 +146,7 @@ function LoginPageContent() {
             const user = userCredential.user;
 
             const idToken = await user.getIdToken();
-            const baseUrl = window.location.origin;
-            await fetch(`${baseUrl}/api/auth/session`, {
+            await fetch('/api/auth/session', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ idToken }),
@@ -230,12 +229,16 @@ function LoginPageContent() {
             const user = result.user;
 
             const idToken = await user.getIdToken();
-            const baseUrl = window.location.origin;
-            await fetch(`${baseUrl}/api/auth/session`, {
+            const sessionRes = await fetch('/api/auth/session', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ idToken }),
             });
+
+            if (!sessionRes.ok) {
+                const errorData = await sessionRes.json().catch(() => ({ message: 'Unknown error during session creation' }));
+                throw new Error(errorData.message || `Failed to create session: ${sessionRes.status}`);
+            }
 
             const userRef = doc(firestore, 'users', user.uid);
             const userSnap = await getDoc(userRef);
@@ -326,16 +329,21 @@ function LoginPageContent() {
 
                 if (!accessToken) throw new Error('No LINE access token');
 
-                const baseUrl = window.location.origin;
-                const lineRes = await fetch(`${baseUrl}/api/auth/line`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ accessToken, idToken }),
-                });
+                let lineRes;
+                try {
+                    lineRes = await fetch('/api/auth/line', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ accessToken, idToken }),
+                    });
+                } catch (fetchErr: any) {
+                    console.error("Fetch to /api/auth/line failed totally:", fetchErr);
+                    throw new Error(`การเชื่อมต่อเซิร์ฟเวอร์ล้มเหลว (Failed to fetch API): ${fetchErr.message}`);
+                }
 
                 if (!lineRes.ok) {
                     const errorResponse = await lineRes.json().catch(() => ({}));
-                    throw new Error(errorResponse.error || 'LINE authentication failed');
+                    throw new Error(errorResponse.error || `LINE authentication failed with status: ${lineRes.status}`);
                 }
 
                 const lineContentType = lineRes.headers.get('content-type');

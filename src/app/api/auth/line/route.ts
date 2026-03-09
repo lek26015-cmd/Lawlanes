@@ -17,9 +17,15 @@ export async function POST(req: NextRequest) {
         }
 
         // 1. Verify the LINE access token and get user profile
-        const verifyRes = await fetch(`https://api.line.me/oauth2/v2.1/verify?access_token=${accessToken}`, {
-            method: 'GET',
-        });
+        let verifyRes;
+        try {
+            verifyRes = await fetch(`https://api.line.me/oauth2/v2.1/verify?access_token=${accessToken}`, {
+                method: 'GET',
+            });
+        } catch (err: any) {
+            console.error('[LINE Auth] Token verification fetch failed (Network/DNS):', err);
+            return NextResponse.json({ error: `LINE Token Check Network Error: ${err.message}` }, { status: 502 });
+        }
 
         if (!verifyRes.ok) {
             console.error('[LINE Auth] Token verification failed:', await verifyRes.text());
@@ -35,9 +41,15 @@ export async function POST(req: NextRequest) {
         }
 
         // 2. Get LINE user profile
-        const profileRes = await fetch('https://api.line.me/v2/profile', {
-            headers: { 'Authorization': `Bearer ${accessToken}` },
-        });
+        let profileRes;
+        try {
+            profileRes = await fetch('https://api.line.me/v2/profile', {
+                headers: { 'Authorization': `Bearer ${accessToken}` },
+            });
+        } catch (err: any) {
+            console.error('[LINE Auth] Profile fetch failed (Network/DNS):', err);
+            return NextResponse.json({ error: `LINE Profile Network Error: ${err.message}` }, { status: 502 });
+        }
 
         if (!profileRes.ok) {
             return NextResponse.json({ error: 'Failed to get LINE profile' }, { status: 500 });
