@@ -312,20 +312,28 @@ function LoginPageContent() {
             }
 
             if (liffId) {
-                // Use LIFF SDK
-                const liffModule = await import('@line/liff');
-                const liffInstance = liffModule.default;
+                // Ensure LIFF is imported properly
+                const liff = (await import('@line/liff')).default;
 
-                await liffInstance.init({ liffId });
+                try {
+                    await liff.init({ liffId });
+                } catch (initErr: any) {
+                    console.error("LIFF Init Error:", initErr);
+                    let errMsg = initErr.message || '';
+                    if (errMsg.includes('fetch') || errMsg.includes('Load failed')) {
+                        throw new Error(`การเชื่อมต่อ LINE ถูกบล็อกโดยเบราว์เซอร์ (${errMsg})`);
+                    }
+                    throw new Error(`LIFF Init: ${errMsg}`);
+                }
 
-                if (!liffInstance.isLoggedIn()) {
-                    liffInstance.login({ redirectUri: window.location.href });
+                if (!liff.isLoggedIn()) {
+                    liff.login({ redirectUri: window.location.href });
                     return; // Will redirect
                 }
 
                 // Already logged in via LIFF
-                const accessToken = liffInstance.getAccessToken();
-                const idToken = liffInstance.getIDToken();
+                const accessToken = liff.getAccessToken();
+                const idToken = liff.getIDToken();
 
                 if (!accessToken) throw new Error('No LINE access token');
 
@@ -355,7 +363,12 @@ function LoginPageContent() {
 
                 if (auth) {
                     const { signInWithCustomToken } = await import('firebase/auth');
-                    await signInWithCustomToken(auth, customToken);
+                    try {
+                        await signInWithCustomToken(auth, customToken);
+                    } catch (fbErr: any) {
+                        console.error("Firebase Custom Auth Error:", fbErr);
+                        throw new Error(`การยืนยันตัวตนล้มเหลว (Firebase Auth): ${fbErr.message}`);
+                    }
 
                     toast({
                         title: 'เข้าสู่ระบบด้วย LINE สำเร็จ',

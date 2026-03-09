@@ -70,12 +70,12 @@ const nextConfig: NextConfig = {
             key: 'Content-Security-Policy',
             value: `
               default-src 'self';
-              script-src 'self' 'unsafe-eval' 'unsafe-inline' https://challenges.cloudflare.com https://apis.google.com;
+              script-src 'self' 'unsafe-eval' 'unsafe-inline' https://challenges.cloudflare.com https://apis.google.com https://static.line-scdn.net https://*.line-scdn.net;
               style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-              img-src 'self' blob: data: https://placehold.co https://images.unsplash.com https://picsum.photos https://*.r2.dev https://i.pravatar.cc https://*.googleusercontent.com;
+              img-src 'self' blob: data: https://placehold.co https://images.unsplash.com https://picsum.photos https://*.r2.dev https://i.pravatar.cc https://*.googleusercontent.com https://profile.line-scdn.net;
               font-src 'self' https://fonts.gstatic.com;
-              connect-src 'self' https://challenges.cloudflare.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://firestore.googleapis.com https://*.firebaseapp.com;
-              frame-src 'self' https://challenges.cloudflare.com https://*.firebaseapp.com https://*.googleapis.com https://auth.lawslane.com;
+              connect-src 'self' https://challenges.cloudflare.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://firebasestorage.googleapis.com https://firestore.googleapis.com https://*.firebaseapp.com https://api.line.me https://*.line.me https://*.line-scdn.net;
+              frame-src 'self' https://challenges.cloudflare.com https://*.firebaseapp.com https://*.googleapis.com https://auth.lawslane.com https://access.line.me;
             `.replace(/\s{2,}/g, ' ').trim(),
           },
           {
