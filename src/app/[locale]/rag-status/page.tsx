@@ -62,7 +62,7 @@ export default function RagStatusPage() {
 
         const remaining = ESTIMATED_TOTAL_VECTORS - stats.vectorCount;
         if (remaining <= 0) {
-            setEta("Completed");
+            setEta("เสร็จสมบูรณ์");
             return;
         }
 
@@ -71,12 +71,12 @@ export default function RagStatusPage() {
         if (secondsLeft > 3600) {
             const hours = Math.floor(secondsLeft / 3600);
             const mins = Math.floor((secondsLeft % 3600) / 60);
-            setEta(`~${hours}h ${mins}m`);
+            setEta(`~${hours} ชม. ${mins} น.`);
         } else if (secondsLeft > 60) {
             const mins = Math.floor(secondsLeft / 60);
-            setEta(`~${mins}m remaining`);
+            setEta(`~${mins} นาทีที่เหลือ`);
         } else {
-            setEta("Calculated...");
+            setEta("กำลังคำนวณ...");
         }
     }, [stats, rate]);
 
@@ -100,10 +100,10 @@ export default function RagStatusPage() {
                         <div className="absolute -inset-1 blur-lg bg-blue-500/20 rounded-full"></div>
                         <h1 className="relative text-3xl md:text-4xl font-extrabold text-white tracking-tight flex items-center">
                             <Database className="mr-3 h-10 w-10 text-blue-400" />
-                            RAG <span className="text-blue-400 ml-2">Vectorize</span> Dashboard
+                            แดชบอร์ด <span className="text-blue-400 ml-2">Vectorize</span> RAG
                         </h1>
                         <p className="text-slate-400 mt-2 font-medium flex items-center gap-2">
-                             System Intelligence & Knowledge Ingestion <Activity className="w-4 h-4 text-emerald-400" />
+                             ระบบปัญญาประดิษฐ์และการนำเข้าข้อมูลกฎหมาย <Activity className="w-4 h-4 text-emerald-400" />
                         </p>
                     </div>
                     <Button 
@@ -113,7 +113,7 @@ export default function RagStatusPage() {
                         className="bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white transition-all rounded-xl px-6 h-12"
                     >
                         <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-                        Refresh Engine
+                        รีเฟรชระบบ
                     </Button>
                 </div>
 
@@ -126,24 +126,24 @@ export default function RagStatusPage() {
                         <CardHeader className="border-b border-slate-800 pb-4">
                             <CardTitle className="text-white flex items-center text-xl">
                                 <Layers className="mr-2 h-5 w-5 text-blue-400" />
-                                Vector Knowledge Base
+                                ฐานข้อมูลองค์ความรู้ (Vector)
                             </CardTitle>
                             <CardDescription className="text-slate-500">
-                                Real-time indexing status for Cloudflare Vectorize
+                                สถานะการทำดัชนีข้อมูลแบบ Real-time บน Cloudflare Vectorize
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="pt-8">
                             {loading && !stats ? (
                                 <div className="flex flex-col justify-center items-center h-48 space-y-4">
                                     <Loader2 className="h-10 w-10 animate-spin text-blue-500" />
-                                    <p className="text-sm text-slate-500 animate-pulse">Connecting to Neural Network...</p>
+                                    <p className="text-sm text-slate-500 animate-pulse">กำลังเชื่อมต่อกับโครงข่ายประสาทเทียม...</p>
                                 </div>
                             ) : stats ? (
                                 <div className="space-y-10">
                                     <div className="flex justify-between items-start">
                                         <div className="flex flex-col">
                                             <span className="text-xs font-bold text-slate-500 uppercase tracking-[0.2em] mb-2">
-                                                Total Knowledge Chunks (Vectors)
+                                                จำนวนข้อมูลทั้งหมด (Vectors)
                                             </span>
                                             <div className="flex items-baseline gap-4">
                                                 <span className="text-6xl font-black text-white tracking-tighter drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]">
@@ -154,7 +154,7 @@ export default function RagStatusPage() {
                                                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                                                       <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                                                     </span>
-                                                    ACTIVE STREAM
+                                                    กำลังนำเข้าข้อมูล
                                                 </div>
                                             </div>
                                         </div>
@@ -163,13 +163,13 @@ export default function RagStatusPage() {
                                         <div className="bg-blue-950/30 border border-blue-500/30 rounded-2xl p-4 flex flex-col items-end">
                                             <div className="flex items-center gap-2 text-blue-400 mb-1">
                                                 <Clock className="w-4 h-4" />
-                                                <span className="text-[10px] font-black uppercase tracking-widest">Est. Completion</span>
+                                                <span className="text-[10px] font-black uppercase tracking-widest">เวลาโดยประมาณ</span>
                                             </div>
                                             <span className="text-xl font-black text-white">
-                                                {eta || 'Calculating...'}
+                                                {eta || 'กำลังคำนวณ...'}
                                             </span>
-                                            <span className="text-[10px] text-slate-500 font-mono">
-                                                {rate > 0 ? `${(rate * 60).toFixed(0)} chunks/min` : 'Learning speed...'}
+                                            <span className="text-[10px] text-slate-500 font-mono text-right">
+                                                {rate > 0 ? `${(rate * 60).toFixed(0)} ชิ้น/นาที` : 'กำลังวัดความเร็ว...'}
                                             </span>
                                         </div>
                                     </div>
@@ -178,8 +178,8 @@ export default function RagStatusPage() {
                                     <div className="space-y-4">
                                         <div className="flex justify-between items-end">
                                             <div className="space-y-1">
-                                                <span className="text-sm font-bold text-slate-300">Phase 1 Ingestion</span>
-                                                <p className="text-xs text-slate-500">Targeting deep legal coverage (Krisdika + RR)</p>
+                                                <span className="text-sm font-bold text-slate-300">ระยะที่ 1 (Phase 1)</span>
+                                                <p className="text-xs text-slate-500">เป้าหมายข้อมูลกฎหมายหลัก (กฤษฎีกา + ราชกิจจานุเบกษา)</p>
                                             </div>
                                             <div className="text-right">
                                                 <span className="text-3xl font-black text-blue-400">
@@ -194,7 +194,7 @@ export default function RagStatusPage() {
                                             />
                                         </div>
                                         <p className="text-[10px] text-slate-600 font-mono text-center uppercase tracking-widest">
-                                            System Goal: {ESTIMATED_TOTAL_VECTORS.toLocaleString()} Knowledge Units
+                                            เป้าหมายระบบ: {ESTIMATED_TOTAL_VECTORS.toLocaleString()} หน่วยองค์ความรู้
                                         </p>
                                     </div>
 
@@ -202,8 +202,8 @@ export default function RagStatusPage() {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t border-slate-800/50">
                                         <div className="space-y-3">
                                             <div className="flex justify-between text-xs font-bold text-slate-500 uppercase">
-                                                <span>Index Capacity</span>
-                                                <span className="text-blue-400">{((stats.vectorCount || 0) / PAID_TIER_MAX_VECTORS * 100).toFixed(4)}% Used</span>
+                                                <span>ความจุของดัชนี</span>
+                                                <span className="text-blue-400">ใช้งานไป {((stats.vectorCount || 0) / PAID_TIER_MAX_VECTORS * 100).toFixed(4)}%</span>
                                             </div>
                                             <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
                                                 <div 
@@ -221,7 +221,7 @@ export default function RagStatusPage() {
                                                 <Zap className="w-5 h-5 text-amber-400" />
                                             </div>
                                             <div>
-                                                <span className="text-[10px] text-slate-500 uppercase font-black tracking-widest block mb-1">Architecture</span>
+                                                <span className="text-[10px] text-slate-500 uppercase font-black tracking-widest block mb-1">สถาปัตยกรรม</span>
                                                 <span className="text-sm font-bold text-slate-200">Neural Lattice (v1.4)</span>
                                             </div>
                                         </div>
@@ -230,17 +230,17 @@ export default function RagStatusPage() {
                                     <div className="grid grid-cols-2 gap-4 pt-6 border-t border-slate-800/50">
                                         <div className="flex items-center gap-3">
                                             <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_5px_rgba(59,130,246,1)]"></div>
-                                            <span className="text-xs text-slate-500 uppercase font-bold tracking-tighter">Dimensions: {stats.dimensions || 1024}</span>
+                                            <span className="text-xs text-slate-500 uppercase font-bold tracking-tighter">มิติของข้อมูล: {stats.dimensions || 1024}</span>
                                         </div>
                                         <div className="text-right">
-                                            <span className="text-[10px] text-slate-600 font-mono uppercase">Sync Token: {lastUpdated ? lastUpdated.toLocaleTimeString() : '-'}</span>
+                                            <span className="text-[10px] text-slate-600 font-mono uppercase">อัปเดตล่าสุด: {lastUpdated ? lastUpdated.toLocaleTimeString() : '-'}</span>
                                         </div>
                                     </div>
                                 </div>
                             ) : (
                                 <div className="text-red-400 p-6 bg-red-950/20 border border-red-900/40 rounded-2xl flex items-center gap-3 shadow-inner">
                                     <Zap className="w-5 h-5" />
-                                    <p className="text-sm font-bold">LATTICE ERROR: Could not resolve database statistics.</p>
+                                    <p className="text-sm font-bold">ข้อผิดพลาด: ไม่สามารถระบุข้อมูลสถิติของดัชนีได้</p>
                                 </div>
                             )}
                         </CardContent>
@@ -250,23 +250,23 @@ export default function RagStatusPage() {
                     <div className="space-y-4">
                         <div className="px-2">
                              <h2 className="text-sm font-bold text-slate-400 uppercase tracking-[0.2em] mb-4 flex items-center">
-                                <Cpu className="w-4 h-4 mr-2" /> Workers Running
+                                <Cpu className="w-4 h-4 mr-2" /> งานเบื้องหลังที่รันอยู่
                              </h2>
                         </div>
                         
                         <div className="space-y-3">
                             {[
-                                { title: "PDF Ingestion", cmd: "ingest-to-cloudflare.ts", color: "bg-blue-500", count: "182 files" },
-                                { title: "Ratchakitcha 20-25", cmd: "ingest-ratchakitcha.py", color: "bg-purple-500" },
-                                { title: "Historical Legal", cmd: "ingest-ratchakitcha-historical.py", color: "bg-indigo-500" },
-                                { title: "Krisdika Archive", cmd: "ingest-krisdika.py", color: "bg-teal-500" }
+                                { title: "นำเข้าไฟล์ PDF", cmd: "ingest-to-cloudflare.ts", color: "bg-blue-500", count: "182 ไฟล์" },
+                                { title: "ราชกิจจาฯ 20-25", cmd: "ingest-ratchakitcha.py", color: "bg-purple-500" },
+                                { title: "ราชกิจจาฯ ย้อนหลัง", cmd: "ingest-ratchakitcha-historical.py", color: "bg-indigo-500" },
+                                { title: "กฤษฎีกา (Krisdika)", cmd: "ingest-krisdika.py", color: "bg-teal-500" }
                             ].map((task, i) => (
                                 <div key={i} className="group p-4 rounded-2xl border border-slate-800 bg-slate-900/40 hover:bg-slate-800/40 transition-all border-l-4" style={{ borderColor: i === 0 ? '#3b82f6' : i === 1 ? '#a855f7' : i === 2 ? '#6366f1' : '#14b8a6' }}>
                                     <div className="flex justify-between items-start mb-1">
                                         <h3 className="font-bold text-white text-xs">{task.title} {task.count && <span className="text-slate-500 font-normal ml-1">({task.count})</span>}</h3>
                                         <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-slate-950 border border-slate-800 shadow-inner">
                                             <div className={`w-1.5 h-1.5 rounded-full ${task.color} animate-pulse`}></div>
-                                            <span className="text-[9px] font-black text-slate-400 uppercase">RUNNING</span>
+                                            <span className="text-[9px] font-black text-slate-400 uppercase">กำลังรัน</span>
                                         </div>
                                     </div>
                                     <p className="text-[10px] text-slate-500 font-mono truncate opacity-60 group-hover:opacity-100 transition-opacity">{task.cmd}</p>
@@ -275,9 +275,9 @@ export default function RagStatusPage() {
                         </div>
 
                         <div className="mt-6 p-4 bg-blue-950/10 border border-blue-900/30 rounded-2xl">
-                             <h4 className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-2">Internal Note</h4>
+                             <h4 className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-2">บันทึกภายใน</h4>
                              <p className="text-xs text-slate-500 leading-relaxed italic">
-                                "The legal lattice is expanding. Semantic retrieval accuracy will increase linearly with data density."
+                                "โครงข่ายกฎหมายกำลังขยายตัว ความแม่นยำในการค้นหาจะเพิ่มขึ้นตามความหนาแน่นของข้อมูล"
                              </p>
                         </div>
                     </div>
