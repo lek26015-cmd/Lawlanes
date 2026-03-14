@@ -6,10 +6,16 @@ import { Loader2, Database, RefreshCw, Layers, Cpu, Zap, Activity, Clock } from 
 import { Button } from '@/components/ui/button';
 import { Progress } from "@/components/ui/progress";
 
+interface RagStats {
+    vectorCount?: number;
+    dimensions?: number;
+    error?: string;
+}
+
 export default function RagStatusPage() {
-    const [stats, setStats] = useState<any>(null);
+    const [stats, setStats] = useState<RagStats | null>(null);
     const [loading, setLoading] = useState(true);
-    const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+    const [lastUpdated, setLastUpdated] = useState<number | null>(null);
     
     // For status tracking
     const [eta, setEta] = useState<string | null>(null);
@@ -49,28 +55,27 @@ export default function RagStatusPage() {
                 }
 
                 setStats(data);
-                setLastUpdated(currentTime as any);
+                setLastUpdated(currentTime);
                 prevCountRef.current = currentCount;
                 prevTimeRef.current = currentTime;
             } else {
-                setStats(prev => ({ ...prev, error: "Worker Connection Failed" }));
+                setStats(prev => (prev ? { ...prev, error: "Worker Connection Failed" } : { error: "Worker Connection Failed" }));
             }
         } catch (error) {
             console.error("Failed to fetch RAG stats", error);
-            setStats(prev => ({ ...prev, error: "Network Error" }));
+            setStats(prev => (prev ? { ...prev, error: "Network Error" } : { error: "Network Error" }));
         } finally {
             setLoading(false);
         }
     };
 
-    // Calculate ETA whenever rate or stats change
     useEffect(() => {
         if (!stats || rate <= 0) {
             setEta(null);
             return;
         }
 
-        const remaining = ESTIMATED_TOTAL_VECTORS - stats.vectorCount;
+        const remaining = ESTIMATED_TOTAL_VECTORS - (stats.vectorCount || 0);
         if (remaining <= 0) {
             setEta("เสร็จสมบูรณ์");
             return;
@@ -250,7 +255,7 @@ export default function RagStatusPage() {
                                             <span className="text-xs text-slate-500 uppercase font-bold tracking-tighter">มิติของข้อมูล: {stats.dimensions || 1024}</span>
                                         </div>
                                         <div className="text-right">
-                                            <span className="text-[10px] text-slate-600 font-mono uppercase">อัปเดตล่าสุด: {lastUpdated ? lastUpdated.toLocaleTimeString() : '-'}</span>
+                                            <span className="text-[10px] text-slate-600 font-mono uppercase">อัปเดตล่าสุด: {lastUpdated ? new Date(lastUpdated).toLocaleTimeString() : '-'}</span>
                                         </div>
                                     </div>
                                 </div>
