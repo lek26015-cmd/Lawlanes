@@ -100,7 +100,7 @@ export default function RagStatusPage() {
                         <div className="absolute -inset-1 blur-lg bg-blue-500/20 rounded-full"></div>
                         <h1 className="relative text-3xl md:text-4xl font-extrabold text-white tracking-tight flex items-center">
                             <Database className="mr-3 h-10 w-10 text-blue-400" />
-                            แดชบอร์ด <span className="text-blue-400 ml-2">Vectorize</span> RAG
+                            Lawslane <span className="text-blue-400 ml-2">RAG</span>
                         </h1>
                         <p className="text-slate-400 mt-2 font-medium flex items-center gap-2">
                              ระบบปัญญาประดิษฐ์และการนำเข้าข้อมูลกฎหมาย <Activity className="w-4 h-4 text-emerald-400" />
