@@ -255,10 +255,12 @@ function LoginPageContent() {
         try {
             const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
 
-            if (!liffId) {
-                throw new Error('ยังไม่ได้ตั้งค่า NEXT_PUBLIC_LIFF_ID ในระบบ');
-            }
             if (liffId) {
+                // Mobile debugging: alert the LIFF ID to ensure Vercel updated correctly
+                if (typeof window !== 'undefined') {
+                    // alert("[DEBUG] Using LIFF ID: " + liffId); 
+                }
+
                 // Ensure LIFF is imported properly
                 const liff = (await import('@line/liff')).default;
 
@@ -267,6 +269,7 @@ function LoginPageContent() {
                     await liff.init({ liffId });
                     console.log("[LINE Auth] LIFF initialized successfully");
                 } catch (initErr: any) {
+                    alert("LIFF Init Error: " + initErr.message);
                     console.error("LIFF Init Error:", initErr);
                     let errMsg = initErr.message || '';
                     if (errMsg.includes('fetch') || errMsg.includes('Load failed')) {
@@ -275,18 +278,14 @@ function LoginPageContent() {
                     throw new Error(`LIFF Init Failed: ${errMsg}`);
                 }
 
-                console.log("[LINE Auth] Login status:", liff.isLoggedIn());
                 if (!liff.isLoggedIn()) {
                     const isMobile = typeof window !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-                    console.log("[LINE Auth] Device type:", isMobile ? "Mobile" : "Desktop");
                     if (isMobile) {
                         const liffUrl = `https://liff.line.me/${liffId}`;
-                        console.log("[LINE Auth] Redirecting mobile to LIFF URL:", liffUrl);
+                        // alert("Redirecting to LIFF: " + liffUrl);
                         window.location.href = liffUrl;
                     } else {
-                        const redirectUri = window.location.href;
-                        console.log("[LINE Auth] Executing liff.login with redirectUri:", redirectUri);
-                        liff.login({ redirectUri });
+                        liff.login({ redirectUri: window.location.href });
                     }
                     return; 
                 }
@@ -327,11 +326,11 @@ function LoginPageContent() {
                     try {
                         userCredential = await signInWithCustomToken(auth, customToken);
                     } catch (fbErr: any) {
-                        console.error("Firebase Custom Auth Error:", fbErr);
+                        alert("Firebase Auth Error: " + fbErr.message);
                         throw new Error(`การยืนยันตัวตนล้มเหลว (Firebase Auth): ${fbErr.message}`);
                     }
 
-                    // Create server-side session (CRITICAL FOR MOBILE WEB APP)
+                    // Create server-side session
                     try {
                         const firebaseIdToken = await userCredential.user.getIdToken();
                         const sessionRes = await fetch('/api/auth/session', {
@@ -342,10 +341,12 @@ function LoginPageContent() {
                         
                         if (!sessionRes.ok) {
                             const errorData = await sessionRes.json().catch(() => ({ message: 'Session creation failed' }));
+                            alert("Session Error: " + errorData.message);
                             throw new Error(errorData.message || 'การสร้างเซสชันล้มเหลว');
                         }
 
                         const { suggestedRedirect } = await sessionRes.json();
+                        // alert("Login Success! Redirecting to: " + suggestedRedirect);
 
                         toast({
                             title: 'เข้าสู่ระบบด้วย LINE สำเร็จ',
