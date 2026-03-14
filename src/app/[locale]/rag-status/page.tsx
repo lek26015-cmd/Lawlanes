@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, Database, RefreshCw, Layers } from 'lucide-react';
+import { Loader2, Database, RefreshCw, Layers, Cpu, Zap, Activity } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from "@/components/ui/progress";
 
@@ -11,8 +11,8 @@ export default function RagStatusPage() {
     const [loading, setLoading] = useState(true);
     const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-    // Hardcoded estimate based on PDF and Ratchakitcha dataset chunks
-    const ESTIMATED_TOTAL_VECTORS = 20000;
+    // Hardcoded estimate based on PDF, Krisdika (140+ years), and Ratchakitcha datasets
+    const ESTIMATED_TOTAL_VECTORS = 200000;
     
     // Cloudflare Vectorize Paid Tier limit (10M vectors per index)
     const PAID_TIER_MAX_VECTORS = 10000000;
@@ -41,162 +41,182 @@ export default function RagStatusPage() {
         return () => clearInterval(interval);
     }, []);
 
+    const progressValue = Math.min(100, Math.round(((stats?.vectorCount || 0) / ESTIMATED_TOTAL_VECTORS) * 100));
+
     return (
-        <div className="min-h-screen bg-[#F4F6F9] p-8 font-sans">
-            <div className="max-w-4xl mx-auto space-y-6">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-3xl font-bold text-[#0B3979] flex items-center">
-                            <Database className="mr-3 h-8 w-8 text-blue-600" />
-                            RAG Ingestion Dashboard
+        <div className="min-h-screen bg-[#020617] p-8 font-sans text-slate-200">
+            <div className="max-w-5xl mx-auto space-y-8">
+                {/* Glowing Header */}
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                    <div className="relative">
+                        <div className="absolute -inset-1 blur-lg bg-blue-500/20 rounded-full"></div>
+                        <h1 className="relative text-3xl md:text-4xl font-extrabold text-white tracking-tight flex items-center">
+                            <Database className="mr-3 h-10 w-10 text-blue-400" />
+                            RAG <span className="text-blue-400 ml-2">Vectorize</span> Dashboard
                         </h1>
-                        <p className="text-slate-500 mt-2">
-                            Monitor the real-time progress of documents being ingested into the Vectorize Database.
+                        <p className="text-slate-400 mt-2 font-medium flex items-center gap-2">
+                             System Intelligence & Knowledge Ingestion <Activity className="w-4 h-4 text-emerald-400" />
                         </p>
                     </div>
                     <Button 
                         variant="outline" 
                         onClick={() => { setLoading(true); fetchStats(); }}
                         disabled={loading}
+                        className="bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white transition-all rounded-xl px-6 h-12"
                     >
                         <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-                        Refresh Now
+                        Refresh Engine
                     </Button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <Card className="border-none shadow-lg">
-                        <CardHeader className="bg-blue-50/50 border-b border-blue-100 pb-4">
-                            <CardTitle className="text-blue-900 flex items-center">
-                                <Layers className="mr-2 h-5 w-5" />
-                                Vector Database Status
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Main Stats Card */}
+                    <Card className="md:col-span-2 border-slate-800 bg-slate-900/50 backdrop-blur-xl shadow-2xl overflow-hidden relative group">
+                        <div className="absolute top-0 right-0 p-8 opacity-5">
+                            <Cpu className="w-32 h-32" />
+                        </div>
+                        <CardHeader className="border-b border-slate-800 pb-4">
+                            <CardTitle className="text-white flex items-center text-xl">
+                                <Layers className="mr-2 h-5 w-5 text-blue-400" />
+                                Vector Knowledge Base
                             </CardTitle>
-                            <CardDescription>
-                                Current state of the Cloudflare Vectorize Index
+                            <CardDescription className="text-slate-500">
+                                Real-time indexing status for Cloudflare Vectorize
                             </CardDescription>
                         </CardHeader>
-                        <CardContent className="pt-6">
+                        <CardContent className="pt-8">
                             {loading && !stats ? (
-                                <div className="flex justify-center items-center h-32">
-                                    <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                                <div className="flex flex-col justify-center items-center h-48 space-y-4">
+                                    <Loader2 className="h-10 w-10 animate-spin text-blue-500" />
+                                    <p className="text-sm text-slate-500 animate-pulse">Connecting to Neural Network...</p>
                                 </div>
                             ) : stats ? (
-                                <div className="space-y-6">
+                                <div className="space-y-10">
                                     <div className="flex flex-col">
-                                        <span className="text-sm font-medium text-slate-500 uppercase tracking-wider mb-1">
-                                            Total Vectors (Chunks)
+                                        <span className="text-xs font-bold text-slate-500 uppercase tracking-[0.2em] mb-2">
+                                            Total Knowledge Chunks (Vectors)
                                         </span>
-                                        <div className="flex items-baseline">
-                                            <span className="text-5xl font-extrabold text-[#0B3979]">
+                                        <div className="flex items-baseline gap-4">
+                                            <span className="text-6xl font-black text-white tracking-tighter drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]">
                                                 {stats.vectorCount?.toLocaleString() || 0}
                                             </span>
-                                            <span className="ml-2 text-green-600 font-medium text-sm flex items-center bg-green-50 px-2 py-1 rounded-md">
+                                            <div className="flex items-center text-emerald-400 font-bold text-xs bg-emerald-400/10 border border-emerald-400/20 px-3 py-1.5 rounded-full ring-4 ring-emerald-400/5">
                                                 <span className="relative flex h-2 w-2 mr-2">
-                                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                                                 </span>
-                                                Live Updating
-                                            </span>
+                                                ACTIVE STREAM
+                                            </div>
                                         </div>
                                     </div>
 
-                                    {/* Estimated Progress Bar */}
-                                    <div className="space-y-2">
+                                    {/* Estimated Progress */}
+                                    <div className="space-y-4">
                                         <div className="flex justify-between items-end">
-                                            <span className="text-sm font-medium text-slate-700">Estimated Progress</span>
-                                            <span className="font-bold text-[#0B3979]">
-                                                {Math.min(100, Math.round(((stats.vectorCount || 0) / ESTIMATED_TOTAL_VECTORS) * 100))}%
-                                            </span>
+                                            <div className="space-y-1">
+                                                <span className="text-sm font-bold text-slate-300">Phase 1 Ingestion</span>
+                                                <p className="text-xs text-slate-500">Targeting deep legal coverage (Krisdika + RR)</p>
+                                            </div>
+                                            <div className="text-right">
+                                                <span className="text-3xl font-black text-blue-400">
+                                                    {progressValue}%
+                                                </span>
+                                            </div>
                                         </div>
-                                        <Progress value={Math.min(100, Math.round(((stats.vectorCount || 0) / ESTIMATED_TOTAL_VECTORS) * 100))} className="h-3 [&>div]:bg-[#0B3979]" />
-                                        <p className="text-xs text-slate-500 text-right">
-                                            Based on estimated goal of {ESTIMATED_TOTAL_VECTORS.toLocaleString()} chunks
+                                        <div className="h-4 w-full bg-slate-800 rounded-full overflow-hidden p-1 border border-slate-700 shadow-inner">
+                                            <div 
+                                                className="h-full bg-gradient-to-r from-blue-600 via-blue-400 to-indigo-400 rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(59,130,246,0.5)]"
+                                                style={{ width: `${progressValue}%` }}
+                                            />
+                                        </div>
+                                        <p className="text-[10px] text-slate-600 font-mono text-center uppercase tracking-widest">
+                                            System Estimated Load: {ESTIMATED_TOTAL_VECTORS.toLocaleString()} Knowledge Units
                                         </p>
                                     </div>
 
-                                    {/* Storage Bar (10M Limit) */}
-                                    <div className="space-y-2 mt-4 pt-4 border-t border-slate-100">
-                                        <div className="flex justify-between items-end">
-                                            <span className="text-sm font-medium text-slate-700">Vector Database Capacity (Paid Plan)</span>
-                                            <span className="font-bold text-emerald-600">
-                                                {((stats.vectorCount || 0) / PAID_TIER_MAX_VECTORS * 100).toFixed(4)}%
-                                            </span>
+                                    {/* Infrastructure Capacity */}
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t border-slate-800/50">
+                                        <div className="space-y-3">
+                                            <div className="flex justify-between text-xs font-bold text-slate-500 uppercase">
+                                                <span>Index Capacity</span>
+                                                <span className="text-blue-400">{((stats.vectorCount || 0) / PAID_TIER_MAX_VECTORS * 100).toFixed(4)}% Used</span>
+                                            </div>
+                                            <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                                                <div 
+                                                    className="h-full bg-blue-500 rounded-full transition-all duration-1000"
+                                                    style={{ width: `${Math.min(100, ((stats.vectorCount || 0) / PAID_TIER_MAX_VECTORS) * 100)}%` }}
+                                                />
+                                            </div>
+                                            <p className="text-[10px] text-slate-600 font-mono">
+                                                {stats.vectorCount?.toLocaleString() || 0} / {PAID_TIER_MAX_VECTORS.toLocaleString()}
+                                            </p>
                                         </div>
-                                        <Progress value={Math.min(100, ((stats.vectorCount || 0) / PAID_TIER_MAX_VECTORS) * 100)} className="h-3 [&>div]:bg-emerald-500" />
-                                        <div className="flex justify-between items-center text-xs text-slate-500">
-                                            <span>
-                                                {stats.vectorCount?.toLocaleString() || 0} / {PAID_TIER_MAX_VECTORS.toLocaleString()} chunks
-                                            </span>
-                                            <span className="text-emerald-500 font-medium whitespace-nowrap overflow-hidden text-ellipsis pl-2">
-                                                Massive capacity available
-                                            </span>
+                                        
+                                        <div className="flex items-center gap-6">
+                                            <div className="p-3 bg-slate-800/50 rounded-2xl border border-slate-700">
+                                                <Zap className="w-5 h-5 text-amber-400" />
+                                            </div>
+                                            <div>
+                                                <span className="text-[10px] text-slate-500 uppercase font-black tracking-widest block mb-1">Architecture</span>
+                                                <span className="text-sm font-bold text-slate-200">Neural Lattice (v1.4)</span>
+                                            </div>
                                         </div>
                                     </div>
                                     
-                                    <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100">
-                                        <div>
-                                            <span className="text-sm text-slate-500 block">Dimensions</span>
-                                            <span className="font-semibold text-slate-800">{stats.dimensions || 1024}</span>
+                                    <div className="grid grid-cols-2 gap-4 pt-6 border-t border-slate-800/50">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_5px_rgba(59,130,246,1)]"></div>
+                                            <span className="text-xs text-slate-500 uppercase font-bold tracking-tighter">Dimensions: {stats.dimensions || 1024}</span>
                                         </div>
-                                        <div>
-                                            <span className="text-sm text-slate-500 block">Last Updated</span>
-                                            <span className="font-semibold text-slate-800 text-sm">
-                                                {lastUpdated ? lastUpdated.toLocaleTimeString() : '-'}
-                                            </span>
+                                        <div className="text-right">
+                                            <span className="text-[10px] text-slate-600 font-mono uppercase">Sync Token: {lastUpdated ? lastUpdated.toLocaleTimeString() : '-'}</span>
                                         </div>
                                     </div>
                                 </div>
                             ) : (
-                                <div className="text-red-500 p-4 bg-red-50 rounded-lg border border-red-100">
-                                    Failed to load database statistics.
+                                <div className="text-red-400 p-6 bg-red-950/20 border border-red-900/40 rounded-2xl flex items-center gap-3 shadow-inner">
+                                    <Zap className="w-5 h-5" />
+                                    <p className="text-sm font-bold">LATTICE ERROR: Could not resolve database statistics.</p>
                                 </div>
                             )}
                         </CardContent>
                     </Card>
 
-                    <Card className="border-none shadow-lg">
-                        <CardHeader className="pb-4">
-                            <CardTitle className="text-slate-800">Terminal Tasks running</CardTitle>
-                            <CardDescription>Background processes adding to the database</CardDescription>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="p-4 rounded-xl border border-slate-100 bg-slate-50 relative overflow-hidden">
-                                <div className="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
-                                <h3 className="font-semibold text-slate-800 text-sm mb-1">PDF Ingestion (182 files)</h3>
-                                <p className="text-xs text-slate-500 mb-3">npx tsx scripts/ingest-to-cloudflare.ts</p>
-                                <div className="flex items-center text-xs font-medium text-blue-700 bg-blue-100 w-fit px-2 py-1 rounded">
-                                    <Loader2 className="h-3 w-3 mr-1 animate-spin" /> In Progress
+                    {/* Terminal Tasks Sidebar */}
+                    <div className="space-y-4">
+                        <div className="px-2">
+                             <h2 className="text-sm font-bold text-slate-400 uppercase tracking-[0.2em] mb-4 flex items-center">
+                                <Cpu className="w-4 h-4 mr-2" /> Workers Running
+                             </h2>
+                        </div>
+                        
+                        <div className="space-y-3">
+                            {[
+                                { title: "PDF Ingestion", cmd: "ingest-to-cloudflare.ts", color: "bg-blue-500", count: "182 files" },
+                                { title: "Ratchakitcha 20-25", cmd: "ingest-ratchakitcha.py", color: "bg-purple-500" },
+                                { title: "Historical Legal", cmd: "ingest-ratchakitcha-historical.py", color: "bg-indigo-500" },
+                                { title: "Krisdika Archive", cmd: "ingest-krisdika.py", color: "bg-teal-500" }
+                            ].map((task, i) => (
+                                <div key={i} className="group p-4 rounded-2xl border border-slate-800 bg-slate-900/40 hover:bg-slate-800/40 transition-all border-l-4" style={{ borderColor: i === 0 ? '#3b82f6' : i === 1 ? '#a855f7' : i === 2 ? '#6366f1' : '#14b8a6' }}>
+                                    <div className="flex justify-between items-start mb-1">
+                                        <h3 className="font-bold text-white text-xs">{task.title} {task.count && <span className="text-slate-500 font-normal ml-1">({task.count})</span>}</h3>
+                                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-slate-950 border border-slate-800 shadow-inner">
+                                            <div className={`w-1.5 h-1.5 rounded-full ${task.color} animate-pulse`}></div>
+                                            <span className="text-[9px] font-black text-slate-400 uppercase">RUNNING</span>
+                                        </div>
+                                    </div>
+                                    <p className="text-[10px] text-slate-500 font-mono truncate opacity-60 group-hover:opacity-100 transition-opacity">{task.cmd}</p>
                                 </div>
-                            </div>
+                            ))}
+                        </div>
 
-                            <div className="p-4 rounded-xl border border-slate-100 bg-slate-50 relative overflow-hidden">
-                                <div className="absolute top-0 left-0 w-1 h-full bg-purple-500"></div>
-                                <h3 className="font-semibold text-slate-800 text-sm mb-1">Ratchakitcha Dataset (2020-2025)</h3>
-                                <p className="text-xs text-slate-500 mb-3">python3 scripts/ingest-ratchakitcha.py</p>
-                                <div className="flex items-center text-xs font-medium text-purple-700 bg-purple-100 w-fit px-2 py-1 rounded">
-                                    <Loader2 className="h-3 w-3 mr-1 animate-spin" /> In Progress
-                                </div>
-                            </div>
-
-                            <div className="p-4 rounded-xl border border-slate-100 bg-slate-50 relative overflow-hidden">
-                                <div className="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
-                                <h3 className="font-semibold text-slate-800 text-sm mb-1">Ratchakitcha Historical (2010-2019)</h3>
-                                <p className="text-xs text-slate-500 mb-3">python3 scripts/ingest-ratchakitcha-historical.py</p>
-                                <div className="flex items-center text-xs font-medium text-indigo-700 bg-indigo-100 w-fit px-2 py-1 rounded">
-                                    <Loader2 className="h-3 w-3 mr-1 animate-spin" /> In Progress
-                                </div>
-                            </div>
-                            
-                            <div className="p-4 rounded-xl border border-slate-100 bg-slate-50 relative overflow-hidden">
-                                <div className="absolute top-0 left-0 w-1 h-full bg-teal-500"></div>
-                                <h3 className="font-semibold text-slate-800 text-sm mb-1">Krisdika Acts (1877-Present)</h3>
-                                <p className="text-xs text-slate-500 mb-3">python3 scripts/ingest-krisdika.py</p>
-                                <div className="flex items-center text-xs font-medium text-teal-700 bg-teal-100 w-fit px-2 py-1 rounded">
-                                    <Loader2 className="h-3 w-3 mr-1 animate-spin" /> In Progress
-                                </div>
-                            </div>
-                        </CardContent>
-                    </Card>
+                        <div className="mt-6 p-4 bg-blue-950/10 border border-blue-900/30 rounded-2xl">
+                             <h4 className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-2">Internal Note</h4>
+                             <p className="text-xs text-slate-500 leading-relaxed italic">
+                                "The legal lattice is expanding. Semantic retrieval accuracy will increase linearly with data density."
+                             </p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
