@@ -63,6 +63,17 @@ export default {
             }
         }
 
+        if (request.method === 'GET' && url.pathname === '/stats') {
+            try {
+                const info = await env.VECTORIZE_INDEX.describe();
+                return new Response(JSON.stringify(info), { 
+                    headers: { "Content-Type": "application/json" } 
+                });
+            } catch (e: any) {
+                return new Response(`Error: ${e.message}`, { status: 500 });
+            }
+        }
+
         if (request.method === 'GET' && url.pathname === '/health') {
             return new Response(JSON.stringify({ status: 'ok', service: 'lawslane-rag-api' }), { 
                 headers: { "Content-Type": "application/json" } 
