@@ -69,7 +69,11 @@ function LoginPageContent() {
     const hasAttemptedLineAutoLogin = React.useRef(false);
 
     React.useEffect(() => {
-        if (searchParams.has('liff.state') && !hasAttemptedLineAutoLogin.current) {
+        const hasLiffState = searchParams.has('liff.state');
+        const hasCode = searchParams.has('code');
+        
+        if ((hasLiffState || hasCode) && !hasAttemptedLineAutoLogin.current) {
+            // alert("[DEBUG] Redirect detected (liff.state or code). Triggering handleLineSignIn...");
             hasAttemptedLineAutoLogin.current = true;
             handleLineSignIn();
         }
