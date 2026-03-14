@@ -263,13 +263,13 @@ function LoginPageContent() {
 
                 // Ensure LIFF is imported properly
                 const liff = (await import('@line/liff')).default;
+                alert("[DEBUG] LIFF SDK Loaded");
 
-                console.log("[LINE Auth] Initializing LIFF with ID:", liffId);
                 try {
                     await liff.init({ liffId });
-                    console.log("[LINE Auth] LIFF initialized successfully");
+                    alert("[DEBUG] LIFF Init SUCCESS");
                 } catch (initErr: any) {
-                    alert("LIFF Init Error: " + initErr.message);
+                    alert("[DEBUG] LIFF Init ERROR: " + initErr.message);
                     console.error("LIFF Init Error:", initErr);
                     let errMsg = initErr.message || '';
                     if (errMsg.includes('fetch') || errMsg.includes('Load failed')) {
@@ -278,23 +278,31 @@ function LoginPageContent() {
                     throw new Error(`LIFF Init Failed: ${errMsg}`);
                 }
 
-                if (!liff.isLoggedIn()) {
+                const loggedIn = liff.isLoggedIn();
+                alert("[DEBUG] Is Logged In: " + loggedIn);
+                
+                if (!loggedIn) {
                     const isMobile = typeof window !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
                     if (isMobile) {
                         const liffUrl = `https://liff.line.me/${liffId}`;
-                        // alert("Redirecting to LIFF: " + liffUrl);
+                        alert("[DEBUG] Mobile detected. Redirecting to: " + liffUrl);
                         window.location.href = liffUrl;
                     } else {
+                        alert("[DEBUG] Desktop detected. Calling liff.login()");
                         liff.login({ redirectUri: window.location.href });
                     }
                     return; 
                 }
 
                 // Already logged in via LIFF
+                alert("[DEBUG] ALREADY LOGGED IN. Fetching /api/auth/line...");
                 const accessToken = liff.getAccessToken();
                 const idToken = liff.getIDToken();
 
-                if (!accessToken) throw new Error('No LINE access token');
+                if (!accessToken) {
+                    alert("[DEBUG] Error: No access token found");
+                    throw new Error('No LINE access token');
+                }
 
                 let lineRes;
                 try {
