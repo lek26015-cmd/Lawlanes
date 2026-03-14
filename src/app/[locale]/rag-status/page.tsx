@@ -159,11 +159,11 @@ export default function RagStatusPage() {
                                     <div className="flex justify-between items-start">
                                         <div className="flex flex-col">
                                             <span className="text-xs font-bold text-slate-500 uppercase tracking-[0.2em] mb-2">
-                                                จำนวนข้อมูลทั้งหมด (Vectors)
+                                                ความคืบหน้าภาพรวม (Progress)
                                             </span>
                                             <div className="flex items-baseline gap-4">
-                                                <span className="text-6xl font-black text-white tracking-tighter drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]">
-                                                    {stats.vectorCount?.toLocaleString() || 0}
+                                                <span className={`text-6xl font-black tracking-tighter transition-all duration-500 ${isStalled ? 'text-amber-400 drop-shadow-[0_0_15px_rgba(245,158,11,0.3)]' : 'text-blue-400 drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]'}`}>
+                                                    {progressValue}%
                                                 </span>
                                                 <div className={`flex items-center font-bold text-xs px-3 py-1.5 rounded-full ring-4 transition-all duration-500 ${isStalled ? 'text-amber-400 bg-amber-400/10 border border-amber-400/20 ring-amber-400/5' : 'text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 ring-emerald-400/5'}`}>
                                                     <span className="relative flex h-2 w-2 mr-2">
@@ -197,28 +197,29 @@ export default function RagStatusPage() {
                                         </div>
                                     )}
 
-                                    {/* Estimated Progress */}
-                                    <div className="space-y-4">
-                                        <div className="flex justify-between items-end">
-                                            <div className="space-y-1">
-                                                <span className="text-sm font-bold text-slate-300">ระยะที่ 1 (Phase 1)</span>
-                                                <p className="text-xs text-slate-500">เป้าหมายข้อมูลกฎหมายหลัก (กฤษฎีกา + ราชกิจจานุเบกษา)</p>
-                                            </div>
-                                            <div className="text-right">
-                                                <span className={`text-3xl font-black ${isStalled ? 'text-amber-400' : 'text-blue-400'}`}>
-                                                    {progressValue}%
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <div className="h-4 w-full bg-slate-800 rounded-full overflow-hidden p-1 border border-slate-700 shadow-inner">
+                                    {/* Sub Metrics / Progress Bar */}
+                                    <div className="space-y-6">
+                                        <div className="h-5 w-full bg-slate-800 rounded-full overflow-hidden p-1 border border-slate-700 shadow-inner">
                                             <div 
                                                 className={`h-full rounded-full transition-all duration-1000 ease-out ${isStalled ? 'bg-gradient-to-r from-amber-600 to-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.5)]' : 'bg-gradient-to-r from-blue-600 via-blue-400 to-indigo-400 shadow-[0_0_10px_rgba(59,130,246,0.5)]'}`}
                                                 style={{ width: `${progressValue}%` }}
                                             />
                                         </div>
-                                        <p className="text-[10px] text-slate-600 font-mono text-center uppercase tracking-widest">
-                                            เป้าหมายระบบ: {ESTIMATED_TOTAL_VECTORS.toLocaleString()} หน่วยองค์ความรู้
-                                        </p>
+                                        
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="bg-slate-800/30 border border-slate-700/50 rounded-2xl p-4">
+                                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">จำนวนข้อมูล (VECTORS)</span>
+                                                <span className="text-2xl font-black text-white">
+                                                    {stats.vectorCount?.toLocaleString() || 0}
+                                                </span>
+                                            </div>
+                                            <div className="bg-slate-800/30 border border-slate-700/50 rounded-2xl p-4 text-right">
+                                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">เป้าหมายระบบ</span>
+                                                <span className="text-2xl font-black text-blue-400/80">
+                                                    {ESTIMATED_TOTAL_VECTORS.toLocaleString()}
+                                                </span>
+                                            </div>
+                                        </div>
                                     </div>
 
                                     {/* Infrastructure Capacity */}
