@@ -283,13 +283,25 @@ function LoginPageContent() {
                 
                 if (!loggedIn) {
                     const isMobile = typeof window !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                    const redirectUri = window.location.href;
+                    
                     if (isMobile) {
                         const liffUrl = `https://liff.line.me/${liffId}`;
-                        alert("[DEBUG] Mobile detected. Redirecting to: " + liffUrl);
-                        window.location.href = liffUrl;
+                        alert("[DEBUG] Mobile. Attempting liff.login with fallback. Target: " + liffUrl);
+                        
+                        // Try standard login first
+                        liff.login({ redirectUri });
+                        
+                        // Fallback: If still on page after 2 seconds, force location change
+                        setTimeout(() => {
+                            if (typeof window !== 'undefined') {
+                                alert("[DEBUG] Fallback: Forcing window.location.href");
+                                window.location.href = liffUrl;
+                            }
+                        }, 2000);
                     } else {
-                        alert("[DEBUG] Desktop detected. Calling liff.login()");
-                        liff.login({ redirectUri: window.location.href });
+                        alert("[DEBUG] Desktop. Calling liff.login()");
+                        liff.login({ redirectUri });
                     }
                     return; 
                 }
