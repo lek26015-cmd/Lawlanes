@@ -48,8 +48,9 @@ export default function RagStatusPage() {
                     setRate(prevRate => prevRate === 0 ? currentRate : prevRate * 0.7 + currentRate * 0.3);
                     lastSuccessCountTimeRef.current = currentTime;
                     setIsStalled(false);
-                } else if (currentTime - lastSuccessCountTimeRef.current > 30000) {
-                    // If no change for 30 seconds, mark as stalled
+                } else if (currentTime - lastSuccessCountTimeRef.current > 120000) {
+                    // If no change for 120 seconds (2 mins), mark as stalled
+                    // This accounts for large PDF downloads or data processing gaps
                     setIsStalled(true);
                     setRate(0);
                 }
