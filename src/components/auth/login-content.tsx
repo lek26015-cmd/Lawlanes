@@ -311,6 +311,9 @@ function LoginPageContent() {
                 throw new Error('ยังไม่ได้ตั้งค่า NEXT_PUBLIC_LIFF_ID ในระบบ');
             }
 
+            // Detect mobile browser to force LINE app open
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+
             if (liffId) {
                 // Ensure LIFF is imported properly
                 const liff = (await import('@line/liff')).default;
@@ -327,7 +330,13 @@ function LoginPageContent() {
                 }
 
                 if (!liff.isLoggedIn()) {
-                    liff.login({ redirectUri: window.location.href });
+                    if (isMobile) {
+                        // On mobile: redirect to LIFF URL to force open LINE native app
+                        window.location.href = `https://liff.line.me/${liffId}`;
+                    } else {
+                        // On desktop: use standard liff.login with redirect
+                        liff.login({ redirectUri: window.location.href });
+                    }
                     return; // Will redirect
                 }
 
