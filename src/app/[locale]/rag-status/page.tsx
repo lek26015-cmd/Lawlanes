@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, Database, RefreshCw, Layers, Cpu, Zap, Activity } from 'lucide-react';
+import { Loader2, Database, RefreshCw, Layers, Cpu, Zap, Activity, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from "@/components/ui/progress";
 
@@ -10,6 +10,12 @@ export default function RagStatusPage() {
     const [stats, setStats] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+    
+    // For ETA calculation
+    const [eta, setEta] = useState<string | null>(null);
+    const [rate, setRate] = useState<number>(0); // chunks per second
+    const prevCountRef = useRef<number>(0);
+    const prevTimeRef = useRef<number>(Date.now());
 
     // Hardcoded estimate based on PDF, Krisdika (140+ years), and Ratchakitcha datasets
     const ESTIMATED_TOTAL_VECTORS = 200000;
@@ -22,8 +28,23 @@ export default function RagStatusPage() {
             const res = await fetch('/api/admin/rag-stats');
             if (res.ok) {
                 const data = await res.json();
+                const currentCount = data.vectorCount || 0;
+                const currentTime = Date.now();
+
+                // Calculate Rate (Moving Average or just delta)
+                if (prevCountRef.current > 0 && currentCount > prevCountRef.current) {
+                    const deltaCount = currentCount - prevCountRef.current;
+                    const deltaTime = (currentTime - prevTimeRef.current) / 1000; // in seconds
+                    const currentRate = deltaCount / deltaTime; // chunks per sec
+                    
+                    // Simple smoothing (weighting new rate)
+                    setRate(prevRate => prevRate === 0 ? currentRate : prevRate * 0.7 + currentRate * 0.3);
+                }
+
                 setStats(data);
                 setLastUpdated(new Date());
+                prevCountRef.current = currentCount;
+                prevTimeRef.current = currentTime;
             }
         } catch (error) {
             console.error("Failed to fetch RAG stats", error);
@@ -31,6 +52,33 @@ export default function RagStatusPage() {
             setLoading(false);
         }
     };
+
+    // Calculate ETA whenever rate or stats change
+    useEffect(() => {
+        if (!stats || rate <= 0) {
+            setEta(null);
+            return;
+        }
+
+        const remaining = ESTIMATED_TOTAL_VECTORS - stats.vectorCount;
+        if (remaining <= 0) {
+            setEta("Completed");
+            return;
+        }
+
+        const secondsLeft = remaining / rate;
+        
+        if (secondsLeft > 3600) {
+            const hours = Math.floor(secondsLeft / 3600);
+            const mins = Math.floor((secondsLeft % 3600) / 60);
+            setEta(`~${hours}h ${mins}m`);
+        } else if (secondsLeft > 60) {
+            const mins = Math.floor(secondsLeft / 60);
+            setEta(`~${mins}m remaining`);
+        } else {
+            setEta("Calculated...");
+        }
+    }, [stats, rate]);
 
     useEffect(() => {
         // Initial fetch
@@ -92,21 +140,37 @@ export default function RagStatusPage() {
                                 </div>
                             ) : stats ? (
                                 <div className="space-y-10">
-                                    <div className="flex flex-col">
-                                        <span className="text-xs font-bold text-slate-500 uppercase tracking-[0.2em] mb-2">
-                                            Total Knowledge Chunks (Vectors)
-                                        </span>
-                                        <div className="flex items-baseline gap-4">
-                                            <span className="text-6xl font-black text-white tracking-tighter drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]">
-                                                {stats.vectorCount?.toLocaleString() || 0}
+                                    <div className="flex justify-between items-start">
+                                        <div className="flex flex-col">
+                                            <span className="text-xs font-bold text-slate-500 uppercase tracking-[0.2em] mb-2">
+                                                Total Knowledge Chunks (Vectors)
                                             </span>
-                                            <div className="flex items-center text-emerald-400 font-bold text-xs bg-emerald-400/10 border border-emerald-400/20 px-3 py-1.5 rounded-full ring-4 ring-emerald-400/5">
-                                                <span className="relative flex h-2 w-2 mr-2">
-                                                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                            <div className="flex items-baseline gap-4">
+                                                <span className="text-6xl font-black text-white tracking-tighter drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]">
+                                                    {stats.vectorCount?.toLocaleString() || 0}
                                                 </span>
-                                                ACTIVE STREAM
+                                                <div className="flex items-center text-emerald-400 font-bold text-xs bg-emerald-400/10 border border-emerald-400/20 px-3 py-1.5 rounded-full ring-4 ring-emerald-400/5">
+                                                    <span className="relative flex h-2 w-2 mr-2">
+                                                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                                    </span>
+                                                    ACTIVE STREAM
+                                                </div>
                                             </div>
+                                        </div>
+                                        
+                                        {/* ETA Overlay Box */}
+                                        <div className="bg-blue-950/30 border border-blue-500/30 rounded-2xl p-4 flex flex-col items-end">
+                                            <div className="flex items-center gap-2 text-blue-400 mb-1">
+                                                <Clock className="w-4 h-4" />
+                                                <span className="text-[10px] font-black uppercase tracking-widest">Est. Completion</span>
+                                            </div>
+                                            <span className="text-xl font-black text-white">
+                                                {eta || 'Calculating...'}
+                                            </span>
+                                            <span className="text-[10px] text-slate-500 font-mono">
+                                                {rate > 0 ? `${(rate * 60).toFixed(0)} chunks/min` : 'Learning speed...'}
+                                            </span>
                                         </div>
                                     </div>
 
@@ -130,7 +194,7 @@ export default function RagStatusPage() {
                                             />
                                         </div>
                                         <p className="text-[10px] text-slate-600 font-mono text-center uppercase tracking-widest">
-                                            System Estimated Load: {ESTIMATED_TOTAL_VECTORS.toLocaleString()} Knowledge Units
+                                            System Goal: {ESTIMATED_TOTAL_VECTORS.toLocaleString()} Knowledge Units
                                         </p>
                                     </div>
 
