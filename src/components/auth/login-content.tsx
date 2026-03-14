@@ -262,18 +262,15 @@ function LoginPageContent() {
             if (liffId) {
                 // Mobile debugging: alert the LIFF ID to ensure Vercel updated correctly
                 if (typeof window !== 'undefined') {
-                   alert("[DEBUG] Starting LINE Login with LIFF ID: " + liffId); 
+                   // Mobile debugging removed
                 }
 
                 // Ensure LIFF is imported properly
                 const liff = (await import('@line/liff')).default;
-                alert("[DEBUG] LIFF SDK Loaded");
 
                 try {
                     await liff.init({ liffId });
-                    alert("[DEBUG] LIFF Init SUCCESS");
                 } catch (initErr: any) {
-                    alert("[DEBUG] LIFF Init ERROR: " + initErr.message);
                     console.error("LIFF Init Error:", initErr);
                     let errMsg = initErr.message || '';
                     if (errMsg.includes('fetch') || errMsg.includes('Load failed')) {
@@ -283,41 +280,24 @@ function LoginPageContent() {
                 }
 
                 const loggedIn = liff.isLoggedIn();
-                alert("[DEBUG] Is Logged In: " + loggedIn);
                 
                 if (!loggedIn) {
                     const isMobile = typeof window !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-                    const redirectUri = window.location.href;
-                    alert("[DEBUG] Exact Redirect URI: " + redirectUri);
+                    const redirectUri = window.location.origin + window.location.pathname;
                     
                     if (isMobile) {
-                        const liffUrl = `https://liff.line.me/${liffId}`;
-                        alert("[DEBUG] Mobile. Attempting liff.login with fallback. Target: " + liffUrl);
-                        
-                        // Try standard login first
                         liff.login({ redirectUri });
-                        
-                        // Fallback: If still on page after 2 seconds, force location change
-                        setTimeout(() => {
-                            if (typeof window !== 'undefined') {
-                                alert("[DEBUG] Fallback: Forcing window.location.href");
-                                window.location.href = liffUrl;
-                            }
-                        }, 2000);
                     } else {
-                        alert("[DEBUG] Desktop. Calling liff.login()");
                         liff.login({ redirectUri });
                     }
                     return; 
                 }
 
                 // Already logged in via LIFF
-                alert("[DEBUG] ALREADY LOGGED IN. Fetching /api/auth/line...");
                 const accessToken = liff.getAccessToken();
                 const idToken = liff.getIDToken();
 
                 if (!accessToken) {
-                    alert("[DEBUG] Error: No access token found");
                     throw new Error('No LINE access token');
                 }
 
@@ -371,18 +351,18 @@ function LoginPageContent() {
                         }
 
                         const { suggestedRedirect } = await sessionRes.json();
-                        // alert("Login Success! Redirecting to: " + suggestedRedirect);
 
                         toast({
                             title: 'เข้าสู่ระบบด้วย LINE สำเร็จ',
                             description: 'กำลังนำคุณไปยังแดชบอร์ด...',
                         });
 
-                        if (suggestedRedirect.startsWith('http')) {
+                        // Ensure we redirect to the correct locale if possible, 
+                        // or just use suggestedRedirect which will be handled by middleware.
+                        // Hard reload is safer in incognito mode.
+                        setTimeout(() => {
                             window.location.href = suggestedRedirect;
-                        } else {
-                            router.push(suggestedRedirect);
-                        }
+                        }, 800);
                     } catch (sessionErr: any) {
                         console.error("Session creation error:", sessionErr);
                         throw new Error(`ข้อผิดพลาดทางฝั่งเซิร์ฟเวอร์: ${sessionErr.message}`);
