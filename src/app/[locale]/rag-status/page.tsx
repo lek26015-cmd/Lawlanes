@@ -11,11 +11,13 @@ export default function RagStatusPage() {
     const [loading, setLoading] = useState(true);
     const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
     
-    // For ETA calculation
+    // For status tracking
     const [eta, setEta] = useState<string | null>(null);
     const [rate, setRate] = useState<number>(0); // chunks per second
+    const [isStalled, setIsStalled] = useState(false);
     const prevCountRef = useRef<number>(0);
     const prevTimeRef = useRef<number>(Date.now());
+    const lastSuccessCountTimeRef = useRef<number>(Date.now());
 
     // Hardcoded estimate based on PDF, Krisdika (140+ years), and Ratchakitcha datasets
     const ESTIMATED_TOTAL_VECTORS = 200000;
@@ -31,23 +33,31 @@ export default function RagStatusPage() {
                 const currentCount = data.vectorCount || 0;
                 const currentTime = Date.now();
 
-                // Calculate Rate (Moving Average or just delta)
-                if (prevCountRef.current > 0 && currentCount > prevCountRef.current) {
+                // Calculate Rate & Stalled State
+                if (currentCount > prevCountRef.current) {
                     const deltaCount = currentCount - prevCountRef.current;
-                    const deltaTime = (currentTime - prevTimeRef.current) / 1000; // in seconds
-                    const currentRate = deltaCount / deltaTime; // chunks per sec
+                    const deltaTime = (currentTime - prevTimeRef.current) / 1000;
+                    const currentRate = deltaCount / deltaTime;
                     
-                    // Simple smoothing (weighting new rate)
                     setRate(prevRate => prevRate === 0 ? currentRate : prevRate * 0.7 + currentRate * 0.3);
+                    lastSuccessCountTimeRef.current = currentTime;
+                    setIsStalled(false);
+                } else if (currentTime - lastSuccessCountTimeRef.current > 30000) {
+                    // If no change for 30 seconds, mark as stalled
+                    setIsStalled(true);
+                    setRate(0);
                 }
 
                 setStats(data);
-                setLastUpdated(new Date());
+                setLastUpdated(currentTime as any);
                 prevCountRef.current = currentCount;
                 prevTimeRef.current = currentTime;
+            } else {
+                setStats(prev => ({ ...prev, error: "Worker Connection Failed" }));
             }
         } catch (error) {
             console.error("Failed to fetch RAG stats", error);
+            setStats(prev => ({ ...prev, error: "Network Error" }));
         } finally {
             setLoading(false);
         }
@@ -149,30 +159,37 @@ export default function RagStatusPage() {
                                                 <span className="text-6xl font-black text-white tracking-tighter drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]">
                                                     {stats.vectorCount?.toLocaleString() || 0}
                                                 </span>
-                                                <div className="flex items-center text-emerald-400 font-bold text-xs bg-emerald-400/10 border border-emerald-400/20 px-3 py-1.5 rounded-full ring-4 ring-emerald-400/5">
+                                                <div className={`flex items-center font-bold text-xs px-3 py-1.5 rounded-full ring-4 transition-all duration-500 ${isStalled ? 'text-amber-400 bg-amber-400/10 border border-amber-400/20 ring-amber-400/5' : 'text-emerald-400 bg-emerald-400/10 border border-emerald-400/20 ring-emerald-400/5'}`}>
                                                     <span className="relative flex h-2 w-2 mr-2">
-                                                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                                                      <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                                                      <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isStalled ? 'bg-amber-400' : 'bg-emerald-400'}`}></span>
+                                                      <span className={`relative inline-flex rounded-full h-2 w-2 ${isStalled ? 'bg-amber-500' : 'bg-emerald-500'}`}></span>
                                                     </span>
-                                                    กำลังนำเข้าข้อมูล
+                                                    {isStalled ? 'การนำเข้าหยุดนิ่ง' : 'กำลังนำเข้าข้อมูล'}
                                                 </div>
                                             </div>
                                         </div>
                                         
                                         {/* ETA Overlay Box */}
-                                        <div className="bg-blue-950/30 border border-blue-500/30 rounded-2xl p-4 flex flex-col items-end">
-                                            <div className="flex items-center gap-2 text-blue-400 mb-1">
+                                        <div className={`border rounded-2xl p-4 flex flex-col items-end transition-all ${isStalled ? 'bg-amber-950/20 border-amber-500/30' : 'bg-blue-950/30 border-blue-500/30'}`}>
+                                            <div className={`flex items-center gap-2 mb-1 ${isStalled ? 'text-amber-400' : 'text-blue-400'}`}>
                                                 <Clock className="w-4 h-4" />
                                                 <span className="text-[10px] font-black uppercase tracking-widest">เวลาโดยประมาณ</span>
                                             </div>
                                             <span className="text-xl font-black text-white">
-                                                {eta || 'กำลังคำนวณ...'}
+                                                {isStalled ? 'ติดขัด' : (eta || 'กำลังคำนวณ...')}
                                             </span>
                                             <span className="text-[10px] text-slate-500 font-mono text-right">
-                                                {rate > 0 ? `${(rate * 60).toFixed(0)} ชิ้น/นาที` : 'กำลังวัดความเร็ว...'}
+                                                {rate > 0 ? `${(rate * 60).toFixed(0)} ชิ้น/นาที` : (isStalled ? 'ไม่มีความเคลื่อนไหว' : 'กำลังวัดความเร็ว...')}
                                             </span>
                                         </div>
                                     </div>
+
+                                    {stats.error && (
+                                        <div className="bg-red-500/10 border border-red-500/30 p-3 rounded-xl flex items-center gap-3 text-red-400">
+                                            <Zap className="w-4 h-4" />
+                                            <span className="text-xs font-bold uppercase tracking-wider">ข้อผิดพลาด: {stats.error}</span>
+                                        </div>
+                                    )}
 
                                     {/* Estimated Progress */}
                                     <div className="space-y-4">
@@ -182,14 +199,14 @@ export default function RagStatusPage() {
                                                 <p className="text-xs text-slate-500">เป้าหมายข้อมูลกฎหมายหลัก (กฤษฎีกา + ราชกิจจานุเบกษา)</p>
                                             </div>
                                             <div className="text-right">
-                                                <span className="text-3xl font-black text-blue-400">
+                                                <span className={`text-3xl font-black ${isStalled ? 'text-amber-400' : 'text-blue-400'}`}>
                                                     {progressValue}%
                                                 </span>
                                             </div>
                                         </div>
                                         <div className="h-4 w-full bg-slate-800 rounded-full overflow-hidden p-1 border border-slate-700 shadow-inner">
                                             <div 
-                                                className="h-full bg-gradient-to-r from-blue-600 via-blue-400 to-indigo-400 rounded-full transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(59,130,246,0.5)]"
+                                                className={`h-full rounded-full transition-all duration-1000 ease-out ${isStalled ? 'bg-gradient-to-r from-amber-600 to-amber-400 shadow-[0_0_10px_rgba(245,158,11,0.5)]' : 'bg-gradient-to-r from-blue-600 via-blue-400 to-indigo-400 shadow-[0_0_10px_rgba(59,130,246,0.5)]'}`}
                                                 style={{ width: `${progressValue}%` }}
                                             />
                                         </div>
