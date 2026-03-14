@@ -254,11 +254,11 @@ function LoginPageContent() {
         setIsLineLoading(true);
         try {
             const liffId = process.env.NEXT_PUBLIC_LIFF_ID;
-
+            
             if (liffId) {
                 // Mobile debugging: alert the LIFF ID to ensure Vercel updated correctly
                 if (typeof window !== 'undefined') {
-                    // alert("[DEBUG] Using LIFF ID: " + liffId); 
+                   alert("[DEBUG] Starting LINE Login with LIFF ID: " + liffId); 
                 }
 
                 // Ensure LIFF is imported properly
