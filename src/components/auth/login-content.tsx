@@ -179,14 +179,23 @@ function LoginPageContent() {
                     return;
                 }
 
-                const target = redirectUrl || '/lawyer-dashboard';
+                let target = redirectUrl || '/lawyer-dashboard';
+                // Prevent redirecting loops to capdeal if it's the referer but not intended
+                if (target.includes('capdeal.lawslane.com')) {
+                    target = '/lawyer-dashboard';
+                }
+                
                 if (target.startsWith('http')) {
                     window.location.href = target;
                 } else {
                     router.push(target);
                 }
             } else {
-                const target = redirectUrl || '/dashboard';
+                let target = redirectUrl || '/dashboard';
+                if (target.includes('capdeal.lawslane.com')) {
+                    target = '/dashboard';
+                }
+
                 if (target.startsWith('http')) {
                     window.location.href = target;
                 } else {
@@ -261,14 +270,22 @@ function LoginPageContent() {
             });
 
             if (role === 'lawyer') {
-                const target = redirectUrl || '/lawyer-dashboard';
+                let target = redirectUrl || '/lawyer-dashboard';
+                if (target.includes('capdeal.lawslane.com')) {
+                    target = '/lawyer-dashboard';
+                }
+
                 if (target.startsWith('http')) {
                     window.location.href = target;
                 } else {
                     router.push(target);
                 }
             } else {
-                const target = redirectUrl || '/dashboard';
+                let target = redirectUrl || '/dashboard';
+                if (target.includes('capdeal.lawslane.com')) {
+                    target = '/dashboard';
+                }
+
                 if (target.startsWith('http')) {
                     window.location.href = target;
                 } else {
@@ -400,7 +417,11 @@ function LoginPageContent() {
                         description: 'กำลังนำคุณไปยังแดชบอร์ด...',
                     });
 
-                    const target = redirectUrl || '/dashboard';
+                    let target = redirectUrl || '/dashboard';
+                    if (target.includes('capdeal.lawslane.com')) {
+                        target = '/dashboard';
+                    }
+
                     if (target.startsWith('http')) {
                         window.location.href = target;
                     } else {
