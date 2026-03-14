@@ -56,7 +56,7 @@ export default function RagStatusPage() {
                     // Add a log message when data actually updates
                     const newLog = {
                         id: Math.random().toString(36).substr(2, 9),
-                        text: `📥 รับข้อมูลใหม่: +${deltaCount} หน่วยความรู้`,
+                        text: `📥 New Data Ingested: +${deltaCount} chunks`,
                         time: new Date().toLocaleTimeString()
                     };
                     setLiveLogs(prev => [newLog, ...prev].slice(0, 10));
@@ -117,7 +117,7 @@ export default function RagStatusPage() {
 
         const interval = setInterval(() => {
             const randomId = Math.random().toString(36).substr(2, 6).toUpperCase();
-            const types = ["ประมวลผล", "ฝังข้อมูล", "จัดดัชนี", "ตรวจสอบ"];
+            const types = ["Processing", "Embedding", "Indexing", "Verifying"];
             const type = types[Math.floor(Math.random() * types.length)];
             
             const log = {
@@ -139,7 +139,7 @@ export default function RagStatusPage() {
 
         const remaining = ESTIMATED_TOTAL_VECTORS - (stats.vectorCount || 0);
         if (remaining <= 0) {
-            setEta("เสร็จสมบูรณ์");
+            setEta("Completed");
             return;
         }
 
@@ -148,12 +148,12 @@ export default function RagStatusPage() {
         if (secondsLeft > 3600) {
             const hours = Math.floor(secondsLeft / 3600);
             const mins = Math.floor((secondsLeft % 3600) / 60);
-            setEta(`~${hours} ชม. ${mins} น.`);
+            setEta(`~${hours} hrs ${mins} mins`);
         } else if (secondsLeft > 60) {
             const mins = Math.floor(secondsLeft / 60);
-            setEta(`~${mins} นาทีที่เหลือ`);
+            setEta(`~${mins} mins remaining`);
         } else {
-            setEta("กำลังคำนวณ...");
+            setEta("Calculating...");
         }
     }, [stats, rate]);
 
@@ -170,57 +170,49 @@ export default function RagStatusPage() {
 
     return (
         <div className="min-h-screen bg-[#020617] p-8 font-sans text-slate-200">
-            <div className="max-w-5xl mx-auto space-y-8">
-                {/* Glowing Header */}
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                    <div className="relative">
-                        <div className="absolute -inset-1 blur-lg bg-blue-500/20 rounded-full"></div>
-                        <h1 className="relative text-3xl md:text-4xl font-extrabold text-white tracking-tight flex items-center">
-                            <Database className="mr-3 h-10 w-10 text-blue-400" />
-                            Lawslane <span className="text-blue-400 ml-2">RAG</span>
-                        </h1>
-                        <p className="text-slate-400 mt-2 font-medium flex items-center gap-2">
-                             ระบบปัญญาประดิษฐ์และการนำเข้าข้อมูลกฎหมาย <Activity className="w-4 h-4 text-emerald-400" />
+            <div className="max-w-6xl mx-auto space-y-8">
+                <div className="flex justify-between items-center mb-12">
+                    <div className="space-y-1">
+                        <div className="flex items-center gap-3">
+                            <Database className="w-8 h-8 text-blue-500" />
+                            <h1 className="text-4xl font-black text-white tracking-tight">Lawslane <span className="text-blue-500">RAG</span></h1>
+                        </div>
+                        <p className="text-slate-500 font-medium flex items-center gap-2">
+                            AI Legal Data Ingestion System <Activity className="w-4 h-4 text-emerald-500" />
                         </p>
                     </div>
-                    <Button 
-                        variant="outline" 
-                        onClick={() => { setLoading(true); fetchStats(); }}
-                        disabled={loading}
-                        className="bg-slate-900 border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white transition-all rounded-xl px-6 h-12"
+                    <button 
+                        onClick={() => window.location.reload()}
+                        className="bg-slate-800 hover:bg-slate-700 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 transition-all border border-slate-700 group shadow-lg"
                     >
-                        <RefreshCw className={`mr-2 h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-                        รีเฟรชระบบ
-                    </Button>
+                        <RefreshCw className="w-4 h-4 group-hover:rotate-180 transition-all duration-500" />
+                        Refresh
+                    </button>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {/* Main Stats Card */}
-                    <Card className="md:col-span-2 border-slate-800 bg-slate-900/50 backdrop-blur-xl shadow-2xl overflow-hidden relative group">
-                        <div className="absolute top-0 right-0 p-8 opacity-5">
-                            <Cpu className="w-32 h-32" />
-                        </div>
-                        <CardHeader className="border-b border-slate-800 pb-4">
-                            <CardTitle className="text-white flex items-center text-xl">
-                                <Layers className="mr-2 h-5 w-5 text-blue-400" />
-                                ฐานข้อมูลองค์ความรู้ (Vector)
-                            </CardTitle>
-                            <CardDescription className="text-slate-500">
-                                สถานะการทำดัชนีข้อมูลแบบ Real-time บน Cloudflare Vectorize
-                            </CardDescription>
-                        </CardHeader>
-                        <CardContent className="pt-8">
-                            {loading && !stats ? (
-                                <div className="flex flex-col justify-center items-center h-48 space-y-4">
-                                    <Loader2 className="h-10 w-10 animate-spin text-blue-500" />
-                                    <p className="text-sm text-slate-500 animate-pulse">กำลังเชื่อมต่อกับโครงข่ายประสาทเทียม...</p>
-                                </div>
-                            ) : stats ? (
-                                <div className="space-y-10">
+                    <div className="lg:col-span-2 space-y-8">
+                        <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-[2.5rem] p-10 shadow-2xl relative overflow-hidden group">
+                            {/* Decorative background accent */}
+                            <div className="absolute -top-24 -right-24 w-64 h-64 bg-blue-500/10 blur-[100px] rounded-full group-hover:bg-blue-500/20 transition-all duration-700" />
+                            
+                            {stats ? (
+                                <div className="relative space-y-10">
+                                    <div className="flex items-center gap-4 mb-2">
+                                        <div className="p-3 bg-blue-500/10 rounded-2xl border border-blue-500/20">
+                                            <Database className="w-6 h-6 text-blue-400" />
+                                        </div>
+                                        <div>
+                                            <h2 className="text-xl font-black text-white">Knowledge Base (Vector)</h2>
+                                            <p className="text-xs text-slate-500 font-medium">Real-time Indexing Status on Cloudflare Vectorize</p>
+                                        </div>
+                                    </div>
+
                                     <div className="flex justify-between items-start">
                                         <div className="flex flex-col">
                                             <span className="text-xs font-bold text-slate-500 uppercase tracking-[0.2em] mb-2">
-                                                ความคืบหน้าภาพรวม (Progress)
+                                                Overall Progress
                                             </span>
                                             <div className="flex items-baseline gap-4">
                                                 <span className={`text-6xl font-black tracking-tighter transition-all duration-500 ${isStalled ? 'text-amber-400 drop-shadow-[0_0_15px_rgba(245,158,11,0.3)]' : 'text-blue-400 drop-shadow-[0_0_15px_rgba(59,130,246,0.3)]'}`}>
@@ -231,7 +223,7 @@ export default function RagStatusPage() {
                                                       <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${isStalled ? 'bg-amber-400' : 'bg-emerald-400'}`}></span>
                                                       <span className={`relative inline-flex rounded-full h-2 w-2 ${isStalled ? 'bg-amber-500' : 'bg-emerald-500'}`}></span>
                                                     </span>
-                                                    {isStalled ? 'การนำเข้าหยุดนิ่ง' : 'ระบบกำลังทำงาน'}
+                                                    {isStalled ? 'INGESTION STALLED' : 'SYSTEM ACTIVE'}
                                                 </div>
                                             </div>
                                         </div>
@@ -240,13 +232,13 @@ export default function RagStatusPage() {
                                         <div className={`border rounded-2xl p-4 flex flex-col items-end transition-all ${isStalled ? 'bg-amber-950/20 border-amber-500/30' : 'bg-blue-950/30 border-blue-500/30'}`}>
                                             <div className={`flex items-center gap-2 mb-1 ${isStalled ? 'text-amber-400' : 'text-blue-400'}`}>
                                                 <Clock className="w-4 h-4" />
-                                                <span className="text-[10px] font-black uppercase tracking-widest">เวลาโดยประมาณ</span>
+                                                <span className="text-[10px] font-black uppercase tracking-widest">Estimated Time</span>
                                             </div>
                                             <span className="text-xl font-black text-white">
-                                                {isStalled ? 'ติดขัด' : (eta || 'กำลังคำนวณ...')}
+                                                {isStalled ? 'STALLED' : (eta || 'Calculating...')}
                                             </span>
                                             <span className="text-[10px] text-slate-500 font-mono text-right">
-                                                {rate > 0 ? `${(rate * 60).toFixed(0)} ชิ้น/นาที` : (isStalled ? 'ไม่มีความเคลื่อนไหว' : 'กำลังวัดความเร็ว...')}
+                                                {rate > 0 ? `${(rate * 60).toFixed(0)} chunks/min` : (isStalled ? 'No Activity' : 'Measuring Speed...')}
                                             </span>
                                         </div>
                                     </div>
@@ -254,7 +246,7 @@ export default function RagStatusPage() {
                                     {stats.error && (
                                         <div className="bg-red-500/10 border border-red-500/30 p-3 rounded-xl flex items-center gap-3 text-red-400">
                                             <Zap className="w-4 h-4" />
-                                            <span className="text-xs font-bold uppercase tracking-wider">ข้อผิดพลาด: {stats.error}</span>
+                                            <span className="text-xs font-bold uppercase tracking-wider">ERROR: {stats.error}</span>
                                         </div>
                                     )}
 
@@ -273,7 +265,7 @@ export default function RagStatusPage() {
                                         
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="bg-slate-800/30 border border-slate-700/50 rounded-2xl p-4 overflow-hidden relative">
-                                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">จำนวนข้อมูลสะสม</span>
+                                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">TOTAL VECTORS</span>
                                                 <span className="text-3xl font-black text-white font-mono tracking-widest">
                                                     {displayCount.toLocaleString()}
                                                 </span>
@@ -282,7 +274,7 @@ export default function RagStatusPage() {
                                                 </div>
                                             </div>
                                             <div className="bg-slate-800/30 border border-slate-700/50 rounded-2xl p-4 text-right">
-                                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">เป้าหมายระบบ</span>
+                                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest block mb-1">TARGET GOAL</span>
                                                 <span className="text-3xl font-black text-blue-400/80">
                                                     {ESTIMATED_TOTAL_VECTORS.toLocaleString()}
                                                 </span>
@@ -301,7 +293,7 @@ export default function RagStatusPage() {
                                         </div>
                                         <div className="bg-slate-950/80 rounded-xl p-4 border border-slate-800/50 font-mono text-[11px] h-40 overflow-y-auto scrollbar-hide flex flex-col-reverse gap-1.5 shadow-inner">
                                             {liveLogs.length === 0 ? (
-                                                <p className="text-slate-700 animate-pulse italic">กำลังรอสัญญาณข้อมูล...</p>
+                                                <p className="text-slate-700 animate-pulse italic">Waiting for data signal...</p>
                                             ) : (
                                                 liveLogs.map((log) => (
                                                     <div key={log.id} className="flex gap-4 animate-in fade-in slide-in-from-left-2 duration-300">
@@ -319,8 +311,8 @@ export default function RagStatusPage() {
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8">
                                         <div className="space-y-3">
                                             <div className="flex justify-between text-xs font-bold text-slate-500 uppercase">
-                                                <span>ความจุของดัชนี</span>
-                                                <span className="text-blue-400">ใช้งานไป {((displayCount || 0) / PAID_TIER_MAX_VECTORS * 100).toFixed(4)}%</span>
+                                                <span>Index Capacity</span>
+                                                <span className="text-blue-400">Usage {((displayCount || 0) / PAID_TIER_MAX_VECTORS * 100).toFixed(4)}%</span>
                                             </div>
                                             <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
                                                 <div 
@@ -338,7 +330,7 @@ export default function RagStatusPage() {
                                                 <Zap className="w-5 h-5 text-amber-400" />
                                             </div>
                                             <div>
-                                                <span className="text-[10px] text-slate-500 uppercase font-black tracking-widest block mb-1">สถาปัตยกรรม</span>
+                                                <span className="text-[10px] text-slate-500 uppercase font-black tracking-widest block mb-1">Architecture</span>
                                                 <span className="text-sm font-bold text-slate-200">Neural Lattice (v1.4)</span>
                                             </div>
                                         </div>
@@ -347,55 +339,67 @@ export default function RagStatusPage() {
                                     <div className="grid grid-cols-2 gap-4 pt-6 border-t border-slate-800/50">
                                         <div className="flex items-center gap-3">
                                             <div className={`w-2 h-2 rounded-full shadow-[0_0_5px_rgba(59,130,246,1)] ${!isStalled && rate > 0 ? 'bg-blue-500 animate-pulse' : 'bg-slate-700'}`}></div>
-                                            <span className="text-xs text-slate-500 uppercase font-bold tracking-tighter">มิติของข้อมูล: {stats.dimensions || 1024}</span>
+                                            <span className="text-xs text-slate-500 uppercase font-bold tracking-tighter">Vector Dimensions: {stats.dimensions || 1024}</span>
                                         </div>
                                         <div className="text-right">
-                                            <span className="text-[10px] text-slate-600 font-mono uppercase">อัปเดตล่าสุด: {lastUpdated ? new Date(lastUpdated).toLocaleTimeString() : '-'}</span>
+                                            <span className="text-[10px] text-slate-600 font-mono uppercase">Last Updated: {lastUpdated ? new Date(lastUpdated).toLocaleTimeString() : '-'}</span>
                                         </div>
                                     </div>
                                 </div>
                             ) : (
-                                <div className="text-red-400 p-6 bg-red-950/20 border border-red-900/40 rounded-2xl flex items-center gap-3 shadow-inner">
-                                    <Zap className="w-5 h-5" />
-                                    <p className="text-sm font-bold">ข้อผิดพลาด: ไม่สามารถระบุข้อมูลสถิติของดัชนีได้</p>
+                                <div className="py-20 flex flex-col items-center justify-center space-y-4">
+                                    <div className="w-12 h-12 border-4 border-blue-500/20 border-t-blue-500 rounded-full animate-spin" />
+                                    <p className="text-slate-500 font-bold uppercase tracking-widest text-xs">Initializing Secure Connection...</p>
                                 </div>
                             )}
-                        </CardContent>
-                    </Card>
-
-                    {/* Terminal Tasks Sidebar */}
-                    <div className="space-y-4">
-                        <div className="px-2">
-                             <h2 className="text-sm font-bold text-slate-400 uppercase tracking-[0.2em] mb-4 flex items-center">
-                                <Cpu className="w-4 h-4 mr-2" /> งานเบื้องหลังที่รันอยู่
-                             </h2>
-                        </div>
-                        
-                        <div className="space-y-3">
-                            {[
-                                { title: "นำเข้าไฟล์ PDF", cmd: "ingest-to-cloudflare.ts", color: "bg-blue-500", count: "182 ไฟล์" },
-                                { title: "ราชกิจจาฯ 20-25", cmd: "ingest-ratchakitcha.py", color: "bg-purple-500" },
-                                { title: "ราชกิจจาฯ ย้อนหลัง", cmd: "ingest-ratchakitcha-historical.py", color: "bg-indigo-500" },
-                                { title: "กฤษฎีกา (Krisdika)", cmd: "ingest-krisdika.py", color: "bg-teal-500" }
-                            ].map((task, i) => (
-                                <div key={i} className="group p-4 rounded-2xl border border-slate-800 bg-slate-900/40 hover:bg-slate-800/40 transition-all border-l-4" style={{ borderColor: i === 0 ? '#3b82f6' : i === 1 ? '#a855f7' : i === 2 ? '#6366f1' : '#14b8a6' }}>
-                                    <div className="flex justify-between items-start mb-1">
-                                        <h3 className="font-bold text-white text-xs">{task.title} {task.count && <span className="text-slate-500 font-normal ml-1">({task.count})</span>}</h3>
-                                        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-slate-950 border border-slate-800 shadow-inner">
-                                            <div className={`w-1.5 h-1.5 rounded-full ${task.color} animate-pulse`}></div>
-                                            <span className="text-[9px] font-black text-slate-400 uppercase">กำลังรัน</span>
-                                        </div>
-                                    </div>
-                                    <p className="text-[10px] text-slate-500 font-mono truncate opacity-60 group-hover:opacity-100 transition-opacity">{task.cmd}</p>
-                                </div>
-                            ))}
                         </div>
 
                         <div className="mt-6 p-4 bg-blue-950/10 border border-blue-900/30 rounded-2xl">
-                             <h4 className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-2">บันทึกภายใน</h4>
+                             <h4 className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-2">Internal Logs</h4>
                              <p className="text-xs text-slate-500 leading-relaxed italic">
-                                "โครงข่ายกฎหมายกำลังขยายตัว ความแม่นยำในการค้นหาจะเพิ่มขึ้นตามความหนาแน่นของข้อมูล"
+                                "Legal knowledge network is expanding. Search accuracy results will increase proportionally with data density."
                              </p>
+                        </div>
+                    </div>
+
+                    {/* Secondary Sidebar */}
+                    <div className="space-y-6">
+                        <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800 rounded-[2rem] p-8 shadow-xl">
+                            <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2">
+                                <Activity className="w-4 h-4 text-blue-500" />
+                                Active Background Tasks
+                            </h3>
+                            
+                            <div className="space-y-4">
+                                {[
+                                    { name: "PDF Ingestor", count: "182 files", script: "ingest-to-cloudflare.ts", color: "blue" },
+                                    { name: "Archive 20-25", count: "Active Batch", script: "ingest-ratchakitcha.py", color: "purple" },
+                                    { name: "Historical Dev", count: "2010-2019", script: "ingest-hist.py", color: "indigo" },
+                                    { name: "Krisdika Hub", count: "Yearly Feed", script: "ingest-krisdika.py", color: "emerald" },
+                                ].map((task, i) => (
+                                    <div key={i} className={`p-4 rounded-2xl border bg-slate-800/30 border-slate-700 group hover:border-${task.color}-500/50 transition-all`}>
+                                        <div className="flex justify-between items-center mb-1">
+                                            <span className="text-xs font-bold text-white uppercase tracking-tight">{task.name} <span className="text-[10px] text-slate-500 ml-1 font-normal">({task.count})</span></span>
+                                            <span className="flex items-center text-[8px] font-black text-blue-400 uppercase bg-blue-400/10 px-2 py-0.5 rounded-full border border-blue-400/20">
+                                                <span className="w-1 h-1 bg-blue-400 rounded-full mr-1 animate-pulse" />
+                                                RUNNING
+                                            </span>
+                                        </div>
+                                        <span className="text-[9px] font-mono text-slate-500 group-hover:text-slate-400 transition-colors">{task.script}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="bg-gradient-to-br from-blue-600 via-indigo-700 to-violet-800 rounded-[2rem] p-8 text-white shadow-xl relative overflow-hidden group">
+                           <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:scale-110 transition-transform duration-700">
+                                <Zap className="w-24 h-24" />
+                           </div>
+                           <h4 className="text-[10px] font-black uppercase tracking-widest mb-2 opacity-80">System Intelligence</h4>
+                           <p className="text-xs font-bold leading-relaxed mb-4">
+                                "The RAG network density is increasing. Query resolution accuracy improves as more legal nodes are indexed."
+                           </p>
+                           <div className="w-12 h-1 bg-white/30 rounded-full" />
                         </div>
                     </div>
                 </div>
