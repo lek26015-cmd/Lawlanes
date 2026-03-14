@@ -310,10 +310,6 @@ function LoginPageContent() {
             if (!liffId) {
                 throw new Error('ยังไม่ได้ตั้งค่า NEXT_PUBLIC_LIFF_ID ในระบบ');
             }
-
-            // Detect mobile browser to force LINE app open
-            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
             if (liffId) {
                 // Ensure LIFF is imported properly
                 const liff = (await import('@line/liff')).default;
@@ -330,6 +326,7 @@ function LoginPageContent() {
                 }
 
                 if (!liff.isLoggedIn()) {
+                    const isMobile = typeof window !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
                     if (isMobile) {
                         // On mobile: redirect to LIFF URL to force open LINE native app
                         window.location.href = `https://liff.line.me/${liffId}`;
