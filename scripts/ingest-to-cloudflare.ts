@@ -4,19 +4,17 @@ import path from 'path';
 import { createRequire } from 'module';
 
 const require = createRequire(import.meta.url);
-const pdfRequire = require('pdf-parse');
+const { PDFParse } = require('pdf-parse');
 
-const WORKER_URL = 'https://lawslane-rag-api.lawslane-app.workers.dev';
+const WORKER_URL = 'https://lawslane-rag-api.lawlanes-app.workers.dev';
 const PDF_DIR = path.join(process.cwd(), 'src/data/pdfs');
 
 async function loadPdf(filePath: string): Promise<string> {
     try {
         const dataBuffer = fs.readFileSync(filePath);
-        // @ts-ignore
-        const parser = new pdfRequire.PDFParse(new Uint8Array(dataBuffer));
-        // @ts-ignore
+        const parser = new PDFParse(new Uint8Array(dataBuffer));
         const data = await parser.getText();
-        return data?.text || '';
+        return data?.text || (typeof data === 'string' ? data : '');
     } catch (error) {
         console.error(`Error parsing ${filePath}:`, error);
         return '';

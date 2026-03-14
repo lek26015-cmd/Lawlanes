@@ -69,7 +69,7 @@ function LoginPageContent() {
     const hasAttemptedLineAutoLogin = React.useRef(false);
 
     React.useEffect(() => {
-        if (searchParams.has('liffClientId') && !hasAttemptedLineAutoLogin.current) {
+        if (searchParams.has('liff.state') && !hasAttemptedLineAutoLogin.current) {
             hasAttemptedLineAutoLogin.current = true;
             handleLineSignIn();
         }
@@ -363,11 +363,30 @@ function LoginPageContent() {
 
                 if (auth) {
                     const { signInWithCustomToken } = await import('firebase/auth');
+                    let userCredential;
                     try {
-                        await signInWithCustomToken(auth, customToken);
+                        userCredential = await signInWithCustomToken(auth, customToken);
                     } catch (fbErr: any) {
                         console.error("Firebase Custom Auth Error:", fbErr);
                         throw new Error(`การยืนยันตัวตนล้มเหลว (Firebase Auth): ${fbErr.message}`);
+                    }
+
+                    // Create server-side session (CRITICAL FOR MOBILE WEB APP)
+                    try {
+                        const firebaseIdToken = await userCredential.user.getIdToken();
+                        const sessionRes = await fetch('/api/auth/session', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ idToken: firebaseIdToken }),
+                        });
+                        
+                        if (!sessionRes.ok) {
+                            console.error("Session creation failed", await sessionRes.text());
+                            throw new Error('การสร้างเซสชันล้มเหลว');
+                        }
+                    } catch (sessionErr: any) {
+                        console.error("Session creation error:", sessionErr);
+                        throw new Error(`ข้อผิดพลาดทางฝั่งเซิร์ฟเวอร์: ${sessionErr.message}`);
                     }
 
                     toast({

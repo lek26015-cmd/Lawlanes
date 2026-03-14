@@ -1,38 +1,66 @@
 
-const WORKER_URL = 'https://lawslane-rag-api.lawslane-app.workers.dev';
+// Use environment variable with fallback to the known deployed URL
+const WORKER_URL = process.env.NEXT_PUBLIC_RAG_WORKER_URL || 'https://lawslane-rag-api.lawlanes-app.workers.dev';
 
 export async function retrieveDocuments(query: string, topK: number = 5): Promise<Array<{ source: string, content: string, score: number }>> {
-    try {
-        console.log(`Querying Cloudflare RAG for: "${query}"`);
+    const MAX_RETRIES = 2;
+    let attempt = 0;
 
-        const response = await fetch(`${WORKER_URL}/query`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ question: query })
-        });
+    while (attempt <= MAX_RETRIES) {
+        try {
+            console.log(`[RAG] Querying Cloudflare RAG for: "${query}" (Attempt ${attempt + 1})`);
+            
+            // Added timeout to prevent hanging
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
 
-        if (!response.ok) {
-            console.error(`Cloudflare RAG Error: ${response.statusText}`);
-            return [];
+            const response = await fetch(`${WORKER_URL}/query`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ question: query }),
+                signal: controller.signal
+            });
+            
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                const errorText = await response.text().catch(() => 'Cannot read error text');
+                console.error(`[RAG] Error Response: ${response.status} ${response.statusText}`, errorText);
+                throw new Error(`Worker returned ${response.status}`);
+            }
+
+            const data = await response.json() as any;
+
+            if (!data || !data.matches || data.matches.length === 0) {
+                console.warn("[RAG] No matches found in Cloudflare RAG.");
+                return [];
+            }
+
+            return data.matches.map((match: any) => ({
+                source: match.metadata?.source || 'Unknown',
+                content: match.metadata?.text || '',
+                score: match.score || 0
+            }));
+
+        } catch (error) {
+            attempt++;
+            
+            const isTimeout = error instanceof Error && error.name === 'AbortError';
+            const errorMsg = isTimeout ? 'Request timeout' : (error instanceof Error ? error.message : String(error));
+            
+            console.error(`[RAG] Error in retrieveDocuments (URL: ${WORKER_URL}):`, errorMsg);
+            
+            if (attempt > MAX_RETRIES) {
+                console.error(`[RAG] Failed after ${MAX_RETRIES + 1} attempts. Returning empty results.`);
+                return [];
+            }
+            
+            // Wait before retrying (exponential backoff: 500ms, 1000ms)
+            await new Promise(resolve => setTimeout(resolve, 500 * attempt));
         }
-
-        const data = await response.json() as any;
-
-        if (!data || !data.matches || data.matches.length === 0) {
-            console.warn("No matches found in Cloudflare RAG.");
-            return [];
-        }
-
-        return data.matches.map((match: any) => ({
-            source: match.metadata?.source || 'Unknown',
-            content: match.metadata?.text || '',
-            score: match.score || 0
-        }));
-
-    } catch (error) {
-        console.error("Error in retrieveDocuments:", error);
-        return [];
     }
+    
+    return [];
 }
 
 export async function retrieveContext(query: string, topK: number = 5): Promise<string> {

@@ -63,6 +63,12 @@ export default {
             }
         }
 
+        if (request.method === 'GET' && url.pathname === '/health') {
+            return new Response(JSON.stringify({ status: 'ok', service: 'lawslane-rag-api' }), { 
+                headers: { "Content-Type": "application/json" } 
+            });
+        }
+
         return new Response("Not Found", { status: 404 });
     }
 };
