@@ -284,6 +284,7 @@ function LoginPageContent() {
                 if (!loggedIn) {
                     const isMobile = typeof window !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
                     const redirectUri = window.location.href;
+                    alert("[DEBUG] Exact Redirect URI: " + redirectUri);
                     
                     if (isMobile) {
                         const liffUrl = `https://liff.line.me/${liffId}`;
