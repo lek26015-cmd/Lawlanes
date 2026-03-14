@@ -140,10 +140,10 @@
         "forSME": "For SME",
         "forB2B": "For Business",
         "b2bMenu": {
-            "dashboard": "B2B Dashboard",
-            "pricing": "Corporate Pricing",
-            "clm": "Contract Management (CLM)",
-            "templates": "B2B Templates Library"
+            "dashboard": "Dashboard",
+            "pricing": "Pricing",
+            "clm": "Contracts (CLM)",
+            "templates": "Business Templates"
         },
         "findLawyer": "Find Lawyer",
         "verifyLawyer": "Verify Lawyer",
@@ -156,17 +156,17 @@
         "myAccount": "My Account",
         "dashboard": "Dashboard",
         "adminDashboard": "Admin Dashboard",
-        "adminView": "Lawyer Dashboard (Admin View)",
+        "adminView": "Lawyer Dashboard (Admin)",
         "manageAccount": "Manage Account",
-        "searchPlaceholder": "Search for lawyers, expertise, or issues...",
+        "searchPlaceholder": "Search lawyer, expertise, or problem...",
         "smeMenu": {
-            "contracts": "Draft & Review Contracts",
-            "consultant": "Corporate Legal Consultant",
+            "contracts": "Business Contracts & Review",
+            "consultant": "Corporate Legal Advisor",
             "registration": "Registration & Licenses",
             "dispute": "Business Dispute Resolution"
         },
         "capAndDeal": "Cap & Deal",
-        "scrollToTop": "Scroll to Top"
+        "scrollToTop": "Back to Top"
     },
     "VerifyLawyer": {
         "backToHome": "Back to Home",

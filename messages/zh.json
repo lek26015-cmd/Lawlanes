@@ -115,6 +115,13 @@
     },
     "Navigation": {
         "forSME": "中小企业",
+        "forB2B": "企业服务",
+        "b2bMenu": {
+            "dashboard": "控制面板 (Dashboard)",
+            "pricing": "企业套餐",
+            "clm": "合同管理 (CLM)",
+            "templates": "商业模板"
+        },
         "findLawyer": "查找律师",
         "verifyLawyer": "验证律师",
         "articles": "文章",
@@ -135,6 +142,7 @@
             "registration": "注册和许可",
             "dispute": "商业纠纷解决"
         },
+        "capAndDeal": "截图并交易",
         "scrollToTop": "回到顶部"
     },
     "ComingSoon": {
