@@ -7,11 +7,15 @@ import { initAdmin } from '@/lib/firebase-admin';
 
 export async function POST(request: Request) {
     try {
-        const { idToken } = await request.json();
-        // Firebase Session Cookies usually last 5 days, but idTokens are short-lived (1 hour).
-        // However, for this lightweight implementation, we store the idToken in the cookie.
-        // In a more robust implementation, you would verify this token using a library like 'jose'.
-        const expiresIn = 60 * 60 * 24 * 5 * 1000; // 5 days (nominal)
+        const body = await request.json().catch(() => ({}));
+        const { idToken, redirect: requestedRedirect } = body;
+
+        if (!idToken) {
+            return NextResponse.json({ error: 'Missing ID Token' }, { status: 400 });
+        }
+
+        // Firebase Session Cookies usually last 5 days
+        const expiresIn = 60 * 60 * 24 * 5 * 1000; 
 
         const cookieStore = await cookies();
         const host = request.headers.get('host')?.split(':')[0] || '';
@@ -20,8 +24,6 @@ export async function POST(request: Request) {
         if (process.env.NODE_ENV === 'production') {
             const rootDomain = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'lawslane.com';
             cookieDomain = `.${rootDomain}`;
-        } else if (host.includes('localhost')) {
-            cookieDomain = undefined;
         }
 
         const cookieOptions: any = {
@@ -34,15 +36,13 @@ export async function POST(request: Request) {
 
         if (cookieDomain) { cookieOptions.domain = cookieDomain; }
 
-        // Store the raw ID token as the session cookie
-        cookieStore.set('session', idToken, cookieOptions);
-
-        const auth = await initAdmin();
-        if (!auth) {
+        const admin = await initAdmin();
+        if (!admin) {
             return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
         }
         
-        const sessionCookie = await auth.auth().createSessionCookie(idToken, { expiresIn });
+        const sessionCookie = await admin.auth().createSessionCookie(idToken, { expiresIn });
+        const decodedToken = await admin.auth().verifySessionCookie(sessionCookie);
 
         // Store the verified session cookie
         cookieStore.set('session', sessionCookie, cookieOptions);
@@ -53,10 +53,39 @@ export async function POST(request: Request) {
             httpOnly: false,
         });
 
-        return NextResponse.json({ success: true });
-    } catch (error) {
-        console.error('Lightweight Session creation error:', error);
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        // 3. Centralized Role Detection and Redirection Logic
+        let role = 'customer';
+        try {
+            const db = admin.firestore();
+            const userDoc = await db.collection('users').doc(decodedToken.uid).get();
+            if (userDoc.exists) {
+                role = userDoc.data()?.role || 'customer';
+            }
+        } catch (dbErr) {
+            console.error('Error fetching user role from Firestore:', dbErr);
+        }
+
+        // Calculate a safe suggested redirect
+        let suggestedRedirect = role === 'lawyer' ? '/lawyer-dashboard' : '/dashboard';
+        
+        if (requestedRedirect && typeof requestedRedirect === 'string') {
+            suggestedRedirect = requestedRedirect;
+        }
+
+        // SECURITY: Sanitize redirect to prevent Lawslane -> Capdeal loops
+        // If we are on Lawslane main domain, we never want to redirect to capdeal subdomain automatically
+        if (suggestedRedirect.includes('capdeal.lawslane.com')) {
+            suggestedRedirect = role === 'lawyer' ? '/lawyer-dashboard' : '/dashboard';
+        }
+
+        return NextResponse.json({ 
+            success: true, 
+            role, 
+            suggestedRedirect 
+        });
+    } catch (error: any) {
+        console.error('Session creation error:', error);
+        return NextResponse.json({ error: error.message || 'Unauthorized' }, { status: 401 });
     }
 }
 
