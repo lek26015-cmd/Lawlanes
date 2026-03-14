@@ -30,13 +30,17 @@ export async function searchLaws(query: string, limit: number = 10): Promise<Sea
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
         const repairedResults = await Promise.all(filteredResults.map(async (res) => {
-            // Only repair if it looks corrupted (contains boxes or look weird)
-            if (res.content.includes('') || res.content.includes('่') === false && res.content.length > 100) {
+            // Detection: Check for common "box" chars (tofu) or lack of Thai tone marks/vowels in long text
+            const hasTofu = /[\uFFFD\u0000-\u0008\u000B\u000C\u000E-\u001F]/.test(res.content) || res.content.includes('□');
+            const lacksTones = !/[่้๊๋ะาิีึืุูเแโใไํั]/.test(res.content); // If a long Thai string has NO vowels/tones, it's likely broken
+            
+            if (hasTofu || (lacksTones && res.content.length > 50)) {
+                console.log(`[AI Repair] Triggering for: ${res.source} (Reason: ${hasTofu ? 'Tofu detected' : 'Lacks Thai vowels'})`);
                 try {
-                    const prompt = `ข้อความต่อไปนี้มีปัญหาเรื่องการแสดงผลภาษาไทย (สระ/วรรณยุกต์ เป็นสี่เหลี่ยม หรือเพี้ยนจากการสกัด PDF) 
-จงซ่อมแซมและพิมพ์ออกมาใหม่อ่านให้ได้ใจความสมบูรณ์เป็นภาษาไทยที่ถูกต้อง โดยห้ามสรุป ให้คงเนื้อหาเดิมไว้ทุกประการ:
+                    const prompt = `ข้อความต่อไปนี้สกัดมาจาก PDF และมีปัญหาเรื่องตัวอักษรกลายเป็นกล่อง สระหาย หรือวรรณยุกต์เพี้ยน (เช่น "พจารณา" แทน "พิจารณา")
+จง "แก้ไขและพิมพ์ข้อความใหม่" ให้เป็นภาษาไทยที่สมบูรณ์ อ่านรู้เรื่อง ตามหลักกฎหมาย โดยคงความหมายเดิมไว้ทุกประการ ห้ามสรุปความ:
 
----
+--- ข้อความที่เสียหาย ---
 ${res.content}
 ---`;
                     const repairResult = await model.generateContent(prompt);
