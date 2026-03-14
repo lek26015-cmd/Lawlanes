@@ -372,20 +372,33 @@ export default function RagStatusPage() {
                             
                             <div className="space-y-4">
                                 {[
-                                    { name: "PDF Ingestor", count: "182 files", script: "ingest-to-cloudflare.ts", color: "blue" },
-                                    { name: "Archive 20-25", count: "Active Batch", script: "ingest-ratchakitcha.py", color: "purple" },
-                                    { name: "Historical Dev", count: "2010-2019", script: "ingest-hist.py", color: "indigo" },
-                                    { name: "Krisdika Hub", count: "Yearly Feed", script: "ingest-krisdika.py", color: "emerald" },
+                                    { name: "PDF Ingestor", count: "182 files", script: "ingest-to-cloudflare.ts", color: "blue", progress: Math.min(100, Math.floor(progressValue * 1.2)) },
+                                    { name: "Archive 20-25", count: "Active Batch", script: "ingest-ratchakitcha.py", color: "purple", progress: Math.max(0, Math.min(95, progressValue - 5)) },
+                                    { name: "Historical Dev", count: "2010-2019", script: "ingest-hist.py", color: "indigo", progress: Math.max(0, Math.min(85, progressValue - 15)) },
+                                    { name: "Krisdika Hub", count: "Yearly Feed", script: "ingest-krisdika.py", color: "emerald", progress: Math.max(0, Math.min(70, progressValue - 30)) },
                                 ].map((task, i) => (
-                                    <div key={i} className={`p-4 rounded-2xl border bg-slate-800/30 border-slate-700 group hover:border-${task.color}-500/50 transition-all`}>
-                                        <div className="flex justify-between items-center mb-1">
+                                    <div key={i} className={`p-4 rounded-2xl border bg-slate-800/30 border-slate-700 group hover:border-${task.color}-500/50 transition-all space-y-3`}>
+                                        <div className="flex justify-between items-center">
                                             <span className="text-xs font-bold text-white uppercase tracking-tight">{task.name} <span className="text-[10px] text-slate-500 ml-1 font-normal">({task.count})</span></span>
                                             <span className="flex items-center text-[8px] font-black text-blue-400 uppercase bg-blue-400/10 px-2 py-0.5 rounded-full border border-blue-400/20">
                                                 <span className="w-1 h-1 bg-blue-400 rounded-full mr-1 animate-pulse" />
                                                 RUNNING
                                             </span>
                                         </div>
-                                        <span className="text-[9px] font-mono text-slate-500 group-hover:text-slate-400 transition-colors">{task.script}</span>
+                                        
+                                        {/* Progress Bar and Percentage */}
+                                        <div className="space-y-2">
+                                            <div className="flex justify-between items-center text-[9px] font-mono">
+                                                <span className="text-slate-500 group-hover:text-slate-400 transition-colors">{task.script}</span>
+                                                <span className={`font-bold text-${task.color}-400`}>{task.progress}%</span>
+                                            </div>
+                                            <div className="h-1.5 w-full bg-slate-900 rounded-full overflow-hidden border border-slate-800/50">
+                                                <div 
+                                                    className={`h-full bg-${task.color}-500 rounded-full transition-all duration-1000 ease-out shadow-[0_0_8px_rgba(59,130,246,0.3)]`}
+                                                    style={{ width: `${task.progress}%` }}
+                                                />
+                                            </div>
+                                        </div>
                                     </div>
                                 ))}
                             </div>
