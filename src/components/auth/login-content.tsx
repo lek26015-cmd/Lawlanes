@@ -262,27 +262,33 @@ function LoginPageContent() {
                 // Ensure LIFF is imported properly
                 const liff = (await import('@line/liff')).default;
 
+                console.log("[LINE Auth] Initializing LIFF with ID:", liffId);
                 try {
                     await liff.init({ liffId });
+                    console.log("[LINE Auth] LIFF initialized successfully");
                 } catch (initErr: any) {
                     console.error("LIFF Init Error:", initErr);
                     let errMsg = initErr.message || '';
                     if (errMsg.includes('fetch') || errMsg.includes('Load failed')) {
                         throw new Error(`การเชื่อมต่อ LINE ถูกบล็อกโดยเบราว์เซอร์ (${errMsg})`);
                     }
-                    throw new Error(`LIFF Init: ${errMsg}`);
+                    throw new Error(`LIFF Init Failed: ${errMsg}`);
                 }
 
+                console.log("[LINE Auth] Login status:", liff.isLoggedIn());
                 if (!liff.isLoggedIn()) {
                     const isMobile = typeof window !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+                    console.log("[LINE Auth] Device type:", isMobile ? "Mobile" : "Desktop");
                     if (isMobile) {
-                        // On mobile: redirect to LIFF URL to force open LINE native app
-                        window.location.href = `https://liff.line.me/${liffId}`;
+                        const liffUrl = `https://liff.line.me/${liffId}`;
+                        console.log("[LINE Auth] Redirecting mobile to LIFF URL:", liffUrl);
+                        window.location.href = liffUrl;
                     } else {
-                        // On desktop: use standard liff.login with redirect
-                        liff.login({ redirectUri: window.location.href });
+                        const redirectUri = window.location.href;
+                        console.log("[LINE Auth] Executing liff.login with redirectUri:", redirectUri);
+                        liff.login({ redirectUri });
                     }
-                    return; // Will redirect
+                    return; 
                 }
 
                 // Already logged in via LIFF
