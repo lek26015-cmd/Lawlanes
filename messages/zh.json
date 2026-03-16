@@ -111,7 +111,23 @@
             "experts": "专家律师",
             "247": "24/7 服务",
             "satisfaction": "满意度"
+        },
+        "capAndDeal": {
+            "title": "截图并交易：从聊天记录创建合同",
+            "description": "只需截取您的聊天协议，我们的 AI 就会自动生成具有法律约束力的合同。无需起草，无需律师。",
+            "features": {
+                "ai": "AI 自动分析聊天记录并生成合同",
+                "fast": "耗时不到 1 分钟，即刻可用",
+                "legal": "法律有效且可执行的合同"
+            },
+            "cta": "立即开始截图并交易"
         }
+    },
+    "NotFound": {
+        "title": "未找到页面",
+        "description": "抱歉，您查找的页面可能已被删除、更名或暂时不可用。",
+        "backHome": "返回首页",
+        "contactSupport": "联系支持"
     },
     "Navigation": {
         "forSME": "中小企业",
@@ -459,7 +475,7 @@
     },
     "ChatModal": {
         "title": "LAlin",
-        "welcome": "您好！我是 LAlin，随时为您提供深度且准确的法律见解。今天有什么我可以帮您分析的吗？",
+        "welcome": "您好！我是来自 Lawslane 的 LAlin AI",
         "quickQuestionsLabel": "快速提问：",
         "inputPlaceholder": "输入您的消息...",
         "thinking": "LAlin 正在思考...",

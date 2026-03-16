@@ -31,7 +31,8 @@
             "placeholder": "อธิบายปัญหาของคุณที่นี่ เช่น 'โดนโกงแชร์', 'ต้องการจดทะเบียนบริษัท', 'ปัญหาที่ดินกับเพื่อนบ้าน'",
             "button": "วิเคราะห์และแนะนำทนาย",
             "analyzing": "กำลังวิเคราะห์...",
-            "consultButton": "ปรึกษา AI ทนายความ"
+            "consultButton": "ปรึกษา AI ทนายความ",
+            "suggestedKeywordsPrefix": "ลองค้นหา:"
         },
         "mainFeatures": {
             "anywhere": {
@@ -482,7 +483,7 @@
     },
     "ChatModal": {
         "title": "LAlin",
-        "welcome": "สวัสดีค่ะ ดิฉัน LAlin พร้อมให้คำปรึกษาด้วยข้อมูลที่แม่นยำและเจาะลึก คุณต้องการให้ฉันช่วยวิเคราะห์ในวันนี้ไหมคะ?",
+        "welcome": "สวัสดีค่ะ ดิฉัน LAlin AI จาก Lawslane",
         "quickQuestionsLabel": "คำถามด่วน:",
         "inputPlaceholder": "พิมพ์ข้อความที่นี่...",
         "thinking": "LAlin กำลังคิด...",

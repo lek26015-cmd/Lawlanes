@@ -62,6 +62,7 @@ export default function ChatModal() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   // Robust auto-scroll to bottom
   const scrollToBottom = () => {
@@ -113,16 +114,16 @@ export default function ChatModal() {
     setInput(e.target.value);
   };
 
-  const handleQuickQuestion = async (question: string) => {
-    setIsLoading(true);
-    const userMessage: ChatMessage = {
-      id: Date.now().toString(),
-      role: 'user',
-      content: question,
-    };
-    setMessages((prev) => [...prev, userMessage]);
-
-    await processChat(question);
+  const handleQuickQuestion = (question: string) => {
+    setInput(question);
+    // Focus the textarea and adjust height
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        textareaRef.current.style.height = 'auto';
+        textareaRef.current.style.height = Math.min(textareaRef.current.scrollHeight, 200) + 'px';
+      }
+    }, 100);
   };
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -288,23 +289,26 @@ export default function ChatModal() {
         hideCloseButton={true}
         className="fixed inset-0 w-full h-full max-w-none translate-x-0 translate-y-0 rounded-none bg-white z-50 p-0 flex flex-col overflow-hidden transition-all duration-500 ease-in-out data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0"
       >
-        <DialogHeader className="flex flex-row justify-between items-center p-4 lg:p-6 border-b bg-white text-foreground">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl overflow-hidden border border-primary/20 flex items-center justify-center shadow-sm">
+        <DialogHeader className="relative flex flex-row items-center justify-center lg:justify-between p-4 lg:p-6 border-b bg-white text-foreground">
+          <div className="flex items-center lg:space-x-3">
+            <div className="absolute left-4 lg:static w-10 h-10 rounded-xl overflow-hidden border border-primary/20 flex items-center justify-center shadow-sm">
               <img src="/images/lawslane-LAlin.jpg" alt="LAlin" className="w-full h-full object-cover" />
             </div>
-            <div>
+            <div className="text-center lg:text-left">
               <DialogTitle asChild>
                 <h3 className="text-xl lg:text-2xl font-bold tracking-tight">
                   {renderStyledText('LAlin')}
                 </h3>
               </DialogTitle>
               <DialogDescription className="text-muted-foreground text-[10px] lg:text-xs">
-                Legal Intelligence • 29y Professional
+                Legal Intelligence Professional
               </DialogDescription>
             </div>
           </div>
-          <button onClick={() => setAiChatOpen(false)} className="p-2 rounded-full hover:bg-gray-100 transition-colors">
+          <button 
+            onClick={() => setAiChatOpen(false)} 
+            className="absolute right-4 lg:static p-2 rounded-full hover:bg-gray-100 transition-colors"
+          >
             <X className="w-8 h-8 text-gray-500" />
           </button>
         </DialogHeader>
@@ -338,7 +342,7 @@ export default function ChatModal() {
                           key={q.key}
                           onClick={() => handleQuickQuestion(q.label)}
                           disabled={isLoading}
-                          className="text-base px-6 py-3 bg-gray-50 border border-gray-200 rounded-2xl hover:bg-blue-50 hover:border-blue-200 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm font-medium hover:text-blue-600 text-gray-700">
+                          className="text-base px-6 py-3 bg-gray-50 border border-gray-200 rounded-2xl hover:bg-blue-50 hover:border-[#0B3979]/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm font-medium hover:text-[#0B3979] text-gray-700">
                           {q.label}
                         </button>
                       ))}
@@ -377,8 +381,8 @@ export default function ChatModal() {
                   </div>
                 )}
                 <div className={`${msg.role === 'user' ? 'w-full flex justify-end' : 'w-full'}`}>
-                  <div className={`p-4 lg:px-0 lg:py-6 rounded-3xl lg:rounded-none shadow-sm lg:shadow-none ${msg.role === 'user'
-                    ? 'bg-foreground lg:bg-gray-100 text-background lg:text-foreground ml-auto max-w-[85%] lg:max-w-[80%] lg:px-6'
+                  <div className={`p-4 lg:px-6 lg:py-4 rounded-[2rem] shadow-sm ${msg.role === 'user'
+                    ? 'bg-[#0B3979] text-white ml-auto max-w-[85%] lg:max-w-[80%]'
                     : 'bg-white border-none mr-auto max-w-[95%] lg:max-w-full'
                     }`}
                     style={msg.role === 'user' 
@@ -476,7 +480,7 @@ export default function ChatModal() {
                 </button>
               </div>
             )}
-            <form onSubmit={handleSubmit} className="flex items-end space-x-2 bg-gray-100 lg:bg-gray-50 p-1 lg:p-3 rounded-full lg:rounded-3xl border-2 border-transparent focus-within:border-primary/50 focus-within:bg-white transition-all duration-300">
+            <form onSubmit={handleSubmit} className="flex items-end space-x-2 bg-white p-1 lg:p-3 rounded-[2rem] lg:rounded-[2.5rem] border-2 border-[#0B3979]/40 focus-within:border-[#0B3979] focus-within:bg-white transition-all duration-300 shadow-md">
               <input
                 type="file"
                 ref={fileInputRef}
@@ -488,15 +492,15 @@ export default function ChatModal() {
                 type="button"
                 size="icon"
                 variant="ghost"
-                disabled={isLoading}
                 onClick={() => fileInputRef.current?.click()}
-                className="p-2 rounded-full lg:rounded-2xl border-none lg:border-2 lg:border-gray-200 hover:border-primary hover:bg-primary/5 transition-all w-10 h-10 lg:w-12 lg:h-12 flex-shrink-0"
+                className="p-2 rounded-full lg:rounded-2xl border-none lg:border-2 lg:border-gray-100 hover:border-[#0B3979] hover:bg-blue-50 transition-all w-10 h-10 lg:w-12 lg:h-12 flex-shrink-0"
               >
-                <Plus className="w-5 h-5 lg:w-6 lg:w-6 text-gray-500" />
+                <Plus className="w-5 h-5 lg:w-6 lg:w-6 text-[#0B3979]" />
               </Button>
               <div className="flex-grow">
                 <textarea
                   rows={1}
+                  ref={textareaRef}
                   value={input}
                   onChange={(e) => {
                     handleInputChange(e as any);
@@ -518,7 +522,7 @@ export default function ChatModal() {
                 type="submit" 
                 size="icon" 
                 disabled={isLoading} 
-                className="p-2 rounded-full lg:rounded-2xl bg-primary text-white hover:bg-primary/90 transition-all shadow-md w-10 h-10 lg:w-12 lg:h-12 flex-shrink-0 group flex items-center justify-center"
+                className="p-2 rounded-full lg:rounded-2xl bg-[#0B3979] text-white hover:bg-[#082a5a] transition-all shadow-md w-10 h-10 lg:w-12 lg:h-12 flex-shrink-0 group flex items-center justify-center border-none"
               >
                 <Send className="w-4 h-4 lg:w-5 lg:h-5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
               </Button>

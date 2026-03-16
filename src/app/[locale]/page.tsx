@@ -62,20 +62,37 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
     <>
       <div className="flex flex-col">
         <section className="relative w-full -mt-20 pt-20 lg:pt-32 pb-0 bg-slate-900 text-white rounded-b-[60px] md:rounded-b-[80px] overflow-hidden">
-          {/* Image Layer - Animated with FadeIn */}
-          <FadeIn direction="right" delay={100} className="absolute top-24 left-0 w-full h-[500px] lg:h-full lg:top-auto lg:bottom-[-40px] lg:left-[2%] lg:w-[45%] z-0 pointer-events-none">
+          {/* Container for Desktop Image - only visible and positioned relative to the center on large screens */}
+          <div className="hidden lg:block absolute inset-0 pointer-events-none">
+            <div className="relative w-full h-full max-w-screen-2xl mx-auto">
+              <FadeIn direction="right" delay={100} className="absolute bottom-[-40px] left-[2%] w-[45%] h-full">
+                <div className="relative w-full h-full opacity-80">
+                  <Image
+                    src="/images/lawslane-cover-photo.png"
+                    alt="Lawslane Cover"
+                    fill
+                    className="object-contain object-left-bottom"
+                    priority
+                  />
+                </div>
+              </FadeIn>
+            </div>
+          </div>
+
+          {/* Mobile Image - positioned relative to the whole section */}
+          <FadeIn direction="right" delay={100} className="lg:hidden absolute top-24 left-0 w-full h-[500px] z-0 pointer-events-none">
             <div className="relative w-full h-full opacity-80">
               <Image
                 src="/images/lawslane-cover-photo.png"
                 alt="Lawslane Cover"
                 fill
-                className="object-cover object-top lg:object-contain lg:object-left-bottom"
+                className="object-cover object-top"
                 priority
               />
             </div>
           </FadeIn>
 
-          <div className="relative z-10 px-4 md:px-12 lg:px-20 max-w-screen-2xl">
+          <div className="relative z-10 px-4 md:px-12 lg:px-20 max-w-screen-2xl mx-auto">
             <div className="relative w-full">
               <div className="grid lg:grid-cols-2 gap-8 items-start relative z-10 pt-60 lg:pt-0 pb-16 md:pb-24 lg:pb-32">
                 {/* Left side remains for background image spacing on desktop, but contains text for mobile */}
@@ -175,61 +192,75 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
           </div>
         </section>
 
-        {/* Consolidated Section: Forms & Verify (50/50) */}
-        <section className="w-full overflow-hidden border-y border-slate-100">
-          <div className="flex flex-col lg:flex-row">
-            {/* Left Hand: Legal Forms */}
-            <div className="w-full lg:w-1/2 py-16 md:py-24 bg-white px-4 md:px-12 lg:px-20 flex flex-col justify-center">
-              <FadeIn direction="right">
-                <div className="space-y-6 max-w-xl mx-auto lg:mx-0">
-                  <h2 className="text-3xl md:text-4xl font-bold font-headline text-[#0B3979]">
-                    {t('legalForms.title')}
-                  </h2>
-                  <p className="text-slate-600 text-lg leading-relaxed">
-                    {t('legalForms.description')}
-                  </p>
-                  <div className="space-y-3">
-                    {[
-                      t('legalForms.features.professional'),
-                      t('legalForms.features.update'),
-                      t('legalForms.features.free')
-                    ].map((item, index) => (
-                      <div key={index} className="flex items-center gap-3">
-                        <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center shrink-0">
-                          <Check className="w-4 h-4 text-green-600" />
+        {/* Consolidated Section: Forms & Verify Cards (Side-by-Side) */}
+        <section className="w-full py-16 md:py-24 bg-white overflow-hidden">
+          <div className="container mx-auto px-4 md:px-6">
+            <div className="grid lg:grid-cols-2 gap-8 max-w-6xl mx-auto">
+              {/* Left Card: Legal Forms */}
+              <FadeIn direction="up">
+                <div className="h-full bg-slate-50 rounded-[2.5rem] p-8 md:p-12 border border-slate-100 shadow-sm hover:shadow-md transition-all duration-300 flex flex-col justify-between">
+                  <div className="space-y-6">
+                    <div className="w-14 h-14 bg-blue-100 rounded-2xl flex items-center justify-center">
+                      <FileText className="w-8 h-8 text-[#0B3979]" />
+                    </div>
+                    <div className="space-y-4">
+                      <h2 className="text-2xl md:text-3xl font-bold font-headline text-[#0B3979]">
+                        {t('legalForms.title')}
+                      </h2>
+                      <p className="text-slate-600 text-lg leading-relaxed">
+                        {t('legalForms.description')}
+                      </p>
+                    </div>
+                    <div className="space-y-3">
+                      {[
+                        t('legalForms.features.professional'),
+                        t('legalForms.features.update'),
+                        t('legalForms.features.free')
+                      ].map((item, index) => (
+                        <div key={index} className="flex items-center gap-3">
+                          <Check className="w-5 h-5 text-green-600 shrink-0" />
+                          <span className="text-slate-700 font-medium">{item}</span>
                         </div>
-                        <span className="text-slate-700 font-medium">{item}</span>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
                   </div>
-                  <div className="pt-2">
-                    <Link href="/forms" className="inline-flex items-center justify-center px-8 py-3 text-base font-medium text-white bg-[#0B3979] rounded-full hover:bg-[#082a5a] shadow-lg hover:shadow-xl transition-all duration-300 group">
+                  <div className="pt-8">
+                    <Link href="/forms" className="inline-flex items-center justify-center w-full sm:w-auto px-8 py-3 text-base font-medium text-white bg-[#0B3979] rounded-full hover:bg-[#082a5a] shadow-lg hover:shadow-xl transition-all duration-300 group text-center">
                       {t('legalForms.cta')}
                       <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                     </Link>
                   </div>
                 </div>
               </FadeIn>
-            </div>
 
-            {/* Right Hand: Verify Status */}
-            <div className="w-full lg:w-1/2 py-16 md:py-24 bg-gradient-to-br from-[#0B3979] to-[#082a5a] text-white px-4 md:px-12 lg:px-20 flex flex-col justify-center items-center text-center">
-              <FadeIn direction="left">
-                <div className="space-y-6 max-w-xl">
-                  <div className="mx-auto w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-sm border border-white/20 shadow-xl">
-                    <ShieldCheck className="w-10 h-10 text-white" />
+              {/* Right Card: Verify Status */}
+              <FadeIn direction="up" delay={200}>
+                <div className="h-full bg-gradient-to-br from-[#0B3979] to-[#082a5a] text-white rounded-[2.5rem] p-8 md:p-12 shadow-xl hover:shadow-2xl transition-all duration-300 flex flex-col justify-between relative overflow-hidden group">
+                  {/* Subtle Background Pattern */}
+                  <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-white/5 rounded-full blur-3xl group-hover:bg-white/10 transition-colors duration-500"></div>
+                  
+                  <div className="space-y-6 relative z-10">
+                    <div className="w-14 h-14 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-sm border border-white/20">
+                      <ShieldCheck className="w-8 h-8 text-white" />
+                    </div>
+                    <div className="space-y-4">
+                      <h2 className="text-2xl md:text-3xl font-bold font-headline text-white">
+                        {t('verifyStatus.title')}
+                      </h2>
+                      <p className="text-blue-100 text-lg leading-relaxed">
+                        {t('verifyStatus.description')}
+                      </p>
+                    </div>
+                    
+                    <div className="bg-white/5 rounded-2xl p-6 border border-white/10 backdrop-blur-sm">
+                      <p className="text-sm text-blue-200 uppercase font-semibold tracking-wider mb-2">{t('stats.experts')}</p>
+                      <div className="text-3xl font-bold text-white">50+ {t('stats.experts')}</div>
+                    </div>
                   </div>
-                  <div className="space-y-3">
-                    <h2 className="text-3xl md:text-4xl font-bold tracking-tight font-headline">
-                      {t('verifyStatus.title')}
-                    </h2>
-                    <p className="text-blue-100 text-lg">
-                      {t('verifyStatus.description')}
-                    </p>
-                  </div>
-                  <div className="pt-4">
-                    <Link href="/verify-lawyer">
-                      <Button size="lg" variant="secondary" className="rounded-full px-10 text-lg font-bold text-[#0B3979] bg-white hover:bg-white/90 shadow-xl">
+
+                  <div className="pt-8 relative z-10">
+                    <Link href="/verify-lawyer" className="block sm:inline-block">
+                      <Button size="lg" variant="secondary" className="w-full sm:w-auto rounded-full px-10 text-lg font-bold text-[#0B3979] bg-white hover:bg-white/90 shadow-xl">
                         {t('verifyStatus.button')}
                       </Button>
                     </Link>
