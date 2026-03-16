@@ -59,22 +59,20 @@ export default function ChatModal() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // Robust auto-scroll to bottom
   const scrollToBottom = () => {
-    if (scrollAreaRef.current) {
-      const scrollableNode = scrollAreaRef.current.querySelector('div[style*="overflow: scroll"]');
-      if (scrollableNode) {
-        // Use requestAnimationFrame to ensure the DOM has rendered the new content
-        requestAnimationFrame(() => {
-          scrollableNode.scrollTop = scrollableNode.scrollHeight;
-        });
-      }
-    }
+    // We use a small timeout to ensure the DOM has updated and the images/Markdown have rendered
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    }, 100);
   };
 
   useEffect(() => {
-    scrollToBottom();
+    if (messages.length > 0) {
+      scrollToBottom();
+    }
   }, [messages, isLoading]);
 
   // Reset welcome message when locale changes
@@ -296,8 +294,21 @@ export default function ChatModal() {
                     style={msg.role === 'user' ? { borderTopRightRadius: 0 } : { borderTopLeftRadius: 0 }}
                   >
                     {typeof msg.content === 'string' ? (
-                      <div className="text-sm whitespace-pre-wrap prose prose-sm max-w-none prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline">
-                        <ReactMarkdown>{msg.content}</ReactMarkdown>
+                      <div className="text-sm prose prose-sm max-w-none prose-a:text-blue-600 prose-a:font-semibold prose-a:no-underline hover:prose-a:underline">
+                        <ReactMarkdown
+                          components={{
+                            a: ({ node, ...props }) => {
+                              const isInternal = props.href?.startsWith('/');
+                              if (isInternal) {
+                                return <Link href={props.href || '#'} className="text-blue-600 font-semibold hover:underline" onClick={() => setAiChatOpen(false)}>{props.children}</Link>;
+                              }
+                              return <a {...props} target="_blank" rel="noopener noreferrer" className="text-blue-600 font-semibold hover:underline" />;
+                            },
+                            p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>
+                          }}
+                        >
+                          {msg.content}
+                        </ReactMarkdown>
                       </div>
                     ) : isChatResponse(msg.content) ? (
                       <div className="space-y-3">
@@ -305,7 +316,20 @@ export default function ChatModal() {
                           <div key={index} className="pb-2 last:pb-0">
                             {section.title && <h4 className="font-bold text-sm mb-1 text-slate-900 border-l-4 border-primary pl-2">{section.title}</h4>}
                             <div className="text-sm prose prose-sm max-w-none prose-slate">
-                              <ReactMarkdown>{section.content}</ReactMarkdown>
+                              <ReactMarkdown
+                                components={{
+                                  a: ({ node, ...props }) => {
+                                    const isInternal = props.href?.startsWith('/');
+                                    if (isInternal) {
+                                      return <Link href={props.href || '#'} className="text-blue-600 font-semibold hover:underline" onClick={() => setAiChatOpen(false)}>{props.children}</Link>;
+                                    }
+                                    return <a {...props} target="_blank" rel="noopener noreferrer" className="text-blue-600 font-semibold hover:underline" />;
+                                  },
+                                  p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>
+                                }}
+                              >
+                                {section.content}
+                              </ReactMarkdown>
                             </div>
                             {section.link && section.linkText && (
                               <div className="mt-3">
@@ -341,6 +365,7 @@ export default function ChatModal() {
                 </div>
               </div>
             )}
+            <div ref={messagesEndRef} className="h-4" />
           </div>
         </ScrollArea>
 

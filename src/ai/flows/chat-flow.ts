@@ -150,8 +150,7 @@ CORE OPERATING PROCEDURES:
     -   **SECONDARY SOURCE**: "ข้อมูลความรู้ทั่วไป" (Typhoon AI) provides general legal context but lacks specific document backing.
 3.  **CITATIONS POLICY (IMPORTANT)**: 
     - **NO CLUTTER**: DO NOT put citations after every sentence or line. It makes the text hard to read.
-    - **GROUPED**: Put all citations in a dedicated section named "รายการอ้างอิง" at the end of your response.
-    - **FORMAT**: Use markdown links: \`[ที่มา: Source Name มาตรา XXX](/law-search?q=มาตรา XXX)\`. 
+    - **FORMAT**: Use markdown links with angle brackets for the URL: \`[ที่มา: Source Name มาตรา XXX](</law-search?q=มาตรา XXX>)\`. This ensures Thai characters and spaces are parsed correctly.
     - **EXTRACT SECTION**: Always look for "มาตรา" numbers in the source text and include them in the link text.
     - **CLICKABLE**: Use the \`/law-search?q=...\` path so the user can click to see more details.
 
@@ -388,7 +387,7 @@ async function fallbackChat(prompt: string, locale: string = 'th', cause?: Error
           `User Question: ${prompt}\n\nRelated Legal Context with Sources:\n${contextWithSources}\n\nInstructions:
 1. Summarize the legal information from the context.
 2. Put all citations at the end of the summary in a "รายการอ้างอิง" section.
-3. Use markdown links for citations: [ที่มา: Source Name มาตรา XXX](/law-search?q=มาตรา XXX).
+3. Use markdown links with angle brackets for citations: [ที่มา: Source Name มาตรา XXX](</law-search?q=มาตรา XXX>).
 4. NEVER include raw URLs in your response.
 5. Use a professional tone.
 6. ${languageInstruction}`,
