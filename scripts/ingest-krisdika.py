@@ -25,6 +25,20 @@ DELAY_BETWEEN_CHUNKS = 0.5
 # Years to ingest (Krisdika goes back very far)
 START_YEAR = 1877
 END_YEAR = 2025
+CHECKPOINT_FILE = "scripts/checkpoint-krisdika.json"
+
+def load_checkpoint():
+    if os.path.exists(CHECKPOINT_FILE):
+        try:
+            with open(CHECKPOINT_FILE, 'r') as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {"year": START_YEAR, "month": 1}
+
+def save_checkpoint(year, month):
+    with open(CHECKPOINT_FILE, 'w') as f:
+        json.dump({"year": year, "month": month}, f)
 
 def update_local_status(status: str, message: str = "", next_retry: str = ""):
     """Notify the local Next.js API about the current ingestion status."""
@@ -187,14 +201,22 @@ def main():
     print(f"⚖️ Krisdika Apps Ingestion — Years {START_YEAR}-{END_YEAR}")
     print()
     
+    checkpoint = load_checkpoint()
+    start_year = checkpoint.get("year", START_YEAR)
+    start_month = checkpoint.get("month", 1)
+    
+    print(f"🔄 Resuming from Year {start_year}, Month {start_month}")
+    
     grand_total = 0
     grand_success = 0
     
-    for year in range(START_YEAR, END_YEAR + 1):        
-        for month in range(1, 13):
+    for year in range(start_year, END_YEAR + 1):
+        initial_month = start_month if year == start_year else 1
+        for month in range(initial_month, 13):
             month_str = f"{year}-{month:02d}"
             filepath = download_jsonl(year, month)
             if not filepath:
+                save_checkpoint(year, month + 1 if month < 12 else 1)
                 continue
             
             print(f"  ⚙️  Processing {month_str}...")
@@ -202,6 +224,8 @@ def main():
             grand_total += total
             grand_success += success
             print(f"  ✅ {month_str}: {success}/{total} chunks ingested")
+            
+            save_checkpoint(year, month + 1 if month < 12 else 1 if year < END_YEAR else month)
         
     print(f"🎉 Ingestion complete! Total: {grand_success}/{grand_total}")
     update_local_status("idle", "Krisdika ingestion complete")
