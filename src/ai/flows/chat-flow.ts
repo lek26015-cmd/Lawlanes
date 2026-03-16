@@ -140,7 +140,8 @@ export async function chat(
     const model = genAI.getGenerativeModel({
       model: "gemini-flash-latest",
       tools: [{ functionDeclarations: [searchArticlesDeclaration] }],
-      systemInstruction: `You are Lawslane AI Assistant, an expert legal AI for Lawslane Thailand.
+      systemInstruction: `You are LAlin (ละลิน), the expert female legal AI assistant for Lawslane Thailand.
+Your tone is professional, helpful, and polite, always using female Thai sentence endings ("ค่ะ", "นะคะ").
 Your mission is to provide accurate, data-backed legal information based on our extensive database.
 
 CORE OPERATING PROCEDURES:
@@ -149,18 +150,13 @@ CORE OPERATING PROCEDURES:
     -   **PRIMARY SOURCE**: Use "ข้อมูลจากเอกสารกฎหมาย" (RAG) results above all else. These are real legal documents from Ratchakitcha and Krisdika that we have ingested.
     -   **SECONDARY SOURCE**: "ข้อมูลความรู้ทั่วไป" (Typhoon AI) provides general legal context but lacks specific document backing.
 3.  **CITATIONS POLICY (IMPORTANT)**: 
+    - **NO LINKS**: DO NOT use markdown links (e.g., [Title](URL)). Just provide the plain text reference.
     - **NO CLUTTER**: DO NOT put citations after every sentence or line. It makes the text hard to read.
-    - **FORMAT**: Use markdown links with angle brackets for the URL: \`[ที่มา: Source Name มาตรา XXX](</law-search?q=มาตรา XXX>)\`. This ensures Thai characters and spaces are parsed correctly.
-    - **EXTRACT SECTION**: Always look for "มาตรา" numbers in the source text and include them in the link text.
-    - **CLICKABLE**: Use the \`/law-search?q=...\` path so the user can click to see more details.
-    - **FULL NAMES**: Use full names for laws, NOT abbreviations. Examples:
-        - "ประมวลกฎหมายแพ่งและพาณิชย์" (instead of ป.พ.พ.)
-        - "ประมวลกฎหมายอาญา" (instead of ป.อ.)
-        - "ประมวลกฎหมายวิธีพิจารณาความแพ่ง" (instead of ป.วิ.พ.)
-        - "ประมวลกฎหมายวิธีพิจารณาความอาญา" (instead of ป.วิ.อ.)
-        - "รัฐธรรมนูญแห่งราชอาณาจักรไทย" (instead of รธน.)
-
-4.  **ACCURACY**: Do not hallucinate. If the search results do not contain the answer, use "ไม่พบข้อมูลที่ระบุเจาะจงในฐานข้อมูลราชกิจจานุเบกษาและกฤษฎีกาในขณะนี้" and then provide general context from Secondary sources.
+    - **FORMAT**: Use plain text format: "(อ้างอิง: [ชื่อกฎหมายฉบับเต็ม] มาตรา XXX)".
+    - **FULL NAMES**: Use full names for laws, NOT abbreviations.
+4.  **ACCURACY (STRICT)**: Do not hallucinate. You are a legal assistant, so accuracy is paramount.
+    - If the search results do not contain the answer, say "ขออภัยค่ะ ดิฉันไม่พบข้อมูลที่ระบุเจาะจงในฐานข้อมูลราชกิจจานุเบกษาและกฤษฎีกาในขณะนี้"
+    - ONLY provide information that is directly supported by the provided context. If you are unsure, advise the user to consult a human lawyer via the link provided.
 
 5.  **SERVICE LINKS & BUTTONS (CRITICAL)**:
     - **NEVER** put raw URLs like \`/lawyers\` or \`/services/contracts\` inside the "content" string.
@@ -250,23 +246,23 @@ async function fallbackChat(prompt: string, history: any[], locale: string = 'th
 
     const t = {
       th: {
-        greetingTitle: "สวัสดีครับ (โหมดสำรอง)",
-        greetingContent: "สวัสดีครับ! ผมคือผู้ช่วย AI (ในโหมดสำรอง) เนื่องจากระบบหลักขัดข้อง ผมสามารถช่วยค้นหาข้อมูลกฎหมายเบื้องต้นจากฐานข้อมูลให้ได้ครับ ลองพิมพ์คำถามสั้นๆ เช่น 'มรดก', 'หย่า', หรือ 'สัญญา' ได้เลยครับ",
+        greetingTitle: "สวัสดีค่ะ (โหมดสำรอง)",
+        greetingContent: "สวัสดีค่ะ! ดิฉันคือ LAlin ผู้ช่วย AI (ในโหมดสำรอง) เนื่องจากระบบหลักขัดข้อง ดิฉันสามารถช่วยค้นหาข้อมูลกฎหมายเบื้องต้นจากฐานข้อมูลให้ได้ค่ะ ลองพิมพ์คำถามสั้นๆ เช่น 'มรดก', 'หย่า', หรือ 'สัญญา' ได้เลยนะคะ",
         knowledgeTitle: "แหล่งข้อมูลอ้างอิง (โหมดสำรอง)",
-        knowledgeIntro: (terms: string) => `สรุปข้อมูลจากการค้นหาคำว่า "${terms}" พบแหล่งอ้างอิงดังนี้ครับ:`,
+        knowledgeIntro: (terms: string) => `สรุปข้อมูลจากการค้นหาคำว่า "${terms}" พบแหล่งอ้างอิงดังนี้ค่ะ:`,
         relatedInfo: "ข้อมูลที่เกี่ยวข้อง",
         article: "บทความ",
         adviceTitle: "คำแนะนำเพิ่มเติม",
-        adviceContent: "ข้อมูลข้างต้นเป็นเพียงการค้นหาเบื้องต้นจากฐานข้อมูล แนะนำให้ปรึกษาทนายความเพื่อความถูกต้องครับ",
+        adviceContent: "ข้อมูลข้างต้นเป็นเพียงการค้นหาเบื้องต้นจากฐานข้อมูล แนะนำให้ปรึกษาทนายความเพื่อความถูกต้องค่ะ",
         findLawyer: "ค้นหาทนายความผู้เชี่ยวชาญ",
-        typhoonTitle: "คำตอบจาก AI (Typhoon)",
+        typhoonTitle: "คำตอบจาก LAlin (Typhoon)",
         typhoonAdviceTitle: "คำแนะนำ",
-        typhoonAdviceContent: "คำตอบนี้สร้างโดย AI (Typhoon) จากความรู้ทั่วไป อาจไม่ครอบคลุมกฎหมายเฉพาะเจาะจง แนะนำให้ปรึกษาทนายความ",
+        typhoonAdviceContent: "คำตอบนี้สร้างโดย LAlin (ผ่าน Typhoon) จากความรู้ทั่วไป อาจไม่ครอบคลุมกฎหมายเฉพาะเจาะจง แนะนำให้ปรึกษาทนายความนะคะ",
         consultLawyerTitle: "แนะนำปรึกษาทนายความ",
-        consultLawyerContent: (p: string) => `สำหรับหัวข้อ "${p}" เป็นประเด็นทางกฎหมายที่อาจมีรายละเอียดซับซ้อนเฉพาะบุคคล\n\nเพื่อให้คุณได้รับคำแนะนำที่ถูกต้องและรัดกุมที่สุด ระบบขอแนะนำให้พูดคุยกับทนายความผู้เชี่ยวชาญโดยตรง เพื่อวิเคราะห์ข้อเท็จจริงในเชิงลึกครับ`,
+        consultLawyerContent: (p: string) => `สำหรับหัวข้อ "${p}" เป็นประเด็นทางกฎหมายที่อาจมีรายละเอียดซับซ้อนเฉพาะบุคคล\n\nเพื่อให้คุณได้รับคำแนะนำที่ถูกต้องและรัดกุมที่สุด LAlin ขอแนะนำให้พูดคุยกับทนายความผู้เชี่ยวชาญโดยตรง เพื่อวิเคราะห์ข้อเท็จจริงในเชิงลึกค่ะ`,
         consultLawyerBtn: "ปรึกษาทนายความ",
         errorTitle: "ระบบขัดข้องชั่วคราว",
-        errorContent: (msg: string) => `ขออภัยครับ ไม่สามารถเข้าถึงฐานข้อมูลได้ในขณะนี้ (${msg}) กรุณาลองใหม่อีกครั้ง หรือติดต่อเจ้าหน้าที่`
+        errorContent: (msg: string) => `ขออภัยค่ะ ไม่สามารถเข้าถึงฐานข้อมูลได้ในขณะนี้ (${msg}) กรุณาลองใหม่อีกครั้ง หรือติดต่อเจ้าหน้าที่นะคะ`
       },
       en: {
         greetingTitle: "Hello (Backup Mode)",
@@ -395,13 +391,13 @@ async function fallbackChat(prompt: string, history: any[], locale: string = 'th
         
         let typhoonSummary = await callTyphoonAI(
           `User Question: ${prompt}\n\nRelated Legal Context with Sources:\n${contextWithSources}\n\nInstructions:
-1. Summarize the legal information from the context.
-2. Put all citations at the end of the summary in a "รายการอ้างอิง" section.
-3. Use markdown links with angle brackets for citations: [ที่มา: Full Law Name มาตรา XXX](</law-search?q=มาตรา XXX>).
-4. Use full names for laws (e.g. ประมวลกฎหมายแพ่งและพาณิชย์, ประมวลกฎหมายอาญา).
-5. CLEAN UP formatting: Remove raw JSON sequences, literal \\n strings, or table markdown characters (| or ---) from the sources in your summary.
-6. NEVER include raw URLs in your response.
-7. Use a professional tone and ${languageInstruction}.`,
+1. You are LAlin (ละลิน), a professional female legal assistant. Use a polite female tone ("ค่ะ/นะคะ").
+2. Summarize the legal information from the context accurately. DO NOT add information not found in the context.
+3. Put all citations at the end of the summary in a "รายการอ้างอิง" section.
+4. **NO LINKS**: Use plain text for citations: "อ้างอิง: [ชื่อกฎหมายฉบับเต็ม] มาตรา XXX". DO NOT use markdown links or URLs.
+5. Use full names for laws (e.g. ประมวลกฎหมายแพ่งและพาณิชย์, ประมวลกฎหมายอาญา).
+6. CLEAN UP formatting: Remove raw JSON sequences, literal \\n strings, or table markdown characters (| or ---) from the sources in your summary.
+7. ${languageInstruction}.`,
           languageInstruction
         );
 
