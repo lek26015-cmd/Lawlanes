@@ -90,14 +90,16 @@ export async function chat(
 
   try {
     const apiKey = process.env.GOOGLE_API_KEY || process.env.GOOGLE_GENAI_API_KEY || '';
+    const typhoonKey = process.env.TYPHOON_API_KEY || '';
     
     // Explicit debug logging for the environment
     console.log(`[ChatFlow] Attempting chat with Prompt: "${prompt.substring(0, 30)}..."`);
-    console.log(`[ChatFlow] API Key status: ${apiKey ? 'Found (Length: ' + apiKey.length + ')' : 'MISSING'}`);
+    console.log(`[ChatFlow] Gemini Key status: ${apiKey ? 'Found (Length: ' + apiKey.length + ')' : 'MISSING'}`);
+    console.log(`[ChatFlow] Typhoon Key status: ${typhoonKey ? 'Found (Length: ' + typhoonKey.length + ')' : 'MISSING'}`);
 
     if (!apiKey) {
       console.warn("[ChatFlow] No Google API Key found. Falling back to manual mode.");
-      throw new Error("No API Key");
+      throw new Error("No Gemini API Key (Missing in Environment)");
     }
 
     let languageInstruction = "Answer in Thai.";
@@ -199,9 +201,9 @@ async function fallbackChat(prompt: string, locale: string = 'th', cause?: Error
     const t = {
       th: {
         greetingTitle: `สวัสดีครับ (โหมดสำรอง: ${errorName})`,
-        greetingContent: "สวัสดีครับ! ผมคือผู้ช่วย AI (ในโหมดสำรอง) เนื่องจากระบบหลักขัดข้อง (AI Connection Issue) ผมได้พยายามรวบรวมข้อมูลจากฐานข้อมูลมาให้คุณแทนครับ",
-        knowledgeTitle: "ข้อมูลจากฐานความรู้ (โหมดสำรอง)",
-        knowledgeIntro: (terms: string) => `จากการค้นหาคำว่า "${terms}" พบข้อมูลที่เกี่ยวข้องดังนี้ครับ:`,
+        greetingContent: `สวัสดีครับ! ผมคือผู้ช่วย AI (ในโหมดสำรอง) เนื่องจากระบบหลักขัดข้อง (${errorName}: ${errorMessage.substring(0, 50)}) ผมได้พยายามรวบรวมข้อมูลมาให้คุณแทนครับ`,
+        knowledgeTitle: `ข้อมูลจากฐานความรู้ (โหมดสำรอง: ${errorName})`,
+        knowledgeIntro: (terms: string) => `จากการค้นหาคำว่า "${terms}" พบข้อมูลที่เกี่ยวข้อง (${errorName}) ดังนี้ครับ:`,
         relatedInfo: "ข้อมูลที่เกี่ยวข้อง",
         article: "บทความ",
         adviceTitle: "คำแนะนำเพิ่มเติม",
@@ -329,6 +331,7 @@ async function fallbackChat(prompt: string, locale: string = 'th', cause?: Error
       if (ragDocs.length > 0) {
         // SYNTHESIZED FALLBACK: Use Typhoon to summarize RAG results
         console.log("[ChatFlow] Synthesizing RAG results with Typhoon AI...");
+        console.log(`[ChatFlow] Synthesizing RAG results with Typhoon AI (Key: ${!!process.env.TYPHOON_API_KEY})...`);
         const context = ragDocs.map(d => d.content).join("\n\n");
         const typhoonSummary = await callTyphoonAI(
           `User Question: ${prompt}\n\nRelated Legal Context:\n${context}\n\nPlease summarize the legal information from the context above in a professional tone to answer the user's question. ${languageInstruction}`,
