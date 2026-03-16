@@ -11,7 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, Sparkles, X, Loader2, Image as ImageIcon, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Send, Sparkles, X, Loader2, Image as ImageIcon, Trash2, ChevronDown, ChevronUp, Plus, Lightbulb, ChevronRight } from 'lucide-react';
 import { chat, type ChatResponse } from '@/ai/flows/chat-flow';
 import type { ChatMessage } from '@/lib/types';
 import { z } from 'zod';
@@ -305,16 +305,38 @@ export default function ChatModal() {
                     </p>
                   </div>
 
-                  <div className="flex flex-wrap justify-center gap-3">
-                    {quickQuestions.map(q => (
-                      <button
-                        key={q.key}
-                        onClick={() => handleQuickQuestion(q.label)}
-                        disabled={isLoading}
-                        className="text-sm lg:text-base px-6 py-3 bg-gray-50 border border-gray-200 rounded-2xl hover:bg-blue-50 hover:border-blue-200 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm font-medium hover:text-blue-600 text-gray-700">
-                        {q.label}
-                      </button>
-                    ))}
+                  <div className="flex flex-wrap justify-center gap-3 lg:flex lg:flex-wrap lg:justify-center">
+                    {/* Desktop Style (Pills) */}
+                    <div className="hidden lg:flex flex-wrap justify-center gap-3">
+                      {quickQuestions.map(q => (
+                        <button
+                          key={q.key}
+                          onClick={() => handleQuickQuestion(q.label)}
+                          disabled={isLoading}
+                          className="text-base px-6 py-3 bg-gray-50 border border-gray-200 rounded-2xl hover:bg-blue-50 hover:border-blue-200 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm font-medium hover:text-blue-600 text-gray-700">
+                          {q.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    {/* Mobile Style (List Items) */}
+                    <div className="flex lg:hidden flex-col w-full px-4 space-y-3">
+                      {quickQuestions.map(q => (
+                        <button
+                          key={q.key}
+                          onClick={() => handleQuickQuestion(q.label)}
+                          disabled={isLoading}
+                          className="flex items-center justify-between w-full p-4 bg-white border border-gray-100 rounded-2xl shadow-sm active:bg-gray-50 transition-colors group">
+                          <div className="flex items-center space-x-4">
+                            <div className="p-2 bg-blue-50 rounded-xl text-blue-600 group-active:scale-95 transition-transform">
+                              <Lightbulb className="w-5 h-5" />
+                            </div>
+                            <span className="text-sm font-medium text-gray-800 text-left">{q.label}</span>
+                          </div>
+                          <ChevronRight className="w-5 h-5 text-gray-400" />
+                        </button>
+                      ))}
+                    </div>
                   </div>
                 </motion.div>
               )}
@@ -330,7 +352,7 @@ export default function ChatModal() {
                   </div>
                 )}
                 <div className={`${msg.role === 'user' ? 'w-full flex justify-end' : 'w-full'}`}>
-                  <div className={`p-4 lg:px-0 lg:py-6 rounded-2xl lg:rounded-none shadow-sm lg:shadow-none ${msg.role === 'user'
+                  <div className={`p-4 lg:px-0 lg:py-6 rounded-3xl lg:rounded-none shadow-sm lg:shadow-none ${msg.role === 'user'
                     ? 'bg-foreground lg:bg-gray-100 text-background lg:text-foreground ml-auto max-w-[85%] lg:max-w-[80%] lg:px-6'
                     : 'bg-white border-none mr-auto max-w-[95%] lg:max-w-full'
                     }`}
@@ -429,7 +451,7 @@ export default function ChatModal() {
                 </button>
               </div>
             )}
-            <form onSubmit={handleSubmit} className="flex items-end space-x-3 bg-gray-50 p-2 lg:p-3 rounded-2xl lg:rounded-3xl border-2 border-transparent focus-within:border-primary/50 focus-within:bg-white transition-all duration-300 shadow-sm">
+            <form onSubmit={handleSubmit} className="flex items-end space-x-2 lg:space-x-3 bg-gray-100/80 lg:bg-gray-50 p-1.5 lg:p-3 rounded-[28px] lg:rounded-3xl border-2 border-transparent focus-within:border-primary/50 focus-within:bg-white transition-all duration-300 shadow-sm sm:shadow-none">
               <input
                 type="file"
                 ref={fileInputRef}
@@ -440,12 +462,12 @@ export default function ChatModal() {
               <Button
                 type="button"
                 size="icon"
-                variant="outline"
+                variant="ghost"
                 disabled={isLoading}
                 onClick={() => fileInputRef.current?.click()}
-                className="p-3 rounded-xl lg:rounded-2xl border-2 border-gray-200 hover:border-primary hover:bg-primary/5 transition-all w-12 h-12 flex-shrink-0"
+                className="p-3 rounded-full lg:rounded-2xl border-none lg:border-2 lg:border-gray-200 hover:border-primary hover:bg-primary/5 transition-all w-12 h-12 flex-shrink-0"
               >
-                <ImageIcon className="w-6 h-6 text-gray-400 group-hover:text-primary" />
+                <Plus className="w-6 h-6 text-gray-500" />
               </Button>
               <div className="flex-grow">
                 <textarea
@@ -462,18 +484,18 @@ export default function ChatModal() {
                       handleSubmit(e as any);
                     }
                   }}
-                  placeholder={selectedImage ? "ถามเพิ่มเติมเกี่ยวกับรูปนี้..." : t('inputPlaceholder')}
+                  placeholder={selectedImage ? "ถามเพิ่มเติม..." : "พิมพ์ข้อความที่นี่..."}
                   disabled={isLoading}
-                  className="w-full px-2 py-3 bg-transparent border-none focus:ring-0 resize-none max-h-[200px] text-base lg:text-xl outline-none placeholder:text-gray-400"
+                  className="w-full px-1 py-3 bg-transparent border-none focus:ring-0 resize-none max-h-[200px] text-base lg:text-xl outline-none placeholder:text-gray-500"
                 />
               </div>
               <Button 
                 type="submit" 
                 size="icon" 
                 disabled={isLoading} 
-                className="p-3 rounded-xl lg:rounded-2xl bg-foreground text-background hover:bg-foreground/90 transition-all shadow-xl w-12 h-12 flex-shrink-0 group"
+                className="p-3 rounded-full lg:rounded-2xl bg-primary text-white hover:bg-primary/90 transition-all shadow-md w-12 h-12 flex-shrink-0 group flex items-center justify-center"
               >
-                <Send className="w-6 h-6 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                <Send className="w-5 h-5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
               </Button>
             </form>
             <p className="mt-3 text-center text-xs text-muted-foreground">
