@@ -148,14 +148,14 @@ CORE OPERATING PROCEDURES:
 2.  **DATA HIERARCHY**:
     -   **PRIMARY SOURCE**: Use "ข้อมูลจากเอกสารกฎหมาย" (RAG) results above all else. These are real legal documents from Ratchakitcha and Krisdika that we have ingested.
     -   **SECONDARY SOURCE**: "ข้อมูลความรู้ทั่วไป" (Typhoon AI) provides general legal context but lacks specific document backing.
-3.  **CITATIONS IS MANDATORY**: Every time you provide legal information, you MUST include a specific citation.
-    - **FORMAT**: Use "ที่มา: [ชื่อแหล่งข้อมูล] มาตรา [เลขมาตรา]" (e.g., "ที่มา: ราชกิจจานุเบกษา มาตรา 1599").
-    - **GRANULARITY**: Always look for "มาตรา" or "Section" numbers within the text content and include them in the citation.
-    - **MANDATORY**: If the search results provide a source title, you MUST use that exact title plus the identified section.
-    - **PLACEMENT**: Place the citation immediately after the relevant sentence or paragraph.
-    - **NO TECHNICAL NAMES**: Never show filenames like '7480.json' or '5333.pdf'.
+3.  **CITATIONS POLICY (IMPORTANT)**: 
+    - **NO CLUTTER**: DO NOT put citations after every sentence or line. It makes the text hard to read.
+    - **GROUPED**: Put all citations in a dedicated section named "รายการอ้างอิง" at the end of your response.
+    - **FORMAT**: Use markdown links: \`[ที่มา: Source Name มาตรา XXX](/law-search?q=มาตรา XXX)\`. 
+    - **EXTRACT SECTION**: Always look for "มาตรา" numbers in the source text and include them in the link text.
+    - **CLICKABLE**: Use the \`/law-search?q=...\` path so the user can click to see more details.
 
-4.  **ACCURACY**: Do not hallucinate. If the search results do not contain the answer, say "ไม่พบข้อมูลที่ระบุเจาะจงในฐานข้อมูลราชกิจจานุเบกษาและกฤษฎีกาในขณะนี้" and then offer a general explanation using Secondary sources (Typhoon).
+4.  **ACCURACY**: Do not hallucinate. If the search results do not contain the answer, use "ไม่พบข้อมูลที่ระบุเจาะจงในฐานข้อมูลราชกิจจานุเบกษาและกฤษฎีกาในขณะนี้" and then provide general context from Secondary sources.
 
 5.  **SERVICE LINKS & BUTTONS (CRITICAL)**:
     - **NEVER** put raw URLs like \`/lawyers\` or \`/services/contracts\` inside the "content" string.
@@ -387,10 +387,11 @@ async function fallbackChat(prompt: string, locale: string = 'th', cause?: Error
         const typhoonSummary = await callTyphoonAI(
           `User Question: ${prompt}\n\nRelated Legal Context with Sources:\n${contextWithSources}\n\nInstructions:
 1. Summarize the legal information from the context.
-2. You MUST cite the source name AND the Section/Article (มาตรา) if mentioned in the content (e.g., "...ตามข้อมูลจาก ${formatSourceTitle(ragDocs[0].source)} มาตรา XXX...").
-3. NEVER include raw URLs in your response.
-4. Use a professional tone.
-5. ${languageInstruction}`,
+2. Put all citations at the end of the summary in a "รายการอ้างอิง" section.
+3. Use markdown links for citations: [ที่มา: Source Name มาตรา XXX](/law-search?q=มาตรา XXX).
+4. NEVER include raw URLs in your response.
+5. Use a professional tone.
+6. ${languageInstruction}`,
           languageInstruction
         );
 

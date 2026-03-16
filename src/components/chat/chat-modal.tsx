@@ -58,6 +58,24 @@ export default function ChatModal() {
   const [isLoading, setIsLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+  // Robust auto-scroll to bottom
+  const scrollToBottom = () => {
+    if (scrollAreaRef.current) {
+      const scrollableNode = scrollAreaRef.current.querySelector('div[style*="overflow: scroll"]');
+      if (scrollableNode) {
+        // Use requestAnimationFrame to ensure the DOM has rendered the new content
+        requestAnimationFrame(() => {
+          scrollableNode.scrollTop = scrollableNode.scrollHeight;
+        });
+      }
+    }
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, isLoading]);
 
   // Reset welcome message when locale changes
   useEffect(() => {
