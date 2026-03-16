@@ -263,30 +263,64 @@ export default function ChatModal() {
     <Dialog open={isAiChatOpen} onOpenChange={setAiChatOpen}>
       <DialogContent
         hideCloseButton={true}
-        className="fixed inset-0 w-full h-full max-w-none translate-x-0 translate-y-0 rounded-none sm:rounded-none lg:inset-auto lg:top-[50%] lg:left-[50%] lg:translate-x-[-50%] lg:translate-y-[-50%] lg:w-[90vw] lg:max-w-5xl lg:h-[85vh] lg:rounded-3xl bg-white shadow-2xl border z-50 p-0 flex flex-col overflow-hidden transition-all duration-500 ease-in-out data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95"
+        className="fixed inset-0 w-full h-full max-w-none translate-x-0 translate-y-0 rounded-none bg-white z-50 p-0 flex flex-col overflow-hidden transition-all duration-500 ease-in-out data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0"
       >
-        <DialogHeader className="flex flex-row justify-between items-center p-4 lg:p-6 border-b bg-foreground text-background sm:rounded-t-none lg:rounded-t-3xl">
+        <DialogHeader className="flex flex-row justify-between items-center p-4 lg:p-6 border-b bg-white text-foreground">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center backdrop-blur-sm border border-white/20">
-              <Sparkles className="w-6 h-6 text-white" />
+            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
+              <Sparkles className="w-6 h-6 text-primary" />
             </div>
             <div>
               <DialogTitle asChild>
                 <h3 className="text-xl lg:text-2xl font-bold tracking-tight">{t('title')}</h3>
               </DialogTitle>
-              <DialogDescription className="text-white/60 text-xs hidden lg:block">
-                Powered by Lawslane Intelligence
+              <DialogDescription className="text-muted-foreground text-xs hidden lg:block">
+                Legal AI Assistant • Powered by Lawslane
               </DialogDescription>
             </div>
           </div>
-          <button onClick={() => setAiChatOpen(false)} className="p-2 rounded-full hover:bg-white/10 transition-colors">
-            <X className="w-7 h-7" />
+          <button onClick={() => setAiChatOpen(false)} className="p-2 rounded-full hover:bg-gray-100 transition-colors">
+            <X className="w-8 h-8 text-gray-500" />
           </button>
         </DialogHeader>
 
-        <ScrollArea className="flex-grow bg-gray-50/50">
-          <div className="max-w-4xl mx-auto w-full p-4 lg:p-8 space-y-6">
-            {messages.map((msg) => (
+        <ScrollArea className="flex-grow bg-white">
+          <div className="max-w-4xl mx-auto w-full p-4 lg:p-8 space-y-8">
+            <AnimatePresence>
+              {messages.length <= 1 && (
+                <motion.div 
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  className="py-12 lg:py-20 text-center space-y-8"
+                >
+                  <div className="space-y-4">
+                    <h1 className="text-4xl lg:text-5xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                      {t('welcome')}
+                    </h1>
+                    <p className="text-muted-foreground text-lg lg:text-xl max-w-2xl mx-auto">
+                      {locale.startsWith('th') 
+                        ? 'พร้อมช่วยเหลือในทุกประเด็นกฎหมาย ค้นหาข้อมูลจากราชกิจจานุเบกษาและกฤษฎีกาได้อย่างแม่นยำ'
+                        : 'Ready to assist with any legal issues. Search regulatory data with precision.'}
+                    </p>
+                  </div>
+
+                  <div className="flex flex-wrap justify-center gap-3">
+                    {quickQuestions.map(q => (
+                      <button
+                        key={q.key}
+                        onClick={() => handleQuickQuestion(q.label)}
+                        disabled={isLoading}
+                        className="text-sm lg:text-base px-6 py-3 bg-gray-50 border border-gray-200 rounded-2xl hover:bg-blue-50 hover:border-blue-200 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm font-medium hover:text-blue-600 text-gray-700">
+                        {q.label}
+                      </button>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {messages.slice(messages.length > 1 ? 1 : messages.length).map((msg) => (
               <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : ''}`}>
                 {msg.role === 'assistant' && (
                   <div className="flex-shrink-0 mr-3">
@@ -296,13 +330,13 @@ export default function ChatModal() {
                   </div>
                 )}
                 <div className={`${msg.role === 'user' ? 'w-full flex justify-end' : 'w-full'}`}>
-                  <div className={`p-4 lg:p-5 rounded-2xl lg:rounded-3xl shadow-sm ${msg.role === 'user'
-                    ? 'bg-foreground text-background ml-auto max-w-[85%] lg:max-w-[75%]'
-                    : 'bg-white border mr-auto max-w-[95%] lg:max-w-[85%]'
+                  <div className={`p-4 lg:px-0 lg:py-6 rounded-2xl lg:rounded-none shadow-sm lg:shadow-none ${msg.role === 'user'
+                    ? 'bg-foreground lg:bg-gray-100 text-background lg:text-foreground ml-auto max-w-[85%] lg:max-w-[80%] lg:px-6'
+                    : 'bg-white border-none mr-auto max-w-[95%] lg:max-w-full'
                     }`}
                     style={msg.role === 'user' 
                       ? { borderTopRightRadius: '4px' } 
-                      : { borderTopLeftRadius: '4px' }
+                      : (msg.role === 'assistant' ? { borderTopLeftRadius: '4px' } : {})
                     }
                   >
                     {typeof msg.content === 'string' ? (
@@ -381,113 +415,70 @@ export default function ChatModal() {
           </div>
         </ScrollArea>
 
-        <div className="bg-gray-50/50 border-t">
-          <div className="max-w-4xl mx-auto w-full">
-            <div className="bg-gray-100/50 overflow-hidden transition-all duration-300">
-              <button 
-                onClick={() => setIsQuickQuestionsOpen(!isQuickQuestionsOpen)}
-                className="w-full flex items-center justify-between p-3 lg:p-4 hover:bg-gray-200/50 transition-colors"
-              >
-                <div className="flex items-center space-x-2">
-                  <Sparkles className="w-4 h-4 text-primary" />
-                  <p className="text-xs lg:text-sm font-semibold text-muted-foreground">{t('quickQuestionsLabel')}</p>
-                </div>
-                <motion.div
-                  animate={{ rotate: isQuickQuestionsOpen ? 0 : 180 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <ChevronUp className="w-4 h-4 text-muted-foreground" />
-                </motion.div>
-              </button>
-              
-              <AnimatePresence initial={false}>
-                {isQuickQuestionsOpen && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.3, ease: 'easeInOut' }}
-                    className="overflow-hidden"
-                  >
-                    <div className="px-3 lg:px-4 pb-3 lg:pb-4">
-                      <div className="flex flex-wrap gap-2">
-                        {quickQuestions.map(q => (
-                          <button
-                            key={q.key}
-                            onClick={() => handleQuickQuestion(q.label)}
-                            disabled={isLoading}
-                            className="text-xs lg:text-sm px-4 py-1.5 bg-white border border-border rounded-full hover:bg-accent hover:border-primary transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm font-medium hover:text-primary">
-                            {q.label}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            <div className="p-4 lg:p-6 border-t bg-white lg:rounded-b-3xl">
-              {selectedImage && (
-                <div className="mb-3 relative inline-block animate-in fade-in zoom-in duration-200">
-                  <img src={selectedImage} alt="Selected" className="h-20 w-auto rounded-xl border-2 border-primary/20 object-cover shadow-md" />
-                  <button
-                    type="button"
-                    onClick={clearImage}
-                    className="absolute -top-3 -right-3 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 shadow-lg border-2 border-white"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
-              )}
-              <form onSubmit={handleSubmit} className="flex items-end space-x-3 bg-gray-50 p-2 lg:p-3 rounded-2xl lg:rounded-3xl border-2 border-transparent focus-within:border-primary/20 focus-within:bg-white transition-all duration-300 shadow-sm">
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  accept="image/*"
-                  className="hidden"
-                  onChange={handleImageSelect}
-                />
-                <Button
+        <div className="bg-white border-t">
+          <div className="max-w-4xl mx-auto w-full p-4 lg:p-8">
+            {selectedImage && (
+              <div className="mb-3 relative inline-block animate-in fade-in zoom-in duration-200">
+                <img src={selectedImage} alt="Selected" className="h-20 w-auto rounded-xl border-2 border-primary/20 object-cover shadow-md" />
+                <button
                   type="button"
-                  size="icon"
-                  variant="outline"
+                  onClick={clearImage}
+                  className="absolute -top-3 -right-3 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 shadow-lg border-2 border-white"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </div>
+            )}
+            <form onSubmit={handleSubmit} className="flex items-end space-x-3 bg-gray-50 p-2 lg:p-3 rounded-2xl lg:rounded-3xl border-2 border-transparent focus-within:border-primary/50 focus-within:bg-white transition-all duration-300 shadow-sm">
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept="image/*"
+                className="hidden"
+                onChange={handleImageSelect}
+              />
+              <Button
+                type="button"
+                size="icon"
+                variant="outline"
+                disabled={isLoading}
+                onClick={() => fileInputRef.current?.click()}
+                className="p-3 rounded-xl lg:rounded-2xl border-2 border-gray-200 hover:border-primary hover:bg-primary/5 transition-all w-12 h-12 flex-shrink-0"
+              >
+                <ImageIcon className="w-6 h-6 text-gray-400 group-hover:text-primary" />
+              </Button>
+              <div className="flex-grow">
+                <textarea
+                  rows={1}
+                  value={input}
+                  onChange={(e) => {
+                    handleInputChange(e as any);
+                    e.target.style.height = 'auto';
+                    e.target.style.height = Math.min(e.target.scrollHeight, 200) + 'px';
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      handleSubmit(e as any);
+                    }
+                  }}
+                  placeholder={selectedImage ? "ถามเพิ่มเติมเกี่ยวกับรูปนี้..." : t('inputPlaceholder')}
                   disabled={isLoading}
-                  onClick={() => fileInputRef.current?.click()}
-                  className="p-3 rounded-xl lg:rounded-2xl border-2 border-gray-200 hover:border-primary hover:bg-primary/5 transition-all w-12 h-12 flex-shrink-0"
-                >
-                  <ImageIcon className="w-6 h-6 text-gray-400 group-hover:text-primary" />
-                </Button>
-                <div className="flex-grow">
-                  <textarea
-                    rows={1}
-                    value={input}
-                    onChange={(e) => {
-                      handleInputChange(e as any);
-                      e.target.style.height = 'auto';
-                      e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey) {
-                        e.preventDefault();
-                        handleSubmit(e as any);
-                      }
-                    }}
-                    placeholder={selectedImage ? "ถามเพิ่มเติมเกี่ยวกับรูปนี้..." : t('inputPlaceholder')}
-                    disabled={isLoading}
-                    className="w-full px-2 py-3 bg-transparent border-none focus:ring-0 resize-none max-h-[120px] text-base lg:text-lg outline-none placeholder:text-gray-400"
-                  />
-                </div>
-                <Button 
-                  type="submit" 
-                  size="icon" 
-                  disabled={isLoading} 
-                  className="p-3 rounded-xl lg:rounded-2xl bg-foreground text-background hover:bg-foreground/90 transition-all shadow-xl w-12 h-12 flex-shrink-0 group"
-                >
-                  <Send className="w-6 h-6 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-                </Button>
-              </form>
-            </div>
+                  className="w-full px-2 py-3 bg-transparent border-none focus:ring-0 resize-none max-h-[200px] text-base lg:text-xl outline-none placeholder:text-gray-400"
+                />
+              </div>
+              <Button 
+                type="submit" 
+                size="icon" 
+                disabled={isLoading} 
+                className="p-3 rounded-xl lg:rounded-2xl bg-foreground text-background hover:bg-foreground/90 transition-all shadow-xl w-12 h-12 flex-shrink-0 group"
+              >
+                <Send className="w-6 h-6 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+              </Button>
+            </form>
+            <p className="mt-3 text-center text-xs text-muted-foreground">
+              AI อาจแสดงผลผิดพลาด โปรดตรวจสอบข้อมูลสำคัญอย่างละเอียดเสมอ
+            </p>
           </div>
         </div>
 
