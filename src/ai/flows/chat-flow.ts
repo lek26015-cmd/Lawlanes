@@ -28,13 +28,21 @@ const searchArticlesDeclaration: FunctionDeclaration = {
 function formatSourceTitle(source: string): string {
   if (!source) return 'ข้อมูลกฎหมาย';
   
+  const src = source.toLowerCase();
   // Map directory patterns to official Thai source names
-  if (source.includes('ราชกิจจานุเบกษา')) return 'ที่มา: ราชกิจจานุเบกษา';
-  if (source.includes('กฤษฎีกา')) return 'ที่มา: สำนักงานคณะกรรมการกฤษฎีกา';
+  if (src.includes('ราชกิจจานุเบกษา') || src.includes('ratchakitcha')) return 'ที่มา: ราชกิจจานุเบกษา';
+  if (src.includes('กฤษฎีกา') || src.includes('krisdika')) return 'ที่มา: สำนักงานคณะกรรมการกฤษฎีกา';
+  if (src.includes('ประมวลกฎหมาย')) return `ที่มา: ${source}`;
   
   // Default fallback cleaning
   const filename = source.split('/').pop() || source;
   const cleanName = filename.replace(/\.(json|pdf)$/i, '');
+  
+  // If it's a number (common in these datasets), try to give it context
+  if (/^\d+$/.test(cleanName)) {
+    return `เอกสารราชการ เลขที่ ${cleanName}`;
+  }
+  
   return `ที่มา: ${cleanName}`;
 }
 
@@ -55,9 +63,10 @@ async function executeSearchArticles(queryStr: string) {
 
   if (ragDocs.length > 0) {
     ragDocs.forEach(doc => {
+      const sourceTitle = formatSourceTitle(doc.source);
       results.push({
-        title: formatSourceTitle(doc.source),
-        content: `เนื้อหา: ${doc.content}\n\n[สรุปข้อมูลจาก: ${formatSourceTitle(doc.source)}]`
+        title: sourceTitle,
+        content: `[[SOURCE: ${sourceTitle}]]\nเนื้อหา: ${doc.content}\n\n[MANDATORY CITATION: ${sourceTitle}]`
       });
     });
   } else {
@@ -66,7 +75,7 @@ async function executeSearchArticles(queryStr: string) {
     if (typhoonResponse) {
       results.push({
         title: "ข้อมูลความรู้ทั่วไป (จาก Typhoon AI)",
-        content: typhoonResponse
+        content: `[[SOURCE: Typhoon AI Knowledge]]\n${typhoonResponse}\n\n[MANDATORY CITATION: ข้อมูลความรู้ทั่วไป]`
       });
     }
   }
@@ -139,10 +148,12 @@ CORE OPERATING PROCEDURES:
 2.  **DATA HIERARCHY**:
     -   **PRIMARY SOURCE**: Use "ข้อมูลจากเอกสารกฎหมาย" (RAG) results above all else. These are real legal documents from Ratchakitcha and Krisdika that we have ingested.
     -   **SECONDARY SOURCE**: "ข้อมูลความรู้ทั่วไป" (Typhoon AI) provides general legal context but lacks specific document backing.
-3.  **CITATIONS**: When using data from a legal document, you MUST mention the source in a human-readable format, NOT the technical filename. 
-    - **FORMAT**: Use "ที่มา: [หน่วยงาน] มาตรา [เลขมาตรา]" (e.g., "ที่มา: ราชกิจจานุเบกษา มาตรา 1599").
-    - **FORBIDDEN**: Never show filenames like '7480.json' or '5333.pdf' in the citation or response text.
-4.  **ACCURACY**: Do not hallucinate. If the search results do not contain the answer, say "ไม่พบข้อมูลที่ระบุเจาะจงในฐานข้อมูลราชกิจจานุเบกษาและกฤษฎีกาในขณะนี้" and then offer a general explanation.
+3.  **CITATIONS IS MANDATORY**: Every time you provide legal information, you MUST include a citation at the end of that section or sentence.
+    - **FORMAT**: Use "ที่มา: [ชื่อแหล่งข้อมูล]" (e.g., "ที่มา: ราชกิจจานุเบกษา").
+    - **MANDATORY**: If the search results provide a source title, you MUST use that exact title. 
+    - **PLACEMENT**: Place the citation in every section of your response that contains factual legal data.
+    - **NO TECHNICAL NAMES**: Never show filenames like '7480.json' or '5333.pdf'.
+4.  **ACCURACY**: Do not hallucinate. If the search results do not contain the answer, say "ไม่พบข้อมูลที่ระบุเจาะจงในฐานข้อมูลราชกิจจานุเบกษาและกฤษฎีกาในขณะนี้" and then offer a general explanation using Secondary sources (Typhoon).
 5.  **LIMITATION OF LIABILITY**: Always maintain a professional tone and remind users that this is preliminary analysis.
 6.  **LINK FORMATTING**: When providing links, ALWAYS use absolute paths starting with '/'. Never use relative paths like '#contact'.
 
@@ -363,9 +374,15 @@ async function fallbackChat(prompt: string, locale: string = 'th', cause?: Error
         // SYNTHESIZED FALLBACK: Use Typhoon to summarize RAG results
         console.log("[ChatFlow] Synthesizing RAG results with Typhoon AI...");
         console.log(`[ChatFlow] Synthesizing RAG results with Typhoon AI (Key: ${!!process.env.TYPHOON_API_KEY})...`);
-        const context = ragDocs.map(d => d.content).join("\n\n");
+        
+        const contextWithSources = ragDocs.map((d, i) => `Source [${i+1}]: ${formatSourceTitle(d.source)}\nContent: ${d.content}`).join("\n\n---\n\n");
+        
         const typhoonSummary = await callTyphoonAI(
-          `User Question: ${prompt}\n\nRelated Legal Context:\n${context}\n\nPlease summarize the legal information from the context above in a professional tone to answer the user's question. ${languageInstruction}`,
+          `User Question: ${prompt}\n\nRelated Legal Context with Sources:\n${contextWithSources}\n\nInstructions:
+1. Summarize the legal information from the context.
+2. You MUST cite the source name in your summary (e.g., "...ตามข้อมูลจาก ${formatSourceTitle(ragDocs[0].source)}...").
+3. Use a professional tone.
+4. ${languageInstruction}`,
           languageInstruction
         );
 
