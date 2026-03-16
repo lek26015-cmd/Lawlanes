@@ -25,6 +25,11 @@ const searchArticlesDeclaration: FunctionDeclaration = {
   },
 };
 
+function formatSourceTitle(source: string): string {
+  const filename = source.split('/').pop() || source;
+  return filename.replace(/\.(json|pdf)$/i, '');
+}
+
 async function executeSearchArticles(queryStr: string) {
   console.log(`[searchArticlesTool] Searching for: ${queryStr}`);
 
@@ -43,7 +48,7 @@ async function executeSearchArticles(queryStr: string) {
   if (ragDocs.length > 0) {
     ragDocs.forEach(doc => {
       results.push({
-        title: `ข้อมูลจากเอกสารกฎหมาย: ${doc.source.split('/').pop()}`,
+        title: `ข้อมูลจากเอกสารกฎหมาย: ${formatSourceTitle(doc.source)}`,
         content: `เนื้อหา: ${doc.content}\n\n(ที่มา: ${doc.source})`
       });
     });
@@ -126,9 +131,10 @@ CORE OPERATING PROCEDURES:
 2.  **DATA HIERARCHY**:
     -   **PRIMARY SOURCE**: Use "ข้อมูลจากเอกสารกฎหมาย" (RAG) results above all else. These are real legal documents from Ratchakitcha and Krisdika that we have ingested.
     -   **SECONDARY SOURCE**: "ข้อมูลความรู้ทั่วไป" (Typhoon AI) provides general legal context but lacks specific document backing.
-3.  **CITATIONS**: When using data from a legal document, you MUST mention the source filename (e.g., "อ้างอิงจาก: ราชกิจจานุเบกษา/xxxx.pdf"). This builds trust.
+3.  **CITATIONS**: When using data from a legal document, you MUST mention the source filename (e.g., "อ้างอิงจาก: ราชกิจจานุเบกษา/xxxx.pdf"). This builds trust. When citing, clean up the source title by removing file extensions like '.pdf' or '.json'. For example, 'ราชกิจจานุเบกษา/xxxx.pdf' should be cited as 'ราชกิจจานุเบกษา/xxxx'.
 4.  **ACCURACY**: Do not hallucinate. If the search results do not contain the answer, say "ไม่พบข้อมูลที่ระบุเจาะจงในฐานข้อมูลราชกิจจานุเบกษาและกฤษฎีกาในขณะนี้" and then offer a general explanation.
 5.  **LIMITATION OF LIABILITY**: Always maintain a professional tone and remind users that this is preliminary analysis.
+6.  **LINK FORMATTING**: When providing links, ALWAYS use absolute paths starting with '/'. Never use relative paths like '#contact'.
 
 SERVICE RECOMMENDATIONS:
 -   **Contract Drafting/Review**: Always link to \`/services/contracts\`.
@@ -356,7 +362,7 @@ async function fallbackChat(prompt: string, locale: string = 'th', cause?: Error
           const cleanContent = doc.content.trim();
           if (cleanContent) {
             sections.push({
-              title: `${strings.relatedInfo} (${index + 1}): ${doc.source.split('/').pop()}`,
+              title: `${strings.relatedInfo} (${index + 1}): ${formatSourceTitle(doc.source)}`,
               content: cleanContent
             });
           }

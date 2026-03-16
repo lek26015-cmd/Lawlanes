@@ -18,6 +18,7 @@ import { z } from 'zod';
 import { useChat } from '@/context/chat-context';
 import Link from 'next/link';
 import { useTranslations, useLocale } from 'next-intl';
+import ReactMarkdown from 'react-markdown';
 
 const ChatRequestSchema = z.object({
   history: z.array(
@@ -27,6 +28,7 @@ const ChatRequestSchema = z.object({
     })
   ),
   prompt: z.string(),
+  locale: z.string().optional(),
 });
 
 const isChatResponse = (content: any): content is ChatResponse => {
@@ -276,13 +278,17 @@ export default function ChatModal() {
                     style={msg.role === 'user' ? { borderTopRightRadius: 0 } : { borderTopLeftRadius: 0 }}
                   >
                     {typeof msg.content === 'string' ? (
-                      <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                      <div className="text-sm whitespace-pre-wrap prose prose-sm max-w-none prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline">
+                        <ReactMarkdown>{msg.content}</ReactMarkdown>
+                      </div>
                     ) : isChatResponse(msg.content) ? (
                       <div className="space-y-3">
                         {msg.content.sections.map((section, index) => (
                           <div key={index}>
                             <h4 className="font-semibold text-sm mb-1">{section.title}</h4>
-                            <p className="text-sm whitespace-pre-wrap">{section.content}</p>
+                            <div className="text-sm whitespace-pre-wrap prose prose-sm max-w-none prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline">
+                              <ReactMarkdown>{section.content}</ReactMarkdown>
+                            </div>
                             {section.link && section.linkText && (
                               <div className="mt-2">
                                 <Link href={section.link} onClick={() => setAiChatOpen(false)}>
