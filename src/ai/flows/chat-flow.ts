@@ -223,12 +223,16 @@ Each section can have: "title", "content", "link" (optional), "linkText" (option
     return JSON.parse(text) as ChatResponse;
 
   } catch (error: any) {
-    console.error("[ChatFlow] AI generation failed:", error);
-    return await fallbackChat(prompt, locale, error);
+    console.error("[ChatFlow] Primary AI model failed:", error);
+    console.error("[ChatFlow] Error Details:", JSON.stringify(error, null, 2));
+    
+    // Attempt fallback logic
+    console.warn("[ChatFlow] Entering Fallback Mode (Typhoon AI)...");
+    return await fallbackChat(prompt, history, locale, error);
   }
 }
 
-async function fallbackChat(prompt: string, locale: string = 'th', cause?: Error): Promise<ChatResponse> {
+async function fallbackChat(prompt: string, history: any[], locale: string = 'th', cause?: Error): Promise<ChatResponse> {
   console.log("[ChatFlow] Running fallback chat logic...");
   const errorName = cause?.name || "Unknown";
   const errorMessage = cause?.message || "";
@@ -395,28 +399,18 @@ async function fallbackChat(prompt: string, locale: string = 'th', cause?: Error
 2. Put all citations at the end of the summary in a "รายการอ้างอิง" section.
 3. Use markdown links with angle brackets for citations: [ที่มา: Full Law Name มาตรา XXX](</law-search?q=มาตรา XXX>).
 4. Use full names for laws (e.g. ประมวลกฎหมายแพ่งและพาณิชย์, ประมวลกฎหมายอาญา).
-5. NEVER include raw URLs in your response.
-6. Use a professional tone.
-6. ${languageInstruction}`,
+5. CLEAN UP formatting: Remove raw JSON sequences, literal \\n characters, or table markdown from the sources in your summary.
+6. NEVER include raw URLs in your response.
+7. Use a professional tone and ${languageInstruction}.`,
           languageInstruction
         );
 
         if (typhoonSummary) {
           sections.push({
-            title: "สรุปข้อมูลกฎหมายเบื้องต้น",
+            title: locale.startsWith('th') ? "สรุปข้อมูลกฎหมายเบื้องต้น" : "Legal Summary",
             content: typhoonSummary
           });
         }
-
-        ragDocs.forEach((doc, index) => {
-          const cleanContent = doc.content.trim();
-          if (cleanContent) {
-            sections.push({
-              title: `${formatSourceTitle(doc.source)} (${index + 1})`,
-              content: cleanContent
-            });
-          }
-        });
       }
 
       relevantArticles.forEach(article => {
