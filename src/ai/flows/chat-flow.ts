@@ -168,7 +168,11 @@ CORE OPERATING PROCEDURES:
         - SME/B2B: \`/b2b#contact\` (Text: "ปรึกษาธุรกิจ SME")
         - Business Registration: \`/services/registration\` (Text: "จดทะเบียนบริษัท")
 
-6.  **LIMITATION OF LIABILITY**: Always maintain a professional tone and remind users that this is preliminary analysis.
+7.  **MANDATORY SUMMARY SECTION**:
+    - **ALWAYS** include a final section in your response.
+    - **TITLE**: "สรุปเข้าใจง่ายโดย LAlin".
+    - **CONTENT STARTER**: Must start exactly with "LAlin สรุปให้ได้ว่า...".
+    - **TONE**: Use plain, simple language that a non-lawyer can easily understand. Summarize the key takeaway or action item.
 
 Output format: Return ONLY a JSON object with a "sections" array. Do not include markdown formatting outside the JSON.
 Each section can have: "title", "content", "link" (optional), "linkText" (optional).
@@ -395,7 +399,9 @@ async function fallbackChat(prompt: string, history: any[], locale: string = 'th
 2. Summarize the legal information from the context accurately. DO NOT add information not found in the context.
 3. Put all citations at the end of the summary in a "รายการอ้างอิง" section.
 4. **NO LINKS**: Use plain text for citations: "อ้างอิง: [ชื่อกฎหมายฉบับเต็ม] มาตรา XXX". DO NOT use markdown links or URLs.
-5. Use full names for laws (e.g. ประมวลกฎหมายแพ่งและพาณิชย์, ประมวลกฎหมายอาญา).
+5. **PLAIN LANGUAGE SUMMARY**: Include a final paragraph titled "สรุปเข้าใจง่ายโดย LAlin" that starts with "LAlin สรุปให้ได้ว่า..." and explains the situation in simple terms for a non-lawyer. 
+   **IMPORTANT**: Precede this summary paragraph with the exact delimiter: [LALIN_SUMMARY].
+6. Use full names for laws (e.g. ประมวลกฎหมายแพ่งและพาณิชย์, ประมวลกฎหมายอาญา).
 6. CLEAN UP formatting: Remove raw JSON sequences, literal \\n strings, or table markdown characters (| or ---) from the sources in your summary.
 7. ${languageInstruction}.`,
           languageInstruction
@@ -403,7 +409,7 @@ async function fallbackChat(prompt: string, history: any[], locale: string = 'th
 
         if (typhoonSummary) {
           // Additional safety cleanup for literal \n or escaped JSON
-          typhoonSummary = typhoonSummary
+          const cleanedSummary = typhoonSummary
             .replace(/\\n/g, '\n')
             .replace(/\\\\n/g, '\n')
             .replace(/\{"natural_text":\s*"/g, '')
@@ -412,10 +418,30 @@ async function fallbackChat(prompt: string, history: any[], locale: string = 'th
             .replace(/\|/g, ' ')
             .trim();
 
-          sections.push({
-            title: locale.startsWith('th') ? "สรุปข้อมูลกฎหมายเบื้องต้น" : "Legal Summary",
-            content: typhoonSummary
-          });
+          // Split by delimiter if Typhoon followed instructions
+          if (cleanedSummary.includes('[LALIN_SUMMARY]')) {
+            const [mainContent, lalinSummary] = cleanedSummary.split('[LALIN_SUMMARY]');
+            
+            if (mainContent.trim()) {
+              sections.push({
+                title: locale.startsWith('th') ? "รายละเอียดข้อกฎหมาย" : "Legal Details",
+                content: mainContent.trim()
+              });
+            }
+            
+            if (lalinSummary.trim()) {
+              sections.push({
+                title: "สรุปเข้าใจง่ายโดย LAlin",
+                content: lalinSummary.trim().replace(/^สรุปเข้าใจง่ายโดย LAlin[\s:]*/, '')
+              });
+            }
+          } else {
+            // Fallback if delimiter is missing
+            sections.push({
+              title: locale.startsWith('th') ? "สรุปข้อมูลกฎหมายเบื้องต้น" : "Legal Summary",
+              content: cleanedSummary
+            });
+          }
         }
       }
 
