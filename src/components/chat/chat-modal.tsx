@@ -11,7 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, Sparkles, X, Loader2, Image as ImageIcon, Trash2 } from 'lucide-react';
+import { Send, Sparkles, X, Loader2, Image as ImageIcon, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import { chat, type ChatResponse } from '@/ai/flows/chat-flow';
 import type { ChatMessage } from '@/lib/types';
 import { z } from 'zod';
@@ -56,6 +56,7 @@ export default function ChatModal() {
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isQuickQuestionsOpen, setIsQuickQuestionsOpen] = useState(true);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
@@ -369,19 +370,34 @@ export default function ChatModal() {
           </div>
         </ScrollArea>
 
-        <div className="p-3 border-t bg-gray-100">
-          <p className="text-xs font-semibold text-muted-foreground mb-2 ml-1">{t('quickQuestionsLabel')}</p>
-          <div className="flex flex-wrap gap-2">
-            {quickQuestions.map(q => (
-              <button
-                key={q.key}
-                onClick={() => handleQuickQuestion(q.label)}
-                disabled={isLoading}
-                className="text-xs px-3 py-1 bg-white border border-border rounded-full hover:bg-accent transition disabled:opacity-50 disabled:cursor-not-allowed">
-                {q.label}
-              </button>
-            ))}
-          </div>
+        <div className="border-t bg-gray-100 overflow-hidden transition-all duration-300">
+          <button 
+            onClick={() => setIsQuickQuestionsOpen(!isQuickQuestionsOpen)}
+            className="w-full flex items-center justify-between p-3 hover:bg-gray-200 transition-colors"
+          >
+            <p className="text-xs font-semibold text-muted-foreground">{t('quickQuestionsLabel')}</p>
+            {isQuickQuestionsOpen ? (
+              <ChevronUp className="w-4 h-4 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="w-4 h-4 text-muted-foreground" />
+            )}
+          </button>
+          
+          {isQuickQuestionsOpen && (
+            <div className="px-3 pb-3">
+              <div className="flex flex-wrap gap-2">
+                {quickQuestions.map(q => (
+                  <button
+                    key={q.key}
+                    onClick={() => handleQuickQuestion(q.label)}
+                    disabled={isLoading}
+                    className="text-xs px-3 py-1 bg-white border border-border rounded-full hover:bg-accent transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">
+                    {q.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="p-4 border-t bg-white sm:rounded-b-2xl">

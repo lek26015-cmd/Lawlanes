@@ -153,6 +153,12 @@ CORE OPERATING PROCEDURES:
     - **FORMAT**: Use markdown links with angle brackets for the URL: \`[ที่มา: Source Name มาตรา XXX](</law-search?q=มาตรา XXX>)\`. This ensures Thai characters and spaces are parsed correctly.
     - **EXTRACT SECTION**: Always look for "มาตรา" numbers in the source text and include them in the link text.
     - **CLICKABLE**: Use the \`/law-search?q=...\` path so the user can click to see more details.
+    - **FULL NAMES**: Use full names for laws, NOT abbreviations. Examples:
+        - "ประมวลกฎหมายแพ่งและพาณิชย์" (instead of ป.พ.พ.)
+        - "ประมวลกฎหมายอาญา" (instead of ป.อ.)
+        - "ประมวลกฎหมายวิธีพิจารณาความแพ่ง" (instead of ป.วิ.พ.)
+        - "ประมวลกฎหมายวิธีพิจารณาความอาญา" (instead of ป.วิ.อ.)
+        - "รัฐธรรมนูญแห่งราชอาณาจักรไทย" (instead of รธน.)
 
 4.  **ACCURACY**: Do not hallucinate. If the search results do not contain the answer, use "ไม่พบข้อมูลที่ระบุเจาะจงในฐานข้อมูลราชกิจจานุเบกษาและกฤษฎีกาในขณะนี้" and then provide general context from Secondary sources.
 
@@ -387,9 +393,10 @@ async function fallbackChat(prompt: string, locale: string = 'th', cause?: Error
           `User Question: ${prompt}\n\nRelated Legal Context with Sources:\n${contextWithSources}\n\nInstructions:
 1. Summarize the legal information from the context.
 2. Put all citations at the end of the summary in a "รายการอ้างอิง" section.
-3. Use markdown links with angle brackets for citations: [ที่มา: Source Name มาตรา XXX](</law-search?q=มาตรา XXX>).
-4. NEVER include raw URLs in your response.
-5. Use a professional tone.
+3. Use markdown links with angle brackets for citations: [ที่มา: Full Law Name มาตรา XXX](</law-search?q=มาตรา XXX>).
+4. Use full names for laws (e.g. ประมวลกฎหมายแพ่งและพาณิชย์, ประมวลกฎหมายอาญา).
+5. NEVER include raw URLs in your response.
+6. Use a professional tone.
 6. ${languageInstruction}`,
           languageInstruction
         );
