@@ -90,6 +90,11 @@ export async function chat(
 
   try {
     const apiKey = process.env.GOOGLE_API_KEY || process.env.GOOGLE_GENAI_API_KEY || '';
+    
+    // Explicit debug logging for the environment
+    console.log(`[ChatFlow] Attempting chat with Prompt: "${prompt.substring(0, 30)}..."`);
+    console.log(`[ChatFlow] API Key status: ${apiKey ? 'Found (Length: ' + apiKey.length + ')' : 'MISSING'}`);
+
     if (!apiKey) {
       console.warn("[ChatFlow] No Google API Key found. Falling back to manual mode.");
       throw new Error("No API Key");
@@ -277,10 +282,17 @@ async function fallbackChat(prompt: string, locale: string = 'th'): Promise<Chat
     }
 
     const cleanPrompt = lowerCaseQuery
-      .replace(/^(คดี|กฎหมาย|เรื่อง|การ|ความ|ข้อหา)/, '')
+      .replace(/^(คดี|กฎหมาย|เรื่อง|การ|ความ|ข้อหา|มี|เป็น)/g, '')
       .trim();
 
-    const searchTerms = cleanPrompt.split(/\s+/).filter(w => w.length > 1);
+    // STOP splitting into tiny 1-2 char words. It leads to matches like "ทรัพย์" for "คดีมรดก"
+    // Instead, search for words with length > 2 or the full clean prompt
+    const searchTerms = cleanPrompt.split(/\s+/).filter(w => w.length > 2);
+    if (searchTerms.length === 0 && cleanPrompt.length > 0) {
+      searchTerms.push(cleanPrompt);
+    }
+    
+    // Always include the full query for better relevance
     if (cleanPrompt !== lowerCaseQuery) {
       searchTerms.push(lowerCaseQuery);
     }

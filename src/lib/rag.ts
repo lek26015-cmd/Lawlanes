@@ -36,11 +36,23 @@ export async function retrieveDocuments(query: string, topK: number = 5): Promis
                 return [];
             }
 
-            return data.matches.map((match: any) => ({
-                source: match.metadata?.source || 'Unknown',
-                content: match.metadata?.text || '',
-                score: match.score || 0
-            }));
+            return data.matches.map((match: any) => {
+                let content = match.metadata?.text || '';
+                
+                // --- Simple Thai Text Repair ---
+                // 1. Remove "Tofu" / Box characters that come from PDF extraction
+                content = content.replace(/[\uFFFD\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
+                content = content.replace(/□/g, '');
+                
+                // 2. Clean up excessive whitespace/newlines
+                content = content.replace(/\n\s*\n/g, '\n').trim();
+
+                return {
+                    source: match.metadata?.source || 'Unknown',
+                    content: content,
+                    score: match.score || 0
+                };
+            });
 
         } catch (error) {
             attempt++;
