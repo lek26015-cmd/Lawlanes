@@ -72,21 +72,21 @@ async function ingestChunk(text: string, metadata: any) {
 
             if (!response.ok) {
                 const errorText = await response.text();
-                console.error(`    ❌ Ingest failed: {response.status} {response.statusText} - {errorText}`);
+                console.error(`    ❌ Ingest failed: ${response.status} ${response.statusText} - ${errorText}`);
                 if (response.status >= 500) {
                     const waitTime = baseWait * Math.pow(2, attempt);
-                    await updateLocalStatus('cooling_down', `Server error {response.status}`, `{waitTime}ms`);
+                    await updateLocalStatus('cooling_down', `Server error ${response.status}`, `${waitTime}ms`);
                     await new Promise(r => setTimeout(r, waitTime));
                     continue;
                 }
-                await updateLocalStatus('error', `Fatal error: {response.status}`);
+                await updateLocalStatus('error', `Fatal error: ${response.status}`);
                 return null;
             }
             return await response.json();
         } catch (error) {
             const waitTime = baseWait * Math.pow(2, attempt);
-            console.error(`    ❌ Ingest error: {error}. Retrying in {waitTime}ms...`);
-            await updateLocalStatus('cooling_down', `Network error`, `{waitTime}ms`);
+            console.error(`    ❌ Ingest error: ${error}. Retrying in ${waitTime}ms...`);
+            await updateLocalStatus('cooling_down', `Network error`, `${waitTime}ms`);
             await new Promise(r => setTimeout(r, waitTime));
         }
     }
@@ -96,31 +96,31 @@ async function ingestChunk(text: string, metadata: any) {
 }
 
 async function main() {
-    console.log(`Scanning PDFs in {PDF_DIR}...`);
+    console.log(`Scanning PDFs in ${PDF_DIR}...`);
     if (!fs.existsSync(PDF_DIR)) {
         console.error('PDF directory not found!');
         return;
     }
 
     const files = fs.readdirSync(PDF_DIR).filter(f => f.toLowerCase().endsWith('.pdf'));
-    console.log(`Found {files.length} PDF files.`);
+    console.log(`Found ${files.length} PDF files.`);
 
     for (const file of files) {
-        console.log(`Processing {file}...`);
+        console.log(`Processing ${file}...`);
         const filePath = path.join(PDF_DIR, file);
         const text = await loadPdf(filePath);
 
         if (!text) {
-            console.warn(`Skipping empty file: {file}`);
+            console.warn(`Skipping empty file: ${file}`);
             continue;
         }
 
         const chunks = chunkText(text);
-        console.log(`  - Generated {chunks.length} chunks.`);
+        console.log(`  - Generated ${chunks.length} chunks.`);
 
         for (let i = 0; i < chunks.length; i++) {
             const chunk = chunks[i];
-            const id = require('crypto').createHash('md5').update(`{file}-{i}`).digest('hex');
+            const id = require('crypto').createHash('md5').update(`${file}-${i}`).digest('hex');
 
             await ingestChunk(chunk, {
                 source: file,
@@ -131,7 +131,7 @@ async function main() {
             });
             await new Promise(r => setTimeout(r, DELAY_BETWEEN_CHUNKS));
         }
-        console.log(`  - Uploaded {chunks.length} chunks.`);
+        console.log(`  - Uploaded ${chunks.length} chunks.`);
     }
     console.log('Ingestion complete!');
     await updateLocalStatus('idle', 'All PDFs ingested successfully');

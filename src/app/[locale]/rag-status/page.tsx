@@ -128,12 +128,15 @@ export default function RagStatusPage() {
                         time: new Date().toLocaleTimeString()
                     };
                     setLiveLogs(prev => [newLog, ...prev].slice(0, 50));
-                } else if (currentTime - lastSuccessCountTimeRef.current > 300000) {
+                } else if (currentTime - lastSuccessCountTimeRef.current > 30000) {
+                    // Reduce stall detection to 30 seconds
                     // Check if any task is "cooling down"
                     const isAnyCoolingDown = Object.values(taskStatuses).some(t => t.status === 'cooling_down');
                     if (!isAnyCoolingDown) {
                         setIsStalled(true);
                         setRate(0);
+                        // Clear fake logs if stalled to show we're waiting
+                        setLiveLogs(prev => prev.filter(l => l.text.includes('📥')));
                     }
                 }
 
