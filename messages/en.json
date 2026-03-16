@@ -31,7 +31,8 @@
             "placeholder": "Describe your problem here, e.g., 'Fraud case', 'Company registration', 'Land dispute'",
             "button": "Analyze & Recommend",
             "analyzing": "Analyzing...",
-            "consultButton": "Consult AI Lawyer"
+            "consultButton": "Consult AI Lawyer",
+            "suggestedKeywordsPrefix": "Try search:"
         },
         "mainFeatures": {
             "anywhere": {
@@ -482,7 +483,7 @@
     },
     "ChatModal": {
         "title": "LAlin",
-        "welcome": "Hello! I am LAlin, ready to assist with deep and accurate legal insights. Would you like me to help with your analysis today?",
+        "welcome": "Hello! I am LAlin AI from Lawslane",
         "quickQuestionsLabel": "Quick Questions:",
         "inputPlaceholder": "Type your message...",
         "thinking": "LAlin is thinking...",
