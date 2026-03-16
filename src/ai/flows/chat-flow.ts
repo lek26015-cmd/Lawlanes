@@ -174,14 +174,17 @@ Output format: Return ONLY a JSON object with a "sections" array. Do not include
     const text = result.response.text();
     return JSON.parse(text) as ChatResponse;
 
-  } catch (error) {
+  } catch (error: any) {
     console.error("[ChatFlow] AI generation failed:", error);
-    return await fallbackChat(prompt, locale);
+    return await fallbackChat(prompt, locale, error);
   }
 }
 
-async function fallbackChat(prompt: string, locale: string = 'th'): Promise<ChatResponse> {
+async function fallbackChat(prompt: string, locale: string = 'th', cause?: Error): Promise<ChatResponse> {
   console.log("[ChatFlow] Running fallback chat logic...");
+  const errorName = cause?.name || "Unknown";
+  const errorMessage = cause?.message || "";
+  
   try {
     const { firestore } = initializeFirebase();
 
@@ -195,8 +198,8 @@ async function fallbackChat(prompt: string, locale: string = 'th'): Promise<Chat
 
     const t = {
       th: {
-        greetingTitle: "สวัสดีครับ (โหมดสำรอง)",
-        greetingContent: "สวัสดีครับ! ผมคือผู้ช่วย AI (ในโหมดสำรอง) เนื่องจากระบบหลักขัดข้อง ผมสามารถช่วยค้นหาข้อมูลกฎหมายเบื้องต้นจากฐานข้อมูลให้ได้ครับ ลองพิมพ์คำถามสั้นๆ เช่น 'มรดก', 'หย่า', หรือ 'สัญญา' ได้เลยครับ",
+        greetingTitle: `สวัสดีครับ (โหมดสำรอง: ${errorName})`,
+        greetingContent: "สวัสดีครับ! ผมคือผู้ช่วย AI (ในโหมดสำรอง) เนื่องจากระบบหลักขัดข้อง (AI Connection Issue) ผมได้พยายามรวบรวมข้อมูลจากฐานข้อมูลมาให้คุณแทนครับ",
         knowledgeTitle: "ข้อมูลจากฐานความรู้ (โหมดสำรอง)",
         knowledgeIntro: (terms: string) => `จากการค้นหาคำว่า "${terms}" พบข้อมูลที่เกี่ยวข้องดังนี้ครับ:`,
         relatedInfo: "ข้อมูลที่เกี่ยวข้อง",
@@ -310,8 +313,9 @@ async function fallbackChat(prompt: string, locale: string = 'th'): Promise<Chat
     let ragDocs: Array<{ source: string, content: string, score: number }> = [];
     try {
       const allDocs = await retrieveDocuments(cleanPrompt);
-      ragDocs = allDocs.filter(doc => doc.score > 0.5);
-      console.log(`[ChatFlow] RAG found ${allDocs.length} docs, ${ragDocs.length} passed threshold (0.5).`);
+      // FILTER out low quality chunks (very short text that just contains noise like "ทรัพย์")
+      ragDocs = allDocs.filter(doc => doc.score > 0.5 && doc.content.trim().length > 15);
+      console.log(`[ChatFlow] RAG found ${allDocs.length} docs, ${ragDocs.length} passed threshold & quality filter.`);
     } catch (err) {
       console.error("Fallback RAG search failed:", err);
     }
@@ -323,11 +327,26 @@ async function fallbackChat(prompt: string, locale: string = 'th'): Promise<Chat
       });
 
       if (ragDocs.length > 0) {
+        // SYNTHESIZED FALLBACK: Use Typhoon to summarize RAG results
+        console.log("[ChatFlow] Synthesizing RAG results with Typhoon AI...");
+        const context = ragDocs.map(d => d.content).join("\n\n");
+        const typhoonSummary = await callTyphoonAI(
+          `User Question: ${prompt}\n\nRelated Legal Context:\n${context}\n\nPlease summarize the legal information from the context above in a professional tone to answer the user's question. ${languageInstruction}`,
+          languageInstruction
+        );
+
+        if (typhoonSummary) {
+          sections.push({
+            title: "สรุปข้อมูลกฎหมายเบื้องต้น",
+            content: typhoonSummary
+          });
+        }
+
         ragDocs.forEach((doc, index) => {
           const cleanContent = doc.content.trim();
           if (cleanContent) {
             sections.push({
-              title: `${strings.relatedInfo} (${index + 1})`,
+              title: `${strings.relatedInfo} (${index + 1}): ${doc.source.split('/').pop()}`,
               content: cleanContent
             });
           }
