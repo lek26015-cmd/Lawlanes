@@ -17,6 +17,7 @@ import type { ChatMessage } from '@/lib/types';
 import { z } from 'zod';
 import { useChat } from '@/context/chat-context';
 import Link from 'next/link';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useTranslations, useLocale } from 'next-intl';
 import ReactMarkdown from 'react-markdown';
 
@@ -370,34 +371,45 @@ export default function ChatModal() {
           </div>
         </ScrollArea>
 
-        <div className="border-t bg-gray-100 overflow-hidden transition-all duration-300">
+        <div className="border-t bg-gray-100">
           <button 
             onClick={() => setIsQuickQuestionsOpen(!isQuickQuestionsOpen)}
             className="w-full flex items-center justify-between p-3 hover:bg-gray-200 transition-colors"
           >
             <p className="text-xs font-semibold text-muted-foreground">{t('quickQuestionsLabel')}</p>
-            {isQuickQuestionsOpen ? (
+            <motion.div
+              animate={{ rotate: isQuickQuestionsOpen ? 0 : 180 }}
+              transition={{ duration: 0.2 }}
+            >
               <ChevronUp className="w-4 h-4 text-muted-foreground" />
-            ) : (
-              <ChevronDown className="w-4 h-4 text-muted-foreground" />
-            )}
+            </motion.div>
           </button>
           
-          {isQuickQuestionsOpen && (
-            <div className="px-3 pb-3">
-              <div className="flex flex-wrap gap-2">
-                {quickQuestions.map(q => (
-                  <button
-                    key={q.key}
-                    onClick={() => handleQuickQuestion(q.label)}
-                    disabled={isLoading}
-                    className="text-xs px-3 py-1 bg-white border border-border rounded-full hover:bg-accent transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">
-                    {q.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+          <AnimatePresence initial={false}>
+            {isQuickQuestionsOpen && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.3, ease: 'easeInOut' }}
+                className="overflow-hidden"
+              >
+                <div className="px-3 pb-3">
+                  <div className="flex flex-wrap gap-2">
+                    {quickQuestions.map(q => (
+                      <button
+                        key={q.key}
+                        onClick={() => handleQuickQuestion(q.label)}
+                        disabled={isLoading}
+                        className="text-xs px-3 py-1 bg-white border border-border rounded-full hover:bg-accent transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">
+                        {q.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         <div className="p-4 border-t bg-white sm:rounded-b-2xl">

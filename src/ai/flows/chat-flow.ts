@@ -393,19 +393,29 @@ async function fallbackChat(prompt: string, history: any[], locale: string = 'th
         
         const contextWithSources = ragDocs.map((d, i) => `Source [${i+1}]: ${formatSourceTitle(d.source)}\nContent: ${d.content}`).join("\n\n---\n\n");
         
-        const typhoonSummary = await callTyphoonAI(
+        let typhoonSummary = await callTyphoonAI(
           `User Question: ${prompt}\n\nRelated Legal Context with Sources:\n${contextWithSources}\n\nInstructions:
 1. Summarize the legal information from the context.
 2. Put all citations at the end of the summary in a "รายการอ้างอิง" section.
 3. Use markdown links with angle brackets for citations: [ที่มา: Full Law Name มาตรา XXX](</law-search?q=มาตรา XXX>).
 4. Use full names for laws (e.g. ประมวลกฎหมายแพ่งและพาณิชย์, ประมวลกฎหมายอาญา).
-5. CLEAN UP formatting: Remove raw JSON sequences, literal \\n characters, or table markdown from the sources in your summary.
+5. CLEAN UP formatting: Remove raw JSON sequences, literal \\n strings, or table markdown characters (| or ---) from the sources in your summary.
 6. NEVER include raw URLs in your response.
 7. Use a professional tone and ${languageInstruction}.`,
           languageInstruction
         );
 
         if (typhoonSummary) {
+          // Additional safety cleanup for literal \n or escaped JSON
+          typhoonSummary = typhoonSummary
+            .replace(/\\n/g, '\n')
+            .replace(/\\\\n/g, '\n')
+            .replace(/\{"natural_text":\s*"/g, '')
+            .replace(/"\}/g, '')
+            .replace(/\| --- \| --- \|/g, '')
+            .replace(/\|/g, ' ')
+            .trim();
+
           sections.push({
             title: locale.startsWith('th') ? "สรุปข้อมูลกฎหมายเบื้องต้น" : "Legal Summary",
             content: typhoonSummary
