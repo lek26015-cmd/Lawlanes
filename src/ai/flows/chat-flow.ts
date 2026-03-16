@@ -145,10 +145,19 @@ Output format: Return ONLY a JSON object with a "sections" array. Do not include
       }
     });
 
-    const formattedHistory: Content[] = history ? history.map(h => ({
-      role: h.role,
-      parts: h.content.map(c => ({ text: c.text }))
-    })) : [];
+    let formattedHistory: Content[] = [];
+    if (history && history.length > 0) {
+      // Gemini REQUIREMENT: History MUST start with a 'user' message.
+      // We find the first user message and take everything from there.
+      const firstUserIndex = history.findIndex(h => h.role === 'user');
+      
+      if (firstUserIndex !== -1) {
+        formattedHistory = history.slice(firstUserIndex).map(h => ({
+          role: h.role,
+          parts: h.content.map(c => ({ text: c.text }))
+        }));
+      }
+    }
 
     const chatSession = model.startChat({
       history: formattedHistory,
