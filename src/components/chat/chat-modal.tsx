@@ -284,15 +284,15 @@ export default function ChatModal() {
                     ) : isChatResponse(msg.content) ? (
                       <div className="space-y-3">
                         {msg.content.sections.map((section, index) => (
-                          <div key={index}>
-                            <h4 className="font-semibold text-sm mb-1">{section.title}</h4>
-                            <div className="text-sm whitespace-pre-wrap prose prose-sm max-w-none prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline">
+                          <div key={index} className="pb-2 last:pb-0">
+                            {section.title && <h4 className="font-bold text-sm mb-1 text-slate-900 border-l-4 border-primary pl-2">{section.title}</h4>}
+                            <div className="text-sm prose prose-sm max-w-none prose-slate">
                               <ReactMarkdown>{section.content}</ReactMarkdown>
                             </div>
                             {section.link && section.linkText && (
-                              <div className="mt-2">
+                              <div className="mt-3">
                                 <Link href={section.link} onClick={() => setAiChatOpen(false)}>
-                                  <Button variant="default" size="sm" className="w-full sm:w-auto">
+                                  <Button variant="default" className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all rounded-xl py-5">
                                     {section.linkText}
                                   </Button>
                                 </Link>

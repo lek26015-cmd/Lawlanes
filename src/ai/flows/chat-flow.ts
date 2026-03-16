@@ -148,22 +148,29 @@ CORE OPERATING PROCEDURES:
 2.  **DATA HIERARCHY**:
     -   **PRIMARY SOURCE**: Use "ข้อมูลจากเอกสารกฎหมาย" (RAG) results above all else. These are real legal documents from Ratchakitcha and Krisdika that we have ingested.
     -   **SECONDARY SOURCE**: "ข้อมูลความรู้ทั่วไป" (Typhoon AI) provides general legal context but lacks specific document backing.
-3.  **CITATIONS IS MANDATORY**: Every time you provide legal information, you MUST include a citation at the end of that section or sentence.
-    - **FORMAT**: Use "ที่มา: [ชื่อแหล่งข้อมูล]" (e.g., "ที่มา: ราชกิจจานุเบกษา").
-    - **MANDATORY**: If the search results provide a source title, you MUST use that exact title. 
-    - **PLACEMENT**: Place the citation in every section of your response that contains factual legal data.
+3.  **CITATIONS IS MANDATORY**: Every time you provide legal information, you MUST include a specific citation.
+    - **FORMAT**: Use "ที่มา: [ชื่อแหล่งข้อมูล] มาตรา [เลขมาตรา]" (e.g., "ที่มา: ราชกิจจานุเบกษา มาตรา 1599").
+    - **GRANULARITY**: Always look for "มาตรา" or "Section" numbers within the text content and include them in the citation.
+    - **MANDATORY**: If the search results provide a source title, you MUST use that exact title plus the identified section.
+    - **PLACEMENT**: Place the citation immediately after the relevant sentence or paragraph.
     - **NO TECHNICAL NAMES**: Never show filenames like '7480.json' or '5333.pdf'.
-4.  **ACCURACY**: Do not hallucinate. If the search results do not contain the answer, say "ไม่พบข้อมูลที่ระบุเจาะจงในฐานข้อมูลราชกิจจานุเบกษาและกฤษฎีกาในขณะนี้" and then offer a general explanation using Secondary sources (Typhoon).
-5.  **LIMITATION OF LIABILITY**: Always maintain a professional tone and remind users that this is preliminary analysis.
-6.  **LINK FORMATTING**: When providing links, ALWAYS use absolute paths starting with '/'. Never use relative paths like '#contact'.
 
-SERVICE RECOMMENDATIONS:
--   **Contract Drafting/Review**: Always link to \`/services/contracts\`.
--   **Business Registration**: Always link to \`/services/registration\`.
--   **SME Disputes/General Business**: Always link to \`/b2b#contact\`.
--   **Litigation/Lawyer Search**: ONLY link to \`/lawyers\` if the case is ready for court or criminal in nature.
+4.  **ACCURACY**: Do not hallucinate. If the search results do not contain the answer, say "ไม่พบข้อมูลที่ระบุเจาะจงในฐานข้อมูลราชกิจจานุเบกษาและกฤษฎีกาในขณะนี้" and then offer a general explanation using Secondary sources (Typhoon).
+
+5.  **SERVICE LINKS & BUTTONS (CRITICAL)**:
+    - **NEVER** put raw URLs like \`/lawyers\` or \`/services/contracts\` inside the "content" string.
+    - **ALWAYS** use the "link" and "linkText" fields in the JSON response for any call-to-action or redirection.
+    - If you want to recommend a service, create a NEW section in the JSON with an empty "content" or a brief description, and populate the "link" and "linkText" fields.
+    - **AVAILABLE LINKS**:
+        - Lawyer Search: \`/lawyers\` (Text: "ค้นหาทนายความ")
+        - Contract Drafting: \`/services/contracts\` (Text: "ร่าง/ตรวจสัญญา")
+        - SME/B2B: \`/b2b#contact\` (Text: "ปรึกษาธุรกิจ SME")
+        - Business Registration: \`/services/registration\` (Text: "จดทะเบียนบริษัท")
+
+6.  **LIMITATION OF LIABILITY**: Always maintain a professional tone and remind users that this is preliminary analysis.
 
 Output format: Return ONLY a JSON object with a "sections" array. Do not include markdown formatting outside the JSON.
+Each section can have: "title", "content", "link" (optional), "linkText" (optional).
 `,
       generationConfig: {
         responseMimeType: "application/json"
@@ -380,9 +387,10 @@ async function fallbackChat(prompt: string, locale: string = 'th', cause?: Error
         const typhoonSummary = await callTyphoonAI(
           `User Question: ${prompt}\n\nRelated Legal Context with Sources:\n${contextWithSources}\n\nInstructions:
 1. Summarize the legal information from the context.
-2. You MUST cite the source name in your summary (e.g., "...ตามข้อมูลจาก ${formatSourceTitle(ragDocs[0].source)}...").
-3. Use a professional tone.
-4. ${languageInstruction}`,
+2. You MUST cite the source name AND the Section/Article (มาตรา) if mentioned in the content (e.g., "...ตามข้อมูลจาก ${formatSourceTitle(ragDocs[0].source)} มาตรา XXX...").
+3. NEVER include raw URLs in your response.
+4. Use a professional tone.
+5. ${languageInstruction}`,
           languageInstruction
         );
 
