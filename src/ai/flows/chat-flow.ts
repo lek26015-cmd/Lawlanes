@@ -94,8 +94,6 @@ export async function chat(
     
     // Explicit debug logging for the environment
     console.log(`[ChatFlow] Attempting chat with Prompt: "${prompt.substring(0, 30)}..."`);
-    console.log(`[ChatFlow] Gemini Key status: ${apiKey ? 'Found (Length: ' + apiKey.length + ')' : 'MISSING'}`);
-    console.log(`[ChatFlow] Typhoon Key status: ${typhoonKey ? 'Found (Length: ' + typhoonKey.length + ')' : 'MISSING'}`);
 
     if (!apiKey) {
       console.warn("[ChatFlow] No Google API Key found. Falling back to manual mode.");
@@ -209,10 +207,10 @@ async function fallbackChat(prompt: string, locale: string = 'th', cause?: Error
 
     const t = {
       th: {
-        greetingTitle: `สวัสดีครับ (โหมดสำรอง: ${errorName})`,
-        greetingContent: `สวัสดีครับ! ผมคือผู้ช่วย AI (ในโหมดสำรอง) เนื่องจากระบบหลักขัดข้อง (${errorName}: ${errorMessage.substring(0, 100)}) ผมได้พยายามรวบรวมข้อมูลมากจากฐานข้อมูลมาให้คุณแทนครับ`,
-        knowledgeTitle: `ข้อมูลจากฐานความรู้ (โหมดสำรอง: ${errorMessage.substring(0, 50)})`,
-        knowledgeIntro: (terms: string) => `จากการค้นหาคำว่า "${terms}" พบข้อมูลกฎหมายเบื้องต้น (${errorName}: ${errorMessage.substring(0, 40)}) ดังนี้ครับ:`,
+        greetingTitle: "สวัสดีครับ (โหมดสำรอง)",
+        greetingContent: "สวัสดีครับ! ผมคือผู้ช่วย AI (ในโหมดสำรอง) เนื่องจากระบบหลักขัดข้อง ผมสามารถช่วยค้นหาข้อมูลกฎหมายเบื้องต้นจากฐานข้อมูลให้ได้ครับ ลองพิมพ์คำถามสั้นๆ เช่น 'มรดก', 'หย่า', หรือ 'สัญญา' ได้เลยครับ",
+        knowledgeTitle: "ข้อมูลจากฐานความรู้ (โหมดสำรอง)",
+        knowledgeIntro: (terms: string) => `จากการค้นหาคำว่า "${terms}" พบข้อมูลที่เกี่ยวข้องดังนี้ครับ:`,
         relatedInfo: "ข้อมูลที่เกี่ยวข้อง",
         article: "บทความ",
         adviceTitle: "คำแนะนำเพิ่มเติม",
@@ -351,11 +349,6 @@ async function fallbackChat(prompt: string, locale: string = 'th', cause?: Error
           sections.push({
             title: "สรุปข้อมูลกฎหมายเบื้องต้น",
             content: typhoonSummary
-          });
-        } else {
-          sections.push({
-            title: "สรุปข้อมูลกฎหมายเบื้องต้น (Typhoon AI Error)",
-            content: `ขออภัยครับ ไม่สามารถใช้ AI สำรองสรุปข้อมูลได้ในขณะนี้ (Error: Typhoon API Key may be missing on Server). กรุณาอ่านข้อมูลจากเอกสารอ้างอิงด้านล่างแทนนะครับ`
           });
         }
 
