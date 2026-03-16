@@ -263,22 +263,29 @@ export default function ChatModal() {
     <Dialog open={isAiChatOpen} onOpenChange={setAiChatOpen}>
       <DialogContent
         hideCloseButton={true}
-        className="fixed inset-0 w-full h-full max-w-none translate-x-0 translate-y-0 rounded-none xl:inset-auto xl:bottom-[88px] xl:right-6 xl:w-[420px] xl:h-[75vh] xl:rounded-2xl bg-white shadow-2xl border z-50 p-0 flex flex-col origin-bottom-right data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-0 transition-all duration-300"
+        className="fixed inset-0 w-full h-full max-w-none translate-x-0 translate-y-0 rounded-none sm:rounded-none lg:inset-auto lg:top-[50%] lg:left-[50%] lg:translate-x-[-50%] lg:translate-y-[-50%] lg:w-[90vw] lg:max-w-5xl lg:h-[85vh] lg:rounded-3xl bg-white shadow-2xl border z-50 p-0 flex flex-col overflow-hidden transition-all duration-500 ease-in-out data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95"
       >
-        <DialogHeader className="flex flex-row justify-between items-center p-4 border-b bg-foreground text-background sm:rounded-t-2xl">
-          <DialogTitle asChild>
-            <h3 className="text-xl font-bold">{t('title')}</h3>
-          </DialogTitle>
-          <DialogDescription className="sr-only">
-            Chat with the AI assistant to get legal advice.
-          </DialogDescription>
-          <button onClick={() => setAiChatOpen(false)} className="text-background/70 hover:text-white">
-            <X className="w-6 h-6" />
+        <DialogHeader className="flex flex-row justify-between items-center p-4 lg:p-6 border-b bg-foreground text-background sm:rounded-t-none lg:rounded-t-3xl">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center backdrop-blur-sm border border-white/20">
+              <Sparkles className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <DialogTitle asChild>
+                <h3 className="text-xl lg:text-2xl font-bold tracking-tight">{t('title')}</h3>
+              </DialogTitle>
+              <DialogDescription className="text-white/60 text-xs hidden lg:block">
+                Powered by Lawslane Intelligence
+              </DialogDescription>
+            </div>
+          </div>
+          <button onClick={() => setAiChatOpen(false)} className="p-2 rounded-full hover:bg-white/10 transition-colors">
+            <X className="w-7 h-7" />
           </button>
         </DialogHeader>
 
-        <ScrollArea className="flex-grow p-4 bg-gray-50">
-          <div className="space-y-4">
+        <ScrollArea className="flex-grow bg-gray-50/50">
+          <div className="max-w-4xl mx-auto w-full p-4 lg:p-8 space-y-6">
             {messages.map((msg) => (
               <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : ''}`}>
                 {msg.role === 'assistant' && (
@@ -288,15 +295,18 @@ export default function ChatModal() {
                     </div>
                   </div>
                 )}
-                <div className={`max-w-xs lg:max-w-sm xl:max-w-md`}>
-                  <div className={`p-3 rounded-2xl shadow-sm ${msg.role === 'user'
-                    ? 'bg-foreground text-background'
-                    : 'bg-white border'
+                <div className={`${msg.role === 'user' ? 'w-full flex justify-end' : 'w-full'}`}>
+                  <div className={`p-4 lg:p-5 rounded-2xl lg:rounded-3xl shadow-sm ${msg.role === 'user'
+                    ? 'bg-foreground text-background ml-auto max-w-[85%] lg:max-w-[75%]'
+                    : 'bg-white border mr-auto max-w-[95%] lg:max-w-[85%]'
                     }`}
-                    style={msg.role === 'user' ? { borderTopRightRadius: 0 } : { borderTopLeftRadius: 0 }}
+                    style={msg.role === 'user' 
+                      ? { borderTopRightRadius: '4px' } 
+                      : { borderTopLeftRadius: '4px' }
+                    }
                   >
                     {typeof msg.content === 'string' ? (
-                      <div className="text-sm prose prose-sm max-w-none prose-a:text-blue-600 prose-a:font-semibold prose-a:no-underline hover:prose-a:underline">
+                      <div className="text-sm lg:text-base prose prose-sm lg:prose-base max-w-none prose-a:text-blue-600 prose-a:font-semibold prose-a:no-underline hover:prose-a:underline">
                         <ReactMarkdown
                           components={{
                             a: ({ node, ...props }) => {
@@ -316,8 +326,8 @@ export default function ChatModal() {
                       <div className="space-y-3">
                         {msg.content.sections.map((section, index) => (
                           <div key={index} className="pb-2 last:pb-0">
-                            {section.title && <h4 className="font-bold text-sm mb-1 text-slate-900 border-l-4 border-primary pl-2">{section.title}</h4>}
-                            <div className="text-sm prose prose-sm max-w-none prose-slate">
+                            {section.title && <h4 className="font-bold text-sm lg:text-base mb-1 text-slate-900 border-l-4 border-primary pl-2">{section.title}</h4>}
+                            <div className="text-sm lg:text-base prose prose-sm lg:prose-base max-w-none prose-slate">
                               <ReactMarkdown
                                 components={{
                                   a: ({ node, ...props }) => {
@@ -371,89 +381,114 @@ export default function ChatModal() {
           </div>
         </ScrollArea>
 
-        <div className="border-t bg-gray-100">
-          <button 
-            onClick={() => setIsQuickQuestionsOpen(!isQuickQuestionsOpen)}
-            className="w-full flex items-center justify-between p-3 hover:bg-gray-200 transition-colors"
-          >
-            <p className="text-xs font-semibold text-muted-foreground">{t('quickQuestionsLabel')}</p>
-            <motion.div
-              animate={{ rotate: isQuickQuestionsOpen ? 0 : 180 }}
-              transition={{ duration: 0.2 }}
-            >
-              <ChevronUp className="w-4 h-4 text-muted-foreground" />
-            </motion.div>
-          </button>
-          
-          <AnimatePresence initial={false}>
-            {isQuickQuestionsOpen && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.3, ease: 'easeInOut' }}
-                className="overflow-hidden"
+        <div className="bg-gray-50/50 border-t">
+          <div className="max-w-4xl mx-auto w-full">
+            <div className="bg-gray-100/50 overflow-hidden transition-all duration-300">
+              <button 
+                onClick={() => setIsQuickQuestionsOpen(!isQuickQuestionsOpen)}
+                className="w-full flex items-center justify-between p-3 lg:p-4 hover:bg-gray-200/50 transition-colors"
               >
-                <div className="px-3 pb-3">
-                  <div className="flex flex-wrap gap-2">
-                    {quickQuestions.map(q => (
-                      <button
-                        key={q.key}
-                        onClick={() => handleQuickQuestion(q.label)}
-                        disabled={isLoading}
-                        className="text-xs px-3 py-1 bg-white border border-border rounded-full hover:bg-accent transition disabled:opacity-50 disabled:cursor-not-allowed shadow-sm">
-                        {q.label}
-                      </button>
-                    ))}
-                  </div>
+                <div className="flex items-center space-x-2">
+                  <Sparkles className="w-4 h-4 text-primary" />
+                  <p className="text-xs lg:text-sm font-semibold text-muted-foreground">{t('quickQuestionsLabel')}</p>
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-
-        <div className="p-4 border-t bg-white sm:rounded-b-2xl">
-          {selectedImage && (
-            <div className="mb-2 relative inline-block">
-              <img src={selectedImage} alt="Selected" className="h-16 w-auto rounded-lg border object-cover" />
-              <button
-                type="button"
-                onClick={clearImage}
-                className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 shadow-sm"
-              >
-                <X className="w-3 h-3" />
+                <motion.div
+                  animate={{ rotate: isQuickQuestionsOpen ? 0 : 180 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <ChevronUp className="w-4 h-4 text-muted-foreground" />
+                </motion.div>
               </button>
+              
+              <AnimatePresence initial={false}>
+                {isQuickQuestionsOpen && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0 }}
+                    animate={{ height: 'auto', opacity: 1 }}
+                    exit={{ height: 0, opacity: 0 }}
+                    transition={{ duration: 0.3, ease: 'easeInOut' }}
+                    className="overflow-hidden"
+                  >
+                    <div className="px-3 lg:px-4 pb-3 lg:pb-4">
+                      <div className="flex flex-wrap gap-2">
+                        {quickQuestions.map(q => (
+                          <button
+                            key={q.key}
+                            onClick={() => handleQuickQuestion(q.label)}
+                            disabled={isLoading}
+                            className="text-xs lg:text-sm px-4 py-1.5 bg-white border border-border rounded-full hover:bg-accent hover:border-primary transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm font-medium hover:text-primary">
+                            {q.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
-          )}
-          <form onSubmit={handleSubmit} className="flex items-center space-x-2">
-            <input
-              type="file"
-              ref={fileInputRef}
-              accept="image/*"
-              className="hidden"
-              onChange={handleImageSelect}
-            />
-            <Button
-              type="button"
-              size="icon"
-              variant="outline"
-              disabled={isLoading}
-              onClick={() => fileInputRef.current?.click()}
-              className="p-3 rounded-full border-2 border-gray-200 hover:bg-gray-100 transition w-11 h-11 flex-shrink-0"
-            >
-              <ImageIcon className="w-5 h-5 text-gray-500" />
-            </Button>
-            <Input
-              value={input}
-              onChange={handleInputChange}
-              placeholder={selectedImage ? "ถามเพิ่มเติมเกี่ยวกับรูปนี้..." : t('inputPlaceholder')}
-              disabled={isLoading}
-              className="flex-grow px-4 py-3 rounded-full bg-gray-100 border-2 border-transparent focus:bg-white focus:border-primary transition outline-none"
-            />
-            <Button type="submit" size="icon" disabled={isLoading} className="p-3 rounded-full bg-foreground text-background hover:bg-foreground/90 transition shadow-lg w-11 h-11 flex-shrink-0">
-              <Send className="w-5 h-5" />
-            </Button>
-          </form>
+
+            <div className="p-4 lg:p-6 border-t bg-white lg:rounded-b-3xl">
+              {selectedImage && (
+                <div className="mb-3 relative inline-block animate-in fade-in zoom-in duration-200">
+                  <img src={selectedImage} alt="Selected" className="h-20 w-auto rounded-xl border-2 border-primary/20 object-cover shadow-md" />
+                  <button
+                    type="button"
+                    onClick={clearImage}
+                    className="absolute -top-3 -right-3 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 shadow-lg border-2 border-white"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              )}
+              <form onSubmit={handleSubmit} className="flex items-end space-x-3 bg-gray-50 p-2 lg:p-3 rounded-2xl lg:rounded-3xl border-2 border-transparent focus-within:border-primary/20 focus-within:bg-white transition-all duration-300 shadow-sm">
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleImageSelect}
+                />
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="outline"
+                  disabled={isLoading}
+                  onClick={() => fileInputRef.current?.click()}
+                  className="p-3 rounded-xl lg:rounded-2xl border-2 border-gray-200 hover:border-primary hover:bg-primary/5 transition-all w-12 h-12 flex-shrink-0"
+                >
+                  <ImageIcon className="w-6 h-6 text-gray-400 group-hover:text-primary" />
+                </Button>
+                <div className="flex-grow">
+                  <textarea
+                    rows={1}
+                    value={input}
+                    onChange={(e) => {
+                      handleInputChange(e as any);
+                      e.target.style.height = 'auto';
+                      e.target.style.height = Math.min(e.target.scrollHeight, 120) + 'px';
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSubmit(e as any);
+                      }
+                    }}
+                    placeholder={selectedImage ? "ถามเพิ่มเติมเกี่ยวกับรูปนี้..." : t('inputPlaceholder')}
+                    disabled={isLoading}
+                    className="w-full px-2 py-3 bg-transparent border-none focus:ring-0 resize-none max-h-[120px] text-base lg:text-lg outline-none placeholder:text-gray-400"
+                  />
+                </div>
+                <Button 
+                  type="submit" 
+                  size="icon" 
+                  disabled={isLoading} 
+                  className="p-3 rounded-xl lg:rounded-2xl bg-foreground text-background hover:bg-foreground/90 transition-all shadow-xl w-12 h-12 flex-shrink-0 group"
+                >
+                  <Send className="w-6 h-6 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                </Button>
+              </form>
+            </div>
+          </div>
         </div>
 
       </DialogContent>
