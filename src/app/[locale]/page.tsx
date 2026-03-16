@@ -104,125 +104,6 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         {/* Recommended Lawyers - Client Side Fetching */}
         <HomeRecommendedLawyers />
 
-        {/* Legal Forms CTA - Redesigned (Text Left, Features Right) */}
-        <section className="w-full py-16 md:py-24 bg-white">
-          <div className="container mx-auto px-4 md:px-6">
-            <div className="grid lg:grid-cols-2 gap-12 items-center">
-              {/* Left Column: Text Content */}
-              <FadeIn direction="right">
-                <div className="space-y-6">
-                  <h2 className="text-3xl md:text-4xl font-bold font-headline text-[#0B3979]">
-                    {t('legalForms.title')}
-                  </h2>
-                  <p className="text-slate-600 text-lg leading-relaxed">
-                    {t('legalForms.description')}
-                  </p>
-                  <div className="pt-2">
-                    <Link href="/forms" className="inline-flex items-center justify-center px-8 py-3 text-base font-medium text-white bg-[#0B3979] rounded-full hover:bg-[#082a5a] shadow-lg hover:shadow-xl transition-all duration-300 group">
-                      {t('legalForms.cta')}
-                      <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                    </Link>
-                  </div>
-                </div>
-              </FadeIn>
-
-              {/* Right Column: Features List */}
-              <FadeIn direction="left" delay={200}>
-                <div className="space-y-4">
-                  {[
-                    t('legalForms.features.professional'),
-                    t('legalForms.features.update'),
-                    t('legalForms.features.free')
-                  ].map((item, index) => (
-                    <div key={index} className="flex items-center gap-4 bg-slate-50 px-6 py-5 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-all hover:-translate-y-1">
-                      <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center shrink-0">
-                        <Check className="w-5 h-5 text-green-600" />
-                      </div>
-                      <span className="text-slate-700 font-medium text-lg">{item}</span>
-                    </div>
-                  ))}
-                </div>
-              </FadeIn>
-            </div>
-          </div>
-        </section>
-
-        {/* Cap and Deal CTA Section */}
-        <section className="w-full py-16 md:py-24 bg-[#0B3979] text-white relative overflow-hidden">
-          {/* Decorative background shapes */}
-          <div className="absolute top-0 right-0 w-96 h-96 bg-yellow-400/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-          <div className="absolute bottom-0 left-0 w-80 h-80 bg-blue-400/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2" />
-
-          <div className="container relative z-10 mx-auto px-4 md:px-6">
-            <div className="grid lg:grid-cols-2 gap-12 items-center">
-              {/* Left: Visual */}
-              <FadeIn direction="right">
-                <div className="relative flex items-center justify-center">
-                  {/* Yellow glow behind card */}
-                  <div className="absolute inset-0 bg-yellow-400/20 rounded-[3rem] blur-2xl scale-105" />
-                  <div className="relative w-full max-w-md mx-auto bg-white rounded-3xl shadow-2xl p-8 border-2 border-yellow-300/50">
-                    <div className="flex items-center gap-3 mb-6">
-                      <div className="w-12 h-12 rounded-full bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center shadow-lg shadow-yellow-400/30">
-                        <Camera className="w-6 h-6 text-white" />
-                      </div>
-                      <div>
-                        <p className="font-bold text-lg text-[#0B3979]">แคปแล้วดีล</p>
-                        <p className="text-sm text-slate-500">Screenshot → Contract</p>
-                      </div>
-                    </div>
-                    <div className="space-y-3">
-                      <div className="bg-blue-50 rounded-2xl p-4 text-sm text-slate-700 max-w-[75%] border border-blue-100">
-                        ตกลงนะคะ ราคา 15,000 บาท ส่งมอบภายใน 7 วัน
-                      </div>
-                      <div className="bg-emerald-50 rounded-2xl p-4 text-sm text-slate-700 max-w-[75%] ml-auto text-right border border-emerald-100">
-                        ตกลงครับ มัดจำ 50% โอนวันนี้
-                      </div>
-                    </div>
-                    <div className="mt-6 flex items-center justify-center">
-                      <div className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-yellow-400 to-amber-500 text-[#0B3979] rounded-full text-sm font-bold shadow-lg shadow-yellow-400/30 animate-pulse">
-                        <ArrowRight className="w-4 h-4" />
-                        AI กำลังสร้างสัญญา...
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </FadeIn>
-
-              {/* Right: Text Content */}
-              <FadeIn direction="left" delay={200}>
-                <div className="space-y-6">
-                  <h2 className="text-3xl md:text-4xl font-bold font-headline text-white">
-                    {t('capAndDeal.title')}
-                  </h2>
-                  <p className="text-blue-100 text-lg leading-relaxed">
-                    {t('capAndDeal.description')}
-                  </p>
-                  <div className="space-y-4">
-                    {[
-                      t('capAndDeal.features.ai'),
-                      t('capAndDeal.features.fast'),
-                      t('capAndDeal.features.legal')
-                    ].map((item, index) => (
-                      <div key={index} className="flex items-center gap-4 bg-white/10 backdrop-blur-sm px-6 py-5 rounded-2xl border border-white/20 hover:bg-white/20 transition-all hover:-translate-y-1">
-                        <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center shrink-0 border border-yellow-400/50 shadow-sm">
-                          <Check className="w-5 h-5 text-yellow-400" />
-                        </div>
-                        <span className="text-white font-medium text-lg">{item}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="pt-2">
-                    <a href="https://capdeal.lawslane.com" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center px-8 py-3 text-base font-bold text-white bg-yellow-500 rounded-full hover:bg-yellow-600 shadow-lg shadow-yellow-400/30 hover:shadow-xl transition-all duration-300 group">
-                      {t('capAndDeal.cta')}
-                      <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                    </a>
-                  </div>
-                </div>
-              </FadeIn>
-            </div>
-          </div>
-        </section>
-
         {/* Lawyer Search CTA */}
         <section className="w-full py-16 md:py-24 bg-blue-50">
           <div className="container mx-auto px-4 md:px-6">
@@ -265,70 +146,119 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
           </div>
         </section>
 
-        <section id="features" className="w-full py-12 md:py-24 lg:py-32 bg-background">
-          <div className="container mx-auto px-4 md:px-6">
-            <div className="grid lg:grid-cols-2 gap-12 items-center">
-              <div className="space-y-8">
-                <FadeIn direction="up">
-                  <div>
-                    <p className="text-sm font-semibold text-primary uppercase">{t('usageSteps.label')}</p>
-                    <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-foreground font-headline mt-2">
-                      {t('usageSteps.title')}
-                    </h2>
+        {/* Consolidated Section: Forms & Verify (50/50) */}
+        <section className="w-full overflow-hidden border-y border-slate-100">
+          <div className="flex flex-col lg:flex-row">
+            {/* Left Hand: Legal Forms */}
+            <div className="w-full lg:w-1/2 py-16 md:py-24 bg-white px-4 md:px-12 lg:px-20 flex flex-col justify-center">
+              <FadeIn direction="right">
+                <div className="space-y-6 max-w-xl mx-auto lg:mx-0">
+                  <h2 className="text-3xl md:text-4xl font-bold font-headline text-[#0B3979]">
+                    {t('legalForms.title')}
+                  </h2>
+                  <p className="text-slate-600 text-lg leading-relaxed">
+                    {t('legalForms.description')}
+                  </p>
+                  <div className="space-y-3">
+                    {[
+                      t('legalForms.features.professional'),
+                      t('legalForms.features.update'),
+                      t('legalForms.features.free')
+                    ].map((item, index) => (
+                      <div key={index} className="flex items-center gap-3">
+                        <div className="w-6 h-6 rounded-full bg-green-100 flex items-center justify-center shrink-0">
+                          <Check className="w-4 h-4 text-green-600" />
+                        </div>
+                        <span className="text-slate-700 font-medium">{item}</span>
+                      </div>
+                    ))}
                   </div>
-                </FadeIn>
-                <div className="grid grid-cols-2 gap-4">
-                  {stats.map((stat, index) => (
-                    <FadeIn key={index} delay={index * 100} direction="up">
-                      <Card className="p-4 bg-gray-100 border-none text-center h-full flex flex-col justify-center rounded-3xl shadow-sm hover:shadow-md transition-all">
-                        <p className="text-4xl font-bold text-primary">{stat.value}</p>
-                        <p className="text-sm text-muted-foreground">{stat.label}</p>
-                      </Card>
-                    </FadeIn>
-                  ))}
+                  <div className="pt-2">
+                    <Link href="/forms" className="inline-flex items-center justify-center px-8 py-3 text-base font-medium text-white bg-[#0B3979] rounded-full hover:bg-[#082a5a] shadow-lg hover:shadow-xl transition-all duration-300 group">
+                      {t('legalForms.cta')}
+                      <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                    </Link>
+                  </div>
                 </div>
-              </div>
-              <div className="space-y-8">
-                {features.map((feature, index) => (
-                  <FadeIn key={index} delay={index * 150} direction="left">
-                    <div className="flex items-start gap-4">
-                      <div className="flex-shrink-0 w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
-                        {feature.icon}
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-semibold">{feature.title}</h3>
-                        <p className="text-muted-foreground mt-1">{feature.description}</p>
-                      </div>
-                    </div>
-                  </FadeIn>
-                ))}
-              </div>
+              </FadeIn>
+            </div>
+
+            {/* Right Hand: Verify Status */}
+            <div className="w-full lg:w-1/2 py-16 md:py-24 bg-gradient-to-br from-[#0B3979] to-[#082a5a] text-white px-4 md:px-12 lg:px-20 flex flex-col justify-center items-center text-center">
+              <FadeIn direction="left">
+                <div className="space-y-6 max-w-xl">
+                  <div className="mx-auto w-16 h-16 bg-white/10 rounded-2xl flex items-center justify-center backdrop-blur-sm border border-white/20 shadow-xl">
+                    <ShieldCheck className="w-10 h-10 text-white" />
+                  </div>
+                  <div className="space-y-3">
+                    <h2 className="text-3xl md:text-4xl font-bold tracking-tight font-headline">
+                      {t('verifyStatus.title')}
+                    </h2>
+                    <p className="text-blue-100 text-lg">
+                      {t('verifyStatus.description')}
+                    </p>
+                  </div>
+                  <div className="pt-4">
+                    <Link href="/verify-lawyer">
+                      <Button size="lg" variant="secondary" className="rounded-full px-10 text-lg font-bold text-[#0B3979] bg-white hover:bg-white/90 shadow-xl">
+                        {t('verifyStatus.button')}
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
+              </FadeIn>
             </div>
           </div>
         </section>
 
-        <section className="w-full py-12 md:py-24 lg:py-32 bg-gradient-to-r from-blue-900 to-cyan-600 text-white">
-          <div className="container mx-auto px-4 md:px-6">
-            <FadeIn direction="up">
-              <div className="flex flex-col items-center text-center space-y-4">
-                <div className="p-4 bg-white/10 rounded-full backdrop-blur-sm">
-                  <ShieldCheck className="w-10 h-10 text-white" />
+        {/* Cap and Deal CTA Section */}
+        <section className="w-full py-16 md:py-24 bg-slate-50 relative overflow-hidden">
+          <div className="container relative z-10 mx-auto px-4 md:px-6">
+            <div className="grid lg:grid-cols-2 gap-12 items-center">
+              {/* Left: Visual */}
+              <FadeIn direction="right">
+                <Image
+                  src="/images/capdeal_photo.png"
+                  alt="Cap and Deal"
+                  width={1200}
+                  height={800}
+                  className="w-full h-auto"
+                />
+              </FadeIn>
+
+              {/* Right: Text Content */}
+              <FadeIn direction="left" delay={200}>
+                <div className="space-y-6">
+                  <Badge variant="outline" className="text-[#0B3979] border-[#0B3979] font-bold px-4 py-1">New Experience</Badge>
+                  <h2 className="text-3xl md:text-4xl font-bold font-headline text-[#0B3979]">
+                    {t('capAndDeal.title')}
+                  </h2>
+                  <p className="text-slate-600 text-lg leading-relaxed">
+                    {t('capAndDeal.description')}
+                  </p>
+                  <div className="grid sm:grid-cols-1 gap-4">
+                    {[
+                      t('capAndDeal.features.ai'),
+                      t('capAndDeal.features.fast'),
+                      t('capAndDeal.features.legal')
+                    ].map((item, index) => (
+                      <div key={index} className="flex items-center gap-4 bg-white px-6 py-4 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+                          <Check className="w-4 h-4 text-[#0B3979]" />
+                        </div>
+                        <span className="text-slate-700 font-medium">{item}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="pt-2">
+                    <a href="https://capdeal.lawslane.com" target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center px-10 py-4 text-lg font-bold text-white bg-[#0B3979] rounded-full hover:bg-[#082a5a] shadow-lg shadow-blue-900/20 hover:shadow-xl transition-all duration-300 group">
+                      {t('capAndDeal.cta')}
+                      <ArrowRight className="ml-3 w-6 h-6 group-hover:translate-x-1 transition-transform" />
+                    </a>
+                  </div>
                 </div>
-                <h2 className="text-3xl md:text-4xl font-bold tracking-tight text-white font-headline">
-                  {t('verifyStatus.title')}
-                </h2>
-                <p className="max-w-[700px] text-blue-100 md:text-xl">
-                  {t('verifyStatus.description')}
-                </p>
-                <div className="pt-4">
-                  <Link href="/verify-lawyer">
-                    <Button size="lg" variant="secondary" className="text-lg font-semibold text-blue-900 hover:bg-white/90">
-                      {t('verifyStatus.button')}
-                    </Button>
-                  </Link>
-                </div>
-              </div>
-            </FadeIn>
+              </FadeIn>
+            </div>
           </div>
         </section>
 

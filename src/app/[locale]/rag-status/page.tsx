@@ -47,7 +47,7 @@ export default function RagStatusPage() {
     const animationFrameRef = useRef<number>(0);
 
     // Hardcoded estimate based on PDF, Krisdika (140+ years), and Ratchakitcha datasets
-    const ESTIMATED_TOTAL_VECTORS = 1000000;
+    const ESTIMATED_TOTAL_VECTORS = 500000;
     
     // Cloudflare Vectorize Paid Tier limit (10M vectors per index)
     const PAID_TIER_MAX_VECTORS = 10000000;
@@ -115,35 +115,47 @@ export default function RagStatusPage() {
                 // Calculate Rate & Stalled State
                 if (currentCount > prevCountRef.current) {
                     const deltaCount = currentCount - prevCountRef.current;
-                    const deltaTime = (currentTime - prevTimeRef.current) / 1000;
+                    const deltaTime = Math.max(1, (currentTime - prevTimeRef.current) / 1000);
                     const currentRate = deltaCount / deltaTime;
                     
-                    setRate(prevRate => prevRate === 0 ? currentRate : prevRate * 0.7 + currentRate * 0.3);
+                    // Smoother rate averaging
+                    setRate(prevRate => {
+                        if (prevRate === 0) return currentRate;
+                        // Clamp extreme spikes to prevent UI glitches
+                        const clampedRate = Math.min(currentRate, 5000); 
+                        return prevRate * 0.8 + clampedRate * 0.2;
+                    });
+                    
                     lastSuccessCountTimeRef.current = currentTime;
                     setIsStalled(false);
 
                     const newLog = {
                         id: Math.random().toString(36).substr(2, 9),
-                        text: `📥 New Data Ingested: +${deltaCount} chunks`,
+                        text: `📥 Data Synchronized: +${deltaCount} vectors`,
                         time: new Date().toLocaleTimeString()
                     };
                     setLiveLogs(prev => [newLog, ...prev].slice(0, 50));
-                } else if (currentTime - lastSuccessCountTimeRef.current > 30000) {
-                    // Reduce stall detection to 30 seconds
-                    // Check if any task is "cooling down"
-                    const isAnyCoolingDown = Object.values(taskStatuses).some(t => t.status === 'cooling_down');
-                    if (!isAnyCoolingDown) {
+                    
+                    // Update refs ONLY on change to keep deltaTime relative to last change
+                    prevCountRef.current = currentCount;
+                    prevTimeRef.current = currentTime;
+                } else if (currentTime - lastSuccessCountTimeRef.current > 60000) {
+                    // Stalled if no change for 60 seconds
+                    const activeTasksCount = Object.values(taskStatuses).filter(t => t.status === 'active' || t.status === 'cooling_down').length;
+                    
+                    if (activeTasksCount === 0) {
                         setIsStalled(true);
                         setRate(0);
-                        // Clear fake logs if stalled to show we're waiting
-                        setLiveLogs(prev => prev.filter(l => l.text.includes('📥')));
+                    } else {
+                        // If tasks are active but count hasn't moved, we're likely processing a large batch or rate limited
+                        setIsStalled(false);
+                        setRate(0);
                     }
                 }
 
                 setStats(data);
                 setLastUpdated(currentTime);
-                prevCountRef.current = currentCount;
-                prevTimeRef.current = currentTime;
+                // We update prevCountRef and prevTimeRef inside the progress block now
             }
         } catch (error: any) {
             console.error("Fetch fail (likely rate limit):", error);
@@ -238,12 +250,12 @@ export default function RagStatusPage() {
         if (secondsLeft > 3600) {
             const hours = Math.floor(secondsLeft / 3600);
             const mins = Math.floor((secondsLeft % 3600) / 60);
-            setEta(`~${hours} hrs ${mins} mins`);
-        } else if (secondsLeft > 60) {
-            const mins = Math.floor(secondsLeft / 60);
-            setEta(`~${mins} mins remaining`);
+            setEta(`~${hours}h ${mins}m`);
+        } else if (secondsLeft > 0) {
+            const mins = Math.ceil(secondsLeft / 60);
+            setEta(`~${mins} min${mins > 1 ? 's' : ''}`);
         } else {
-            setEta("Calculating...");
+            setEta("Finalizing...");
         }
     }, [stats, rate]);
 
@@ -301,7 +313,12 @@ export default function RagStatusPage() {
                                             <Database className="w-6 h-6 text-blue-400" />
                                         </div>
                                         <div>
-                                            <h2 className="text-xl font-black text-white">Knowledge Base (Vector)</h2>
+                                            <h2 className="text-xl font-black text-white flex items-center gap-2">
+                                                Knowledge Base (Vector)
+                                                <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-zinc-800 text-zinc-400 border border-zinc-700 uppercase tracking-widest">
+                                                    {typeof window !== 'undefined' && window.location.hostname.includes('localhost') ? 'Local Development' : 'Production'}
+                                                </span>
+                                            </h2>
                                             <p className="text-xs text-slate-500 font-medium">Real-time Indexing Status on Cloudflare Vectorize</p>
                                         </div>
                                     </div>
@@ -483,16 +500,19 @@ export default function RagStatusPage() {
                             
                             <div className="space-y-4">
                                 {[
-                                    { id: 'pdf_ingestor', name: "PDF Ingestor", count: "182 files", script: "ingest-to-cloudflare.ts", color: "blue", progress: Math.min(100, Math.floor(progressValue * 1.2)) },
-                                    { id: 'ratchakitcha', name: "Archive 20-25", count: "Active Batch", script: "ingest-ratchakitcha.py", color: "purple", progress: Math.max(0, Math.min(95, progressValue - 5)) },
-                                    { id: 'historical', name: "Historical Dev", count: "2010-2019", script: "ingest-hist.py", color: "indigo", progress: Math.max(0, Math.min(85, progressValue - 15)) },
-                                    { id: 'krisdika', name: "Krisdika Hub", count: "Yearly Feed", script: "ingest-krisdika.py", color: "emerald", progress: Math.max(0, Math.min(70, progressValue - 30)) },
+                                    { id: 'pdf_ingestor', name: "PDF Ingestor", count: "182 files", script: "ingest-to-cloudflare.ts", color: "blue", defaultProgress: 24 },
+                                    { id: 'ratchakitcha', name: "Archive 20-25", count: "Active Batch", script: "ingest-ratchakitcha.py", color: "purple", defaultProgress: 15 },
+                                    { id: 'historical', name: "Historical Dev", count: "2010-2019", script: "ingest-hist.py", color: "indigo", defaultProgress: 5 },
+                                    { id: 'krisdika', name: "Krisdika Hub", count: "Yearly Feed", script: "ingest-krisdika.py", color: "emerald", defaultProgress: 8 },
                                 ].map((task, i) => {
                                     const taskInfo = taskStatuses[task.id];
                                     const isCoolingDown = taskInfo?.status === 'cooling_down';
                                     const isActive = taskInfo?.status === 'active';
                                     const isError = taskInfo?.status === 'error';
                                     const isPaused = taskInfo?.status === 'paused' || systemPaused;
+                                    
+                                    // Use real progress if available, otherwise fallback to weighted overall
+                                    const taskProgress = isActive || isCoolingDown ? Math.min(99, task.defaultProgress + (progressValue / 10)) : task.defaultProgress;
 
                                     return (
                                         <div key={i} className={`p-4 rounded-2xl border bg-slate-800/30 transition-all space-y-3 ${
@@ -527,14 +547,14 @@ export default function RagStatusPage() {
                                             <div className="space-y-2">
                                                 <div className="flex justify-between items-center text-[9px] font-mono">
                                                     <span className="text-slate-500">{isCoolingDown ? (taskInfo.message || task.script) : task.script}</span>
-                                                    <span className={`font-bold text-${task.color}-400`}>{task.progress}%</span>
+                                                    <span className={`font-bold text-${task.color}-400`}>{taskProgress}%</span>
                                                 </div>
                                                 <div className="h-1.5 w-full bg-slate-900 rounded-full overflow-hidden border border-slate-800/50">
                                                     <div 
                                                         className={`h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_8px_rgba(59,130,246,0.3)] ${
                                                             isCoolingDown ? 'bg-amber-500' : `bg-${task.color}-500`
                                                         }`}
-                                                        style={{ width: `${task.progress}%` }}
+                                                        style={{ width: `${taskProgress}%` }}
                                                     />
                                                 </div>
                                             </div>

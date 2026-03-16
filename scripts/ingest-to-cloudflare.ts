@@ -12,13 +12,16 @@ const DELAY_BETWEEN_CHUNKS = 500; // ms
 
 async function updateLocalStatus(status: 'active' | 'cooling_down' | 'idle' | 'error', message: string = "", nextRetry: string = "") {
     try {
-        await fetch(LOCAL_API_URL, {
+        const response = await fetch(LOCAL_API_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ task: 'pdf_ingestor', status, message, nextRetry })
         });
+        if (!response.ok) {
+            console.warn(`    ⚠️ Failed to update local UI status: ${response.statusText}`);
+        }
     } catch (e) {
-        // Ignore if dev server is down
+        console.warn(`    ⚠️ Dev server not reachable at ${LOCAL_API_URL}. UI won't show live progress.`);
     }
 }
 

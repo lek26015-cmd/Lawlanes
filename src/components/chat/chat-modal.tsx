@@ -143,6 +143,21 @@ export default function ChatModal() {
     }
   };
 
+  const renderStyledText = (text: string) => {
+    if (!text.includes('LAlin')) return text;
+    const parts = text.split(/(LAlin)/g);
+    return parts.map((part, i) => {
+      if (part === 'LAlin') {
+        return (
+          <span key={i} className="inline-flex font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent px-[1px]">
+            LAlin
+          </span>
+        );
+      }
+      return part;
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if ((!input.trim() && !selectedImage) || isLoading) return;
@@ -176,22 +191,30 @@ export default function ChatModal() {
         const data = await response.json();
 
         // Format the AI response
-        let responseText = `ผมวิเคราะห์ข้อมูลจากรูปภาพให้แล้วครับ:
+        let responseText = '';
+        
+        // Detect if it's a contract or just a general image description
+        const isContract = data.employer || (data.price > 0) || (data.riskyTerms && data.riskyTerms.length > 0);
 
-**ผู้ว่าจ้าง:** ${data.employer}
-**เนื้องาน:** ${data.task}
-**ราคา:** ${data.price.toLocaleString()} บาท ${data.deposit > 0 ? `(มัดจำ ${data.deposit.toLocaleString()})` : ''}
-**กำหนดส่ง:** ${data.deadline}
+        if (isContract) {
+          responseText = `ดิฉันวิเคราะห์ข้อมูลจากรูปภาพสัญญาให้แล้วค่ะ:\n\n`;
+          if (data.employer) responseText += `**คู่สัญญา:** ${data.employer}\n`;
+          if (data.task) responseText += `**รายละเอียด:** ${data.task}\n`;
+          if (data.price > 0) responseText += `**มูลค่า:** ${data.price.toLocaleString()} บาท ${data.deposit > 0 ? `(มัดจำ ${data.deposit.toLocaleString()})` : ''}\n`;
+          if (data.deadline) responseText += `**กำหนดการ:** ${data.deadline}\n`;
+          
+          if (data.missingInfo && data.missingInfo.length > 0) {
+            responseText += `\n⚠️ **ข้อมูลที่ควรตรวจสอบเพิ่ม:**\n${data.missingInfo.map((info: string) => `- ${info}`).join('\n')}`;
+          }
 
-`;
-        if (data.missingInfo.length > 0) {
-          responseText += `\n⚠️ **ข้อมูลที่ขาดหายไป:**\n${data.missingInfo.map((info: string) => `- ${info}`).join('\n')}`;
-        }
-
-        if (data.riskyTerms.length > 0) {
-          responseText += `\n\n⛔️ **ความเสี่ยงที่พบ:**\n${data.riskyTerms.map((term: string) => `- ${term}`).join('\n')}\n\n⚠️ แนะนำให้ปรึกษาทนายความเพื่อตรวจทานสัญญาครับ`;
+          if (data.riskyTerms && data.riskyTerms.length > 0) {
+            responseText += `\n\n⛔️ **จุดที่ควรระวัง:**\n${data.riskyTerms.map((term: string) => `- ${term}`).join('\n')}\n\n💡 แนะนำให้ปรึกษาทนายความเพื่อความรอบคอบสูงสุดนะคะ`;
+          } else {
+            responseText += `\n\n✅ **ภาพรวมเบื้องต้นดูเรียบร้อยดีค่ะ** หากต้องการความมั่นใจเพิ่มขึ้น สามารถปรึกษาทนายความผ่านระบบได้เลยนะคะ`;
+          }
         } else {
-          responseText += `\n\n✅ **ร่างสัญญาเบื้องต้นดูครบถ้วนดีครับ** หากต้องการให้ทนายตรวจทานอีกครั้งเพื่อความชัวร์ สามารถกดปุ่มปรึกษาทนายได้เลยครับ`;
+          // General image fallback
+          responseText = `ดิฉันวิเคราะห์รูปภาพที่คุณส่งมาให้แล้วค่ะ:\n\n${data.task || 'ไม่พบข้อมูลทางกฎหมายในภาพนี้ค่ะ'}`;
         }
 
         const assistantMessage: ChatMessage = {
@@ -206,7 +229,7 @@ export default function ChatModal() {
         const errorMessage: ChatMessage = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
-          content: "ขออภัยครับ เกิดข้อผิดพลาดในการอ่านรูปภาพ โปรดลองใหม่อีกครั้ง",
+          content: "ขออภัยค่ะ เกิดข้อผิดพลาดในการอ่านรูปภาพ โปรดลองใหม่อีกครั้งนะคะ",
         };
         setMessages((prev) => [...prev, errorMessage]);
       } finally {
@@ -267,15 +290,17 @@ export default function ChatModal() {
       >
         <DialogHeader className="flex flex-row justify-between items-center p-4 lg:p-6 border-b bg-white text-foreground">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center border border-primary/20">
-              <Sparkles className="w-6 h-6 text-primary" />
+            <div className="w-10 h-10 rounded-xl overflow-hidden border border-primary/20 flex items-center justify-center shadow-sm">
+              <img src="/images/lawslane-LAlin.jpg" alt="LAlin" className="w-full h-full object-cover" />
             </div>
             <div>
               <DialogTitle asChild>
-                <h3 className="text-xl lg:text-2xl font-bold tracking-tight">{t('title')}</h3>
+                <h3 className="text-xl lg:text-2xl font-bold tracking-tight">
+                  {renderStyledText('LAlin')}
+                </h3>
               </DialogTitle>
-              <DialogDescription className="text-muted-foreground text-xs hidden lg:block">
-                Legal AI Assistant • Powered by Lawslane
+              <DialogDescription className="text-muted-foreground text-[10px] lg:text-xs">
+                Legal Intelligence • 29y Professional
               </DialogDescription>
             </div>
           </div>
@@ -292,16 +317,16 @@ export default function ChatModal() {
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -20 }}
-                  className="py-12 lg:py-20 text-center space-y-8"
+                  className="py-6 lg:py-12 text-center space-y-4 lg:space-y-8"
                 >
                   <div className="space-y-4">
-                    <h1 className="text-4xl lg:text-5xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                    <h1 className="text-2xl lg:text-4xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent px-4 lg:px-0 leading-tight pb-1">
                       {t('welcome')}
                     </h1>
-                    <p className="text-muted-foreground text-lg lg:text-xl max-w-2xl mx-auto">
+                    <p className="text-muted-foreground text-sm lg:text-lg max-w-2xl mx-auto px-6 lg:px-0">
                       {locale.startsWith('th') 
-                        ? 'พร้อมช่วยเหลือในทุกประเด็นกฎหมาย ค้นหาข้อมูลจากราชกิจจานุเบกษาและกฤษฎีกาได้อย่างแม่นยำ'
-                        : 'Ready to assist with any legal issues. Search regulatory data with precision.'}
+                        ? 'พร้อมช่วยเหลือในทุกประเด็นกฎหมาย ด้วยข้อมูลเชิงลึกที่แม่นยำ'
+                        : 'Ready to assist with deep legal insights and precision.'}
                     </p>
                   </div>
 
@@ -346,8 +371,8 @@ export default function ChatModal() {
               <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : ''}`}>
                 {msg.role === 'assistant' && (
                   <div className="flex-shrink-0 mr-3">
-                    <div className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center shadow-md">
-                      <Sparkles className="w-5 h-5" />
+                    <div className="w-8 h-8 rounded-full overflow-hidden shadow-md flex items-center justify-center border border-gray-100">
+                      <img src="/images/lawslane-LAlin.jpg" alt="LAlin" className="w-full h-full object-cover" />
                     </div>
                   </div>
                 )}
@@ -419,8 +444,8 @@ export default function ChatModal() {
             {isLoading && (
               <div className="flex">
                 <div className="flex-shrink-0 mr-3">
-                  <div className="w-8 h-8 rounded-full bg-foreground text-background flex items-center justify-center shadow-md">
-                    <Sparkles className="w-5 h-5" />
+                  <div className="w-8 h-8 rounded-full overflow-hidden shadow-md flex items-center justify-center border border-gray-100">
+                    <img src="/images/lawslane-LAlin.jpg" alt="LAlin" className="w-full h-full object-cover" />
                   </div>
                 </div>
                 <div>
@@ -437,21 +462,21 @@ export default function ChatModal() {
           </div>
         </ScrollArea>
 
-        <div className="bg-white border-t">
-          <div className="max-w-4xl mx-auto w-full p-4 lg:p-8">
+        <div className="bg-white border-t safe-bottom">
+          <div className="max-w-4xl mx-auto w-full p-2 lg:p-8">
             {selectedImage && (
-              <div className="mb-3 relative inline-block animate-in fade-in zoom-in duration-200">
-                <img src={selectedImage} alt="Selected" className="h-20 w-auto rounded-xl border-2 border-primary/20 object-cover shadow-md" />
+              <div className="mb-2 ml-4 relative inline-block animate-in fade-in zoom-in duration-200">
+                <img src={selectedImage} alt="Selected" className="h-16 w-auto rounded-xl border-2 border-primary/20 object-cover shadow-sm" />
                 <button
                   type="button"
                   onClick={clearImage}
-                  className="absolute -top-3 -right-3 bg-red-500 text-white rounded-full p-1.5 hover:bg-red-600 shadow-lg border-2 border-white"
+                  className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 shadow-md border-2 border-white"
                 >
-                  <X className="w-3 h-3" />
+                  <X className="w-2.5 h-2.5" />
                 </button>
               </div>
             )}
-            <form onSubmit={handleSubmit} className="flex items-end space-x-2 lg:space-x-3 bg-gray-100/80 lg:bg-gray-50 p-1.5 lg:p-3 rounded-[28px] lg:rounded-3xl border-2 border-transparent focus-within:border-primary/50 focus-within:bg-white transition-all duration-300 shadow-sm sm:shadow-none">
+            <form onSubmit={handleSubmit} className="flex items-end space-x-2 bg-gray-100 lg:bg-gray-50 p-1 lg:p-3 rounded-full lg:rounded-3xl border-2 border-transparent focus-within:border-primary/50 focus-within:bg-white transition-all duration-300">
               <input
                 type="file"
                 ref={fileInputRef}
@@ -465,9 +490,9 @@ export default function ChatModal() {
                 variant="ghost"
                 disabled={isLoading}
                 onClick={() => fileInputRef.current?.click()}
-                className="p-3 rounded-full lg:rounded-2xl border-none lg:border-2 lg:border-gray-200 hover:border-primary hover:bg-primary/5 transition-all w-12 h-12 flex-shrink-0"
+                className="p-2 rounded-full lg:rounded-2xl border-none lg:border-2 lg:border-gray-200 hover:border-primary hover:bg-primary/5 transition-all w-10 h-10 lg:w-12 lg:h-12 flex-shrink-0"
               >
-                <Plus className="w-6 h-6 text-gray-500" />
+                <Plus className="w-5 h-5 lg:w-6 lg:w-6 text-gray-500" />
               </Button>
               <div className="flex-grow">
                 <textarea
@@ -484,18 +509,18 @@ export default function ChatModal() {
                       handleSubmit(e as any);
                     }
                   }}
-                  placeholder={selectedImage ? "ถามเพิ่มเติม..." : "พิมพ์ข้อความที่นี่..."}
+                  placeholder={selectedImage ? "ถามเพิ่มเติม..." : "คุยกับ LAlin..."}
                   disabled={isLoading}
-                  className="w-full px-1 py-3 bg-transparent border-none focus:ring-0 resize-none max-h-[200px] text-base lg:text-xl outline-none placeholder:text-gray-500"
+                  className="w-full px-1 py-2 lg:py-3 bg-transparent border-none focus:ring-0 resize-none max-h-[150px] text-sm lg:text-lg outline-none placeholder:text-gray-500"
                 />
               </div>
               <Button 
                 type="submit" 
                 size="icon" 
                 disabled={isLoading} 
-                className="p-3 rounded-full lg:rounded-2xl bg-primary text-white hover:bg-primary/90 transition-all shadow-md w-12 h-12 flex-shrink-0 group flex items-center justify-center"
+                className="p-2 rounded-full lg:rounded-2xl bg-primary text-white hover:bg-primary/90 transition-all shadow-md w-10 h-10 lg:w-12 lg:h-12 flex-shrink-0 group flex items-center justify-center"
               >
-                <Send className="w-5 h-5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                <Send className="w-4 h-4 lg:w-5 lg:h-5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
               </Button>
             </form>
             <p className="mt-3 text-center text-xs text-muted-foreground">

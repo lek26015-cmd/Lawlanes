@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { MessageSquare, Sparkles } from 'lucide-react';
+import { MessageSquare } from 'lucide-react';
 import { useChat } from '@/context/chat-context';
 import { cn } from '@/lib/utils';
 
@@ -55,7 +55,9 @@ export default function FloatingChatButton() {
             className={buttonClasses}
             aria-label="Open AI Chat"
           >
-            <Sparkles className="mr-2 h-6 w-6" />
+            <div className="mr-2 h-7 w-7 rounded-full overflow-hidden border border-white/20 shadow-sm">
+              <img src="/images/lawslane-LAlin.jpg" alt="LAlin" className="w-full h-full object-cover" />
+            </div>
             {t('floatingButton')}
           </Button>
         </div>

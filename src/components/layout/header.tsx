@@ -191,34 +191,9 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
             <Link href={getMainLink('/lawyers', domainType)} className={pathname.startsWith(`/lawyers`) ? activeNavLinkClasses : navLinkClasses}>
               {t('findLawyer')}
             </Link>
-            {isMounted && (
-              <DropdownMenu>
-                <DropdownMenuTrigger className={cn("flex items-center gap-1 font-medium focus:outline-none", navLinkClasses, (pathname.startsWith('/law-search') || pathname.startsWith('/analyze-contract') || pathname.startsWith('/verify-lawyer')) ? activeNavLinkClasses : '')}>
-                  บริการ AI & ตรวจสอบ <ChevronDown className="h-4 w-4" />
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="start" className="w-56 p-2">
-                  <DropdownMenuItem asChild className="cursor-pointer">
-                    <Link href={getMainLink('/law-search', domainType)} className="w-full flex items-center px-2 py-1.5 text-blue-600 font-bold hover:bg-blue-50 focus:bg-blue-50">
-                      <Search className="w-4 h-4 mr-2" /> ค้นหากฎหมาย AI
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild className="cursor-pointer">
-                    <Link href={getMainLink('/analyze-contract', domainType)} className="w-full flex items-center px-2 py-1.5 text-indigo-600 font-bold hover:bg-indigo-50 focus:bg-indigo-50">
-                      <span>ตรวจสอบสัญญา AI</span>
-                      <span className="relative flex h-2 w-2 ml-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
-                      </span>
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild className="cursor-pointer">
-                    <Link href={getMainLink('/verify-lawyer', domainType)} className="w-full flex items-center px-2 py-1.5 text-slate-700 hover:bg-slate-50 focus:bg-slate-50">
-                      {t('verifyLawyer')}
-                    </Link>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            )}
+            <Link href={getMainLink('/verify-lawyer', domainType)} className={pathname.startsWith(`/verify-lawyer`) ? activeNavLinkClasses : navLinkClasses}>
+              {t('verifyLawyer')}
+            </Link>
             <Link href={getMainLink('/forms', domainType)} className={pathname.startsWith(`/forms`) ? activeNavLinkClasses : navLinkClasses}>
               {t('forms')}
             </Link>
@@ -241,12 +216,6 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild className="cursor-pointer">
                     <a href={getBusinessLink('/', domainType)} className="w-full flex items-center px-2 py-1.5">{t('b2bMenu.pricing')}</a>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild className="cursor-pointer">
-                    <a href={getBusinessLink('/clm', domainType)} className="w-full flex items-center px-2 py-1.5">{t('b2bMenu.clm')}</a>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild className="cursor-pointer">
-                    <Link href={getMainLink('/forms', domainType)}>{t('b2bMenu.templates')}</Link>
                   </DropdownMenuItem>
 
                   <div className="mt-2 mb-1">
@@ -409,16 +378,7 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
                 <nav className="flex flex-col gap-4 text-lg mt-6">
                   <Link href={getMainLink('/', domainType, !isMounted)} className="hover:text-primary">{t('home')}</Link>
                   <Link href={getMainLink('/lawyers', domainType)} className="hover:text-primary">{t('findLawyer')}</Link>
-                  <div className="flex flex-col gap-2 py-2">
-                    <span className="font-semibold text-lg">บริการ AI & ตรวจสอบ</span>
-                    <Link href={getMainLink('/law-search', domainType)} className="pl-6 text-base text-blue-600 font-bold hover:text-blue-700 flex items-center gap-2" onClick={() => setIsMobileMenuOpen(false)}>
-                      <Search className="w-4 h-4" /> ค้นหากฎหมาย AI
-                    </Link>
-                    <Link href={getMainLink('/analyze-contract', domainType)} className="pl-6 text-base text-indigo-600 font-bold hover:text-indigo-700 flex items-center gap-2" onClick={() => setIsMobileMenuOpen(false)}>
-                      ตรวจสอบสัญญา AI
-                    </Link>
-                    <Link href={getMainLink('/verify-lawyer', domainType)} className="pl-6 text-base hover:text-primary text-muted-foreground" onClick={() => setIsMobileMenuOpen(false)}>{t('verifyLawyer')}</Link>
-                  </div>
+                  <Link href={getMainLink('/verify-lawyer', domainType)} className="hover:text-primary" onClick={() => setIsMobileMenuOpen(false)}>{t('verifyLawyer')}</Link>
                   <Link href={getMainLink('/forms', domainType)} className="hover:text-primary">{t('forms')}</Link>
                   <a href="https://capdeal.lawslane.com" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:text-primary"><Camera className="h-5 w-5" />{t('capAndDeal')}</a>
                   <Link href={getMainLink('/articles', domainType)} className="hover:text-primary">{t('articles')}</Link>
@@ -429,8 +389,6 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
 
                     <span className="pl-4 text-sm font-semibold text-blue-600 mt-2">Corporate Plans</span>
                     <a href={getBusinessLink('/', domainType, !isMounted)} className="pl-6 text-base hover:text-primary text-muted-foreground" onClick={() => setIsMobileMenuOpen(false)}>{t('b2bMenu.pricing')}</a>
-                    <a href={getBusinessLink('/clm', domainType, !isMounted)} className="pl-6 text-base hover:text-primary text-muted-foreground" onClick={() => setIsMobileMenuOpen(false)}>{t('b2bMenu.clm')}</a>
-                    <a href={getBusinessLink('/forms', domainType, !isMounted)} className="pl-6 text-base hover:text-primary text-muted-foreground" onClick={() => setIsMobileMenuOpen(false)}>{t('b2bMenu.templates')}</a>
 
                     <span className="pl-4 text-sm font-semibold text-slate-500 mt-2">SME Solutions</span>
                     <Link href={getMainLink('/services/contracts', domainType)} className="pl-6 text-base hover:text-primary text-muted-foreground" onClick={() => setIsMobileMenuOpen(false)}>{t('smeMenu.contracts')}</Link>

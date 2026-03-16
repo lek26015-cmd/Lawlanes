@@ -481,17 +481,17 @@
         "floatingButton": "AI Legal Assistant"
     },
     "ChatModal": {
-        "title": "Lawslane AI Assistant",
-        "welcome": "Hello! I am Lawslane's AI Legal Assistant. Is there anything I can help you analyze initially?",
+        "title": "LAlin",
+        "welcome": "Hello! I am LAlin, ready to assist with deep and accurate legal insights. Would you like me to help with your analysis today?",
         "quickQuestionsLabel": "Quick Questions:",
-        "inputPlaceholder": "Type your question...",
-        "thinking": "Thinking...",
-        "error": "Sorry, an error occurred connecting to AI. Please try again.",
+        "inputPlaceholder": "Type your message...",
+        "thinking": "LAlin is thinking...",
+        "error": "I'm sorry, there was a problem connecting to LAlin. Please try again.",
         "quickQuestions": {
             "contract": "How do I draft a contract?",
-            "inheritance": "I need advice on inheritance",
+            "inheritance": "I need advice on inheritance.",
             "company": "What do I need for company registration?",
-            "land": "How to handle a land dispute?"
+            "land": "I have a land-related issue."
         }
     },
     "SupportTicket": {

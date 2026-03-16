@@ -458,17 +458,17 @@
         "floatingButton": "AI 法律顾问"
     },
     "ChatModal": {
-        "title": "Lawslane AI 助手",
-        "welcome": "你好！我是 Lawslane 的 AI 法律助手。有什么我可以帮您初步分析的吗？",
+        "title": "LAlin",
+        "welcome": "您好！我是 LAlin，随时为您提供深度且准确的法律见解。今天有什么我可以帮您分析的吗？",
         "quickQuestionsLabel": "快速提问：",
-        "inputPlaceholder": "输入您的问题...",
-        "thinking": "思考中...",
-        "error": "抱歉，连接 AI 时发生错误。请重试。",
+        "inputPlaceholder": "输入您的消息...",
+        "thinking": "LAlin 正在思考...",
+        "error": "抱歉，连接到 LAlin 时出现问题。请稍后再试。",
         "quickQuestions": {
-            "contract": "起草合同",
-            "inheritance": "遗产案件",
-            "company": "公司注册",
-            "land": "土地纠纷"
+            "contract": "我想起草合同该怎么做？",
+            "inheritance": "想咨询一下关于遗产的问题。",
+            "company": "注册公司需要准备什么？",
+            "land": "遇到了土地纠纷，该怎么办？"
         }
     },
     "SupportTicket": {
