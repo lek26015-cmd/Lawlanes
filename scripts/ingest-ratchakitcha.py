@@ -15,14 +15,27 @@ import requests
 from typing import Optional, List, Tuple
 from pathlib import Path
 
+# Config
 WORKER_URL = "https://lawslane-rag-api.lawlanes-app.workers.dev"
+LOCAL_API_URL = "http://localhost:9002/api/admin/ingestion-status"
 CHUNK_SIZE = 1000
 CHUNK_OVERLAP = 200
-DELAY_BETWEEN_CHUNKS = 0.15  # seconds
+DELAY_BETWEEN_CHUNKS = 0.5
 
 # Years to ingest
 START_YEAR = 2020
 END_YEAR = 2025
+
+def update_local_status(status: str, message: str = "", next_retry: str = ""):
+    """Notify the local Next.js API about the current ingestion status."""
+    try:
+        requests.post(
+            LOCAL_API_URL,
+            json={"task": "ratchakitcha", "status": status, "message": message, "nextRetry": next_retry},
+            timeout=5
+        )
+    except Exception:
+        pass
 
 
 def download_jsonl(year: int, month: int) -> Optional[str]:
@@ -38,7 +51,8 @@ def download_jsonl(year: int, month: int) -> Optional[str]:
         )
         return path
     except Exception as e:
-        print(f"  ⚠️ Could not download {month_str}.jsonl: {e}")
+        if "404" not in str(e):
+            print(f"  ⚠️ Could not download {month_str}.jsonl: {e}")
         return None
 
 
@@ -69,21 +83,61 @@ def chunk_text(text: str, chunk_size: int = CHUNK_SIZE, overlap: int = CHUNK_OVE
 
 
 def ingest_chunk(text: str, metadata: dict) -> bool:
-    """Send a single chunk to the Cloudflare Worker."""
-    try:
-        response = requests.post(
-            f"{WORKER_URL}/ingest",
-            json={"text": text, "metadata": metadata, "id": metadata["id"]},
-            headers={"Content-Type": "application/json"},
-            timeout=30,
-        )
-        if not response.ok:
-            print(f"    ❌ Ingest failed: {response.status_code} {response.text[:100]}")
-            return False
-        return True
-    except Exception as e:
-        print(f"    ❌ Ingest error: {e}")
-        return False
+    """Send a single chunk to the Cloudflare Worker with ultra-resilient infinite retries."""
+    max_retries = 1000  # Practically infinite for autonomous running
+    base_wait = 2
+    max_wait = 3600    # Cap wait at 1 hour
+    
+    for attempt in range(max_retries):
+        try:
+            update_local_status("active", f"Ingesting chunk for {metadata.get('source', 'unknown')}")
+            
+            response = requests.post(
+                f"{WORKER_URL}/ingest",
+                json={"text": text, "metadata": metadata, "id": metadata["id"]},
+                headers={"Content-Type": "application/json"},
+                timeout=30,
+            )
+            
+            if response.status_code == 429:
+                wait_time = min(base_wait * (2 ** attempt), max_wait)
+                print(f"    ⚠️ Rate limited (429). Retrying in {wait_time}s... (Attempt {attempt+1}/{max_retries})")
+                
+                # Update status for Dashboard
+                update_local_status(
+                    "cooling_down", 
+                    f"Hit rate limit. Cooling down for {wait_time}s", 
+                    f"{wait_time}s"
+                )
+                
+                time.sleep(wait_time)
+                continue
+                
+            if not response.ok:
+                print(f"    ❌ Ingest failed: {response.status_code} {response.text[:100]}")
+                if response.status_code >= 500:
+                    wait_time = min(base_wait * (2 ** attempt), max_wait)
+                    update_local_status("cooling_down", f"Server error {response.status_code}. Retrying...", f"{wait_time}s")
+                    time.sleep(wait_time)
+                    continue
+                
+                # For non-retriable fatal errors (like 400 Bad Request), log and try one more time after a long rest
+                print(f"    🚫 Non-retriable error {response.status_code}. Resting for 10 mins...")
+                update_local_status("error", f"Fatal error {response.status_code}. Resting.")
+                time.sleep(600)
+                continue
+                
+            return True
+        except Exception as e:
+            wait_time = min(base_wait * (2 ** attempt), max_wait)
+            print(f"    ❌ Ingest error: {e}. Retrying in {wait_time}s...")
+            update_local_status("cooling_down", f"Network error. Waiting {wait_time}s", f"{wait_time}s")
+            time.sleep(wait_time)
+            
+    print("    🛑 Ultra-max retries reached for this chunk. Resting for 1 hour to cool system...")
+    update_local_status("error", "Max retries reached. Resting 1h.")
+    time.sleep(3600)
+    return False
 
 
 def process_jsonl_file(filepath: str, year: int, month: int) -> Tuple[int, int]:
@@ -101,7 +155,7 @@ def process_jsonl_file(filepath: str, year: int, month: int) -> Tuple[int, int]:
             pdf_file = record.get("pdf_file", f"unknown-{line_num}")
             text = extract_text_from_record(record)
             
-            if not text or len(text) < 50:  # Skip very short docs
+            if not text or len(text) < 50:
                 continue
             
             chunks = chunk_text(text)
@@ -125,7 +179,6 @@ def process_jsonl_file(filepath: str, year: int, month: int) -> Tuple[int, int]:
                 
                 time.sleep(DELAY_BETWEEN_CHUNKS)
             
-            # Print progress every 10 documents
             if (line_num + 1) % 10 == 0:
                 print(f"    📄 Processed {line_num + 1} documents...")
     
@@ -134,8 +187,6 @@ def process_jsonl_file(filepath: str, year: int, month: int) -> Tuple[int, int]:
 
 def main():
     print(f"🏛️ Ratchakitcha Ingestion — Years {START_YEAR}-{END_YEAR}")
-    print(f"   Worker: {WORKER_URL}")
-    print(f"   Chunk size: {CHUNK_SIZE}, Overlap: {CHUNK_OVERLAP}")
     print()
     
     grand_total = 0
@@ -143,29 +194,20 @@ def main():
     
     for year in range(START_YEAR, END_YEAR + 1):
         print(f"📅 Year {year}")
-        
         for month in range(1, 13):
             month_str = f"{year}-{month:02d}"
-            print(f"  📥 Downloading {month_str}...")
-            
             filepath = download_jsonl(year, month)
             if not filepath:
                 continue
             
             print(f"  ⚙️  Processing {month_str}...")
             total, success = process_jsonl_file(filepath, year, month)
-            
             grand_total += total
             grand_success += success
-            
             print(f"  ✅ {month_str}: {success}/{total} chunks ingested")
         
-        print(f"  📊 Year {year} complete\n")
-    
-    print(f"🎉 Ingestion complete!")
-    print(f"   Total chunks: {grand_total}")
-    print(f"   Successful: {grand_success}")
-    print(f"   Failed: {grand_total - grand_success}")
+    print(f"🎉 Ingestion complete! Total: {grand_success}/{grand_total}")
+    update_local_status("idle", "Ingestion complete")
 
 
 if __name__ == "__main__":

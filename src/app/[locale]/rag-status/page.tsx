@@ -1,15 +1,24 @@
 'use client';
 
 import React, { useEffect, useState, useRef } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Loader2, Database, RefreshCw, Layers, Cpu, Zap, Activity, Clock } from 'lucide-react';
+import { Loader2, Database, RefreshCw, Layers, Cpu, Zap, Activity, Clock, Pause, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Progress } from "@/components/ui/progress";
+import { cn } from "@/lib/utils";
 
 interface RagStats {
     vectorCount?: number;
     dimensions?: number;
     error?: string;
+}
+
+interface IngestionStatus {
+    status: 'active' | 'cooling_down' | 'idle' | 'error' | 'paused';
+    lastUpdate: string;
+    message?: string;
+    nextRetry?: string;
 }
 
 export default function RagStatusPage() {
@@ -23,6 +32,14 @@ export default function RagStatusPage() {
     const [isStalled, setIsStalled] = useState(false);
     const [displayCount, setDisplayCount] = useState(0);
     const [liveLogs, setLiveLogs] = useState<{id: string, text: string, time: string}[]>([]);
+    const [taskStatuses, setTaskStatuses] = useState<Record<string, IngestionStatus>>({});
+    const [systemPaused, setSystemPaused] = useState(false);
+    const [controlLoading, setControlLoading] = useState(false);
+    const [isCompleted, setIsCompleted] = useState(false);
+    
+    // Fixed Start Time (Recovery Task began March 14, 2026 ~07:48 UTC)
+    const [TASK_START_TIME] = useState<number>(new Date("2026-03-14T07:48:00Z").getTime());
+    const [elapsed, setElapsed] = useState<string>("");
     
     const prevCountRef = useRef<number>(0);
     const prevTimeRef = useRef<number>(Date.now());
@@ -30,16 +47,68 @@ export default function RagStatusPage() {
     const animationFrameRef = useRef<number>(0);
 
     // Hardcoded estimate based on PDF, Krisdika (140+ years), and Ratchakitcha datasets
-    const ESTIMATED_TOTAL_VECTORS = 200000;
+    const ESTIMATED_TOTAL_VECTORS = 1000000;
     
     // Cloudflare Vectorize Paid Tier limit (10M vectors per index)
     const PAID_TIER_MAX_VECTORS = 10000000;
+
+    // Dedicated Timer for Elapsed Time (Always Active)
+    useEffect(() => {
+        const calculateElapsed = () => {
+            const now = Date.now();
+            const diff = now - TASK_START_TIME;
+            const hours = Math.floor(diff / (1000 * 60 * 60));
+            const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+            const secs = Math.floor((diff % (1000 * 60)) / 1000);
+            setElapsed(`${hours}h ${mins}m ${secs}s`);
+        };
+
+        calculateElapsed();
+        const interval = setInterval(calculateElapsed, 1000); // Update every second
+        return () => clearInterval(interval);
+    }, [TASK_START_TIME]);
+
+    const fetchIngestionStatus = async () => {
+        try {
+            const res = await fetch('/api/admin/ingestion-status');
+            if (res.ok) {
+                const data = await res.json();
+                setTaskStatuses(data.tasks);
+                setSystemPaused(data.systemPaused);
+            }
+        } catch (error) {
+            console.error("Failed to fetch ingestion status:", error);
+        }
+    };
+
+    const handleIngestorControl = async (action: 'pause' | 'resume') => {
+        setControlLoading(true);
+        try {
+            const res = await fetch('/api/admin/ingestor-control', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action })
+            });
+            if (res.ok) {
+                await fetchIngestionStatus();
+            }
+        } catch (error) {
+            console.error(`Failed to ${action} ingestors:`, error);
+        } finally {
+            setControlLoading(false);
+        }
+    };
 
     const fetchStats = async () => {
         try {
             const res = await fetch('/api/admin/rag-stats');
             if (res.ok) {
                 const data = await res.json();
+                
+                if (data.error && !data.vectorCount) {
+                    throw new Error(data.error);
+                }
+
                 const currentCount = data.vectorCount || 0;
                 const currentTime = Date.now();
 
@@ -53,28 +122,28 @@ export default function RagStatusPage() {
                     lastSuccessCountTimeRef.current = currentTime;
                     setIsStalled(false);
 
-                    // Add a log message when data actually updates
                     const newLog = {
                         id: Math.random().toString(36).substr(2, 9),
                         text: `📥 New Data Ingested: +${deltaCount} chunks`,
                         time: new Date().toLocaleTimeString()
                     };
-                    setLiveLogs(prev => [newLog, ...prev].slice(0, 10));
-                } else if (currentTime - lastSuccessCountTimeRef.current > 120000) {
-                    setIsStalled(true);
-                    setRate(0);
+                    setLiveLogs(prev => [newLog, ...prev].slice(0, 50));
+                } else if (currentTime - lastSuccessCountTimeRef.current > 300000) {
+                    // Check if any task is "cooling down"
+                    const isAnyCoolingDown = Object.values(taskStatuses).some(t => t.status === 'cooling_down');
+                    if (!isAnyCoolingDown) {
+                        setIsStalled(true);
+                        setRate(0);
+                    }
                 }
 
                 setStats(data);
                 setLastUpdated(currentTime);
                 prevCountRef.current = currentCount;
                 prevTimeRef.current = currentTime;
-            } else {
-                setStats(prev => (prev ? { ...prev, error: "Worker Connection Failed" } : { error: "Worker Connection Failed" }));
             }
-        } catch (error) {
-            console.error("Failed to fetch RAG stats", error);
-            setStats(prev => (prev ? { ...prev, error: "Network Error" } : { error: "Network Error" }));
+        } catch (error: any) {
+            console.error("Fetch fail (likely rate limit):", error);
         } finally {
             setLoading(false);
         }
@@ -131,6 +200,24 @@ export default function RagStatusPage() {
         return () => clearInterval(interval);
     }, [rate, isStalled]);
 
+    const hasBeenActive = useRef(false);
+
+    useEffect(() => {
+        // Track if any task becomes active/busy
+        const anyBusy = Object.values(taskStatuses).some(t => t.status !== 'idle');
+        if (anyBusy) {
+            hasBeenActive.current = true;
+        }
+
+        // Trigger completion ONLY if we have been active before AND everyone is now idle
+        if (hasBeenActive.current && !isCompleted) {
+            const allIdle = Object.values(taskStatuses).every(t => t.status === 'idle');
+            if (allIdle && stats?.vectorCount && stats.vectorCount > 0) {
+                setIsCompleted(true);
+            }
+        }
+    }, [taskStatuses, stats, isCompleted]);
+
     useEffect(() => {
         if (!stats || rate <= 0) {
             setEta(null);
@@ -160,10 +247,17 @@ export default function RagStatusPage() {
     useEffect(() => {
         // Initial fetch
         fetchStats();
+        fetchIngestionStatus();
 
-        // Auto-refresh every 5 seconds
-        const interval = setInterval(fetchStats, 5000);
-        return () => clearInterval(interval);
+        // Auto-refresh stats every 10 seconds
+        const statsInterval = setInterval(fetchStats, 10000);
+        // Auto-refresh task status every 5 seconds for snappier UI
+        const statusInterval = setInterval(fetchIngestionStatus, 5000);
+
+        return () => {
+            clearInterval(statsInterval);
+            clearInterval(statusInterval);
+        };
     }, []);
 
     const progressValue = Math.min(100, Math.round(((stats?.vectorCount || 0) / ESTIMATED_TOTAL_VECTORS) * 100));
@@ -228,18 +322,32 @@ export default function RagStatusPage() {
                                             </div>
                                         </div>
                                         
-                                        {/* ETA Overlay Box */}
-                                        <div className={`border rounded-2xl p-4 flex flex-col items-end transition-all ${isStalled ? 'bg-amber-950/20 border-amber-500/30' : 'bg-blue-950/30 border-blue-500/30'}`}>
-                                            <div className={`flex items-center gap-2 mb-1 ${isStalled ? 'text-amber-400' : 'text-blue-400'}`}>
-                                                <Clock className="w-4 h-4" />
-                                                <span className="text-[10px] font-black uppercase tracking-widest">Estimated Time</span>
+                                        <div className="flex gap-4">
+                                            {/* Elapsed Time Box */}
+                                            <div className="bg-emerald-950/20 border border-emerald-500/30 rounded-2xl p-4 flex flex-col items-end min-w-[140px]">
+                                                <div className="flex items-center gap-2 mb-1 text-emerald-400">
+                                                    <Clock className="w-4 h-4" />
+                                                    <span className="text-[10px] font-black uppercase tracking-widest">Elapsed Time</span>
+                                                </div>
+                                                <span className="text-xl font-black text-white italic">
+                                                    {elapsed || "0h 0m"}
+                                                </span>
+                                                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-tighter">Total Duration</span>
                                             </div>
-                                            <span className="text-xl font-black text-white">
-                                                {isStalled ? 'STALLED' : (eta || 'Calculating...')}
-                                            </span>
-                                            <span className="text-[10px] text-slate-500 font-mono text-right">
-                                                {rate > 0 ? `${(rate * 60).toFixed(0)} chunks/min` : (isStalled ? 'No Activity' : 'Measuring Speed...')}
-                                            </span>
+
+                                            {/* ETA Overlay Box */}
+                                            <div className={`border rounded-2xl p-4 flex flex-col items-end min-w-[140px] transition-all ${isStalled ? 'bg-amber-950/20 border-amber-500/30' : 'bg-blue-950/30 border-blue-500/30'}`}>
+                                                <div className={`flex items-center gap-2 mb-1 ${isStalled ? 'text-amber-400' : 'text-blue-400'}`}>
+                                                    <Clock className="w-4 h-4" />
+                                                    <span className="text-[10px] font-black uppercase tracking-widest">Estimated Time</span>
+                                                </div>
+                                                <span className="text-xl font-black text-white">
+                                                    {isStalled ? 'STALLED' : (eta || 'Calculating...')}
+                                                </span>
+                                                <span className="text-[10px] text-slate-500 font-mono text-right">
+                                                    {rate > 0 ? `${(rate * 60).toFixed(0)} chunks/min` : (isStalled ? 'No Activity' : 'Measuring Speed...')}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -372,35 +480,64 @@ export default function RagStatusPage() {
                             
                             <div className="space-y-4">
                                 {[
-                                    { name: "PDF Ingestor", count: "182 files", script: "ingest-to-cloudflare.ts", color: "blue", progress: Math.min(100, Math.floor(progressValue * 1.2)) },
-                                    { name: "Archive 20-25", count: "Active Batch", script: "ingest-ratchakitcha.py", color: "purple", progress: Math.max(0, Math.min(95, progressValue - 5)) },
-                                    { name: "Historical Dev", count: "2010-2019", script: "ingest-hist.py", color: "indigo", progress: Math.max(0, Math.min(85, progressValue - 15)) },
-                                    { name: "Krisdika Hub", count: "Yearly Feed", script: "ingest-krisdika.py", color: "emerald", progress: Math.max(0, Math.min(70, progressValue - 30)) },
-                                ].map((task, i) => (
-                                    <div key={i} className={`p-4 rounded-2xl border bg-slate-800/30 border-slate-700 group hover:border-${task.color}-500/50 transition-all space-y-3`}>
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-xs font-bold text-white uppercase tracking-tight">{task.name} <span className="text-[10px] text-slate-500 ml-1 font-normal">({task.count})</span></span>
-                                            <span className="flex items-center text-[8px] font-black text-blue-400 uppercase bg-blue-400/10 px-2 py-0.5 rounded-full border border-blue-400/20">
-                                                <span className="w-1 h-1 bg-blue-400 rounded-full mr-1 animate-pulse" />
-                                                RUNNING
-                                            </span>
-                                        </div>
-                                        
-                                        {/* Progress Bar and Percentage */}
-                                        <div className="space-y-2">
-                                            <div className="flex justify-between items-center text-[9px] font-mono">
-                                                <span className="text-slate-500 group-hover:text-slate-400 transition-colors">{task.script}</span>
-                                                <span className={`font-bold text-${task.color}-400`}>{task.progress}%</span>
+                                    { id: 'pdf_ingestor', name: "PDF Ingestor", count: "182 files", script: "ingest-to-cloudflare.ts", color: "blue", progress: Math.min(100, Math.floor(progressValue * 1.2)) },
+                                    { id: 'ratchakitcha', name: "Archive 20-25", count: "Active Batch", script: "ingest-ratchakitcha.py", color: "purple", progress: Math.max(0, Math.min(95, progressValue - 5)) },
+                                    { id: 'historical', name: "Historical Dev", count: "2010-2019", script: "ingest-hist.py", color: "indigo", progress: Math.max(0, Math.min(85, progressValue - 15)) },
+                                    { id: 'krisdika', name: "Krisdika Hub", count: "Yearly Feed", script: "ingest-krisdika.py", color: "emerald", progress: Math.max(0, Math.min(70, progressValue - 30)) },
+                                ].map((task, i) => {
+                                    const taskInfo = taskStatuses[task.id];
+                                    const isCoolingDown = taskInfo?.status === 'cooling_down';
+                                    const isActive = taskInfo?.status === 'active';
+                                    const isError = taskInfo?.status === 'error';
+                                    const isPaused = taskInfo?.status === 'paused' || systemPaused;
+
+                                    return (
+                                        <div key={i} className={`p-4 rounded-2xl border bg-slate-800/30 transition-all space-y-3 ${
+                                            isCoolingDown ? 'border-amber-500/50 bg-amber-500/5 shadow-[0_0_15px_rgba(245,158,11,0.1)]' : 
+                                            isPaused ? 'border-slate-700/50 bg-slate-900/50 opacity-60' :
+                                            'border-slate-700 hover:border-slate-500'
+                                        }`}>
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-xs font-bold text-white uppercase tracking-tight">{task.name} <span className="text-[10px] text-slate-500 ml-1 font-normal">({task.count})</span></span>
+                                                <span className={`flex items-center text-[8px] font-black uppercase px-2 py-0.5 rounded-full border ${
+                                                    isCoolingDown ? 'text-amber-400 bg-amber-400/10 border-amber-400/20' : 
+                                                    isActive ? 'text-blue-400 bg-blue-400/10 border-blue-400/20' :
+                                                    isError ? 'text-red-400 bg-red-400/10 border-red-400/20' :
+                                                    isPaused ? 'text-slate-400 bg-slate-400/10 border-slate-400/20' :
+                                                    'text-slate-500 bg-slate-500/10 border-slate-500/20'
+                                                }`}>
+                                                    <span className={`w-1.5 h-1.5 rounded-full mr-1.5 ${
+                                                        isCoolingDown ? 'bg-amber-400 animate-pulse' : 
+                                                        isActive ? 'bg-blue-400 animate-pulse' :
+                                                        isError ? 'bg-red-400' :
+                                                        isPaused ? 'bg-slate-500' :
+                                                        'bg-slate-700'
+                                                    }`} />
+                                                    {isCoolingDown ? `PAUSED (${taskInfo.nextRetry || '...'})` : 
+                                                     isPaused ? 'STOPPED' :
+                                                     isActive ? 'RUNNING' : 
+                                                     isError ? 'ERROR' : 'IDLE'}
+                                                </span>
                                             </div>
-                                            <div className="h-1.5 w-full bg-slate-900 rounded-full overflow-hidden border border-slate-800/50">
-                                                <div 
-                                                    className={`h-full bg-${task.color}-500 rounded-full transition-all duration-1000 ease-out shadow-[0_0_8px_rgba(59,130,246,0.3)]`}
-                                                    style={{ width: `${task.progress}%` }}
-                                                />
+                                            
+                                            {/* Progress Bar and Percentage */}
+                                            <div className="space-y-2">
+                                                <div className="flex justify-between items-center text-[9px] font-mono">
+                                                    <span className="text-slate-500">{isCoolingDown ? (taskInfo.message || task.script) : task.script}</span>
+                                                    <span className={`font-bold text-${task.color}-400`}>{task.progress}%</span>
+                                                </div>
+                                                <div className="h-1.5 w-full bg-slate-900 rounded-full overflow-hidden border border-slate-800/50">
+                                                    <div 
+                                                        className={`h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_8px_rgba(59,130,246,0.3)] ${
+                                                            isCoolingDown ? 'bg-amber-500' : `bg-${task.color}-500`
+                                                        }`}
+                                                        style={{ width: `${task.progress}%` }}
+                                                    />
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </div>
 
@@ -416,7 +553,145 @@ export default function RagStatusPage() {
                         </div>
                     </div>
                 </div>
+
+                {/* System Controls */}
+                <Card className="bg-slate-900/40 border-slate-800/50 backdrop-blur-md overflow-hidden relative group">
+                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-transparent to-purple-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <CardHeader className="relative pb-2">
+                        <div className="flex justify-between items-center">
+                            <div>
+                                <CardTitle className="text-sm font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2">
+                                    <Cpu className="w-4 h-4 text-indigo-400" />
+                                    System Controls
+                                </CardTitle>
+                                <CardDescription className="text-[10px] text-slate-500 font-medium">Manage background ingestion processes</CardDescription>
+                            </div>
+                            {systemPaused && (
+                                <motion.div 
+                                    initial={{ opacity: 0, x: 10 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    className="bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full"
+                                >
+                                    <span className="text-[8px] font-black text-amber-500 uppercase tracking-tighter flex items-center gap-1">
+                                        <Pause className="w-2 h-2" />
+                                        Manual Pause
+                                    </span>
+                                </motion.div>
+                            )}
+                        </div>
+                    </CardHeader>
+                    <CardContent className="relative pt-4">
+                        <div className="grid grid-cols-2 gap-3">
+                            <Button
+                                variant="outline"
+                                onClick={() => handleIngestorControl('pause')}
+                                disabled={controlLoading || systemPaused}
+                                className={cn(
+                                    "h-12 border-slate-800 transition-all duration-300",
+                                    !systemPaused ? "hover:bg-amber-500/10 hover:border-amber-500/30 hover:text-amber-500" : "opacity-50"
+                                )}
+                            >
+                                {controlLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : (
+                                    <span className="flex items-center gap-2 font-black text-xs uppercase tracking-wider">
+                                        <Pause className="w-4 h-4" />
+                                        Pause All
+                                    </span>
+                                )}
+                            </Button>
+                            <Button
+                                variant="outline"
+                                onClick={() => handleIngestorControl('resume')}
+                                disabled={controlLoading || !systemPaused}
+                                className={cn(
+                                    "h-12 border-slate-800 transition-all duration-300",
+                                    systemPaused ? "hover:bg-emerald-500/10 hover:border-emerald-500/30 hover:text-emerald-500" : "opacity-50"
+                                )}
+                            >
+                                {controlLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : (
+                                    <span className="flex items-center gap-2 font-black text-xs uppercase tracking-wider">
+                                        <Play className="w-4 h-4" />
+                                        Resume All
+                                    </span>
+                                )}
+                            </Button>
+                        </div>
+                        <p className="text-[9px] text-slate-600 mt-4 text-center font-medium leading-relaxed italic">
+                            * Use "Pause" before shutting down or during travel to safely halt ingestion tasks.
+                        </p>
+                    </CardContent>
+                </Card>
             </div>
+
+            {/* Completion Popup */}
+            <AnimatePresence>
+                {isCompleted && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                        <motion.div 
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-slate-950/80 backdrop-blur-md"
+                        />
+                        <motion.div 
+                            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+                            animate={{ scale: 1, opacity: 1, y: 0 }}
+                            className="relative bg-slate-900 border border-slate-700 rounded-[3rem] p-12 max-w-lg w-full text-center shadow-[0_0_50px_rgba(59,130,246,0.3)] overflow-hidden"
+                        >
+                            {/* Celebrate background */}
+                            <div className="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 via-indigo-500 to-violet-500" />
+                            <div className="absolute -top-32 -left-32 w-64 h-64 bg-blue-500/20 blur-[100px] rounded-full" />
+                            <div className="absolute -bottom-32 -right-32 w-64 h-64 bg-violet-500/20 blur-[100px] rounded-full" />
+
+                            <div className="relative space-y-8">
+                                <motion.div 
+                                    animate={{ rotate: [0, 10, -10, 10, 0] }}
+                                    transition={{ repeat: Infinity, duration: 2 }}
+                                    className="w-24 h-24 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-3xl mx-auto flex items-center justify-center shadow-2xl"
+                                >
+                                    <Zap className="w-12 h-12 text-white fill-white" />
+                                </motion.div>
+
+                                <div className="space-y-4">
+                                    <h2 className="text-4xl font-black text-white tracking-tight leading-tight">
+                                        ยินดีด้วย!<br />
+                                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-violet-400">
+                                            ทำสำเร็จแล้ว
+                                        </span>
+                                    </h2>
+                                    <p className="text-slate-400 font-medium">
+                                        ระบบประมวลผลกฎหมายทั้งหมดเรียบร้อยแล้ว<br />
+                                        ฐานข้อมูลได้รับการอัปเดตครบถ้วนสมบูรณ์
+                                    </p>
+                                </div>
+
+                                <div className="bg-slate-950/50 rounded-2xl p-6 border border-slate-800">
+                                    <div className="flex justify-between items-center text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">
+                                        <span>Final Stats</span>
+                                        <span className="text-emerald-400">Verified ✅</span>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div className="text-left">
+                                            <span className="text-[10px] text-slate-500 block">Total Chunks</span>
+                                            <span className="text-xl font-black text-white">{stats?.vectorCount?.toLocaleString()}</span>
+                                        </div>
+                                        <div className="text-right">
+                                            <span className="text-[10px] text-slate-500 block">Total Time</span>
+                                            <span className="text-xl font-black text-white">{elapsed}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <Button 
+                                    onClick={() => setIsCompleted(false)}
+                                    className="w-full h-14 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-2xl font-black text-lg shadow-xl shadow-blue-500/20 group transition-all"
+                                >
+                                    ปิดข้อความนี้
+                                </Button>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

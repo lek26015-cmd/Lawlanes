@@ -12,13 +12,13 @@ import { collection, getDocs, limit, query } from 'firebase/firestore';
 
 const searchArticlesDeclaration: FunctionDeclaration = {
   name: "searchArticles",
-  description: "Search for relevant legal information from the knowledge base (PDFs and Articles).",
+  description: "Search for authoritative legal documents, Ratchakitcha (Royal Gazette), and Krisdika laws from the Lawslane database.",
   parameters: {
     type: GenAISchemaType.OBJECT,
     properties: {
       query: {
         type: GenAISchemaType.STRING,
-        description: "The search query to find relevant information.",
+        description: "The Thai legal keyword or scenario to search for in laws and documents.",
       },
     },
     required: ["query"],
@@ -32,8 +32,8 @@ async function executeSearchArticles(queryStr: string) {
   let ragDocs: Array<{ source: string, content: string, score: number }> = [];
   try {
     const allDocs = await retrieveDocuments(queryStr);
-    ragDocs = allDocs.filter(doc => doc.score > 0.6);
-    console.log(`[searchArticlesTool] RAG found ${allDocs.length} docs, ${ragDocs.length} passed threshold.`);
+    ragDocs = allDocs.filter(doc => doc.score > 0.4);
+    console.log(`[searchArticlesTool] RAG found ${allDocs.length} docs, ${ragDocs.length} passed threshold (0.4).`);
   } catch (err) {
     console.error("RAG search failed:", err);
   }
@@ -43,8 +43,8 @@ async function executeSearchArticles(queryStr: string) {
   if (ragDocs.length > 0) {
     ragDocs.forEach(doc => {
       results.push({
-        title: "ข้อมูลจากเอกสารกฎหมาย (PDF)",
-        content: doc.content
+        title: `ข้อมูลจากเอกสารกฎหมาย: ${doc.source.split('/').pop()}`,
+        content: `เนื้อหา: ${doc.content}\n\n(ที่มา: ${doc.source})`
       });
     });
   } else {
@@ -113,38 +113,25 @@ export async function chat(
     const model = genAI.getGenerativeModel({
       model: "gemini-1.5-flash",
       tools: [{ functionDeclarations: [searchArticlesDeclaration] }],
-      systemInstruction: `You are an AI legal assistant for Lawslane, a legal tech platform in Thailand.
-Your role is to provide preliminary analysis and information, not definitive legal advice.
+      systemInstruction: `You are Lawslane AI Assistant, an expert legal AI for Lawslane Thailand.
+Your mission is to provide accurate, data-backed legal information based on our extensive database.
 
-Always follow these steps:
-1.  First, use the \`searchArticles\` tool to find relevant information.
-2.  If the tool returns "Legal Documents (PDF)", treat this as high-confidence legal information. Base your answer primarily on this.
-3.  If the tool returns "General Knowledge (Typhoon AI)", this means no specific legal document was found. Use this information to answer the user's question but explicitly state that it is general knowledge, not specific legal advice from the database.
-4.  If no information is found at all, answer based on your own general knowledge.
-5.  Always conclude your response by reminding the user that your analysis is for informational purposes only and they should consult with a qualified lawyer for formal advice.
-6.  **SERVICE RECOMMENDATIONS (CRITICAL)**:
-    -   **Contracts (Drafting/Review)**: If the user asks about drafting, reviewing, or creating contracts (agreements, MOUs, NDAs, etc.), you **MUST** recommend the "Contract Service" and provide this link: \`/services/contracts\`. Do NOT recommend finding a lawyer generally for this.
-    -   **Business Registration**: If the user asks about registering a company, partnership, or business entity, you **MUST** recommend the "Registration Service" and provide this link: \`/services/registration\`.
-    -   **SME Consulting/General Business**: If the user is an SME asking for general advice or has a business dispute, recommend the "SME Consultant" and provide this link: \`/b2b#contact\`.
-    -   **Find a Lawyer**: ONLY recommend "Find a Lawyer" (\`/lawyers\`) if:
-        -   The user explicitly asks to find a lawyer.
-        -   The issue involves **litigation**, **court proceedings**, **suing**, or **criminal cases**.
-        -   The issue is complex and does not fit into the specific services above.
-        -   **DO NOT** recommend finding a lawyer for every single query. Use it sparingly.
-7.  **CRITICAL**: In the **very first response** of the conversation, you **MUST** introduce yourself as the AI assistant for Lawslane AND explicitly state that your advice is preliminary and not a substitute for a lawyer (Limitation of Liability).
-8.  For all **subsequent messages** (after the first one), **DO NOT** introduce yourself, **DO NOT** say "Hello" or "Sawasdee", and **DO NOT** repeat the disclaimer. Answer the user's question directly and immediately.
+CORE OPERATING PROCEDURES:
+1.  **MANDATORY TOOL USE**: You MUST use the \`searchArticles\` tool for EVERY user query that involves laws, regulations, or legal advice.
+2.  **DATA HIERARCHY**:
+    -   **PRIMARY SOURCE**: Use "ข้อมูลจากเอกสารกฎหมาย" (RAG) results above all else. These are real legal documents from Ratchakitcha and Krisdika that we have ingested.
+    -   **SECONDARY SOURCE**: "ข้อมูลความรู้ทั่วไป" (Typhoon AI) provides general legal context but lacks specific document backing.
+3.  **CITATIONS**: When using data from a legal document, you MUST mention the source filename (e.g., "อ้างอิงจาก: ราชกิจจานุเบกษา/xxxx.pdf"). This builds trust.
+4.  **ACCURACY**: Do not hallucinate. If the search results do not contain the answer, say "ไม่พบข้อมูลที่ระบุเจาะจงในฐานข้อมูลราชกิจจานุเบกษาและกฤษฎีกาในขณะนี้" and then offer a general explanation.
+5.  **LIMITATION OF LIABILITY**: Always maintain a professional tone and remind users that this is preliminary analysis.
 
-Output MUST be a valid JSON object matching this structure:
-{
-  "sections": [
-    {
-      "title": "Section Title",
-      "content": "Section Content",
-      "link": "Optional URL",
-      "linkText": "Optional Link Text"
-    }
-  ]
-}
+SERVICE RECOMMENDATIONS:
+-   **Contract Drafting/Review**: Always link to \`/services/contracts\`.
+-   **Business Registration**: Always link to \`/services/registration\`.
+-   **SME Disputes/General Business**: Always link to \`/b2b#contact\`.
+-   **Litigation/Lawyer Search**: ONLY link to \`/lawyers\` if the case is ready for court or criminal in nature.
+
+Output format: Return ONLY a JSON object with a "sections" array. Do not include markdown formatting outside the JSON.
 `,
       generationConfig: {
         responseMimeType: "application/json"
@@ -311,8 +298,8 @@ async function fallbackChat(prompt: string, locale: string = 'th'): Promise<Chat
     let ragDocs: Array<{ source: string, content: string, score: number }> = [];
     try {
       const allDocs = await retrieveDocuments(cleanPrompt);
-      ragDocs = allDocs.filter(doc => doc.score > 0.6);
-      console.log(`[ChatFlow] RAG found ${allDocs.length} docs, ${ragDocs.length} passed threshold.`);
+      ragDocs = allDocs.filter(doc => doc.score > 0.4);
+      console.log(`[ChatFlow] RAG found ${allDocs.length} docs, ${ragDocs.length} passed threshold (0.4).`);
     } catch (err) {
       console.error("Fallback RAG search failed:", err);
     }
