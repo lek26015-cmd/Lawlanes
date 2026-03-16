@@ -168,6 +168,8 @@ CORE OPERATING PROCEDURES:
         - SME/B2B: \`/b2b#contact\` (Text: "ปรึกษาธุรกิจ SME")
         - Business Registration: \`/services/registration\` (Text: "จดทะเบียนบริษัท")
 
+6.  **LIMITATION OF LIABILITY**: Always maintain a professional tone and remind users that this is preliminary analysis.
+
 7.  **MANDATORY SUMMARY SECTION**:
     - **ALWAYS** include a final section in your response.
     - **TITLE**: "สรุปเข้าใจง่ายโดย LAlin".
@@ -219,8 +221,34 @@ Each section can have: "title", "content", "link" (optional), "linkText" (option
       }
     }
 
-    const text = result.response.text();
-    return JSON.parse(text) as ChatResponse;
+    let text = "";
+    try {
+      text = result.response.text();
+    } catch (e: any) {
+      console.error("[ChatFlow] Failed to get text from Gemini response (safety filters?):", e);
+      throw new Error("Gemini response blocked or empty");
+    }
+
+    if (!text || text.trim() === "") {
+      throw new Error("Empty response from Gemini");
+    }
+
+    console.log(`[ChatFlow] Primary AI raw response: ${text.substring(0, 500)}...`);
+
+    // Clean up potential markdown code blocks if the model ignored MIME type
+    let cleanJson = text;
+    if (text.includes("```json")) {
+      cleanJson = text.split("```json")[1].split("```")[0].trim();
+    } else if (text.includes("```")) {
+      cleanJson = text.split("```")[1].split("```")[0].trim();
+    }
+
+    try {
+      return JSON.parse(cleanJson) as ChatResponse;
+    } catch (parseError) {
+      console.error("[ChatFlow] JSON Parse Error. Raw text:", text);
+      throw parseError;
+    }
 
   } catch (error: any) {
     console.error("[ChatFlow] Primary AI model failed:", error);

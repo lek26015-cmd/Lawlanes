@@ -11,6 +11,9 @@ export async function callTyphoonAI(prompt: string, languageInstruction: string 
     }
 
     try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
         console.log("Calling Typhoon AI...");
         const response = await fetch(TYPHOON_API_URL, {
             method: 'POST',
@@ -18,6 +21,7 @@ export async function callTyphoonAI(prompt: string, languageInstruction: string 
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${apiKey}`
             },
+            signal: controller.signal,
             body: JSON.stringify({
                 model: TYPHOON_MODEL,
                 messages: [
@@ -30,6 +34,7 @@ export async function callTyphoonAI(prompt: string, languageInstruction: string 
                 repetition_penalty: 1.05,
             })
         });
+        clearTimeout(timeoutId);
 
         if (!response.ok) {
             const errorText = await response.text();
