@@ -18,6 +18,7 @@ import profileLawyerImg from '@/pic/profile-lawyer.jpg';
 import { useTranslations, useLocale } from 'next-intl';
 import { getSpecialtyKey } from '@/lib/specialties';
 import { ShareButtons } from '@/components/share-buttons';
+import { getCloudflareVariantUrl } from '@/lib/cloudflare-images';
 
 interface LawyerProfileClientProps {
     initialLawyer: LawyerProfile;
@@ -147,7 +148,7 @@ export default function LawyerProfileClient({ initialLawyer, id }: LawyerProfile
                             <div className="p-8 flex flex-col md:flex-row items-center gap-8">
                                 <div className="relative h-32 w-32 flex-shrink-0">
                                     <Image
-                                        src={lawyer.imageUrl || profileLawyerImg}
+                                        src={getCloudflareVariantUrl(lawyer.imageUrl, 'public') || profileLawyerImg}
                                         alt={lawyer.name}
                                         fill
                                         className="rounded-full object-cover border-4 border-white shadow-lg"

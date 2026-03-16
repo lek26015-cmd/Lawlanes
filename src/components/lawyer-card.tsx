@@ -13,6 +13,7 @@ import { useUser } from '@/firebase';
 import { useTranslations } from 'next-intl';
 
 import { getSpecialtyKey } from '@/lib/specialties';
+import { getCloudflareVariantUrl } from '@/lib/cloudflare-images';
 
 interface LawyerCardProps {
   lawyer: LawyerProfile;
@@ -61,7 +62,7 @@ export default function LawyerCard({ lawyer }: LawyerCardProps) {
         <div className="relative h-24 w-24 flex-shrink-0">
           {lawyer.imageUrl ? (
             <img
-              src={lawyer.imageUrl}
+              src={getCloudflareVariantUrl(lawyer.imageUrl, 'avatar')}
               alt={lawyer.name}
               className="w-full h-full rounded-full object-cover ring-4 ring-white shadow-md group-hover:scale-105 transition-transform duration-300"
               onError={(e) => {

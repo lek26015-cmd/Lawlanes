@@ -10,14 +10,42 @@ interface FirebaseAdminAppParams {
 }
 
 function formatPrivateKey(key: string) {
-    return key.replace(/\\n/g, '\n');
+    if (!key) return key;
+    
+    // Remove potential surrounding quotes from .env
+    const cleanedKey = key.replace(/^"|"$/g, '');
+    
+    // Regex to match any PEM header/footer (allows for variation in whitespace)
+    const headerRegex = /-----BEGIN[^-]+-----/g;
+    const footerRegex = /-----END[^-]+-----/g;
+    
+    // Header and footer for reconstruction
+    const header = '-----BEGIN PRIVATE KEY-----';
+    const footer = '-----END PRIVATE KEY-----';
+    
+    // Strip headers, footers, and ALL whitespace/newlines (including literal \n)
+    let base64 = cleanedKey
+        .replace(headerRegex, '')
+        .replace(footerRegex, '')
+        .replace(/\\n/g, '')
+        .replace(/\s+/g, '');
+        
+    // Reconstruct with proper PEM format
+    return `${header}\n${base64}\n${footer}\n`;
 }
 
 export function createFirebaseAdminApp(params: FirebaseAdminAppParams) {
     const privateKey = formatPrivateKey(params.privateKey);
 
     if (admin.apps.length > 0) {
-        return admin.app();
+        // In development, we might want to re-initialize if the key changed
+        // For now, let's just delete the existing one and re-init to be sure.
+        try {
+            const app = admin.app();
+            app.delete();
+        } catch (e) {
+            // App might not exist or already deleted
+        }
     }
 
     const cert = admin.credential.cert({

@@ -29,6 +29,7 @@ import { useFirebase, useUser } from '@/firebase';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { updatePassword, updateProfile, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 import { uploadToR2 } from '@/app/actions/upload-r2';
+import { uploadToCloudflareImages } from '@/app/actions/upload-cloudflare-images';
 import { useToast } from '@/hooks/use-toast';
 import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '@/lib/constants';
 import { formatPhoneNumber, formatBankAccount } from '@/lib/utils';
@@ -212,8 +213,14 @@ export default function AccountPage() {
           const formData = new FormData();
           formData.append('file', imageFile);
 
-          // Upload to R2 via Server Action
-          newPhotoURL = await uploadToR2(formData, 'profile-images');
+
+          // Upload to R2 or Cloudflare Images via Server Action
+          if (isLawyer) {
+            console.log("Lawyer detected, uploading to Cloudflare Images...");
+            newPhotoURL = await uploadToCloudflareImages(formData);
+          } else {
+            newPhotoURL = await uploadToR2(formData, 'profile-images');
+          }
 
         } catch (uploadError) {
           console.error("Error uploading image:", uploadError);

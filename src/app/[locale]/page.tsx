@@ -8,8 +8,8 @@ import Image from 'next/image';
 import { Link } from '@/navigation';
 import { getApprovedLawyers, getAllArticles, getAdsByPlacement, getImageUrl, getImageHint } from '@/lib/data';
 import LawyerCard from '@/components/lawyer-card';
-import AiAnalysisCard from '@/components/ai-analysis-card';
 import AiConsultButton from '@/components/ai-consult-button';
+import HeroSearchBar from '@/components/hero-search-bar';
 import { HomepageBannerWrapper } from '@/components/homepage-banner-wrapper';
 import { HomeLatestArticles } from '@/components/home-latest-articles';
 import { Badge } from '@/components/ui/badge';
@@ -61,41 +61,70 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   return (
     <>
       <div className="flex flex-col">
-        <section className="relative w-full -mt-20 pt-40 pb-20 md:pt-52 md:pb-32 lg:pt-60 lg:pb-40 bg-slate-900 text-white rounded-b-[80px] overflow-hidden">
-          <Image
-            src="/images/lawslane-hero-cover.jpg"
-            alt="Lawslane Hero Background"
-            fill
-            className="object-cover object-center opacity-40"
-            priority
-          />
+        <section className="relative w-full -mt-20 pt-20 lg:pt-32 pb-0 bg-slate-900 text-white rounded-b-[60px] md:rounded-b-[80px] overflow-hidden">
+          {/* Image Layer - Animated with FadeIn */}
+          <FadeIn direction="right" delay={100} className="absolute top-24 left-0 w-full h-[500px] lg:h-full lg:top-auto lg:bottom-[-40px] lg:left-[2%] lg:w-[45%] z-0 pointer-events-none">
+            <div className="relative w-full h-full opacity-80">
+              <Image
+                src="/images/lawslane-cover-photo.png"
+                alt="Lawslane Cover"
+                fill
+                className="object-cover object-top lg:object-contain lg:object-left-bottom"
+                priority
+              />
+            </div>
+          </FadeIn>
 
-          <div className="absolute inset-0 z-0 bg-gradient-to-r from-slate-900/90 to-slate-900/50" />
-
-
-          <div className="container relative z-10 mx-auto px-4 md:px-6">
-            <div className="grid lg:grid-cols-2 gap-12 items-center">
-              <FadeIn direction="up">
-                <div className="flex flex-col items-center lg:items-start text-center lg:text-left space-y-6">
-
-                  <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl xl:text-6xl/none font-headline leading-tight whitespace-pre-line">
-                    {t('hero.title')}
-                  </h1>
-                  <p className="max-w-[600px] text-gray-200 md:text-xl">
-                    {t('hero.subtitle')}
-                  </p>
-                  <div className="flex flex-col sm:flex-row gap-4">
-                    <Link href={`/lawyers`}>
-                      <Button size="lg" className="bg-white text-slate-900 hover:bg-gray-100 text-lg font-semibold">{t('lawyerSearch.cta')}</Button>
-                    </Link>
-                    <AiConsultButton />
+          <div className="relative z-10 px-4 md:px-12 lg:px-20 max-w-screen-2xl">
+            <div className="relative w-full">
+              <div className="grid lg:grid-cols-2 gap-8 items-start relative z-10 pt-60 lg:pt-0 pb-16 md:pb-24 lg:pb-32">
+                {/* Left side remains for background image spacing on desktop, but contains text for mobile */}
+                <FadeIn direction="up" className="lg:hidden text-center flex flex-col items-center">
+                  <div className="flex flex-col items-center space-y-4 pt-12 md:pt-16">
+                    <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl font-headline leading-tight whitespace-pre-line">
+                      {t('hero.title')}
+                    </h1>
+                    <p className="max-w-[600px] text-gray-400 text-base sm:text-lg">
+                      {t('hero.subtitle')}
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                      <Link href={`/lawyers`}>
+                        <Button size="default" className="bg-white text-slate-900 hover:bg-gray-100 text-base font-semibold">{t('lawyerSearch.cta')}</Button>
+                      </Link>
+                      <AiConsultButton />
+                    </div>
                   </div>
-                </div>
-              </FadeIn>
+                </FadeIn>
 
-              {/* ... AiAnalysisCard ... */}
-              <FadeIn direction="left" delay={200}>
-                <AiAnalysisCard />
+                {/* Empty spacer for desktop image left side */}
+                <div className="hidden lg:block h-1"></div>
+
+                <div className="hidden lg:block lg:pt-16">
+                  <FadeIn direction="left" delay={200}>
+                    <div className="flex flex-col items-start text-left space-y-6 mb-10">
+                      <h1 className="text-5xl xl:text-6xl font-bold tracking-tighter font-headline leading-tight whitespace-pre-line">
+                        {t('hero.title')}
+                      </h1>
+                      <p className="max-w-[550px] text-gray-400 text-xl leading-relaxed">
+                        {t('hero.subtitle')}
+                      </p>
+                      <div className="flex flex-row gap-4 pt-2">
+                        <Link href={`/lawyers`}>
+                          <Button size="lg" className="bg-white text-slate-900 hover:bg-gray-100 text-lg font-bold px-8 rounded-xl">{t('lawyerSearch.cta')}</Button>
+                        </Link>
+                        <AiConsultButton />
+                      </div>
+                    </div>
+                    <HeroSearchBar />
+                  </FadeIn>
+                </div>
+              </div>
+
+              {/* Mobile Hero Search Bar - only for mobile/tablet */}
+              <FadeIn direction="up" delay={400} className="lg:hidden">
+                <div className="pb-12">
+                  <HeroSearchBar />
+                </div>
               </FadeIn>
             </div>
           </div>

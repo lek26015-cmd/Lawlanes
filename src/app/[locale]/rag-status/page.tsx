@@ -46,10 +46,10 @@ export default function RagStatusPage() {
     const lastSuccessCountTimeRef = useRef<number>(Date.now());
     const animationFrameRef = useRef<number>(0);
 
-    // Hardcoded estimate based on PDF, Krisdika (140+ years), and Ratchakitcha datasets
-    const ESTIMATED_TOTAL_VECTORS = 500000;
+    // Updated Target Goal to match the 200,000 Free Tier Limit we are managing
+    const ESTIMATED_TOTAL_VECTORS = 200000;
     
-    // Cloudflare Vectorize Paid Tier limit (10M vectors per index)
+    // Cloudflare Vectorize Index Capability
     const PAID_TIER_MAX_VECTORS = 10000000;
 
     // Dedicated Timer for Elapsed Time (Always Active)
@@ -500,10 +500,10 @@ export default function RagStatusPage() {
                             
                             <div className="space-y-4">
                                 {[
-                                    { id: 'pdf_ingestor', name: "PDF Ingestor", count: "182 files", script: "ingest-to-cloudflare.ts", color: "blue", defaultProgress: 24 },
-                                    { id: 'ratchakitcha', name: "Archive 20-25", count: "Active Batch", script: "ingest-ratchakitcha.py", color: "purple", defaultProgress: 15 },
-                                    { id: 'historical', name: "Historical Dev", count: "2010-2019", script: "ingest-hist.py", color: "indigo", defaultProgress: 5 },
-                                    { id: 'krisdika', name: "Krisdika Hub", count: "Yearly Feed", script: "ingest-krisdika.py", color: "emerald", defaultProgress: 8 },
+                                { id: 'pdf_ingestor', name: "Document Uploads", count: "Latest Proofs", script: "ingest-to-cloudflare.ts", color: "blue", defaultProgress: 24 },
+                                { id: 'ratchakitcha', name: "Ratchakitcha BACKWARD", count: "2026 → B.E. 2475", script: "ingest-ratchakitcha.py", color: "purple", defaultProgress: 15 },
+                                { id: 'historical', name: "Historical Archives", count: "B.E. 2475+", script: "ingest-ratchakitcha-historical.py", color: "indigo", defaultProgress: 5 },
+                                { id: 'krisdika', name: "Krisdika BACKWARD", count: "2025 → B.E. 2475", script: "ingest-krisdika.py", color: "emerald", defaultProgress: 8 },
                                 ].map((task, i) => {
                                     const taskInfo = taskStatuses[task.id];
                                     const isCoolingDown = taskInfo?.status === 'cooling_down';

@@ -25,6 +25,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { doc, getDoc } from 'firebase/firestore';
 import profileLawyerImg from '@/pic/profile-lawyer.jpg';
+import { getCloudflareVariantUrl } from '@/lib/cloudflare-images';
 
 import { getMainLink, getBusinessLink } from '@/lib/domain-utils';
 
@@ -246,7 +247,7 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className={cn("flex items-center gap-2", loginButtonClasses)}>
                     <Avatar className="w-8 h-8">
-                      <AvatarImage src={avatarUrl || profileLawyerImg.src} />
+                      <AvatarImage src={getCloudflareVariantUrl(avatarUrl, 'avatar') || profileLawyerImg.src} />
                       <AvatarFallback>{user.displayName?.charAt(0) || user.email?.charAt(0)}</AvatarFallback>
                     </Avatar>
                     <span className="hidden lg:inline">{user.displayName || user.email}</span>
@@ -345,7 +346,7 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
           {user ? (
             <Link href="/account">
               <Avatar className="w-8 h-8 border border-border/50">
-                <AvatarImage src={avatarUrl || profileLawyerImg.src} />
+                <AvatarImage src={getCloudflareVariantUrl(avatarUrl, 'avatar') || profileLawyerImg.src} />
                 <AvatarFallback>{user.displayName?.charAt(0) || user.email?.charAt(0)}</AvatarFallback>
               </Avatar>
             </Link>
@@ -402,7 +403,7 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
                     <div className="space-y-4">
                       <div className="flex items-center gap-3 px-2">
                         <Avatar className="w-10 h-10">
-                          <AvatarImage src={avatarUrl || profileLawyerImg.src} />
+                          <AvatarImage src={getCloudflareVariantUrl(avatarUrl, 'avatar') || profileLawyerImg.src} />
                           <AvatarFallback>{user.displayName?.charAt(0) || user.email?.charAt(0)}</AvatarFallback>
                         </Avatar>
                         <div className="flex flex-col">
