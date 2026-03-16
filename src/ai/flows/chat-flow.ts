@@ -26,8 +26,16 @@ const searchArticlesDeclaration: FunctionDeclaration = {
 };
 
 function formatSourceTitle(source: string): string {
+  if (!source) return 'ข้อมูลกฎหมาย';
+  
+  // Map directory patterns to official Thai source names
+  if (source.includes('ราชกิจจานุเบกษา')) return 'ที่มา: ราชกิจจานุเบกษา';
+  if (source.includes('กฤษฎีกา')) return 'ที่มา: สำนักงานคณะกรรมการกฤษฎีกา';
+  
+  // Default fallback cleaning
   const filename = source.split('/').pop() || source;
-  return filename.replace(/\.(json|pdf)$/i, '');
+  const cleanName = filename.replace(/\.(json|pdf)$/i, '');
+  return `ที่มา: ${cleanName}`;
 }
 
 async function executeSearchArticles(queryStr: string) {
@@ -48,8 +56,8 @@ async function executeSearchArticles(queryStr: string) {
   if (ragDocs.length > 0) {
     ragDocs.forEach(doc => {
       results.push({
-        title: `ข้อมูลจากเอกสารกฎหมาย: ${formatSourceTitle(doc.source)}`,
-        content: `เนื้อหา: ${doc.content}\n\n(ที่มา: ${doc.source})`
+        title: formatSourceTitle(doc.source),
+        content: `เนื้อหา: ${doc.content}\n\n[สรุปข้อมูลจาก: ${formatSourceTitle(doc.source)}]`
       });
     });
   } else {
@@ -131,7 +139,9 @@ CORE OPERATING PROCEDURES:
 2.  **DATA HIERARCHY**:
     -   **PRIMARY SOURCE**: Use "ข้อมูลจากเอกสารกฎหมาย" (RAG) results above all else. These are real legal documents from Ratchakitcha and Krisdika that we have ingested.
     -   **SECONDARY SOURCE**: "ข้อมูลความรู้ทั่วไป" (Typhoon AI) provides general legal context but lacks specific document backing.
-3.  **CITATIONS**: When using data from a legal document, you MUST mention the source filename (e.g., "อ้างอิงจาก: ราชกิจจานุเบกษา/xxxx.pdf"). This builds trust. When citing, clean up the source title by removing file extensions like '.pdf' or '.json'. For example, 'ราชกิจจานุเบกษา/xxxx.pdf' should be cited as 'ราชกิจจานุเบกษา/xxxx'.
+3.  **CITATIONS**: When using data from a legal document, you MUST mention the source in a human-readable format, NOT the technical filename. 
+    - **FORMAT**: Use "ที่มา: [หน่วยงาน] มาตรา [เลขมาตรา]" (e.g., "ที่มา: ราชกิจจานุเบกษา มาตรา 1599").
+    - **FORBIDDEN**: Never show filenames like '7480.json' or '5333.pdf' in the citation or response text.
 4.  **ACCURACY**: Do not hallucinate. If the search results do not contain the answer, say "ไม่พบข้อมูลที่ระบุเจาะจงในฐานข้อมูลราชกิจจานุเบกษาและกฤษฎีกาในขณะนี้" and then offer a general explanation.
 5.  **LIMITATION OF LIABILITY**: Always maintain a professional tone and remind users that this is preliminary analysis.
 6.  **LINK FORMATTING**: When providing links, ALWAYS use absolute paths starting with '/'. Never use relative paths like '#contact'.
@@ -215,8 +225,8 @@ async function fallbackChat(prompt: string, locale: string = 'th', cause?: Error
       th: {
         greetingTitle: "สวัสดีครับ (โหมดสำรอง)",
         greetingContent: "สวัสดีครับ! ผมคือผู้ช่วย AI (ในโหมดสำรอง) เนื่องจากระบบหลักขัดข้อง ผมสามารถช่วยค้นหาข้อมูลกฎหมายเบื้องต้นจากฐานข้อมูลให้ได้ครับ ลองพิมพ์คำถามสั้นๆ เช่น 'มรดก', 'หย่า', หรือ 'สัญญา' ได้เลยครับ",
-        knowledgeTitle: "ข้อมูลจากฐานความรู้ (โหมดสำรอง)",
-        knowledgeIntro: (terms: string) => `จากการค้นหาคำว่า "${terms}" พบข้อมูลที่เกี่ยวข้องดังนี้ครับ:`,
+        knowledgeTitle: "แหล่งข้อมูลอ้างอิง (โหมดสำรอง)",
+        knowledgeIntro: (terms: string) => `สรุปข้อมูลจากการค้นหาคำว่า "${terms}" พบแหล่งอ้างอิงดังนี้ครับ:`,
         relatedInfo: "ข้อมูลที่เกี่ยวข้อง",
         article: "บทความ",
         adviceTitle: "คำแนะนำเพิ่มเติม",
@@ -362,7 +372,7 @@ async function fallbackChat(prompt: string, locale: string = 'th', cause?: Error
           const cleanContent = doc.content.trim();
           if (cleanContent) {
             sections.push({
-              title: `${strings.relatedInfo} (${index + 1}): ${formatSourceTitle(doc.source)}`,
+              title: `${formatSourceTitle(doc.source)} (${index + 1})`,
               content: cleanContent
             });
           }
