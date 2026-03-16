@@ -201,9 +201,9 @@ async function fallbackChat(prompt: string, locale: string = 'th', cause?: Error
     const t = {
       th: {
         greetingTitle: `สวัสดีครับ (โหมดสำรอง: ${errorName})`,
-        greetingContent: `สวัสดีครับ! ผมคือผู้ช่วย AI (ในโหมดสำรอง) เนื่องจากระบบหลักขัดข้อง (${errorName}: ${errorMessage.substring(0, 50)}) ผมได้พยายามรวบรวมข้อมูลมาให้คุณแทนครับ`,
-        knowledgeTitle: `ข้อมูลจากฐานความรู้ (โหมดสำรอง: ${errorName})`,
-        knowledgeIntro: (terms: string) => `จากการค้นหาคำว่า "${terms}" พบข้อมูลที่เกี่ยวข้อง (${errorName}) ดังนี้ครับ:`,
+        greetingContent: `สวัสดีครับ! ผมคือผู้ช่วย AI (ในโหมดสำรอง) เนื่องจากระบบหลักขัดข้อง (${errorName}: ${errorMessage.substring(0, 100)}) ผมได้พยายามรวบรวมข้อมูลมากจากฐานข้อมูลมาให้คุณแทนครับ`,
+        knowledgeTitle: `ข้อมูลจากฐานความรู้ (โหมดสำรอง: ${errorMessage.substring(0, 50)})`,
+        knowledgeIntro: (terms: string) => `จากการค้นหาคำว่า "${terms}" พบข้อมูลกฎหมายเบื้องต้น (${errorName}: ${errorMessage.substring(0, 40)}) ดังนี้ครับ:`,
         relatedInfo: "ข้อมูลที่เกี่ยวข้อง",
         article: "บทความ",
         adviceTitle: "คำแนะนำเพิ่มเติม",
@@ -342,6 +342,11 @@ async function fallbackChat(prompt: string, locale: string = 'th', cause?: Error
           sections.push({
             title: "สรุปข้อมูลกฎหมายเบื้องต้น",
             content: typhoonSummary
+          });
+        } else {
+          sections.push({
+            title: "สรุปข้อมูลกฎหมายเบื้องต้น (Typhoon AI Error)",
+            content: `ขออภัยครับ ไม่สามารถใช้ AI สำรองสรุปข้อมูลได้ในขณะนี้ (Error: Typhoon API Key may be missing on Server). กรุณาอ่านข้อมูลจากเอกสารอ้างอิงด้านล่างแทนนะครับ`
           });
         }
 
