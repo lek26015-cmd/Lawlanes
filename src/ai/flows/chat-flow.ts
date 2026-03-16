@@ -32,8 +32,8 @@ async function executeSearchArticles(queryStr: string) {
   let ragDocs: Array<{ source: string, content: string, score: number }> = [];
   try {
     const allDocs = await retrieveDocuments(queryStr);
-    ragDocs = allDocs.filter(doc => doc.score > 0.4);
-    console.log(`[searchArticlesTool] RAG found ${allDocs.length} docs, ${ragDocs.length} passed threshold (0.4).`);
+    ragDocs = allDocs.filter(doc => doc.score > 0.5);
+    console.log(`[searchArticlesTool] RAG found ${allDocs.length} docs, ${ragDocs.length} passed threshold (0.5).`);
   } catch (err) {
     console.error("RAG search failed:", err);
   }
@@ -116,7 +116,7 @@ export async function chat(
 
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-flash",
+      model: "gemini-flash-latest",
       tools: [{ functionDeclarations: [searchArticlesDeclaration] }],
       systemInstruction: `You are Lawslane AI Assistant, an expert legal AI for Lawslane Thailand.
 Your mission is to provide accurate, data-backed legal information based on our extensive database.
@@ -310,8 +310,8 @@ async function fallbackChat(prompt: string, locale: string = 'th'): Promise<Chat
     let ragDocs: Array<{ source: string, content: string, score: number }> = [];
     try {
       const allDocs = await retrieveDocuments(cleanPrompt);
-      ragDocs = allDocs.filter(doc => doc.score > 0.4);
-      console.log(`[ChatFlow] RAG found ${allDocs.length} docs, ${ragDocs.length} passed threshold (0.4).`);
+      ragDocs = allDocs.filter(doc => doc.score > 0.5);
+      console.log(`[ChatFlow] RAG found ${allDocs.length} docs, ${ragDocs.length} passed threshold (0.5).`);
     } catch (err) {
       console.error("Fallback RAG search failed:", err);
     }
