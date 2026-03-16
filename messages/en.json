@@ -488,10 +488,10 @@
         "thinking": "Thinking...",
         "error": "Sorry, an error occurred connecting to AI. Please try again.",
         "quickQuestions": {
-            "contract": "Draft Contract",
-            "inheritance": "Inheritance Case",
-            "company": "Company Registration",
-            "land": "Land Dispute"
+            "contract": "How do I draft a contract?",
+            "inheritance": "I need advice on inheritance",
+            "company": "What do I need for company registration?",
+            "land": "How to handle a land dispute?"
         }
     },
     "SupportTicket": {
