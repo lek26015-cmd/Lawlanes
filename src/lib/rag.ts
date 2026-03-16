@@ -12,7 +12,7 @@ export async function retrieveDocuments(query: string, topK: number = 5): Promis
             
             // Added timeout to prevent hanging
             const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+            const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
 
             const response = await fetch(`${WORKER_URL}/query`, {
                 method: 'POST',

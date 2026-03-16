@@ -283,22 +283,9 @@ async function fallbackChat(prompt: string, locale: string = 'th', cause?: Error
 
     const strings = locale.startsWith('en') ? t.en : (locale.startsWith('zh') ? t.zh : t.th);
 
-    if (!firestore) throw new Error("Firestore not initialized");
-    const articlesRef = collection(firestore, 'articles');
-    const q = query(articlesRef, limit(20));
-    const snapshot = await getDocs(q);
-
-    const articles = snapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        title: data.title || '',
-        content: data.content || '',
-      };
-    });
-
     const lowerCaseQuery = prompt.toLowerCase();
-
+    
+    // Quick handle for greetings to save RAG/Firestore calls
     const greetings = ['สวัสดี', 'หวัดดี', 'hello', 'hi', 'ทักทาย', '你好'];
     if (greetings.some(g => lowerCaseQuery.includes(g))) {
       return {
@@ -313,37 +300,58 @@ async function fallbackChat(prompt: string, locale: string = 'th', cause?: Error
       .replace(/^(คดี|กฎหมาย|เรื่อง|การ|ความ|ข้อหา|มี|เป็น)/g, '')
       .trim();
 
-    // STOP splitting into tiny 1-2 char words. It leads to matches like "ทรัพย์" for "คดีมรดก"
-    // Instead, search for words with length > 2 or the full clean prompt
-    const searchTerms = cleanPrompt.split(/\s+/).filter(w => w.length > 2);
+    // Strategy 1: Search terms for substring matching
+    // Filter out very common noise and short words
+    const noiseWords = ['ของ', 'ใน', 'กับ', 'คือ', 'และ'];
+    const searchTerms = cleanPrompt.split(/\s+/)
+      .filter(w => w.length > 2 && !noiseWords.includes(w));
+    
     if (searchTerms.length === 0 && cleanPrompt.length > 0) {
       searchTerms.push(cleanPrompt);
     }
     
-    // Always include the full query for better relevance
-    if (cleanPrompt !== lowerCaseQuery) {
-      searchTerms.push(lowerCaseQuery);
-    }
+    // Parallelize all data fetching
+    const [snapshot, allDocs] = await Promise.all([
+      (async () => {
+        if (!firestore) return null;
+        const articlesRef = collection(firestore, 'articles');
+        const q = query(articlesRef, limit(50)); // Increase limit for better matching locally
+        return getDocs(q);
+      })(),
+      retrieveDocuments(cleanPrompt)
+    ]);
 
-    const relevantArticles = articles
-      .filter(article => {
-        const title = article.title.toLowerCase();
-        const content = article.content.toLowerCase();
-        return searchTerms.some(term => title.includes(term) || content.includes(term));
-      })
-      .slice(0, 3);
+    // 1. Process local articles with better relevance scoring
+    const articles = snapshot?.docs.map(doc => {
+      const data = doc.data();
+      const title = (data.title || '').toLowerCase();
+      const content = (data.content || '').toLowerCase();
+      
+      // Calculate a crude relevance score
+      let score = 0;
+      if (title.includes(cleanPrompt)) score += 10;
+      if (content.includes(cleanPrompt)) score += 5;
+      
+      searchTerms.forEach(term => {
+        if (title.includes(term)) score += 3;
+        if (content.includes(term)) score += 1;
+      });
+
+      return {
+        id: doc.id,
+        title: data.title || '',
+        content: data.content || '',
+        score
+      };
+    }).filter(a => a.score > 0).sort((a, b) => b.score - a.score) || [];
+
+    const relevantArticles = articles.slice(0, 3);
+
+    // 2. Process RAG documents
+    const ragDocs = (allDocs || []).filter(doc => doc.score > 0.5 && doc.content.trim().length > 15);
+    console.log(`[ChatFlow] RAG found ${allDocs?.length || 0} docs, ${ragDocs.length} passed threshold & quality filter.`);
 
     const sections = [];
-
-    let ragDocs: Array<{ source: string, content: string, score: number }> = [];
-    try {
-      const allDocs = await retrieveDocuments(cleanPrompt);
-      // FILTER out low quality chunks (very short text that just contains noise like "ทรัพย์")
-      ragDocs = allDocs.filter(doc => doc.score > 0.5 && doc.content.trim().length > 15);
-      console.log(`[ChatFlow] RAG found ${allDocs.length} docs, ${ragDocs.length} passed threshold & quality filter.`);
-    } catch (err) {
-      console.error("Fallback RAG search failed:", err);
-    }
 
     if (relevantArticles.length > 0 || ragDocs.length > 0) {
       sections.push({
