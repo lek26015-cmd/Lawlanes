@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useForm } from 'react-hook-form';
@@ -50,6 +50,18 @@ const formSchema = z.object({
 });
 
 export default function LawyerLoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center bg-[#F4F6F9]">
+        <Loader2 className="w-10 h-10 animate-spin text-[#0B3979]" />
+      </div>
+    }>
+      <LawyerLoginForm />
+    </Suspense>
+  );
+}
+
+function LawyerLoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectUrl = searchParams.get('redirect');
