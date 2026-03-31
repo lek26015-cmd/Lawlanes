@@ -1,0 +1,21 @@
+name = "lawslane-chat-server"
+main = "src/index.ts"
+compatibility_date = "2024-04-05"
+
+[durable_objects]
+bindings = [
+  { name = "CHAT_ROOM", class_name = "ChatRoom" }
+]
+
+[[migrations]]
+tag = "v1"
+new_classes = ["ChatRoom"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "lawslane-chat-db"
+database_id = "xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" # User will need to replace this with actual ID after creation or I'll use a placeholder
+
+[[queues.producers]]
+binding = "OFFLINE_QUEUE"
+queue = "lawslane-offline-chat"

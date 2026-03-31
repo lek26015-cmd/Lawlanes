@@ -2,7 +2,7 @@
 
 import * as React from 'react';
 import { useFirebase } from '@/firebase/provider';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, limit } from 'firebase/firestore';
 import { HomepageCarousel } from '@/components/homepage-carousel';
 import { Ad } from '@/lib/types';
 
@@ -20,7 +20,8 @@ export function HomepageBannerWrapper() {
                 const q = query(
                     adsRef,
                     where('placement', '==', 'Homepage Carousel'),
-                    where('status', '==', 'active')
+                    where('status', '==', 'active'),
+                    limit(5)
                 );
                 const snapshot = await getDocs(q);
                 const fetchedBanners = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ad));

@@ -287,7 +287,7 @@ export default function ChatModal() {
     <Dialog open={isAiChatOpen} onOpenChange={setAiChatOpen}>
       <DialogContent
         hideCloseButton={true}
-        className="fixed inset-0 w-full h-full max-w-none translate-x-0 translate-y-0 rounded-none bg-white z-50 p-0 flex flex-col overflow-hidden transition-all duration-500 ease-in-out data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0"
+        className="fixed inset-0 w-full h-full max-w-none translate-x-0 translate-y-0 rounded-none bg-white z-[100] p-0 flex flex-col overflow-hidden transition-all duration-500 ease-in-out data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0"
       >
         <DialogHeader className="relative flex flex-row items-center justify-center lg:justify-between p-4 lg:p-6 border-b bg-white text-foreground">
           <div className="flex items-center lg:space-x-3">

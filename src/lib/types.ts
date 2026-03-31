@@ -147,7 +147,7 @@ export interface Case {
 
 export interface UpcomingAppointment {
   id: string;
-  lawyer: Pick<LawyerProfile, 'name' | 'imageUrl' | 'imageHint'>;
+  lawyer: Pick<LawyerProfile, 'id' | 'name' | 'imageUrl' | 'imageHint'>;
   date: Date;
   description: string;
   time: string;
@@ -361,4 +361,51 @@ export interface GpCoupon {
   expiryDate?: any;      // Firestore Timestamp
   isActive: boolean;
   createdAt: any;
+}
+
+export interface Book {
+  id: string;
+  title: string;
+  titleEn?: string;
+  titleZh?: string;
+  author: string;
+  authorEn?: string;
+  authorZh?: string;
+  description: string;
+  descriptionEn?: string;
+  descriptionZh?: string;
+  price: number;
+  imageUrl: string;
+  category: string;
+  stock: number;
+  publishedAt: any;
+}
+
+export interface ShippingAddress {
+  name: string;
+  phone: string;
+  address: string;
+  district: string;
+  province: string;
+  zipCode: string;
+}
+
+export interface BookOrder {
+  id: string;
+  userId: string;
+  items: {
+    bookId: string;
+    title: string;
+    quantity: number;
+    price: number;
+    imageUrl: string;
+  }[];
+  totalAmount: number;
+  status: 'pending' | 'paid' | 'shipped' | 'delivered' | 'cancelled';
+  paymentMethod: 'bank-transfer' | 'promptpay' | 'credit_card';
+  paymentSlipUrl?: string;
+  shippingAddress: ShippingAddress;
+  trackingNumber?: string;
+  createdAt: any;
+  updatedAt?: any;
 }

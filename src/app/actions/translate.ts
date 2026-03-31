@@ -1,6 +1,7 @@
 'use server';
 
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
+import { getCachedAIResponse, setCachedAIResponse } from '@/lib/ai-cache';
 
 export interface TranslationResult {
     english: string;
@@ -13,6 +14,10 @@ export async function translateToMultipleLanguages(
     if (!thaiText || thaiText.trim().length === 0) {
         return { english: '', chinese: '' };
     }
+
+    // Try to get from cache first
+    const cached = await getCachedAIResponse<TranslationResult>(thaiText, 'translate');
+    if (cached) return cached;
 
     try {
         const prompt = `You are a professional translator. Translate the following Thai text to English and Chinese (Simplified).
@@ -53,10 +58,15 @@ Instructions:
         try {
             const result = JSON.parse(text);
 
-            return {
+            const finalResult = {
                 english: result.english || '',
                 chinese: result.chinese || '',
             };
+
+            // Save to cache
+            await setCachedAIResponse(thaiText, 'translate', finalResult);
+
+            return finalResult;
         } catch (parseError) {
             console.error('Failed to parse translation response:', text, parseError);
             return { english: '', chinese: '' };

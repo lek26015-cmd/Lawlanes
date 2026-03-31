@@ -4,13 +4,15 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { MessageSquare } from 'lucide-react';
-import { useChat } from '@/context/chat-context';
 import { cn } from '@/lib/utils';
+import { useChat } from '@/context/chat-context';
+import { useCart } from '@/context/cart-context';
 
 import { useTranslations } from 'next-intl';
 
 export default function FloatingChatButton() {
   const { setAiChatOpen, isAiChatOpen } = useChat();
+  const { isOpen: isCartOpen } = useCart();
   const [isFooterVisible, setIsFooterVisible] = useState(false);
   const t = useTranslations('AiAdvisor');
 
@@ -43,7 +45,7 @@ export default function FloatingChatButton() {
     <>
       <div className={cn(
         "fixed bottom-6 right-6 z-40 transition-all duration-300 ease-in-out transform origin-bottom-right",
-        isAiChatOpen ? "scale-0 opacity-0 pointer-events-none" : "scale-100 opacity-100"
+        (isAiChatOpen || isCartOpen) ? "scale-0 opacity-0 pointer-events-none" : "scale-100 opacity-100"
       )}>
         <div className="relative group">
           <div className={cn(

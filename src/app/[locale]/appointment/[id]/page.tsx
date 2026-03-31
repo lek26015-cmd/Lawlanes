@@ -4,8 +4,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, notFound, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { getDashboardData, getLawyerById } from '@/lib/data';
-import type { UpcomingAppointment, LawyerProfile } from '@/lib/types';
+import { getLawyerById } from '@/lib/data';
+import { getUserDashboardData } from '@/app/actions/dashboard-actions';
+import type { UpcomingAppointment, LawyerProfile, Case } from '@/lib/types';
 import {
   ArrowLeft,
   Calendar,
@@ -56,25 +57,32 @@ export default function AppointmentDetailPage() {
 
   useEffect(() => {
     async function fetchAppointmentData() {
-      if (!firestore || !user) return;
+      if (!user) return;
       setIsLoading(true);
-      const { appointments } = await getDashboardData(firestore, user.uid);
-      const currentAppointment = appointments.find((appt) => appt.id === id);
+      try {
+        const { appointments } = await getUserDashboardData(user.uid);
+        const currentAppointment = appointments.find((appt: UpcomingAppointment) => appt.id === id);
 
-      if (!currentAppointment) {
-        notFound();
-        return;
+        if (!currentAppointment) {
+          notFound();
+          return;
+        }
+        setAppointment(currentAppointment);
+
+        // Fetch full lawyer profile for specialty
+        const lawyerId = currentAppointment.lawyer.id;
+        const lawyerData = await getLawyerById(firestore!, lawyerId);
+        setLawyer(lawyerData || null);
+      } catch (error) {
+        console.error("Error fetching appointment data:", error);
+        toast({
+          title: 'เกิดข้อผิดพลาด',
+          description: 'ไม่สามารถโหลดข้อมูลนัดหมายได้',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoading(false);
       }
-      setAppointment(currentAppointment);
-
-      // We need to extract lawyerId from the appointment data structure.
-      // In a real app, the appointment object would contain the lawyer's ID.
-      // This is still a bit of a mock. A real query would use currentAppointment.lawyerId
-      const lawyerId = '1'; // Mocking lawyer ID
-      const lawyerData = await getLawyerById(firestore, lawyerId);
-      setLawyer(lawyerData || null);
-
-      setIsLoading(false);
     }
     fetchAppointmentData();
   }, [id, firestore, user]);

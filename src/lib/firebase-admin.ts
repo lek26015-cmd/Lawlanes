@@ -12,60 +12,126 @@ interface FirebaseAdminAppParams {
 function formatPrivateKey(key: string) {
     if (!key) return key;
     
-    // Remove potential surrounding quotes from .env
-    const cleanedKey = key.replace(/^"|"$/g, '');
-    
-    // Regex to match any PEM header/footer (allows for variation in whitespace)
-    const headerRegex = /-----BEGIN[^-]+-----/g;
-    const footerRegex = /-----END[^-]+-----/g;
-    
-    // Header and footer for reconstruction
-    const header = '-----BEGIN PRIVATE KEY-----';
-    const footer = '-----END PRIVATE KEY-----';
-    
-    // Strip headers, footers, and ALL whitespace/newlines (including literal \n)
-    let base64 = cleanedKey
-        .replace(headerRegex, '')
-        .replace(footerRegex, '')
-        .replace(/\\n/g, '')
-        .replace(/\s+/g, '');
+    // 0. Detect if it's a JSON (common mistake: pasting the whole service account json)
+    if (key.trim().startsWith('{')) {
+        try {
+            const parsed = JSON.parse(key);
+            if (parsed.private_key) {
+                console.log('[Firebase Diagnostics] Detected service account JSON, extracting private_key');
+                key = parsed.private_key;
+            }
+        } catch (e) {
+            // Not valid JSON, continue with normal processing
+        }
+    }
+
+    // 1. Initial cleanup: unescape and remove quotes
+    let cleaned = key.trim().replace(/^"|"$/g, '').trim();
+    cleaned = cleaned.replace(/\\n/g, '\n').replace(/\\r/g, '\r');
+
+    // 2. Normalize: Remove ALL whitespace to handle keys broken by bad copy-pasting
+    const normalized = cleaned.replace(/\s+/g, '');
+
+    // 3. Extract boundaries
+    // We look for BEGIN and END blocks. We are liberal with what's inside.
+    const beginMatch = normalized.match(/-----BEGIN([^-]+)-----/);
+    const endMatch = normalized.match(/-----END([^-]+)-----/);
+
+    let base64Body = '';
+    let headerType = 'PRIVATE KEY';
+
+    if (beginMatch && endMatch) {
+        // We found markers! 
+        const typeStr = beginMatch[1]; // e.g., "RSAPRIVATEKEY" or "PRIVATEKEY"
+        if (typeStr.toUpperCase().includes('RSA')) {
+            headerType = 'RSA PRIVATE KEY';
+        }
+
+        // The body is everything between the markers
+        const startIndex = normalized.indexOf(beginMatch[0]) + beginMatch[0].length;
+        const endIndex = normalized.lastIndexOf(endMatch[0]);
+        base64Body = normalized.substring(startIndex, endIndex);
         
-    // Reconstruct with proper PEM format
-    return `${header}\n${base64}\n${footer}\n`;
+        // Safety check: if there's another marker inside this "body", we might have multiple keys
+        if (base64Body.includes('-----BEGIN') || base64Body.includes('-----END')) {
+            console.warn('[Firebase Diagnostics] WARNING: Multiple keys or internal markers detected. Stripping inner markers.');
+            base64Body = base64Body
+                .replace(/-----BEGIN[^-]*-----/g, '')
+                .replace(/-----END[^-]*-----/g, '');
+        }
+    } else {
+        // No markers found. Treat as raw base64. 
+        // We strip anything that looks like a broken marker just in case.
+        base64Body = normalized
+            .replace(/-----BEGIN[^-]*-----/g, '')
+            .replace(/-----END[^-]*-----/g, '')
+            .replace(/BEGIN|END|PRIVATE|KEY/g, ''); // Highly aggressive
+    }
+
+    // 4. Final body cleanup: Keep ONLY valid base64 characters
+    base64Body = base64Body.replace(/[^A-Za-z0-9+/=]/g, '');
+
+    if (!base64Body) {
+        console.warn('[Firebase Diagnostics] Metadata: Key body extracted is EMPTY.');
+        return key;
+    }
+
+    // 5. Build canonical PEM with 64-character wrapping
+    const wrappedBody = base64Body.match(/.{1,64}/g)?.join('\n') || base64Body;
+    const finalKey = `-----BEGIN ${headerType}-----\n${wrappedBody}\n-----END ${headerType}-----\n`;
+    
+    console.log(`[Firebase Diagnostics] Metadata: HeaderType=${headerType}, BodyLength=${base64Body.length}, FormattedLength=${finalKey.length}`);
+    console.log(`[Firebase Diagnostics] Key Preview: ${finalKey.substring(0, 30)}...${finalKey.substring(finalKey.length - 30)}`.trim());
+    
+    return finalKey;
 }
 
 export function createFirebaseAdminApp(params: FirebaseAdminAppParams) {
+    console.log('[Firebase Diagnostics] Creating App with ProjectID:', params.projectId, 'ClientEmail:', params.clientEmail);
     const privateKey = formatPrivateKey(params.privateKey);
 
     if (admin.apps.length > 0) {
-        // In development, we might want to re-initialize if the key changed
-        // For now, let's just delete the existing one and re-init to be sure.
         try {
             const app = admin.app();
+            console.log('[Firebase Diagnostics] Deleting existing app for re-initialization');
             app.delete();
         } catch (e) {
             // App might not exist or already deleted
         }
     }
 
-    const cert = admin.credential.cert({
-        projectId: params.projectId,
-        clientEmail: params.clientEmail,
-        privateKey: privateKey,
-    });
+    try {
+        const cert = admin.credential.cert({
+            projectId: params.projectId.trim(),
+            clientEmail: params.clientEmail.trim(),
+            privateKey: privateKey,
+        });
 
-    return admin.initializeApp({
-        credential: cert,
-        projectId: params.projectId,
-        storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
-    });
+        console.log('[Firebase Diagnostics] Initializing App with cert...');
+        const app = admin.initializeApp({
+            credential: cert,
+            projectId: params.projectId.trim(),
+            storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+        });
+        console.log('[Firebase Diagnostics] Successfully initialized app');
+        return app;
+    } catch (err: any) {
+        console.error('[Firebase Diagnostics] CRITICAL: initialization failed inside createFirebaseAdminApp:', {
+            message: err.message,
+            code: err.code,
+            stack: err.stack,
+            // Provide a hint for common private key errors
+            hint: err.message.includes('ASN.1') ? 'Possible malformed private key or PKCS#1/PKCS#8 mismatch' : 'Check project credentials and permissions'
+        });
+        throw err;
+    }
 }
 
 export async function initAdmin() {
     const params = {
-        projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID as string,
-        clientEmail: process.env.FIREBASE_CLIENT_EMAIL as string,
-        privateKey: process.env.FIREBASE_PRIVATE_KEY as string,
+        projectId: (process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || '').trim(),
+        clientEmail: (process.env.FIREBASE_CLIENT_EMAIL || '').trim(),
+        privateKey: (process.env.FIREBASE_PRIVATE_KEY || ''),
     };
 
     if (!params.clientEmail || !params.privateKey) {

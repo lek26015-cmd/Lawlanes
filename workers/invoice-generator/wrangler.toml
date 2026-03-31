@@ -1,0 +1,14 @@
+name = "lawslane-invoice-generator"
+main = "src/index.ts"
+compatibility_date = "2024-03-20"
+
+# Cloudflare Browser Rendering API
+browser = { binding = "BROWSER" }
+
+# R2 Storage for PDF files
+[[r2_buckets]]
+binding = "INVOICE_BUCKET"
+bucket_name = "lawslane-invoices"
+
+[vars]
+# AUTH_SECRET should be set via 'wrangler secret put AUTH_SECRET'

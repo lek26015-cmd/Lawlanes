@@ -4,10 +4,14 @@ import { useEffect, useState } from 'react';
 import { ArrowUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslations } from 'next-intl';
+import { useChat } from '@/context/chat-context';
+import { useCart } from '@/context/cart-context';
 
 export default function ScrollToTopButton() {
     const [isVisible, setIsVisible] = useState(false);
     const [showMobileHint, setShowMobileHint] = useState(false);
+    const { isAiChatOpen } = useChat();
+    const { isOpen: isCartOpen } = useCart();
     const t = useTranslations('Navigation');
 
     const toggleVisibility = () => {
@@ -44,8 +48,8 @@ export default function ScrollToTopButton() {
         <button
             onClick={scrollToTop}
             className={cn(
-                'fixed bottom-24 right-8 z-50 p-3 rounded-full bg-blue-600 text-white shadow-lg transition-all duration-300 hover:bg-blue-700 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center group overflow-hidden',
-                isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'
+                'fixed bottom-40 right-6 z-40 p-3 rounded-full bg-blue-600 text-white shadow-lg transition-all duration-300 hover:bg-blue-700 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 flex items-center group overflow-hidden',
+                (isVisible && !isAiChatOpen && !isCartOpen) ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'
             )}
             aria-label={t('scrollToTop')}
         >

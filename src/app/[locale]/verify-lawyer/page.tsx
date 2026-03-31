@@ -86,16 +86,16 @@ function VerifyLawyerContent() {
 
             if (licenseNumber) {
                 const sanitizedLicense = licenseNumber.replace(/\//g, '-');
-                q1 = query(lawyersRef, where('licenseNumber', '==', licenseNumber), where('status', '==', 'approved'));
-                q2 = query(verifiedRef, where('licenseNumber', '==', licenseNumber), where('status', '==', 'active'));
+                q1 = query(lawyersRef, where('licenseNumber', '==', licenseNumber), where('status', '==', 'approved'), limit(1));
+                q2 = query(verifiedRef, where('licenseNumber', '==', licenseNumber), where('status', '==', 'active'), limit(1));
             } else if (lawyerName) {
-                q1 = query(lawyersRef, where('name', '==', lawyerName), where('status', '==', 'approved'));
+                q1 = query(lawyersRef, where('name', '==', lawyerName), where('status', '==', 'approved'), limit(1));
 
                 const names = lawyerName.split(' ');
                 if (names.length >= 2) {
-                    q2 = query(verifiedRef, where('firstName', '==', names[0]), where('lastName', '==', names.slice(1).join(' ')), where('status', '==', 'active'));
+                    q2 = query(verifiedRef, where('firstName', '==', names[0]), where('lastName', '==', names.slice(1).join(' ')), where('status', '==', 'active'), limit(1));
                 } else {
-                    q2 = query(verifiedRef, where('firstName', '==', lawyerName), where('status', '==', 'active'));
+                    q2 = query(verifiedRef, where('firstName', '==', lawyerName), where('status', '==', 'active'), limit(1));
                 }
             }
 

@@ -21,7 +21,7 @@ import { useChat } from '@/context/chat-context';
 import { Textarea } from '@/components/ui/textarea';
 import { v4 as uuidv4 } from 'uuid';
 import { useFirebase } from '@/firebase';
-import { addDoc, collection, doc, serverTimestamp, setDoc, getDoc, query, where, getDocs, updateDoc } from 'firebase/firestore';
+import { addDoc, collection, doc, serverTimestamp, setDoc, getDoc, query, where, getDocs, updateDoc, limit } from 'firebase/firestore';
 import { errorEmitter, FirestorePermissionError } from '@/firebase';
 import { uploadToR2 } from '@/app/actions/upload-r2';
 import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '@/lib/constants';
@@ -58,17 +58,21 @@ function PaymentPageContent() {
     const [appliedCoupon, setAppliedCoupon] = useState<any | null>(null); // Type should be Coupon but using any for quick integration or import it
     const [discountAmount, setDiscountAmount] = useState(0);
     const [isCheckingCoupon, setIsCheckingCoupon] = useState(false);
+    const [caseData, setCaseData] = useState<any | null>(null);
 
 
     const appointmentFee = 3500;
     const chatTicketFee = 500;
     let fee = paymentType === 'chat' ? chatTicketFee : appointmentFee;
-    if (paymentType === 'additional' && amountParam) {
+    if ((paymentType === 'additional' || paymentType === 'case') && amountParam) {
         fee = Number(amountParam);
+    } else if (paymentType === 'case' && caseData) {
+        fee = Number(caseData.amount || 0);
     }
+
     const finalFee = Math.max(0, fee - discountAmount);
-    const title = paymentType === 'chat' ? 'ยืนยันการเปิด Ticket สนทนา' : (paymentType === 'additional' ? 'ชำระค่าบริการเพิ่มเติม' : 'ยืนยันการนัดหมายและชำระเงิน');
-    const descriptionText = paymentType === 'chat' ? 'กรุณาตรวจสอบรายละเอียดและดำเนินการชำระเงินค่าเปิด Ticket' : (paymentType === 'additional' ? 'กรุณาชำระค่าบริการเพิ่มเติมตามที่ทนายความร้องขอ' : 'กรุณาตรวจสอบรายละเอียดและดำเนินการชำระเงินค่าปรึกษา');
+    const title = paymentType === 'chat' ? 'ยืนยันการเปิด Ticket สนทนา' : (paymentType === 'additional' ? 'ชำระค่าบริการเพิ่มเติม' : (paymentType === 'case' ? 'ชำระค่าบริการเพื่อเริ่มงาน' : 'ยืนยันการนัดหมายและชำระเงิน'));
+    const descriptionText = paymentType === 'chat' ? 'กรุณาตรวจสอบรายละเอียดและดำเนินการชำระเงินค่าเปิด Ticket' : (paymentType === 'additional' ? 'กรุณาชำระค่าบริการเพิ่มเติมตามที่ทนายความร้องขอ' : (paymentType === 'case' ? 'กรุณาชำระค่าบริการเพื่อเริ่มต้นคดีตามที่คุณได้รับแจ้ง' : 'กรุณาตรวจสอบรายละเอียดและดำเนินการชำระเงินค่าปรึกษา'));
 
     useEffect(() => {
         async function fetchLawyer() {
@@ -79,7 +83,7 @@ function PaymentPageContent() {
 
             // Check if current user is a lawyer
             if (user) {
-                const q = query(collection(firestore, "lawyerProfiles"), where("userId", "==", user.uid));
+                const q = query(collection(firestore, "lawyerProfiles"), where("userId", "==", user.uid), limit(1));
                 const lawyerSnap = await getDocs(q);
                 if (!lawyerSnap.empty) {
                     toast({
@@ -95,6 +99,14 @@ function PaymentPageContent() {
             setIsLoading(true);
             const lawyerData = await getLawyerById(firestore, lawyerId);
             setLawyer(lawyerData || null);
+
+            // Fetch chat data if it's a manual case
+            if (chatId && paymentType === 'case') {
+                const chatSnap = await getDoc(doc(firestore, 'chats', chatId));
+                if (chatSnap.exists()) {
+                    setCaseData(chatSnap.data());
+                }
+            }
             setIsLoading(false);
         }
         fetchLawyer();
@@ -121,7 +133,8 @@ function PaymentPageContent() {
             const q = query(
                 collection(firestore, 'coupons'),
                 where('code', '==', couponCode.toUpperCase()),
-                where('isActive', '==', true)
+                where('isActive', '==', true),
+                limit(1)
             );
             const snapshot = await getDocs(q);
 
@@ -407,6 +420,38 @@ function PaymentPageContent() {
                 } else {
                     router.push(`/chat/${chatId}?lawyerId=${lawyerId}`);
                 }
+            } else if (paymentType === 'case' && chatId) {
+                console.log("Processing manual case payment for chat:", chatId);
+                const chatRef = doc(firestore, 'chats', chatId);
+
+                // Link client to the case and update status if needed
+                await updateDoc(chatRef, {
+                    userId: user.uid,
+                    participants: Array.from(new Set([...(caseData?.participants || []), user.uid])),
+                    status: isManualTransfer ? 'pending_payment' : 'active',
+                    ...(isManualTransfer && { slipUrl }),
+                    lastPaymentAt: serverTimestamp(),
+                    hasNewPayment: !isManualTransfer
+                });
+
+                // Create a system message
+                const messagesRef = collection(chatRef, 'messages');
+                await addDoc(messagesRef, {
+                    text: isManualTransfer ? `📄 ลูกความได้แนบหลักฐานการชำระเงินเพื่อเริ่มงานคำนวณ ฿${finalFee.toLocaleString()} (รอเจ้าหน้าที่ยืนยัน)` : `💳 ลูกความได้ชำระเงินเพื่อเริ่มงานจำนวน ฿${finalFee.toLocaleString()} เรียบร้อยแล้ว`,
+                    senderId: 'system',
+                    timestamp: serverTimestamp(),
+                });
+
+                toast({
+                    title: "ชำระเงินสำเร็จ!",
+                    description: isManualTransfer ? "ส่งหลักฐานการชำระเงินเรียบร้อยแล้ว" : "คุณสามารถเริ่มสื่อสารกับทนายในห้องคดีได้แล้ว",
+                });
+
+                if (isManualTransfer) {
+                    setPaymentSuccess(true);
+                } else {
+                    router.push(`/chat/${chatId}?lawyerId=${lawyerId}`);
+                }
             }
         } catch (error) {
             console.error("Payment processing error:", error);
@@ -539,7 +584,7 @@ function PaymentPageContent() {
                                     <>
                                         <div className="flex items-start gap-2">
                                             <MessageSquare className="w-4 h-4 text-muted-foreground mt-1" />
-                                            <span><span className="font-semibold">บริการ:</span> เปิด Ticket เพื่อเริ่มต้นการสนทนาส่วนตัว</span>
+                                            <span><span className="font-semibold">บริการ:</span> {paymentType === 'case' ? (caseData?.caseTitle || 'เริ่มต้นดำเนินคดี') : 'เปิด Ticket เพื่อเริ่มต้นการสนทนาส่วนตัว'}</span>
                                         </div>
                                         <div className="flex items-start gap-2">
                                             <Pencil className="w-4 h-4 text-muted-foreground mt-1" />

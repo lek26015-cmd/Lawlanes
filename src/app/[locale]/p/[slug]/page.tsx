@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useFirebase } from '@/firebase';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { collection, query, where, getDocs, limit } from 'firebase/firestore';
 import { useParams } from 'next/navigation';
 import { LandingPage } from '@/lib/types';
 import Image from 'next/image';
@@ -24,7 +24,8 @@ export default function PublicLandingPage() {
                 const q = query(
                     collection(firestore, 'landingPages'),
                     where('slug', '==', params.slug),
-                    where('status', '==', 'published') // Only show published pages
+                    where('status', '==', 'published'), // Only show published pages
+                    limit(1)
                 );
                 const snapshot = await getDocs(q);
                 if (!snapshot.empty) {

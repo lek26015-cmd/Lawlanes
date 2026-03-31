@@ -1,7 +1,7 @@
 'use server';
 
 import { initAdmin } from '@/lib/firebase-admin';
-import type { Case, UpcomingAppointment, ReportedTicket } from '@/lib/types';
+import type { Case, UpcomingAppointment, ReportedTicket, LawyerCase, LawyerAppointmentRequest } from '@/lib/types';
 
 export async function getUserDashboardData(userId: string) {
     const adminApp = await initAdmin();
@@ -112,7 +112,7 @@ export async function getUserDashboardData(userId: string) {
                     date: date,
                     time: data.timeSlot || 'N/A',
                     description: data.description || '',
-                    lawyer: { name: lawyer.name, imageUrl: lawyer.imageUrl, imageHint: lawyer.imageHint },
+                    lawyer: { id: lawyer.id, name: lawyer.name, imageUrl: lawyer.imageUrl, imageHint: lawyer.imageHint },
                     status: data.status || 'pending'
                 });
             }
@@ -150,8 +150,515 @@ export async function getUserDashboardData(userId: string) {
         });
         capDeals.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-        return { cases, appointments, tickets, capDeals };
+        // 5. Fetch Book Orders
+        const bookOrdersRef = db.collection('bookOrders');
+        const bookOrderSnap = await bookOrdersRef
+            .where('userId', '==', userId)
+            .get();
+
+        const bookOrders = bookOrderSnap.docs
+            .map(d => {
+                const data = d.data();
+                return {
+                    id: d.id,
+                    ...data,
+                    createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : new Date().toISOString(),
+                    updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate().toISOString() : new Date().toISOString(),
+                };
+            })
+            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+            .slice(0, 5);
+
+        // 6. Fetch Invoices (Billing)
+        const invoicesRef = db.collection('invoices');
+        const invoiceSnap = await invoicesRef
+            .where('userId', '==', userId)
+            .get();
+
+        const invoices = invoiceSnap.docs
+            .map(d => {
+                const data = d.data();
+                return {
+                    id: d.id,
+                    ...data,
+                    createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : new Date().toISOString(),
+                    dueDate: data.dueDate?.toDate ? data.dueDate.toDate().toISOString() : (data.dueDate || new Date().toISOString()),
+                };
+            })
+            .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+            .slice(0, 5);
+
+        return { cases, appointments, tickets, capDeals, bookOrders, invoices };
     } catch (error) {
+        throw error;
+    }
+}
+
+export async function getBookOrders(userId: string, limitCount: number = 50) {
+    const adminApp = await initAdmin();
+    if (!adminApp) throw new Error('Firebase Admin not initialized.');
+    const db = adminApp.firestore();
+
+    try {
+        const bookOrdersRef = db.collection('bookOrders');
+        const bookOrderSnap = await bookOrdersRef
+            .where('userId', '==', userId)
+            .get();
+
+        const bookOrders = bookOrderSnap.docs
+            .map(d => {
+                const data = d.data();
+                return {
+                    id: d.id,
+                    ...data,
+                    createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : new Date().toISOString(),
+                    updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate().toISOString() : new Date().toISOString(),
+                };
+            })
+            .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+            .slice(0, limitCount);
+
+        return bookOrders;
+    } catch (error) {
+        console.error("Error fetching book orders server-side:", error);
+        throw error;
+    }
+}
+
+export async function getLawyerStatsAction(lawyerId: string) {
+    const adminApp = await initAdmin();
+    if (!adminApp) {
+        throw new Error('Firebase Admin not initialized.');
+    }
+    const db = adminApp.firestore();
+
+    try {
+        const [appointmentsSnap, chatsSnap, reviewsSnap] = await Promise.all([
+            db.collection('appointments')
+                .where('lawyerId', '==', lawyerId)
+                .where('status', '==', 'completed')
+                .get(),
+            db.collection('chats')
+                .where('participants', 'array-contains', lawyerId)
+                .get(),
+            db.collection('reviews')
+                .where('lawyerId', '==', lawyerId)
+                .get()
+        ]);
+
+        let incomeThisMonth = 0;
+        let totalIncome = 0;
+        let completedCases = 0;
+        let rating = 0;
+        let responseRate = 0;
+
+        const now = new Date();
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+
+        appointmentsSnap.docs.forEach(doc => {
+            const data = doc.data();
+            const amount = 3500; // Fixed price logic from original
+            const lawyerShare = amount * 0.85;
+            totalIncome += lawyerShare;
+
+            const date = data.createdAt?.toDate ? data.createdAt.toDate() : new Date();
+            if (date.getMonth() === currentMonth && date.getFullYear() === currentYear) {
+                incomeThisMonth += lawyerShare;
+            }
+            completedCases++;
+        });
+
+        chatsSnap.docs.forEach(doc => {
+            const data = doc.data();
+            if (data.status === 'closed') {
+                const amount = 500; // Fixed price logic from original
+                const lawyerShare = amount * 0.85;
+                totalIncome += lawyerShare;
+
+                const date = data.createdAt?.toDate ? data.createdAt.toDate() : new Date();
+                if (date.getMonth() === currentMonth && date.getFullYear() === currentYear) {
+                    incomeThisMonth += lawyerShare;
+                }
+                completedCases++;
+            }
+        });
+
+        if (!reviewsSnap.empty) {
+            const totalRating = reviewsSnap.docs.reduce((acc, doc) => acc + (doc.data()?.rating || 0), 0);
+            rating = totalRating / reviewsSnap.size;
+        }
+
+        if (!chatsSnap.empty) {
+            const relevantChats = chatsSnap.docs.filter(doc => {
+                const data = doc.data();
+                return data.status !== 'pending_payment';
+            });
+            const engagedChats = relevantChats.filter(doc => {
+                const data = doc.data();
+                return data.status === 'active' || data.status === 'closed';
+            }).length;
+
+            if (relevantChats.length > 0) {
+                responseRate = (engagedChats / relevantChats.length) * 100;
+            } else {
+                responseRate = 100;
+            }
+        } else {
+            responseRate = 100;
+        }
+
+        return {
+            incomeThisMonth,
+            totalIncome,
+            completedCases,
+            rating,
+            responseRate
+        };
+    } catch (error) {
+        console.error("Error calculating lawyer stats action:", error);
+        return {
+            incomeThisMonth: 0,
+            totalIncome: 0,
+            completedCases: 0,
+            rating: 4.8, // Fallback
+            responseRate: 95 // Fallback
+        };
+    }
+}
+
+export async function getLawyerDashboardDataAction(lawyerId: string): Promise<{ newRequests: LawyerAppointmentRequest[], activeCases: LawyerCase[], completedCases: LawyerCase[] }> {
+    const adminApp = await initAdmin();
+    if (!adminApp) {
+        throw new Error('Firebase Admin not initialized.');
+    }
+    const db = adminApp.firestore();
+
+    try {
+        // 1. Fetch appointments and chats
+        const requestsSnap = await db.collection('appointments')
+            .where('lawyerId', '==', lawyerId)
+            .where('status', '==', 'pending')
+            .limit(50)
+            .get();
+
+        const casesSnap = await db.collection('chats')
+            .where('participants', 'array-contains', lawyerId)
+            .limit(100)
+            .get();
+
+        // 2. Fetch user profiles in batch
+        const userIds = new Set<string>();
+        requestsSnap.docs.forEach(d => { if (d.get('userId')) userIds.add(d.get('userId')); });
+        casesSnap.docs.forEach(d => {
+            const participants = d.get('participants');
+            const clientParticipantId = participants?.find((p: string) => p !== lawyerId);
+            if (clientParticipantId) userIds.add(clientParticipantId);
+        });
+
+        const userProfiles: Record<string, any> = {};
+        if (userIds.size > 0) {
+            const idsArray = Array.from(userIds);
+            const chunks = [];
+            for (let i = 0; i < idsArray.length; i += 30) {
+                chunks.push(idsArray.slice(i, i + 30));
+            }
+            const userSnaps = await Promise.all(chunks.map(chunk =>
+                db.collection('users').where('__name__', 'in', chunk).get()
+            ));
+            userSnaps.forEach(snap => {
+                snap.docs.forEach(doc => { userProfiles[doc.id] = doc.data(); });
+            });
+        }
+
+        // 3. Map results
+        const newRequests: LawyerAppointmentRequest[] = requestsSnap.docs.map(d => {
+            const data = d.data();
+            return {
+                id: d.id,
+                clientName: userProfiles[data.userId]?.name || 'ลูกค้า',
+                userId: data.userId || '',
+                caseTitle: data.description,
+                description: data.description,
+                requestedAt: data.createdAt?.toDate() || new Date(),
+            };
+        });
+
+        const lawyerCases = casesSnap.docs.map(d => {
+            const chatData = d.data();
+            const clientParticipantId = chatData.participants.find((p: string) => p !== lawyerId);
+
+            const lastMessageAt = chatData.lastMessageAt?.toDate() || chatData.createdAt?.toDate() || new Date(0);
+            const lawyerReadAt = chatData.lawyerReadAt?.toDate() || new Date(0);
+            const isUnread = lastMessageAt > lawyerReadAt;
+
+            return {
+                id: d.id,
+                title: chatData.caseTitle || 'Unknown Case',
+                clientName: userProfiles[clientParticipantId]?.name || 'ลูกค้า',
+                clientId: clientParticipantId,
+                status: chatData.status,
+                lastUpdate: lastMessageAt.toLocaleDateString('th-TH') || 'N/A',
+                updatedAt: lastMessageAt,
+                notifications: isUnread ? 1 : 0,
+                lastMessage: chatData.lastMessage || '',
+            };
+        });
+
+        return {
+            newRequests,
+            activeCases: lawyerCases
+                .filter(c => c.status === 'active' || c.status === 'pending_payment')
+                .sort((a: any, b: any) => b.updatedAt.getTime() - a.updatedAt.getTime()) as LawyerCase[],
+            completedCases: lawyerCases
+                .filter(c => c.status === 'closed')
+                .sort((a: any, b: any) => b.updatedAt.getTime() - a.updatedAt.getTime()) as LawyerCase[],
+        };
+    } catch (error) {
+        console.error("Error fetching lawyer dashboard action:", error);
+        return { newRequests: [], activeCases: [], completedCases: [] };
+    }
+}
+
+export async function getAdminLawyerDashboardDataAction(): Promise<{ newRequests: LawyerAppointmentRequest[], activeCases: LawyerCase[], completedCases: LawyerCase[] }> {
+    const adminApp = await initAdmin();
+    if (!adminApp) throw new Error('Firebase Admin not initialized.');
+    const db = adminApp.firestore();
+
+    try {
+        const [requestsSnap, casesSnap] = await Promise.all([
+            db.collection('appointments').where('status', '==', 'pending').limit(100).get(),
+            db.collection('chats').limit(100).get()
+        ]);
+
+        const userIds = new Set<string>();
+        requestsSnap.docs.forEach(d => { if (d.get('userId')) userIds.add(d.get('userId')); });
+        casesSnap.docs.forEach(d => {
+            const participants = d.get('participants');
+            if (participants) participants.forEach((p: string) => userIds.add(p));
+        });
+
+        const userProfiles: Record<string, any> = {};
+        if (userIds.size > 0) {
+            const idsArray = Array.from(userIds);
+            const chunks = [];
+            for (let i = 0; i < idsArray.length; i += 30) {
+                chunks.push(idsArray.slice(i, i + 30));
+            }
+            const userSnaps = await Promise.all(chunks.map(chunk =>
+                db.collection('users').where('__name__', 'in', chunk).get()
+            ));
+            userSnaps.forEach(snap => {
+                snap.docs.forEach(doc => { userProfiles[doc.id] = doc.data(); });
+            });
+        }
+
+        const newRequests: LawyerAppointmentRequest[] = requestsSnap.docs.map(d => {
+            const data = d.data();
+            return {
+                id: d.id,
+                clientName: userProfiles[data.userId]?.name || 'ลูกค้า',
+                userId: data.userId || '',
+                caseTitle: data.description,
+                description: data.description,
+                requestedAt: data.createdAt?.toDate() || new Date(),
+            };
+        });
+
+        const lawyerCases = casesSnap.docs.map(d => {
+            const chatData = d.data();
+            const clientParticipantId = chatData.participants?.[0] || '';
+            const lastUpdateDate = chatData.lastMessageAt?.toDate() || chatData.createdAt?.toDate() || new Date();
+
+            return {
+                id: d.id,
+                title: chatData.caseTitle || 'Unknown Case',
+                clientName: userProfiles[clientParticipantId]?.name || 'ลูกค้า',
+                clientId: clientParticipantId,
+                status: chatData.status,
+                lastUpdate: lastUpdateDate.toLocaleDateString('th-TH') || 'N/A',
+                updatedAt: lastUpdateDate,
+            };
+        });
+
+        return {
+            newRequests,
+            activeCases: lawyerCases
+                .filter(c => c.status === 'active' || c.status === 'pending_payment')
+                .sort((a: any, b: any) => b.updatedAt.getTime() - a.updatedAt.getTime()) as LawyerCase[],
+            completedCases: lawyerCases
+                .filter(c => c.status === 'closed')
+                .sort((a: any, b: any) => b.updatedAt.getTime() - a.updatedAt.getTime()) as LawyerCase[],
+        };
+    } catch (error) {
+        console.error("Error fetching admin dashboard action:", error);
+        return { newRequests: [], activeCases: [], completedCases: [] };
+    }
+}
+
+export async function getLawyerFinancialsAction(lawyerId: string) {
+    const adminApp = await initAdmin();
+    if (!adminApp) throw new Error('Firebase Admin not initialized.');
+    const db = adminApp.firestore();
+
+    try {
+        const appointmentsRef = db.collection('appointments');
+        const chatsRef = db.collection('chats');
+        const withdrawalsRef = db.collection('withdrawals');
+        const lawyerRef = db.collection('lawyerProfiles').doc(lawyerId);
+
+        const [appSnapshot, chatSnapshot, withdrawSnapshot, lawyerDoc] = await Promise.all([
+            appointmentsRef.where('lawyerId', '==', lawyerId).get(),
+            chatsRef.where('participants', 'array-contains', lawyerId).get(),
+            withdrawalsRef.where('lawyerId', '==', lawyerId).get(),
+            lawyerRef.get()
+        ]);
+
+        const lawyerProfile = lawyerDoc.data();
+        const appointmentFeeBase = lawyerProfile?.pricing?.appointmentFee || 3500;
+        const chatFeeBase = lawyerProfile?.pricing?.chatFee || 500;
+        const platformFeeRate = lawyerProfile?.pricing?.platformFeeRate || 0.15;
+
+        // Collect user IDs for batch fetching
+        const userIds = new Set<string>();
+        appSnapshot.docs.forEach(d => { if (d.get('userId')) userIds.add(d.get('userId')); });
+        chatSnapshot.docs.forEach(d => {
+            const participants = d.get('participants');
+            const clientParticipantId = participants?.find((p: string) => p !== lawyerId);
+            if (clientParticipantId) userIds.add(clientParticipantId);
+        });
+
+        const userProfiles: Record<string, any> = {};
+        if (userIds.size > 0) {
+            const idsArray = Array.from(userIds);
+            const chunks = [];
+            for (let i = 0; i < idsArray.length; i += 30) {
+                chunks.push(idsArray.slice(i, i + 30));
+            }
+            const userSnaps = await Promise.all(chunks.map(chunk =>
+                db.collection('users').where('__name__', 'in', chunk).get()
+            ));
+            userSnaps.forEach(snap => {
+                snap.docs.forEach(doc => { userProfiles[doc.id] = doc.data(); });
+            });
+        }
+
+        const allTransactions: any[] = [];
+        let total = 0;
+        let pending = 0;
+        let thisMonth = 0;
+        const now = new Date();
+
+        // Process Appointments
+        appSnapshot.docs.forEach(d => {
+            const data = d.data();
+            if (data.status === 'cancelled' || data.status === 'pending_payment') return;
+
+            const amount = appointmentFeeBase * (1 - platformFeeRate);
+            const isCompleted = data.status === 'completed';
+
+            const date = data.createdAt?.toDate ? data.createdAt.toDate() : new Date();
+            if (isCompleted) {
+                total += amount;
+                if (date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()) {
+                    thisMonth += amount;
+                }
+            } else {
+                pending += amount;
+            }
+
+            allTransactions.push({
+                id: d.id,
+                date: date.toISOString(),
+                description: 'นัดหมายปรึกษา',
+                amount: amount,
+                type: 'revenue',
+                status: isCompleted ? 'completed' : 'pending',
+                clientName: userProfiles[data.userId]?.name || 'ลูกค้า',
+                rawDateValue: date.getTime()
+            });
+        });
+
+        // Process Chats
+        chatSnapshot.docs.forEach(d => {
+            const data = d.data();
+            if (data.status === 'pending_payment') return;
+
+            const clientId = data.participants?.find((p: string) => p !== lawyerId);
+            const amount = chatFeeBase * (1 - platformFeeRate);
+            const isCompleted = data.status === 'closed';
+
+            const date = data.createdAt?.toDate ? data.createdAt.toDate() : new Date();
+            if (isCompleted) {
+                total += amount;
+                if (date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()) {
+                    thisMonth += amount;
+                }
+            } else {
+                pending += amount;
+            }
+
+            allTransactions.push({
+                id: d.id,
+                date: date.toISOString(),
+                description: 'ปรึกษาผ่านแชท',
+                amount: amount,
+                type: 'revenue',
+                status: isCompleted ? 'completed' : 'pending',
+                clientName: userProfiles[clientId]?.name || 'ลูกค้า',
+                rawDateValue: date.getTime()
+            });
+        });
+
+        const withdrawals: any[] = [];
+        let totalWithdrawn = 0;
+        let pendingWithdrawal = 0;
+
+        withdrawSnapshot.docs.forEach(doc => {
+            const data = doc.data();
+            withdrawals.push({
+                id: doc.id,
+                amount: data.amount,
+                status: data.status,
+                requestedAt: data.requestedAt?.toDate ? data.requestedAt.toDate().toISOString() : new Date().toISOString(),
+                bankName: data.bankName,
+                accountNumber: data.accountNumber,
+                rawDateValue: data.requestedAt?.toDate ? data.requestedAt.toDate().getTime() : 0
+            });
+
+            if (data.status === 'approved') {
+                totalWithdrawn += data.amount;
+            } else if (data.status === 'pending') {
+                pendingWithdrawal += data.amount;
+            }
+        });
+
+        allTransactions.sort((a, b) => b.rawDateValue - a.rawDateValue);
+        withdrawals.sort((a, b) => b.rawDateValue - a.rawDateValue);
+
+        return {
+            transactions: allTransactions,
+            withdrawals: withdrawals,
+            stats: {
+                totalIncome: total,
+                pendingIncome: pending,
+                incomeThisMonth: thisMonth,
+                withdrawnAmount: totalWithdrawn,
+                availableBalance: total - totalWithdrawn - pendingWithdrawal
+            },
+            profile: {
+                bankName: lawyerProfile?.bankName || '',
+                bankAccountNumber: lawyerProfile?.bankAccountNumber || '',
+                bankAccountName: lawyerProfile?.bankAccountName || lawyerProfile?.name || '',
+                name: lawyerProfile?.name || '',
+                corporateName: lawyerProfile?.corporateName || '',
+                corporateTaxId: lawyerProfile?.corporateTaxId || '',
+                corporateAddress: lawyerProfile?.corporateAddress || ''
+            }
+        };
+
+    } catch (error) {
+        console.error("Error fetching lawyer financials action:", error);
         throw error;
     }
 }

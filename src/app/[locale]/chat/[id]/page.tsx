@@ -1,5 +1,3 @@
-
-
 'use client';
 
 import { useState, useEffect, Suspense, useRef } from 'react';
@@ -7,9 +5,14 @@ import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { getLawyerById } from '@/lib/data';
 import type { LawyerProfile } from '@/lib/types';
 import { useFirebase, useUser } from '@/firebase';
-// import { useUser } from '@/firebase/auth/use-user';
 import { ChatBox } from '@/components/chat/chat-box';
 import { uploadFileAction } from '../actions';
+import { submitReviewAction } from '@/app/actions/review-actions';
+import { useTranslations } from 'next-intl';
+import { CaseRoadmap } from '@/components/case/case-roadmap';
+import { LegalResearchTool } from '@/components/case/legal-research-tool';
+import { InterpreterSearchTool } from '@/components/case/interpreter-search-tool';
+import { cn } from '@/lib/utils';
 
 import {
     Card,
@@ -29,9 +32,15 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
     AlertDialogTrigger,
-} from "@/components/ui/alert-dialog"
+} from "@/components/ui/alert-dialog";
+import {
+    Tabs,
+    TabsContent,
+    TabsList,
+    TabsTrigger,
+} from "@/components/ui/tabs";
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, FileText, Check, Upload, Scale, Ticket, Briefcase, User as UserIcon, DollarSign, ArrowLeft, Plus } from 'lucide-react';
+import { AlertTriangle, FileText, Check, Upload, Scale, Ticket, Briefcase, User as UserIcon, DollarSign, ArrowLeft, Plus, Sparkles, BrainCircuit, Globe } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -40,7 +49,7 @@ import { CopyButton } from '@/components/ui/copy-button';
 import Link from 'next/link';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { doc, getDoc, updateDoc, arrayUnion, onSnapshot, serverTimestamp, addDoc, collection, query, where, getDocs, setDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, arrayUnion, onSnapshot, serverTimestamp } from 'firebase/firestore';
 import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '@/lib/constants';
 
 function ChatPageContent() {
@@ -49,9 +58,8 @@ function ChatPageContent() {
     const searchParams = useSearchParams();
     const chatId = params.id as string;
     const lawyerId = searchParams.get('lawyerId');
-    const clientId = searchParams.get('clientId'); // For lawyer's view
+    const clientId = searchParams.get('clientId');
     const view = searchParams.get('view');
-    const additionalFeeRequested = searchParams.get('additionalFeeRequested');
 
     const [lawyer, setLawyer] = useState<LawyerProfile | null>(null);
     const [client, setClient] = useState<{ id: string, name: string, imageUrl: string } | null>(null);
@@ -67,22 +75,22 @@ function ChatPageContent() {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { toast } = useToast();
 
+    const tCase = useTranslations('CaseRoom');
+    const tCommon = useTranslations('Dashboard');
+
     const isCompleted = chatStatus === 'closed';
     const isLawyerView = view === 'lawyer';
     const [isChatDisabled, setIsChatDisabled] = useState(isCompleted);
 
-    // Review state (for user view)
+    const isOfficial = chatAmount > 0;
+    const currentStep = isCompleted ? 4 : (isOfficial ? 3 : (pendingFeeRequest ? 2 : 1));
+
     const [rating, setRating] = useState(0);
     const [reviewText, setReviewText] = useState("");
 
-    const { auth, firestore, storage } = useFirebase();
+    const { firestore, storage } = useFirebase();
     const { user } = useUser();
 
-    const initialFee = 3500;
-    const additionalFee = 1500;
-    const totalFee = initialFee + additionalFee;
-
-    // Real-time listener for chat document (status and files)
     useEffect(() => {
         if (!firestore || !chatId || !user) return;
 
@@ -92,22 +100,9 @@ function ChatPageContent() {
                 const data = doc.data();
                 setChatStatus(data.status || 'active');
                 setIsChatDisabled(data.status === 'closed');
-                if (data.files) {
-                    setFiles(data.files);
-                }
-                if (data.amount !== undefined) {
-                    setChatAmount(data.amount);
-                }
-                if (data.pendingFeeRequest) {
-                    setPendingFeeRequest(data.pendingFeeRequest);
-                } else {
-                    setPendingFeeRequest(null);
-                }
-            }
-        }, (error) => {
-            // Suppress permission errors that might happen during logout race conditions
-            if (error.code !== 'permission-denied') {
-                console.error("Chat snapshot error:", error);
+                if (data.files) setFiles(data.files);
+                if (data.amount !== undefined) setChatAmount(data.amount);
+                setPendingFeeRequest(data.pendingFeeRequest || null);
             }
         });
 
@@ -116,36 +111,26 @@ function ChatPageContent() {
 
     useEffect(() => {
         if (!firestore) return;
-        const db = firestore; // Capture non-null firestore
         async function fetchData() {
             setIsLoading(true);
-
-            // Try to get lawyer from URL param first
             let effectiveLawyerId = lawyerId;
 
-            // If no lawyerId from URL, try to get from chat document
             if (!effectiveLawyerId && chatId) {
-                const chatRef = doc(db, 'chats', chatId);
+                const chatRef = doc(firestore!, 'chats', chatId);
                 const chatSnap = await getDoc(chatRef);
                 if (chatSnap.exists()) {
                     const chatData = chatSnap.data();
-                    // Try lawyerId field first, then from participants
                     effectiveLawyerId = chatData.lawyerId || chatData.participants?.find((p: string) => p !== user?.uid);
                 }
             }
 
             if (effectiveLawyerId) {
-                const lawyerData = await getLawyerById(db, effectiveLawyerId);
+                const lawyerData = await getLawyerById(firestore!, effectiveLawyerId);
                 setLawyer(lawyerData || null);
             }
             if (isLawyerView && clientId) {
-                const userDoc = await getDoc(doc(db, 'users', clientId));
-                // Note: getDoc takes a DocumentReference, so we need doc(db, 'users', clientId)
-                // But wait, the original code had getDoc(doc(db, 'users', clientId)). 
-                // Let's fix the previous implementation which might have been slightly off or just verbose.
-                const clientRef = doc(db, 'users', clientId);
+                const clientRef = doc(firestore!, 'users', clientId);
                 const userDocSnap = await getDoc(clientRef);
-
                 if (userDocSnap.exists()) {
                     const userData = userDocSnap.data();
                     setClient({ id: clientId, name: userData.name, imageUrl: userData.avatar || '' });
@@ -156,528 +141,368 @@ function ChatPageContent() {
         fetchData();
     }, [lawyerId, clientId, isLawyerView, firestore, chatId, user]);
 
-    const handleUploadClick = () => {
-        fileInputRef.current?.click();
-    };
+    const handleUploadClick = () => fileInputRef.current?.click();
 
     const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
-        if (!file) return;
-
-        // DEBUG ALERTS
-        alert(`Selected file: ${file.name} (${file.size} bytes)`);
-
-        if (!user) {
-            alert("Error: User is not logged in!");
-            console.error("Upload failed: User not logged in");
-            toast({ variant: "destructive", title: "กรุณาเข้าสู่ระบบ", description: "คุณต้องเข้าสู่ระบบก่อนอัปโหลดไฟล์" });
-            return;
-        }
-        if (!storage) {
-            alert("Error: Firebase Storage is not initialized! Check your .env.local config.");
-            console.error("Upload failed: Storage not initialized");
-            toast({ variant: "destructive", title: "ระบบขัดข้อง", description: "ไม่สามารถเชื่อมต่อกับระบบจัดเก็บไฟล์ได้ (Storage is null)" });
-            return;
-        }
-        if (!firestore) {
-            alert("Error: Firestore is not initialized!");
-            console.error("Upload failed: Firestore not initialized");
-            return;
-        }
+        if (!file || !user || !storage || !firestore) return;
 
         if (file.size > MAX_FILE_SIZE_BYTES) {
-            alert(`File too large! Max ${MAX_FILE_SIZE_MB}MB`);
-            toast({
-                variant: "destructive",
-                title: "ไฟล์มีขนาดใหญ่เกินไป",
-                description: `กรุณาเลือกไฟล์ที่มีขนาดไม่เกิน ${MAX_FILE_SIZE_MB}MB`,
-            });
+            toast({ variant: "destructive", title: "ไฟล์มีขนาดใหญ่เกินไป", description: `ไม่เกิน ${MAX_FILE_SIZE_MB}MB` });
             return;
         }
 
         try {
             toast({ title: "กำลังอัปโหลด...", description: "กรุณารอสักครู่" });
-
-            // Get ID Token for server-side auth (still good practice even for local)
-            const idToken = user ? await user.getIdToken() : '';
-
+            const idToken = await user.getIdToken();
             const formData = new FormData();
             formData.append('file', file);
 
-            // Call Server Action
             const result = await uploadFileAction(formData, idToken, chatId);
-
-            let downloadUrl = result.fullPath;
-
-            // If it's NOT local, we use the returned fullPath (which is the Public URL for R2)
-            // No need to call getDownloadURL for R2
-
             const fileData = {
                 name: file.name,
-                url: downloadUrl,
+                url: result.fullPath,
                 size: file.size,
                 uploadedBy: user.uid,
                 uploadedAt: Date.now()
             };
 
-            const chatRef = doc(firestore, 'chats', chatId);
-            await updateDoc(chatRef, {
+            await updateDoc(doc(firestore, 'chats', chatId), {
                 files: arrayUnion(fileData)
             });
 
-            toast({
-                title: "อัปโหลดไฟล์สำเร็จ",
-                description: `ไฟล์ "${file.name}" ถูกเพิ่มในรายการแล้ว`,
-            });
-
+            toast({ title: "อัปโหลดไฟล์สำเร็จ", description: `ไฟล์ "${file.name}" ถูกเพิ่มแล้ว` });
         } catch (error: any) {
-            console.error("Upload error:", error);
-            toast({
-                variant: "destructive",
-                title: "อัปโหลดไม่สำเร็จ",
-                description: `เกิดข้อผิดพลาด: ${error.message}`,
-            });
+            toast({ variant: "destructive", title: "อัปโหลดไม่สำเร็จ", description: error.message });
         }
-
-        // Reset file input
-        if (event.target) {
-            event.target.value = '';
-        }
+        if (event.target) event.target.value = '';
     };
 
     const handleConfirmRelease = async () => {
         if (!firestore) return;
-
         try {
-            const chatRef = doc(firestore, 'chats', chatId);
-            await updateDoc(chatRef, {
+            await updateDoc(doc(firestore, 'chats', chatId), {
                 status: 'closed',
                 closedAt: serverTimestamp()
             });
-
-            toast({
-                title: "ดำเนินการสำเร็จ",
-                description: "เคสเสร็จสมบูรณ์แล้ว กำลังนำคุณไปยังหน้าให้คะแนน...",
-            });
-
-            // Wait a bit for the user to see the toast before redirecting
-            // Or rely on the real-time listener to update the UI to "Review" mode
-            // But the requirement says "redirect to review page"
+            toast({ title: "ดำเนินการสำเร็จ", description: "เคสเสร็จสมบูรณ์แล้ว" });
             setTimeout(() => {
                 router.push(`/review/${chatId}?lawyerId=${lawyerId}`);
             }, 1500);
-
         } catch (error) {
-            console.error("Error closing case:", error);
-            toast({
-                variant: "destructive",
-                title: "เกิดข้อผิดพลาด",
-                description: "ไม่สามารถปิดเคสได้ กรุณาลองใหม่อีกครั้ง",
-            });
+            toast({ variant: "destructive", title: "เกิดข้อผิดพลาด", description: "ไม่สามารถปิดเคสได้" });
         }
-    };
-
-    const handleApproveAdditionalFee = () => {
-        toast({
-            title: "อนุมัติสำเร็จ",
-            description: "ระบบกำลังนำคุณไปหน้าชำระเงินส่วนต่าง (จำลอง)",
-        });
-        // In real app, would redirect to payment page with correct amount
-        router.push(`/payment?lawyerId=${lawyerId}&fee=${additionalFee}`);
     };
 
     const handleSubmitReview = async () => {
-        if (rating === 0) {
-            toast({
-                variant: "destructive",
-                title: "กรุณาให้คะแนน",
-                description: "โปรดเลือกดาวเพื่อให้คะแนนความพึงพอใจ",
-            });
-            return;
-        }
-
-        if (!firestore || !user || !lawyerId) {
-            toast({
-                variant: "destructive",
-                title: "เกิดข้อผิดพลาด",
-                description: "ไม่พบข้อมูลทนายความ หรือคุณยังไม่ได้เข้าสู่ระบบ",
-            });
-            return;
-        }
-
+        if (rating === 0 || !user || !lawyerId) return;
         try {
-            // 1. Add the review document
-            await addDoc(collection(firestore, 'reviews'), {
+            setIsLoading(true);
+            await submitReviewAction({
                 lawyerId,
                 userId: user.uid,
                 author: client?.name || user.displayName || 'Anonymous',
                 avatar: client?.imageUrl || user.photoURL || '',
                 rating: Number(rating),
                 comment: reviewText,
-                createdAt: serverTimestamp(),
                 caseId: chatId
             });
-
-            // 2. Calculate new average rating and review count
-            // We fetch all reviews to ensure accuracy
-            const reviewsRef = collection(firestore, 'reviews');
-            const q = query(reviewsRef, where('lawyerId', '==', lawyerId));
-            const querySnapshot = await getDocs(q);
-
-            const totalReviews = querySnapshot.size;
-            const totalRating = querySnapshot.docs.reduce((acc: number, doc: any) => acc + (Number(doc.data().rating) || 0), 0);
-            const newAverageRating = totalReviews > 0 ? totalRating / totalReviews : 0;
-
-            console.log(`Updating stats for lawyer ${lawyerId}: Avg ${newAverageRating}, Count ${totalReviews}`);
-
-            // 3. Update lawyer document
-            // Use setDoc with merge: true to handle cases where doc might not exist yet or is in a different collection
-            const lawyerRef = doc(firestore, 'lawyerProfiles', lawyerId);
-
-            try {
-                await setDoc(lawyerRef, {
-                    averageRating: newAverageRating,
-                    reviewCount: totalReviews
-                }, { merge: true });
-            } catch (e) {
-                console.warn("Could not update lawyerProfiles, trying users collection", e);
-                // Fallback to users collection if lawyerProfiles fails (though setDoc should create it)
-                // This is just in case of permission issues or logical separation
-                const userRef = doc(firestore, 'users', lawyerId);
-                await setDoc(userRef, {
-                    averageRating: newAverageRating,
-                    reviewCount: totalReviews
-                }, { merge: true });
-            }
-
-            toast({
-                title: "ส่งรีวิวสำเร็จ",
-                description: "ขอบคุณสำหรับความคิดเห็นของคุณ!",
-            });
+            toast({ title: "ส่งรีวิวสำเร็จ" });
             router.push('/dashboard');
-        } catch (error) {
-            console.error("Error submitting review:", error);
-            toast({
-                variant: "destructive",
-                title: "เกิดข้อผิดพลาด",
-                description: "ไม่สามารถส่งรีวิวได้ กรุณาลองใหม่อีกครั้ง",
-            });
+        } catch (error: any) {
+            toast({ variant: "destructive", title: "เกิดข้อผิดพลาด", description: error.message });
+        } finally {
+            setIsLoading(false);
         }
     };
 
     const handleRequestFee = async () => {
-        if (!feeRequestAmount || isNaN(Number(feeRequestAmount)) || Number(feeRequestAmount) <= 0) {
-            toast({ variant: "destructive", title: "จำนวนเงินไม่ถูกต้อง" });
-            return;
-        }
-
-        if (!firestore || !chatId) return;
+        if (!feeRequestAmount || isNaN(Number(feeRequestAmount)) || Number(feeRequestAmount) <= 0 || !firestore) return;
         setIsRequestingFee(true);
-
         try {
-            const chatRef = doc(firestore, 'chats', chatId);
-            await updateDoc(chatRef, {
+            await updateDoc(doc(firestore, 'chats', chatId), {
                 pendingFeeRequest: {
                     amount: Number(feeRequestAmount),
                     reason: feeRequestReason,
                     requestedAt: serverTimestamp()
                 }
             });
-
-            toast({ title: "ส่งคำขอสำเร็จ", description: "ระบบได้แจ้งคำขอเรียกเก็บค่าบริการให้ลูกความแล้ว" });
+            toast({ title: "ส่งคำขอสำเร็จ" });
             setIsFeeModalOpen(false);
             setFeeRequestAmount('');
             setFeeRequestReason('');
         } catch (error) {
-            console.error("Error requesting fee:", error);
-            toast({ variant: "destructive", title: "เกิดข้อผิดพลาด", description: "ไม่สามารถส่งคำขอได้" });
+            toast({ variant: "destructive", title: "เกิดข้อผิดพลาด" });
         } finally {
             setIsRequestingFee(false);
         }
     };
 
-    if (isLoading) {
-        return <div>Loading chat...</div>
-    }
+    if (isLoading) return <div className="flex h-screen items-center justify-center">Loading chat...</div>;
 
     const chatPartner = isLawyerView ? client : lawyer;
-    if (!chatPartner || !user || !firestore) {
-        return <div>Unable to load chat. Missing information.</div>
-    }
+    if (!chatPartner || !user || !firestore) return <div>Unable to load chat. Missing information.</div>;
 
     const otherUser = {
         name: isLawyerView ? (client?.name ?? 'Client') : (lawyer?.name ?? 'Lawyer'),
-        userId: isLawyerView ? (client?.id ?? '') : (lawyer?.userId || lawyer?.id || ''), // Fallback to lawyer.id if userId is missing
-        imageUrl: isLawyerView ? (client?.imageUrl ?? "https://picsum.photos/seed/user-avatar/100/100") : (lawyer?.imageUrl ?? ''),
+        userId: isLawyerView ? (client?.id ?? '') : (lawyer?.userId || lawyer?.id || ''),
+        imageUrl: isLawyerView ? (client?.imageUrl ?? "") : (lawyer?.imageUrl ?? ''),
     };
-
 
     return (
         <div className="container mx-auto px-4 md:px-6 py-8">
-            <div className="mb-4">
-                <Link href={isLawyerView ? "/lawyer-dashboard" : "/dashboard"} className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-2">
-                    <ArrowLeft className="w-4 h-4" />
-                    กลับไปที่แดชบอร์ด
-                </Link>
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2">
-                    <ChatBox firestore={firestore} currentUser={user} otherUser={otherUser} chatId={chatId} isDisabled={isChatDisabled} isLawyerView={isLawyerView} />
+            <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div className="flex flex-col gap-1">
+                    <Link href={isLawyerView ? "/lawyer-dashboard" : "/dashboard"} className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 transition-colors">
+                        <ArrowLeft className="w-3.5 h-3.5" />
+                        {tCommon('backToHome')}
+                    </Link>
+                    <h1 className="text-2xl font-bold font-headline mt-1 flex items-center gap-2">
+                        {isOfficial ? tCase('titleOfficial') : tCase('titleInitial')}
+                        <Badge variant={isOfficial ? "default" : "secondary"} className={cn("rounded-full uppercase text-[10px] tracking-widest px-2 py-0", isOfficial && "bg-amber-100 text-amber-700 border-amber-200")}>
+                            {isOfficial ? tCase('officialBadge') : tCase('freeBadge')}
+                        </Badge>
+                    </h1>
                 </div>
-                <div className="lg:col-span-1 space-y-6">
-                    {isLawyerView ? (
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <Briefcase className="w-5 h-5" />
-                                    ข้อมูลเคส
-                                </CardTitle>
-                                <CardDescription>เคส: คดีมรดก</CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-4 text-sm">
-                                <div className="flex items-center gap-3 p-3 rounded-lg bg-secondary/40">
-                                    <Avatar>
-                                        <AvatarImage src={otherUser.imageUrl} />
-                                        <AvatarFallback>{otherUser.name.charAt(0)}</AvatarFallback>
-                                    </Avatar>
-                                    <div>
-                                        <p className="font-semibold text-muted-foreground">ลูกค้า</p>
-                                        <p className="font-bold text-foreground">{otherUser.name}</p>
-                                    </div>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-muted-foreground">Ticket ID:</span>
-                                    <div className="flex items-center gap-1">
-                                        <code className="bg-secondary px-1.5 py-0.5 rounded text-xs font-mono">{chatId}</code>
-                                        <CopyButton value={chatId} />
-                                    </div>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-muted-foreground">สถานะเคส:</span>
-                                    <Badge variant={isCompleted ? "secondary" : (pendingFeeRequest ? "destructive" : "default")}>
-                                        {isCompleted ? 'เสร็จสิ้น' : (pendingFeeRequest ? 'รอชำระค่าบริการเพิ่มเติม' : 'กำลังดำเนินการ')}
-                                    </Badge>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-muted-foreground">ค่าบริการใน Escrow:</span>
-                                    <span className="font-semibold">฿{chatAmount.toLocaleString()}</span>
-                                </div>
-                            </CardContent>
-                            <CardFooter className="flex-col gap-2">
-                                {isCompleted ? (
-                                    <Button disabled className="w-full">เคสนี้เสร็จสิ้นแล้ว</Button>
-                                ) : (
-                                    <>
-                                        <AlertDialog open={isFeeModalOpen} onOpenChange={setIsFeeModalOpen}>
-                                            <AlertDialogTrigger asChild>
-                                                <Button variant="default" className="w-full bg-blue-600 hover:bg-blue-700">
-                                                    <Plus className="w-4 h-4 mr-2" /> เรียกเก็บค่าบริการเพิ่มเติม
-                                                </Button>
-                                            </AlertDialogTrigger>
-                                            <AlertDialogContent>
-                                                <AlertDialogHeader>
-                                                    <AlertDialogTitle>เรียกเก็บค่าบริการเพิ่มเติม</AlertDialogTitle>
-                                                    <AlertDialogDescription>
-                                                        ระบุจำนวนเงินและเหตุผลในการเรียกเก็บเพิ่มเติม (เช่น ค่าเอกสาร, ค่าธรรมเนียมศาล)
-                                                    </AlertDialogDescription>
-                                                </AlertDialogHeader>
-                                                <div className="space-y-4 py-4">
-                                                    <div className="space-y-2">
-                                                        <Label htmlFor="fee-amount">จำนวนเงิน (บาท)</Label>
-                                                        <Input
-                                                            id="fee-amount"
-                                                            type="number"
-                                                            placeholder="เช่น 500"
-                                                            value={feeRequestAmount}
-                                                            onChange={(e) => setFeeRequestAmount(e.target.value)}
-                                                        />
-                                                    </div>
-                                                    <div className="space-y-2">
-                                                        <Label htmlFor="fee-reason">เหตุผล</Label>
-                                                        <Textarea
-                                                            id="fee-reason"
-                                                            placeholder="ระบุเหตุผลในการเรียกเก็บ..."
-                                                            value={feeRequestReason}
-                                                            onChange={(e) => setFeeRequestReason(e.target.value)}
-                                                        />
-                                                    </div>
-                                                </div>
-                                                <AlertDialogFooter>
-                                                    <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
-                                                    <AlertDialogAction onClick={(e) => { e.preventDefault(); handleRequestFee(); }} disabled={isRequestingFee}>
-                                                        {isRequestingFee ? 'กำลังส่ง...' : 'ส่งคำขอ'}
-                                                    </AlertDialogAction>
-                                                </AlertDialogFooter>
-                                            </AlertDialogContent>
-                                        </AlertDialog>
+                <div className="flex-1 max-w-xl">
+                    <CaseRoadmap currentStep={currentStep} isPremium={isOfficial} />
+                </div>
+            </div>
 
-                                        <Button variant="outline" className="w-full" asChild>
-                                            <Link href={`/lawyer-dashboard/close-case/${chatId}?clientName=${client?.name}`}>
-                                                ส่งสรุปและปิดเคส
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                <div className="lg:col-span-3 h-[800px] flex flex-col">
+                    <div className="flex-1 min-h-0">
+                        <ChatBox firestore={firestore} currentUser={user} otherUser={otherUser} chatId={chatId} isDisabled={isChatDisabled} isLawyerView={isLawyerView} />
+                    </div>
+                </div>
+                
+                <div className="lg:col-span-1 space-y-6">
+                    <Tabs defaultValue="info" className="w-full">
+                        <TabsList className={cn("w-full grid mb-4 h-12", isLawyerView && isOfficial ? "grid-cols-3" : "grid-cols-2")}>
+                            <TabsTrigger value="info" className="text-[10px] font-bold uppercase tracking-widest">{tCommon('viewDetails')}</TabsTrigger>
+                            <TabsTrigger value="vault" className="text-[10px] font-bold uppercase tracking-widest">{tCase('legalVault').split(' ')[0]}</TabsTrigger>
+                            {isLawyerView && isOfficial && (
+                                <TabsTrigger value="tools" className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5">
+                                    <Sparkles className="w-3 h-3 text-blue-500" /> {tCase('proTools')}
+                                </TabsTrigger>
+                            )}
+                        </TabsList>
+                        
+                        <TabsContent value="info" className="space-y-6">
+                            {isLawyerView ? (
+                                <Card className="border-none shadow-sm bg-slate-50 dark:bg-slate-900/50">
+                                    <CardHeader className="pb-3">
+                                        <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                                            <Briefcase className="w-4 h-4 text-primary" />
+                                            ขอบเขตเคส
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4 text-sm">
+                                        <div className="flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700">
+                                            <Avatar className="h-10 w-10">
+                                                <AvatarImage src={otherUser.imageUrl} />
+                                                <AvatarFallback>{otherUser.name.charAt(0)}</AvatarFallback>
+                                            </Avatar>
+                                            <div>
+                                                <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">ลูกความ</p>
+                                                <p className="font-bold text-slate-900 dark:text-white leading-tight">{otherUser.name}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-between items-center px-1">
+                                            <span className="text-xs text-slate-500 font-medium">Ticket ID:</span>
+                                            <div className="flex items-center gap-1.5 min-w-0">
+                                                <code className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[10px] font-mono truncate">{chatId}</code>
+                                                <CopyButton value={chatId} className="h-6 w-6" />
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-between px-1">
+                                            <span className="text-xs text-slate-500 font-medium">สถานะ:</span>
+                                            <Badge variant={isCompleted ? "secondary" : (pendingFeeRequest ? "destructive" : "default")} className="text-[10px] px-1.5 py-0">
+                                                {isCompleted ? 'เสร็จสิ้น' : (pendingFeeRequest ? "รอชำระเงิน" : 'กำลังดำเนินการ')}
+                                            </Badge>
+                                        </div>
+                                        <div className="flex justify-between px-1">
+                                            <span className="text-xs text-slate-500 font-medium">ค่าบริการ:</span>
+                                            <span className="font-bold text-slate-900 dark:text-white">฿{chatAmount.toLocaleString()}</span>
+                                        </div>
+                                    </CardContent>
+                                    <CardFooter className="flex-col gap-2 pt-2">
+                                        {!isCompleted && (
+                                            <>
+                                                <AlertDialog open={isFeeModalOpen} onOpenChange={setIsFeeModalOpen}>
+                                                    <AlertDialogTrigger asChild>
+                                                        <Button variant="default" className="w-full bg-blue-600 hover:bg-blue-700 text-xs h-9 font-bold">
+                                                            <Plus className="w-3.5 h-3.5 mr-1.5" /> {chatAmount === 0 ? "เสนอราคาเปิดคดี" : "เรียกเก็บเพิ่มเติม"}
+                                                        </Button>
+                                                    </AlertDialogTrigger>
+                                                    <AlertDialogContent>
+                                                        <AlertDialogHeader>
+                                                            <AlertDialogTitle>{chatAmount === 0 ? "เสนอราคาเพื่อเปิดคดี" : "เรียกเก็บเพิ่มเติม"}</AlertDialogTitle>
+                                                        </AlertDialogHeader>
+                                                        <div className="space-y-4 py-4">
+                                                            <div className="space-y-2">
+                                                                <Label>จำนวนเงิน (บาท)</Label>
+                                                                <Input type="number" placeholder="เช่น 5,000" value={feeRequestAmount} onChange={(e) => setFeeRequestAmount(e.target.value)} />
+                                                            </div>
+                                                            <div className="space-y-2">
+                                                                <Label>เหตุผล / ขอบเขตงาน</Label>
+                                                                <Textarea placeholder="รายละเอียด..." value={feeRequestReason} onChange={(e) => setFeeRequestReason(e.target.value)} />
+                                                            </div>
+                                                        </div>
+                                                        <AlertDialogFooter>
+                                                            <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
+                                                            <AlertDialogAction onClick={(e) => { e.preventDefault(); handleRequestFee(); }} disabled={isRequestingFee}>
+                                                                {isRequestingFee ? 'กำลังส่ง...' : 'ส่งข้อเสนอ'}
+                                                            </AlertDialogAction>
+                                                        </AlertDialogFooter>
+                                                    </AlertDialogContent>
+                                                </AlertDialog>
+                                                <Button variant="outline" className="w-full h-9 text-xs" asChild>
+                                                    <Link href={`/lawyer-dashboard/close-case/${chatId}`}>ปิดสรุปเคส</Link>
+                                                </Button>
+                                            </>
+                                        )}
+                                    </CardFooter>
+                                </Card>
+                            ) : isCompleted ? (
+                                <Card className="border-green-100 bg-green-50/30">
+                                    <CardHeader className="pb-3 text-center text-sm font-bold">ให้คะแนนบริการ</CardHeader>
+                                    <CardContent className="space-y-4">
+                                        <div className="flex items-center justify-center gap-1.5 py-2">
+                                            {[1, 2, 3, 4, 5].map((star) => (
+                                                <button key={star} onClick={() => setRating(star)} className="focus:outline-none">
+                                                    <Scale className={cn("w-6 h-6 transition-all", rating >= star ? "text-amber-500 fill-amber-500" : "text-slate-300")} />
+                                                </button>
+                                            ))}
+                                        </div>
+                                        <Textarea placeholder="แชร์ความประทับใจ..." value={reviewText} onChange={(e) => setReviewText(e.target.value)} className="text-sm min-h-[80px]" />
+                                    </CardContent>
+                                    <CardFooter>
+                                        <Button onClick={handleSubmitReview} className="w-full font-bold h-9 text-xs" disabled={rating === 0}>ส่งรีวิว</Button>
+                                    </CardFooter>
+                                </Card>
+                            ) : pendingFeeRequest ? (
+                                <Card className="border-amber-400 shadow-xl ring-4 ring-amber-400/10 bg-white">
+                                    <CardHeader className="pb-2">
+                                        <CardTitle className="text-sm font-bold flex items-center gap-2 text-amber-700">
+                                            <DollarSign className="w-5 h-5" />ข้อเสนอเปิดคดี
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4 text-sm">
+                                        <div className="p-3 bg-amber-50 border border-amber-100 rounded-xl text-amber-800 text-xs">
+                                            <p className="font-bold underline mb-1">รายละเอียด:</p>
+                                            <p>{pendingFeeRequest.reason || "ตามที่ตกลงในแชท"}</p>
+                                        </div>
+                                        <div className="p-3 rounded-xl border border-amber-200 bg-amber-50/50 text-center">
+                                            <p className="text-[10px] uppercase font-bold text-amber-600 mb-0.5">ยอดชำระ</p>
+                                            <p className="text-2xl font-black text-slate-900">฿{pendingFeeRequest.amount.toLocaleString()}</p>
+                                        </div>
+                                    </CardContent>
+                                    <CardFooter>
+                                        <Button className="w-full bg-amber-500 hover:bg-amber-600 font-bold h-10 shadow-lg text-white" asChild>
+                                            <Link href={`/payment?chatId=${chatId}&lawyerId=${lawyerId}&amount=${pendingFeeRequest.amount}&type=additional`}>
+                                                ชำระเงินเปิดห้องคดี
                                             </Link>
                                         </Button>
-                                    </>
-                                )}
-                            </CardFooter>
-                        </Card>
-                    ) : isCompleted ? ( // User view, completed
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>ให้คะแนนและรีวิว</CardTitle>
-                                <CardDescription>เคสนี้เสร็จสิ้นแล้ว โปรดให้คะแนนการบริการของคุณ</CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                <div className="space-y-2 rounded-lg border p-4">
-                                    <Label className="font-semibold text-center block">คะแนนความพึงพอใจ</Label>
-                                    <div className="flex items-center justify-center gap-3">
-                                        {[1, 2, 3, 4, 5].map((star) => (
-                                            <button key={star} onClick={() => setRating(star)} className="focus:outline-none">
-                                                <Scale className={`w-8 h-8 cursor-pointer transition-all duration-150 ease-in-out ${rating >= star ? 'text-yellow-500 fill-yellow-500/20 scale-110' : 'text-gray-300 hover:text-yellow-500/50 hover:scale-105'}`} />
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="review-text">ความคิดเห็นเพิ่มเติม</Label>
-                                    <Textarea
-                                        id="review-text"
-                                        placeholder="เล่าประสบการณ์ของคุณ..."
-                                        value={reviewText}
-                                        onChange={(e) => setReviewText(e.target.value)}
-                                        rows={4}
-                                    />
-                                </div>
-                            </CardContent>
-                            <CardFooter>
-                                <Button onClick={handleSubmitReview} className="w-full" disabled={rating === 0}>
-                                    ส่งรีวิว
-                                </Button>
-                            </CardFooter>
-                        </Card>
-                    ) : pendingFeeRequest ? ( // User view, additional fee requested
-                        <Card className="border-primary shadow-lg ring-2 ring-primary/20">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <DollarSign className="w-6 h-6 text-primary" />
-                                    ชำระค่าบริการเพิ่มเติม
-                                </CardTitle>
-                                <CardDescription>ทนายความได้ส่งคำขอเรียกเก็บค่าบริการเพิ่มเติม</CardDescription>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                                {pendingFeeRequest.reason && (
-                                    <div className="p-3 bg-blue-50 border border-blue-100 rounded-md text-sm">
-                                        <p className="font-semibold text-blue-800">เหตุผล:</p>
-                                        <p className="text-blue-700">{pendingFeeRequest.reason}</p>
-                                    </div>
-                                )}
-                                <div className="space-y-2 rounded-lg border p-4 bg-secondary/50">
-                                    <div className="flex justify-between text-sm">
-                                        <span className="text-muted-foreground">จำนวนที่เรียกเก็บ:</span>
-                                        <span className="font-bold text-lg">฿{pendingFeeRequest.amount.toLocaleString()}</span>
-                                    </div>
-                                </div>
-                                <p className="text-xs text-muted-foreground text-center italic">ชำระผ่านระบบ Lawlane เพื่อความปลอดภัย ข้อมูลจะถูกบันทึกใน Ticket ID</p>
-                            </CardContent>
-                            <CardFooter className="flex-col gap-2">
-                                <Button className="w-full bg-blue-600 hover:bg-blue-700" asChild>
-                                    <Link href={`/payment?chatId=${chatId}&lawyerId=${lawyerId}&amount=${pendingFeeRequest.amount}&type=additional`}>
-                                        ชำระเงินทันที
-                                    </Link>
-                                </Button>
-                                <Button variant="ghost" className="w-full text-destructive text-xs">แจ้งปัญหาความไม่ถูกต้อง</Button>
-                            </CardFooter>
-                        </Card>
-                    ) : ( // User view, active
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>สถานะ Escrow</CardTitle>
-                                <CardDescription className="flex items-center justify-between pt-1">
-                                    <div className="flex items-center gap-2">
-                                        <Ticket className="w-4 h-4 text-muted-foreground" />
-                                        <span className="text-sm font-mono">{chatId}</span>
-                                    </div>
-                                    <CopyButton value={chatId} />
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent className="text-center">
-                                <p className="text-muted-foreground">เงินของคุณถูกพักไว้ที่ Lawlane</p>
-                                <p className="text-4xl font-bold my-2">฿{chatAmount > 0 ? chatAmount.toLocaleString() : '---'}</p>
-                                <p className="text-xs text-muted-foreground max-w-xs mx-auto">
-                                    เงินจะถูกโอนให้ทนายเมื่อคุณกดยืนยันว่างานเสร็จสิ้น
-                                </p>
-                                <AlertDialog>
-                                    <AlertDialogTrigger asChild>
-                                        <Button className="w-full mt-4 bg-green-600 hover:bg-green-700 text-white">
-                                            <Check className="mr-2 h-4 w-4" /> ยืนยันและปล่อยเงินให้ทนาย
-                                        </Button>
-                                    </AlertDialogTrigger>
-                                    <AlertDialogContent>
-                                        <AlertDialogHeader>
-                                            <AlertDialogTitle>ยืนยันการจบเคส?</AlertDialogTitle>
-                                            <AlertDialogDescription>
-                                                เมื่อคุณยืนยันและปล่อยเงินให้ทนายแล้ว การสนทนาในเคสนี้จะสิ้นสุดลงและคุณจะไม่สามารถส่งข้อความได้อีก คุณแน่ใจหรือไม่ที่จะดำเนินการต่อ?
-                                            </AlertDialogDescription>
-                                        </AlertDialogHeader>
-                                        <AlertDialogFooter>
-                                            <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
-                                            <AlertDialogAction onClick={handleConfirmRelease} className="bg-foreground text-background hover:bg-foreground/90">ยืนยัน</AlertDialogAction>
-                                        </AlertDialogFooter>
-                                    </AlertDialogContent>
-                                </AlertDialog>
-                                <Link href={`/help?ticketId=${chatId}`}>
-                                    <Button variant="link" className="text-muted-foreground text-xs mt-2">
-                                        <AlertTriangle className="mr-1 h-3 w-3" /> รายงานปัญหา
-                                    </Button>
-                                </Link>
-                            </CardContent>
-                        </Card>
-                    )}
-
-                    <Card>
-                        <CardHeader>
-                            <CardTitle>เอกสารในคดี</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <div className="space-y-3">
-                                <div className="space-y-2 text-sm">
-                                    {files.length === 0 && (
-                                        <p className="text-center text-muted-foreground text-xs py-4">ยังไม่มีเอกสาร</p>
-                                    )}
-                                    {files.map((file, index) => (
-                                        <div key={index} className="flex justify-between items-center p-2 rounded-md hover:bg-gray-100">
-                                            <a href={file.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 overflow-hidden flex-1">
-                                                <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
-                                                <span className="truncate hover:underline text-primary" title={file.name}>{file.name}</span>
-                                            </a>
-                                            <span className="text-muted-foreground text-xs flex-shrink-0 ml-2">
-                                                {(file.size / 1024 / 1024).toFixed(2)}MB
-                                            </span>
+                                    </CardFooter>
+                                </Card>
+                            ) : (
+                                <Card className="border-none shadow-sm bg-slate-50">
+                                    <CardHeader className="pb-3 text-center">
+                                        <CardTitle className="text-xs font-semibold uppercase text-slate-400 tracking-widest">{chatAmount === 0 ? "Initial Chat" : "Official Case"}</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="text-center pb-6">
+                                        {chatAmount === 0 ? (
+                                            <div className="py-2">
+                                                <p className="text-[10px] uppercase tracking-widest font-black text-green-600 mb-1">FREE CONSULT</p>
+                                                <p className="text-xs text-slate-500 leading-relaxed">คุยเบื้องต้นฟรี ทนายจะส่งข้อเสนอราคาหากต้องดำเนินคดีต่อ</p>
+                                            </div>
+                                        ) : (
+                                            <div className="py-2">
+                                                <p className="text-3xl font-black text-slate-900 mb-2">฿{chatAmount.toLocaleString()}</p>
+                                                <p className="text-[10px] text-slate-500">เงินถูกคุ้มครองโดยระบบ Lawlane</p>
+                                                <Button className="w-full mt-4 bg-green-600 hover:bg-green-700 font-bold h-9 text-xs" onClick={handleConfirmRelease}>ยืนยันปิดเคส</Button>
+                                            </div>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            )}
+                        </TabsContent>
+                        
+                        <TabsContent value="tools" className="space-y-4">
+                            {isLawyerView && isOfficial && (
+                                <>
+                                    <Card className="border-blue-100 bg-blue-50/20 overflow-hidden shadow-sm">
+                                        <div className="p-4 bg-white/60 border-b border-blue-100">
+                                            <h4 className="text-[10px] font-black uppercase text-blue-600 tracking-widest flex items-center gap-2 italic">
+                                                <BrainCircuit className="w-4 h-4" /> Legal Research (RAG)
+                                            </h4>
                                         </div>
-                                    ))}
-                                </div>
-                                <input
-                                    type="file"
-                                    ref={fileInputRef}
-                                    onChange={handleFileChange}
-                                    className="hidden"
-                                />
-                                <Button onClick={handleUploadClick} className="w-full" disabled={isChatDisabled}>
-                                    <Upload className="mr-2 h-4 w-4" /> อัปโหลดไฟล์
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
+                                        <LegalResearchTool 
+                                            onCite={(text) => toast({ title: "Cite successful", description: "Selected text cited to chat." })} 
+                                            className="h-[350px] border-none" 
+                                        />
+                                    </Card>
+
+                                    <Card className="border-indigo-100 bg-indigo-50/20 overflow-hidden shadow-sm">
+                                        <div className="p-4 bg-white/60 border-b border-indigo-100">
+                                            <h4 className="text-[10px] font-black uppercase text-indigo-600 tracking-widest flex items-center gap-2 italic">
+                                                <Globe className="w-4 h-4" /> Global Interpreters
+                                            </h4>
+                                        </div>
+                                        <InterpreterSearchTool 
+                                            className="h-[400px] border-none" 
+                                        />
+                                    </Card>
+                                </>
+                            )}
+                        </TabsContent>
+                        
+                        <TabsContent value="vault">
+                            <Card className={cn("border-none shadow-sm", isOfficial ? "bg-slate-50" : "opacity-60 grayscale bg-slate-100")}>
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-xs font-bold uppercase tracking-widest flex items-center gap-2">
+                                        <Upload className="w-3.5 h-3.5" /> {tCase('legalVault')}
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-4">
+                                    <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
+                                        {files.length === 0 ? (
+                                            <p className="text-center text-slate-400 text-[10px] py-12 uppercase tracking-widest font-medium">No documents</p>
+                                        ) : (
+                                            files.map((file, idx) => (
+                                                <div key={idx} className="flex justify-between items-center p-2 rounded-xl bg-white border border-slate-100 group hover:shadow-md transition-all">
+                                                    <a href={file.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 overflow-hidden flex-1">
+                                                        <div className="w-8 h-8 rounded-lg bg-red-50 text-red-600 flex items-center justify-center flex-shrink-0 group-hover:bg-red-600 group-hover:text-white transition-colors">
+                                                            <FileText className="h-4 w-4" />
+                                                        </div>
+                                                        <div className="min-w-0">
+                                                            <p className="text-xs font-bold truncate text-slate-800" title={file.name}>{file.name}</p>
+                                                            <p className="text-[9px] text-slate-400">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                                                        </div>
+                                                    </a>
+                                                </div>
+                                            ))
+                                        )}
+                                    </div>
+                                    <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
+                                    <Button onClick={handleUploadClick} variant="outline" className="w-full text-xs h-9 border-dashed" disabled={isChatDisabled}>
+                                        <Plus className="mr-1.5 h-3.5 w-3.5" /> อัปโหลดใหม่
+                                    </Button>
+                                </CardContent>
+                            </Card>
+                        </TabsContent>
+                    </Tabs>
                 </div>
             </div>
         </div>
-    )
+    );
 }
-
 
 export default function ChatPage() {
     return (
-        <Suspense fallback={<div>Loading...</div>}>
+        <Suspense fallback={<div className="flex h-screen items-center justify-center">Loading...</div>}>
             <ChatPageContent />
         </Suspense>
-    )
+    );
 }

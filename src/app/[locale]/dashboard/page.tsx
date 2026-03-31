@@ -7,7 +7,7 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Calendar, Briefcase, FileText, Loader2, Search, MessageSquare, Building, FileUp, HelpCircle, CheckCircle, User, Ticket, FileSignature, Camera } from 'lucide-react';
+import { Calendar, Briefcase, FileText, Loader2, Search, MessageSquare, Building, FileUp, HelpCircle, CheckCircle, User, Ticket, FileSignature, Camera, CreditCard, Clock, ShieldCheck, FileDown, Receipt } from 'lucide-react';
 import type { Case, UpcomingAppointment, ReportedTicket } from '@/lib/types';
 import { format } from 'date-fns';
 import { th, enUS, zhCN } from 'date-fns/locale';
@@ -16,6 +16,7 @@ import { useUser } from '@/firebase';
 import { getProblemTypeKey } from '@/lib/problem-types';
 import { useTranslations, useLocale } from 'next-intl';
 import { getUserDashboardData } from '@/app/actions/dashboard-actions';
+import { cn } from '@/lib/utils';
 
 export default function DashboardPage() {
     const router = useRouter();
@@ -28,6 +29,8 @@ export default function DashboardPage() {
     const [appointments, setAppointments] = useState<UpcomingAppointment[]>([]);
     const [tickets, setTickets] = useState<ReportedTicket[]>([]);
     const [capDeals, setCapDeals] = useState<any[]>([]);
+    const [bookOrders, setBookOrders] = useState<any[]>([]);
+    const [invoices, setInvoices] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     const dateLocale = locale === 'th' ? th : locale === 'zh' ? zhCN : enUS;
@@ -51,9 +54,14 @@ export default function DashboardPage() {
                     setAppointments(data.appointments);
                     setTickets(data.tickets);
 
-                    // The dashboard actions now returns capDeals
                     if (data.capDeals) {
                         setCapDeals(data.capDeals);
+                    }
+                    if (data.bookOrders) {
+                        setBookOrders(data.bookOrders);
+                    }
+                    if (data.invoices) {
+                        setInvoices(data.invoices);
                     }
                 } catch (error) {
                     console.error("Error fetching dashboard data:", error);
@@ -61,12 +69,16 @@ export default function DashboardPage() {
                     setAppointments([]);
                     setTickets([]);
                     setCapDeals([]);
+                    setBookOrders([]);
+                    setInvoices([]);
                 }
             } else {
                 setCases([]);
                 setAppointments([]);
                 setTickets([]);
                 setCapDeals([]);
+                setBookOrders([]);
+                setInvoices([]);
             }
             setIsLoading(false);
         }
@@ -297,6 +309,64 @@ export default function DashboardPage() {
                             </CardContent>
                         </Card>
 
+                        {/* Book Orders Section */}
+                        <Card className="rounded-3xl shadow-sm border-none">
+                            <CardHeader>
+                                <CardTitle className="flex items-center gap-2 font-bold">
+                                    <FileText className="w-5 h-5" />
+                                    รายการสั่งซื้อหนังสือ
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent>
+                                {bookOrders.length > 0 ? (
+                                    <div className="space-y-3">
+                                        {bookOrders.map((order: any) => (
+                                            <div key={order.id} className="flex items-center justify-between p-4 rounded-3xl bg-slate-50 border border-slate-100">
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="font-semibold text-slate-900 truncate flex items-center gap-2">
+                                                        ออเดอร์ #{order.id.substring(0, 8)}
+                                                        <Badge variant="outline" className={cn(
+                                                            "text-xs",
+                                                            order.status === 'delivered' ? 'text-green-700 border-green-600 bg-green-50' :
+                                                                order.status === 'shipped' ? 'text-blue-700 border-blue-600 bg-blue-50' :
+                                                                    order.status === 'cancelled' ? 'text-red-700 border-red-600 bg-red-50' :
+                                                                        'text-yellow-700 border-yellow-600 bg-yellow-50'
+                                                        )}>
+                                                            {order.status === 'pending' ? 'รอตรวจสอบ' :
+                                                                order.status === 'paid' ? 'ชำระเงินแล้ว' :
+                                                                    order.status === 'shipped' ? 'กำลังจัดส่ง' :
+                                                                        order.status === 'delivered' ? 'ส่งสำเร็จ' :
+                                                                            order.status === 'cancelled' ? 'ยกเลิก' : order.status}
+                                                        </Badge>
+                                                    </p>
+                                                    <p className="text-sm text-slate-500 truncate">
+                                                        {order.items?.length > 0 ? order.items.map((item: any) => item.title).join(', ') : 'ไม่มีรายการพิมพ์'}
+                                                        {` | ยอดรวม: ${Number(order.totalAmount).toLocaleString()} บาท`}
+                                                    </p>
+                                                </div>
+                                                <Button asChild size="sm" className="bg-foreground hover:bg-foreground/90 text-background rounded-full ml-3 shrink-0">
+                                                    <Link href={`/${locale}/books/tracking`}>ติดตามสถานะ</Link>
+                                                </Button>
+                                            </div>
+                                        ))}
+                                        <div className="text-center pt-2">
+                                            <Button variant="link" asChild className="text-primary font-bold">
+                                                <Link href={`/${locale}/books/tracking`}>ดูทั้งหมด</Link>
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-8 text-muted-foreground">
+                                        <FileText className="mx-auto h-10 w-10 mb-2" />
+                                        <p>ยังไม่มีประวัติการสั่งซื้อหนังสือ</p>
+                                        <Button asChild className="mt-4 rounded-full">
+                                            <Link href={`/${locale}/books`}>ไปที่ร้านค้า</Link>
+                                        </Button>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+
 
                     </div>
 
@@ -370,6 +440,68 @@ export default function DashboardPage() {
                                 </CardContent>
                             </Card>
                         )}
+
+                        {/* Payments & Invoices Section */}
+                        <Card className="rounded-3xl shadow-sm border-none overflow-hidden bg-white">
+                            <CardHeader className="pb-2">
+                                <CardTitle className="flex items-center gap-2 font-bold text-lg">
+                                    <div className="p-1.5 bg-blue-50 rounded-lg">
+                                        <CreditCard className="w-4 h-4 text-blue-600" />
+                                    </div>
+                                    {t('paymentsAndInvoices') || 'ชำระเงินและใบเสร็จ'}
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4">
+                                {invoices.length > 0 ? (
+                                    <div className="space-y-3">
+                                        {invoices.map((inv) => (
+                                            <div key={inv.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-100 hover:bg-blue-50/50 transition-colors">
+                                                <div className="flex justify-between items-start mb-2">
+                                                    <div>
+                                                        <p className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">#{inv.id.substring(0, 8)}</p>
+                                                        <p className="font-bold text-slate-700 text-sm truncate max-w-[140px]">{inv.description || 'ค่าดำเนินคดี'}</p>
+                                                    </div>
+                                                    <Badge variant="outline" className={cn(
+                                                        "rounded-full px-2 py-0 font-bold text-[9px] uppercase tracking-wider shrink-0",
+                                                        inv.status === 'paid' ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
+                                                        "bg-amber-50 text-amber-700 border-amber-200"
+                                                    )}>
+                                                        {inv.status === 'paid' ? (locale === 'th' ? 'ชำระแล้ว' : 'Paid') : (locale === 'th' ? 'รอชำระ' : 'Pending')}
+                                                    </Badge>
+                                                </div>
+                                                <div className="flex justify-between items-end">
+                                                    <div>
+                                                        <p className="font-bold text-blue-600 text-base">฿{inv.amount.toLocaleString()}</p>
+                                                        <p className="text-[9px] text-slate-400">ครบกำหนด: {format(new Date(inv.dueDate), 'dd MMM yyyy', { locale: dateLocale })}</p>
+                                                    </div>
+                                                    <div className="flex gap-1">
+                                                        <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full text-slate-400 hover:text-blue-600">
+                                                            <FileDown className="w-3.5 h-3.5" />
+                                                        </Button>
+                                                        {inv.status !== 'paid' && (
+                                                            <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white rounded-full px-3 h-7 text-[10px] font-bold">
+                                                                {t('payNow') || 'ชำระเงิน'}
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-6 text-slate-400 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                                        <Receipt className="mx-auto h-8 w-8 opacity-20 mb-2" />
+                                        <p className="text-xs">ยังไม่มีรายการแจ้งหนี้</p>
+                                    </div>
+                                )}
+                                
+                                <div className="text-center pt-1 border-t border-slate-50 mt-2">
+                                    <Link href={`/${locale}/support`} className="text-[9px] text-slate-400 hover:text-blue-600 hover:underline font-medium">
+                                        มีปัญหาเรื่องการเงิน? ติดต่อเรา
+                                    </Link>
+                                </div>
+                            </CardContent>
+                        </Card>
 
                         <Card className="rounded-3xl shadow-sm border-none">
                             <CardHeader>

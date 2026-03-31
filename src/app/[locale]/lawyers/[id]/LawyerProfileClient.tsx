@@ -1,6 +1,8 @@
 'use client';
+import { useSearchParams } from 'next/navigation';
 
-import { getLawyerStats } from '@/lib/data';
+import { getLawyerStatsAction } from '@/app/actions/dashboard-actions';
+import { getReviewsAction } from '@/app/actions/review-actions';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
@@ -13,7 +15,20 @@ import { Separator } from '@/components/ui/separator';
 import React, { useState, useEffect } from 'react';
 import type { LawyerProfile } from '@/lib/types';
 import { useFirebase } from '@/firebase';
-import { collection, query, where, getDocs, orderBy, doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, serverTimestamp, addDoc } from 'firebase/firestore';
+import { v4 as uuidv4 } from 'uuid';
+import { useToast } from '@/hooks/use-toast';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Loader2 } from 'lucide-react';
 import profileLawyerImg from '@/pic/profile-lawyer.jpg';
 import { useTranslations, useLocale } from 'next-intl';
 import { getSpecialtyKey } from '@/lib/specialties';
@@ -36,6 +51,12 @@ export default function LawyerProfileClient({ initialLawyer, id }: LawyerProfile
     const [reviews, setReviews] = useState<any[]>([]);
     const [isLawyer, setIsLawyer] = useState(false);
     const [stats, setStats] = useState({ responseRate: 0, completedCases: 0 });
+    const { toast } = useToast();
+
+    // Modal States
+    const [isMessageModalOpen, setIsMessageModalOpen] = useState(false);
+    const [initialMessage, setInitialMessage] = useState("");
+    const [isCreatingChat, setIsCreatingChat] = useState(false);
 
     // Helper to translate specialty
     const translateSpecialty = (spec: string) => {
@@ -67,28 +88,35 @@ export default function LawyerProfileClient({ initialLawyer, id }: LawyerProfile
         checkUserRole();
     }, [user, firestore]);
 
+    const searchParams = useSearchParams();
+    const autoOpenChat = searchParams.get('chat') === 'true';
+
+    useEffect(() => {
+        if (autoOpenChat && user && !isLawyer) {
+            setIsMessageModalOpen(true);
+        }
+    }, [autoOpenChat, user, isLawyer]);
+
     useEffect(() => {
         async function fetchReviewsAndStats() {
-            if (!id || !firestore) return;
+            if (!id) return;
 
-            // Fetch Reviews
-            const reviewsRef = collection(firestore, 'reviews');
-            const q = query(reviewsRef, where('lawyerId', '==', id), orderBy('createdAt', 'desc'));
+            // Fetch Reviews via Server Action
             try {
-                const snapshot = await getDocs(q);
-                const reviewsData = snapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data(),
-                    date: doc.data().createdAt?.toDate().toLocaleDateString('th-TH', { year: 'numeric', month: 'long' }) || 'N/A'
+                const reviewsData = await getReviewsAction(id);
+                // Convert string dates back to Date objects if needed, or use dateText
+                const formattedReviews = reviewsData.map((r: any) => ({
+                    ...r,
+                    date: r.dateText
                 }));
-                setReviews(reviewsData);
+                setReviews(formattedReviews);
             } catch (error) {
                 console.error("Error fetching reviews:", error);
             }
 
             // Fetch Stats
             try {
-                const lawyerStats = await getLawyerStats(firestore, id);
+                const lawyerStats = await getLawyerStatsAction(id);
                 setStats({
                     responseRate: lawyerStats.responseRate,
                     completedCases: lawyerStats.completedCases
@@ -111,7 +139,83 @@ export default function LawyerProfileClient({ initialLawyer, id }: LawyerProfile
                 router.push('/login');
                 return;
             }
-            router.push(`/payment?type=chat&lawyerId=${lawyer.id}`);
+            setIsMessageModalOpen(true);
+        }
+    };
+
+    const handleSendMessage = async () => {
+        if (!initialMessage.trim()) {
+            toast({
+                variant: 'destructive',
+                title: 'กรุณากรอกข้อความ',
+                description: 'เพื่อให้ทนายทราบถึงปัญหาของคุณเบื้องต้น',
+            });
+            return;
+        }
+        if (!user || !firestore || !lawyer) return;
+
+        setIsCreatingChat(true);
+
+        try {
+            const newChatId = uuidv4();
+            const chatRef = doc(firestore, 'chats', newChatId);
+            const messagesRef = collection(chatRef, 'messages');
+
+            const targetLawyerUserId = lawyer.userId || lawyer.id;
+
+            const chatPayload = {
+                participants: [user.uid, targetLawyerUserId],
+                createdAt: serverTimestamp(),
+                caseTitle: `Ticket สนทนา: ${initialMessage.substring(0, 30)}...`,
+                status: 'active',
+                lawyerId: lawyer.id, 
+                userId: user.uid, 
+                lastMessage: initialMessage,
+                lastMessageAt: serverTimestamp(),
+                amount: 0, 
+                originalFee: 0,
+                discount: 0,
+                couponCode: null,
+                couponId: null
+            };
+
+            await setDoc(chatRef, chatPayload);
+
+            const messagePayload = {
+                text: initialMessage,
+                senderId: user.uid,
+                timestamp: serverTimestamp(),
+            };
+            await addDoc(messagesRef, messagePayload);
+
+            // Send notification email
+            import('@/app/actions/email').then(({ sendLawyerNewCaseEmail }) => {
+                const caseLink = `${window.location.origin}/chat/${newChatId}?lawyerId=${lawyer.id}&clientId=${user.uid}&view=lawyer`;
+                sendLawyerNewCaseEmail(
+                    lawyer.email,
+                    lawyer.name,
+                    user.displayName || 'ลูกค้า',
+                    `Ticket สนทนา: ${initialMessage.substring(0, 30)}...`,
+                    caseLink
+                ).then(res => console.log("Email sent:", res)).catch(console.error);
+            });
+
+            toast({
+                title: "ส่งข้อความสำเร็จ",
+                description: "กำลังนำคุณไปยังห้องแชท...",
+            });
+
+            setIsMessageModalOpen(false);
+            router.push(`/chat/${newChatId}?lawyerId=${lawyer.id}`);
+        } catch (error) {
+            console.error("Error creating chat:", error);
+            toast({
+                variant: 'destructive',
+                title: 'เกิดข้อผิดพลาด',
+                description: 'ไม่สามารถส่งข้อความได้ กรุณาลองใหม่อีกครั้ง',
+            });
+        } finally {
+            setIsCreatingChat(false);
         }
     };
 
@@ -299,6 +403,51 @@ export default function LawyerProfileClient({ initialLawyer, id }: LawyerProfile
                     </Card>
                 </div>
             </div>
+
+            {/* Free Chat Initial Message Modal */}
+            <Dialog open={isMessageModalOpen} onOpenChange={setIsMessageModalOpen}>
+                <DialogContent className="sm:max-w-[500px]">
+                    <DialogHeader>
+                        <DialogTitle>ปรึกษาทนายความ (ฟรีเบื้องต้น)</DialogTitle>
+                        <DialogDescription>
+                            กรอกรายละเอียดปัญหาหรือข้อสงสัยเบื้องต้น เพื่อให้ทนายความ {lawyer.name} ประเมินแนวทางการช่วยเหลือ
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid w-full gap-1.5">
+                            <Label htmlFor="message" className="font-semibold text-foreground">
+                                ข้อความถึงทนาย
+                            </Label>
+                            <Textarea
+                                id="message"
+                                placeholder="เช่น มีปัญหาเรื่องที่ดินโดนบุกรุก อยากปรึกษาว่าต้องทำอย่างไร หรือ ส่งข้อตกลงเพื่อร่างสัญญา..."
+                                value={initialMessage}
+                                onChange={(e) => setInitialMessage(e.target.value)}
+                                rows={5}
+                            />
+                        </div>
+                        <p className="text-xs text-muted-foreground flex items-center gap-1">
+                            <ArrowLeft className="h-3 w-3" />
+                            การให้คำปรึกษาเบื้องต้นไม่มีค่าใช้จ่าย ทนายอาจเสนอราคาหากต้องมีการดำเนินเรื่องทางกฎหมาย
+                        </p>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsMessageModalOpen(false)} disabled={isCreatingChat}>
+                            ยกเลิก
+                        </Button>
+                        <Button onClick={handleSendMessage} disabled={isCreatingChat || !initialMessage.trim()}>
+                            {isCreatingChat ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    กำลังเปิดห้องแชท...
+                                </>
+                            ) : (
+                                "ส่งข้อความถึงทนาย"
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

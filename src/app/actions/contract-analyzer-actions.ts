@@ -2,6 +2,7 @@
 
 import { retrieveDocuments } from '@/lib/rag';
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
+import { getCachedAIResponse, setCachedAIResponse } from '@/lib/ai-cache';
 
 export type ContractAnalysisResult = {
     summary: string;
@@ -18,6 +19,10 @@ export async function analyzeContract(contractText: string): Promise<ContractAna
     if (!contractText || contractText.trim() === '') {
         throw new Error("Contract text is empty");
     }
+
+    // Try to get from cache first
+    const cached = await getCachedAIResponse<ContractAnalysisResult>(contractText, 'contract-analysis');
+    if (cached) return cached;
 
     const apiKey = process.env.GOOGLE_API_KEY || process.env.GOOGLE_GENAI_API_KEY || '';
     if (!apiKey) {
@@ -73,7 +78,7 @@ export async function analyzeContract(contractText: string): Promise<ContractAna
 
     // Step 3: Analyze Contract against Laws
     const analysisModel = genAI.getGenerativeModel({
-        model: "gemini-1.5-pro", // better reasoning for complex contracts
+        model: "gemini-1.5-flash", // Optimized: Using Flash with better prompting for cost efficiency
         generationConfig: {
             responseMimeType: "application/json",
             responseSchema: {
@@ -103,8 +108,13 @@ export async function analyzeContract(contractText: string): Promise<ContractAna
     });
 
     const analysisPrompt = `
-คุณคือผู้เชี่ยวชาญด้านกฎหมายและทนายความของไทย มีหน้าที่ตรวจสอบและวิเคราะห์ข้อความสัญญา(หรือเงื่อนไข)ที่ผู้ใช้ให้มา
-จงวิเคราะห์สัญญาโดยพิจารณาจาก "ข้อกฎหมายอ้างอิง (Context)" ที่สืบค้นมาให้ด้านล่างนี้เป็นหลัก หาก context ไม่ระบุ ให้ใช้ความรู้กฎหมายไทยพื้นฐาน (เช่น ป.พ.พ., พ.ร.บ. ว่าด้วยข้อสัญญาที่ไม่เป็นธรรม)
+คุณคือผู้เชี่ยวชาญด้านกฎหมายและทนายความของไทย (AI Legal Auditor) มีหน้าที่ตรวจสอบและวิเคราะห์ข้อความสัญญา(หรือเงื่อนไข)ที่ผู้ใช้ให้มาอย่างละเอียดถี่ถ้วน
+จงวิเคราะห์สัญญาโดยพิจารณาจาก "ข้อกฎหมายอ้างอิง (Context)" ที่สืบค้นมาให้ด้านล่างนี้เป็นหลัก หาก context ไม่ระบุ ให้ใช้ความรู้กฎหมายไทยพื้นฐานที่เข้มงวด (เช่น ป.พ.พ., พ.ร.บ. ว่าด้วยข้อสัญญาที่ไม่เป็นธรรม)
+
+คำแนะนำเพิ่มเติมสำหรับ AI:
+1. พิจารณาความเป็นส่วนตัวและความรัดกุมของข้อสัญญา
+2. มองหาช่องโหว่ที่อาจทำให้ผู้ใช้เสียเปรียบ
+3. หากมีตัวเลข (เช่น เบี้ยปรับ, ระยะเวลา) ให้ตรวจสอบความสมเหตุสมผลตามกฎหมาย
 
 --- ข้อกฎหมายอ้างอิง (Context) ---
 ${combinedLawContext}
@@ -114,20 +124,25 @@ ${combinedLawContext}
 ${contractText}
 ----------------------------------
 
-วิเคราะห์และตอบกลับในรูปแบบ JSON ตาม Schema ที่กำหนดให้:
-- สรุปภาพรวม (summary)
-- จุดสังเกต/ความเสี่ยง (observations) โดยให้จัดลำดับความเสี่ยง และถ้ามีมาตรากฎหมายไหนใน Context ที่ขัดเกลา หรือนำมาปรับใช้ได้ ให้ระบุใน citedLaw
+วิเคราะห์และตอบกลับในรูปแบบ JSON ตาม Schema ที่กำหนดให้เท่านั้น ห้ามมีคำเกริ่น:
+- สรุปภาพรวม (summary): สรุปสาระสำคัญของสัญญาใน 2-3 ประโยค
+- จุดสังเกต/ความเสี่ยง (observations): สกัดประเด็นที่คนทั่วไปอาจมองข้าม ระบุความรุนแรงตามจริง (high หากขัดกฎหมายชัดเจน) และระบุมาตรากฎหมายอ้างอิงใน citedLaw ให้ชัดเจนที่สุด
     `;
 
     try {
         const analysisResult = await analysisModel.generateContent(analysisPrompt);
         const data = JSON.parse(analysisResult.response.text());
         
-        return {
+        const finalResult = {
             summary: data.summary,
             keywords: keywords,
             observations: data.observations || []
         };
+
+        // Save to cache
+        await setCachedAIResponse(contractText, 'contract-analysis', finalResult);
+
+        return finalResult;
     } catch (e: any) {
         console.error("Analysis failed", e);
         throw new Error("Failed to analyze contract: " + e.message);

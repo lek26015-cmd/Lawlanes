@@ -114,7 +114,7 @@
         },
         "capAndDeal": {
             "title": "截图并交易：从聊天记录创建合同",
-            "description": "只需截取您的聊天协议，我们的 AI 就会自动生成具有法律约束力的合同。无需起草，无需律师。",
+            "description": "只需截取您的聊天协议，我们的 AI 会自动生成具有法律约束力的合同。无需起草，无需律师。",
             "features": {
                 "ai": "AI 自动分析聊天记录并生成合同",
                 "fast": "耗时不到 1 分钟，即刻可用",
@@ -132,6 +132,7 @@
     "Navigation": {
         "forSME": "中小企业",
         "forB2B": "企业服务",
+        "corporatePlans": "企业套餐",
         "b2bMenu": {
             "dashboard": "控制面板 (Dashboard)",
             "pricing": "企业套餐",
@@ -141,8 +142,8 @@
         "findLawyer": "查找律师",
         "verifyLawyer": "验证律师",
         "articles": "文章",
-        "forms": "表格",
-        "forLawyers": "律师专用",
+        "books": "书店",
+        "forLawyers": "律师专区",
         "home": "首页",
         "login": "登录",
         "logout": "退出",
@@ -153,13 +154,78 @@
         "manageAccount": "管理账户",
         "searchPlaceholder": "搜索律师、专业知识或问题...",
         "smeMenu": {
+            "title": "中小企业解决方案",
             "contracts": "起草和审查合同",
             "consultant": "企业法律顾问",
             "registration": "注册和许可",
-            "dispute": "商业纠纷解决"
+            "dispute": "商业纠纷解决",
+            "forms": "法律表格"
         },
         "capAndDeal": "截图并交易",
         "scrollToTop": "回到顶部"
+    },
+    "Books": {
+        "title": "法律书籍与手册",
+        "backToBooks": "返回书店",
+        "subtitle": "为企业家和法律专业人士提供的优质法律书籍和手册。",
+        "searchPlaceholder": "搜索书籍、作者或主题...",
+        "buyNow": "立即购买",
+        "addToCart": "加入购物车",
+        "price": "价格",
+        "categoriesTitle": "类别",
+        "allBooks": "所有书籍",
+        "promo": {
+            "title": "会员特惠",
+            "description": "立即加入，首单立享 10% 折扣。",
+            "button": "立即加入"
+        },
+        "noResults": {
+            "title": "未找到结果",
+            "description": "尝试不同的搜索词或选择其他类别。",
+            "button": "清除所有过滤器"
+        },
+        "checkout": {
+            "title": "结账",
+            "shipping": "收货地址",
+            "payment": "支付方式",
+            "summary": "订单摘要",
+            "confirm": "确认订单"
+        },
+        "cart": {
+            "title": "您的购物车",
+            "empty": "您的购物车是空的",
+            "continueShopping": "继续购物",
+            "subtotal": "小计",
+            "checkout": "去结账"
+        },
+        "categories": {
+            "all": "所有分类",
+            "business": "商业法",
+            "sme": "中小企业指南",
+            "contract": "合同起草",
+            "litigation": "诉讼"
+        },
+        "tracking": {
+            "title": "订单跟踪",
+            "orderId": "订单 ID",
+            "status": "状态",
+            "date": "订单日期",
+            "history": "订单历史",
+            "noOrders": "您还没有书籍订单。",
+            "statuses": {
+                "pending": "等待付款",
+                "paid": "已付款 / 准备发货",
+                "shipped": "已发货",
+                "delivered": "已送达",
+                "cancelled": "已取消"
+            },
+            "shippingProgress": "物流进度",
+            "trackingId": "快递单号",
+            "trackingPlaceholder": "发货后将提供单号",
+            "orderDetails": "订单详情",
+            "total": "总计",
+            "quantity": "数量 {count} 本"
+        }
     },
     "ComingSoon": {
         "title": "业务解决方案即将推出",
@@ -848,7 +914,7 @@
             "subtitle": "Contact Us",
             "email": {
                 "title": "电子邮件",
-                "value": "support@lawslane.com"
+                "value": "contact@lawslane.com"
             },
             "phone": {
                 "title": "电话",
@@ -1078,7 +1144,7 @@
             },
             "support": {
                 "text": "对于过去的发票或财务咨询，请联系",
-                "email": "billing@lawslane.com"
+                "email": "contact@lawslane.com"
             },
             "planLabels": {
                 "starter": "Starter — 2,500 泰铢/月",

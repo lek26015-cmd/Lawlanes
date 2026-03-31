@@ -39,13 +39,21 @@ export async function retrieveDocuments(query: string, topK: number = 5): Promis
             return data.matches.map((match: any) => {
                 let content = match.metadata?.text || '';
                 
-                // --- Simple Thai Text Repair ---
+                // --- Simple Thai Text Repair (Heuristic) ---
                 // 1. Remove "Tofu" / Box characters that come from PDF extraction
                 content = content.replace(/[\uFFFD\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
                 content = content.replace(/□/g, '');
                 
-                // 2. Clean up excessive whitespace/newlines
+                // 2. Fix common "broken" Thai character patterns from encoding issues
+                content = content.replace(/([ก-ฮ])\s+([่้๊๋ะาิีึืุูัํ])/g, '$1$2'); // Fix spaces between consonant and vowel/tone
+                content = content.replace(/([่้๊๋ะาิีึืุูัํ])\s+([ก-ฮ])/g, '$1$2'); // Fix spaces after vowel/tone
+                content = content.replace(/อำ\s+นาจ/g, 'อำนาจ'); // Common word fragment fix
+                content = content.replace(/พิจาร\s+ณา/g, 'พิจารณา');
+                content = content.replace(/พิ\s+จารณา/g, 'พิจารณา');
+                
+                // 3. Clean up excessive whitespace/newlines
                 content = content.replace(/\n\s*\n/g, '\n').trim();
+                content = content.replace(/[ ]{2,}/g, ' '); // Remove double spaces
 
                 return {
                     source: match.metadata?.source || 'Unknown',

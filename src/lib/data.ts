@@ -23,13 +23,22 @@ export const getImageUrl = (id: string) => PlaceHolderImages.find(img => img.id 
 export const getImageHint = (id: string) => PlaceHolderImages.find(img => img.id === id)?.imageHint ?? '';
 
 // --- Lawyer Functions ---
-export async function getApprovedLawyers(db: Firestore): Promise<LawyerProfile[]> {
+export async function getApprovedLawyers(db: Firestore, limitCount: number = 50): Promise<LawyerProfile[]> {
   if (!db) return [];
   try {
     const lawyersRef = collection(db, 'lawyerProfiles');
-    const q = query(lawyersRef, where('status', '==', 'approved'), limit(50));
+    const q = query(lawyersRef, where('status', '==', 'approved'), limit(limitCount));
     const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as LawyerProfile));
+    return querySnapshot.docs.map(doc => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        joinedAt: data.joinedAt?.toDate ? data.joinedAt.toDate().toISOString() : (data.joinedAt || new Date().toISOString()),
+        dob: data.dob?.toDate ? data.dob.toDate().toISOString() : (data.dob || null),
+        updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate().toISOString() : (data.updatedAt || null),
+      } as unknown as LawyerProfile;
+    });
   } catch (error) {
     console.error("Error fetching approved lawyers:", error);
     return [];
@@ -41,7 +50,14 @@ export async function getLawyerById(db: Firestore, id: string): Promise<LawyerPr
   const lawyerRef = doc(db, 'lawyerProfiles', id);
   const docSnap = await getDoc(lawyerRef);
   if (docSnap.exists()) {
-    return { id: docSnap.id, ...docSnap.data() } as LawyerProfile;
+    const data = docSnap.data();
+    return {
+      id: docSnap.id,
+      ...data,
+      joinedAt: data.joinedAt?.toDate ? data.joinedAt.toDate().toISOString() : (data.joinedAt || new Date().toISOString()),
+      dob: data.dob?.toDate ? data.dob.toDate().toISOString() : (data.dob || null),
+      updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate().toISOString() : (data.updatedAt || null),
+    } as unknown as LawyerProfile;
   }
   return undefined;
 }
@@ -104,7 +120,7 @@ export async function getArticleBySlug(db: Firestore, slug: string): Promise<Art
 export async function getAdsByPlacement(db: Firestore | null, placement: 'Homepage Carousel' | 'Lawyer Page Sidebar'): Promise<Ad[]> {
   if (!db) return [];
   const adsRef = collection(db, 'ads');
-  const q = query(adsRef, where('placement', '==', placement), where('status', '==', 'active'));
+  const q = query(adsRef, where('placement', '==', placement), where('status', '==', 'active'), limit(10));
   const querySnapshot = await getDocs(q);
   return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Ad));
 }
@@ -123,24 +139,14 @@ export async function getAdById(db: Firestore, id: string): Promise<Ad | undefin
 export async function getDashboardData(db: Firestore, userId: string) {
   if (!db) return { cases: [], appointments: [], tickets: [] };
 
-  // 1. Fetch Cases (Chats) - Use dual query for reliability
+  // 1. Fetch Cases (Chats) - Use participants query only (rule-compliant)
   const chatsRef = collection(db, 'chats');
 
   // Query by participants array (primary method)
-  const participantsQuery = query(chatsRef, where('participants', 'array-contains', userId), limit(50));
+  const participantsQuery = query(chatsRef, where('participants', 'array-contains', userId), limit(100));
   const participantsSnapshot = await getDocs(participantsQuery);
 
-  // Query by userId field (fallback method for older/inconsistent docs)
-  const userIdQuery = query(chatsRef, where('userId', '==', userId), limit(50));
-  const userIdSnapshot = await getDocs(userIdQuery);
-
-  // Merge results, avoiding duplicates
-  const seenIds = new Set<string>();
-  const allChatDocs = [...participantsSnapshot.docs, ...userIdSnapshot.docs].filter(doc => {
-    if (seenIds.has(doc.id)) return false;
-    seenIds.add(doc.id);
-    return true;
-  });
+  const allChatDocs = participantsSnapshot.docs;
 
   // Extract all unique lawyer IDs to fetch them in one batch
   const lawyerIds = new Set<string>();
@@ -267,7 +273,7 @@ export async function getDashboardData(db: Firestore, userId: string) {
 
   // 3. Fetch Tickets
   const ticketsRef = collection(db, 'tickets');
-  const ticketsQuery = query(ticketsRef, where('userId', '==', userId));
+  const ticketsQuery = query(ticketsRef, where('userId', '==', userId), orderBy('createdAt', 'desc'), limit(50));
   const ticketsSnapshot = await getDocs(ticketsQuery);
 
   const tickets: ReportedTicket[] = ticketsSnapshot.docs.map(d => {
@@ -392,7 +398,7 @@ export async function getAdminLawyerDashboardData(db: Firestore): Promise<{ newR
   try {
     // Fetch ALL pending appointment requests
     const appointmentsRef = collection(db, 'appointments');
-    const requestsQuery = query(appointmentsRef, where('status', '==', 'pending'));
+    const requestsQuery = query(appointmentsRef, where('status', '==', 'pending'), limit(200));
     const requestsSnapshot = await getDocs(requestsQuery);
     newRequests = await Promise.all(requestsSnapshot.docs.map(async d => {
       const data = d.data();
@@ -421,14 +427,13 @@ export async function getAdminLawyerDashboardData(db: Firestore): Promise<{ newR
   try {
     // Fetch ALL cases (chats)
     const chatsRef = collection(db, 'chats');
-    const casesSnapshot = await getDocs(chatsRef);
+    const casesSnapshot = await getDocs(query(chatsRef, limit(200)));
     lawyerCases = await Promise.all(casesSnapshot.docs.map(async (d) => {
       const chatData = d.data();
       // For admin view, maybe show both lawyer and client? 
       // For now, let's just try to find the client.
       // Participants usually has 2 IDs. One is lawyer, one is client.
       // It's hard to know which is which without checking roles.
-      // But usually the one that is NOT the current user is the "other".
       // Here we are admin, so neither might be us.
 
       // Let's just take the first participant as "Client" for display purposes if we can't distinguish easily,
@@ -514,7 +519,7 @@ export async function getAllUsers(db: Firestore): Promise<UserProfile[]> {
 export async function getAdmins(db: Firestore): Promise<UserProfile[]> {
   if (!db) return [];
   const usersRef = collection(db, 'users');
-  const q = query(usersRef, where('role', '==', 'admin'));
+  const q = query(usersRef, where('role', '==', 'admin'), limit(20));
   const querySnapshot = await getDocs(q);
   return querySnapshot.docs.map(doc => {
     const data = doc.data();
@@ -552,8 +557,10 @@ export async function getAllLawyers(db: Firestore): Promise<LawyerProfile[]> {
       return {
         id: doc.id,
         ...data,
-        joinedAt: joinedAtStr
-      } as LawyerProfile
+        joinedAt: joinedAtStr,
+        dob: data.dob?.toDate ? data.dob.toDate().toISOString() : (data.dob || null),
+        updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate().toISOString() : (data.updatedAt || null),
+      } as unknown as LawyerProfile
     });
   } catch (error) {
     console.error("[getAllLawyers] Error fetching lawyers:", error);
@@ -859,7 +866,7 @@ export async function getLawyerStats(db: Firestore, lawyerId: string) {
 export async function getLawyersByFirm(db: Firestore, firmId: string): Promise<LawyerProfile[]> {
   if (!db) return [];
   const lawyersRef = collection(db, 'lawyerProfiles');
-  const q = query(lawyersRef, where('firmId', '==', firmId), where('status', '==', 'approved'));
+  const q = query(lawyersRef, where('firmId', '==', firmId), where('status', '==', 'approved'), limit(100));
   const querySnapshot = await getDocs(q);
   return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as LawyerProfile));
 }
@@ -869,7 +876,7 @@ export async function getLawyersByFirm(db: Firestore, firmId: string): Promise<L
 export async function getAllLegalForms(db: Firestore): Promise<LegalForm[]> {
   if (!db) return [];
   const formsRef = collection(db, 'legalForms');
-  const q = query(formsRef, orderBy('createdAt', 'desc'));
+  const q = query(formsRef, orderBy('createdAt', 'desc'), limit(100));
   const querySnapshot = await getDocs(q);
   return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as LegalForm));
 }
@@ -896,7 +903,7 @@ export async function syncLawyersToRegistry(db: Firestore): Promise<{ success: n
   if (!db) return { success: 0, total: 0 };
   try {
     const lawyersRef = collection(db, 'lawyerProfiles');
-    const querySnapshot = await getDocs(lawyersRef);
+    const querySnapshot = await getDocs(query(lawyersRef, limit(500)));
     const lawyers = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as LawyerProfile));
 
     let successCount = 0;
@@ -935,5 +942,73 @@ export async function syncLawyersToRegistry(db: Firestore): Promise<{ success: n
   } catch (error) {
     console.error("[syncLawyersToRegistry] Error syncing lawyers:", error);
     throw error;
+  }
+}
+export async function getCaseById(db: Firestore, id: string): Promise<Case | undefined> {
+  if (!db) return undefined;
+  try {
+    // 1. Try fetching from legalCases (Professional Pipeline)
+    const legalCaseRef = doc(db, 'legalCases', id);
+    const legalDocSnap = await getDoc(legalCaseRef);
+    
+    if (legalDocSnap.exists()) {
+      const data = legalDocSnap.data();
+      const clientId = data.client_id || '';
+      let clientProfile = { name: 'ลูกค้า', imageUrl: '' };
+      
+      if (clientId) {
+        const userDoc = await getDoc(doc(db, 'users', clientId));
+        if (userDoc.exists()) {
+          const uData = userDoc.data();
+          clientProfile = { name: uData.name || 'ลูกค้า', imageUrl: uData.avatar || '' };
+        }
+      }
+
+      return {
+        id: legalDocSnap.id,
+        title: data.title || 'เคสไม่มีชื่อ',
+        status: data.status,
+        updatedAt: new Date(data.updatedAt || Date.now()),
+        clientName: clientProfile.name,
+        clientAvatar: clientProfile.imageUrl,
+        lawyer_id: data.lawyer_id,
+        description: data.description || '',
+      } as any;
+    }
+
+    // 2. Fallback to chats collection
+    const chatRef = doc(db, 'chats', id);
+    const docSnap = await getDoc(chatRef);
+    if (!docSnap.exists()) return undefined;
+
+    const data = docSnap.data();
+    const lawyerId = data.lawyerId || (data.participants && data.participants[0]); 
+    const clientId = data.participants?.find((p: string) => p !== lawyerId) || '';
+
+    let clientProfile = { name: 'ลูกค้า', imageUrl: '' };
+    if (clientId) {
+      const userDoc = await getDoc(doc(db, 'users', clientId));
+      if (userDoc.exists()) {
+        const uData = userDoc.data();
+        clientProfile = { name: uData.name || 'ลูกค้า', imageUrl: uData.avatar || '' };
+      }
+    }
+
+    const lastMessageAt = data.lastMessageAt?.toDate() || data.createdAt?.toDate() || new Date();
+
+    return {
+      id: docSnap.id,
+      title: data.caseTitle || 'เคสไม่มีชื่อ',
+      status: data.status,
+      lastMessage: data.lastMessage || '',
+      lastMessageTimestamp: lastMessageAt.toISOString(),
+      updatedAt: lastMessageAt,
+      lawyer: { id: lawyerId || '', name: '', imageUrl: '', imageHint: '' }, 
+      clientName: clientProfile.name, 
+      clientAvatar: clientProfile.imageUrl,
+    } as any;
+  } catch (error) {
+    console.error("Error fetching case by id:", error);
+    return undefined;
   }
 }

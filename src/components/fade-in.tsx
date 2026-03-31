@@ -37,12 +37,12 @@ export function FadeIn({
     const getTransform = () => {
         if (!isVisible) {
             switch (direction) {
-                case 'up': return 'translate-y-8';
-                case 'down': return '-translate-y-8';
-                case 'left': return 'translate-x-8';
-                case 'right': return '-translate-x-8';
-                case 'none': return 'scale-95';
-                default: return 'translate-y-8';
+                case 'up': return 'translate-y-8 translate-x-0 scale-100';
+                case 'down': return '-translate-y-8 translate-x-0 scale-100';
+                case 'left': return 'translate-y-0 translate-x-8 scale-100';
+                case 'right': return 'translate-y-0 -translate-x-8 scale-100';
+                case 'none': return 'translate-y-0 translate-x-0 scale-95';
+                default: return 'translate-y-8 translate-x-0 scale-100';
             }
         }
         return 'translate-y-0 translate-x-0 scale-100';

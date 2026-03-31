@@ -3,7 +3,7 @@
 import * as React from 'react';
 import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
+import { Link } from '@/navigation';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -53,7 +53,7 @@ const formSchema = z.object({
 function LoginPageContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const redirectUrl = searchParams.get('redirect');
+    const redirectUrl = searchParams.get('redirect') || searchParams.get('redirectTo');
     const { auth, firestore } = useFirebase();
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(false);
@@ -157,8 +157,8 @@ function LoginPageContent() {
             });
 
             if (!sessionRes.ok) {
-                const errorData = await sessionRes.json().catch(() => ({ message: 'Session creation failed' }));
-                throw new Error(errorData.message || 'ไม่สามารถสร้างเซสชันได้');
+                const errorData = await sessionRes.json().catch(() => ({}));
+                throw new Error(errorData.error || errorData.message || `Session creation failed with status: ${sessionRes.status}`);
             }
 
             const { suggestedRedirect } = await sessionRes.json();
@@ -211,8 +211,8 @@ function LoginPageContent() {
             });
 
             if (!sessionRes.ok) {
-                const errorData = await sessionRes.json().catch(() => ({ message: 'Google session sync failed' }));
-                throw new Error(errorData.message || 'ไม่สามารถซิงค์เซสชัน Google ได้');
+                const errorData = await sessionRes.json().catch(() => ({}));
+                throw new Error(errorData.error || errorData.message || `Google session sync failed (Status: ${sessionRes.status})`);
             }
 
             const { suggestedRedirect } = await sessionRes.json();
@@ -345,9 +345,9 @@ function LoginPageContent() {
                         });
                         
                         if (!sessionRes.ok) {
-                            const errorData = await sessionRes.json().catch(() => ({ message: 'Session creation failed' }));
-                            alert("Session Error: " + errorData.message);
-                            throw new Error(errorData.message || 'การสร้างเซสชันล้มเหลว');
+                            const errorData = await sessionRes.json().catch(() => ({}));
+                            alert("Session Error: " + (errorData.error || errorData.message || sessionRes.status));
+                            throw new Error(errorData.error || errorData.message || `การสร้างเซสชันล้มเหลว (Status: ${sessionRes.status})`);
                         }
 
                         const { suggestedRedirect } = await sessionRes.json();
@@ -522,7 +522,7 @@ function LoginPageContent() {
                         <div className="text-center">
                             <p className="text-slate-500">
                                 ยังไม่มีบัญชี?{' '}
-                                <Link href={`/signup`} className="text-[#0B3979] font-semibold hover:underline decoration-2 underline-offset-4">
+                                <Link href="/signup" className="text-[#0B3979] font-semibold hover:underline decoration-2 underline-offset-4">
                                     สมัครสมาชิกที่นี่
                                 </Link>
                             </p>

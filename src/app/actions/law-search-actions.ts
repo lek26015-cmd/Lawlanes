@@ -2,6 +2,7 @@
 
 import { retrieveDocuments } from '@/lib/rag';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { getCachedAIResponse, setCachedAIResponse } from '@/lib/ai-cache';
 
 export type SearchResult = {
     source: string;
@@ -35,7 +36,31 @@ export async function searchLaws(query: string, limit: number = 10): Promise<Sea
             const lacksTones = !/[่้๊๋ะาิีึืุูเแโใไํั]/.test(res.content); // If a long Thai string has NO vowels/tones, it's likely broken
             
             if (hasTofu || (lacksTones && res.content.length > 50)) {
-                console.log(`[AI Repair] Triggering for: ${res.source} (Reason: ${hasTofu ? 'Tofu detected' : 'Lacks Thai vowels'})`);
+                console.log(`[AI Repair] Triggering check for: ${res.source} (Reason: ${hasTofu ? 'Tofu detected' : 'Lacks Thai vowels'})`);
+                
+                // Deterministic Repair (Fast Path)
+                let cleanedContent = res.content
+                    .replace(/([ก-ฮ])\s+([่้๊๋ะาิีึืุูัํ])/g, '$1$2')
+                    .replace(/([่้๊๋ะาิีึืุูัํ])\s+([ก-ฮ])/g, '$1$2')
+                    .replace(/พจารณา/g, 'พิจารณา')
+                    .replace(/บญญต/g, 'บัญญัติ')
+                    .replace(/มาตรา\s+(\d+)/g, 'มาตรา $1')
+                    .replace(/[ ]{2,}/g, ' ')
+                    .trim();
+
+                // Re-check quality after deterministic fix
+                const stillHasTofu = /[\uFFFD\u0000-\u0008\u000B\u000C\u000E-\u001F]/.test(cleanedContent) || cleanedContent.includes('□');
+                const stillLacksTones = !/[่้๊๋ะาิีึืุูเแโใไํั]/.test(cleanedContent);
+
+                if (!stillHasTofu && (!stillLacksTones || cleanedContent.length <= 50)) {
+                    console.log(`[Deterministic Repair] Fixed: ${res.source}`);
+                    return { ...res, content: cleanedContent };
+                }
+
+                // Try to get from cache first
+                const cached = await getCachedAIResponse<string>(res.content, 'law-repair');
+                if (cached) return { ...res, content: cached };
+
                 try {
                     const prompt = `ข้อความต่อไปนี้สกัดมาจาก PDF และมีปัญหาเรื่องตัวอักษรกลายเป็นกล่อง สระหาย หรือวรรณยุกต์เพี้ยน (เช่น "พจารณา" แทน "พิจารณา")
 จง "แก้ไขและพิมพ์ข้อความใหม่" ให้เป็นภาษาไทยที่สมบูรณ์ อ่านรู้เรื่อง ตามหลักกฎหมาย โดยคงความหมายเดิมไว้ทุกประการ ห้ามสรุปความ:
@@ -45,6 +70,10 @@ ${res.content}
 ---`;
                     const repairResult = await model.generateContent(prompt);
                     const fixedText = repairResult.response.text().trim();
+                    
+                    // Save to cache
+                    await setCachedAIResponse(res.content, 'law-repair', fixedText);
+
                     return { ...res, content: fixedText };
                 } catch (e) {
                     console.error("Failed to repair text for", res.source, e);

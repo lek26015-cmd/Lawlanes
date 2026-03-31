@@ -1,0 +1,8 @@
+name = "lawslane-email-inbound"
+main = "src/index.ts"
+compatibility_date = "2024-03-20"
+
+[vars]
+NEXT_PUBLIC_APP_URL = "https://lawslane.com"
+
+# The INBOUND_EMAIL_SECRET should be set via 'wrangler secret put'

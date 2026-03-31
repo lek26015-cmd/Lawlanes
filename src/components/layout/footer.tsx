@@ -5,7 +5,7 @@ import Logo from '@/components/logo';
 import { usePathname } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import { useState, useEffect } from 'react';
-import { getMainLink, getBusinessLink } from '@/lib/domain-utils';
+import { getMainLink, getBusinessLink, getAdminLink } from '@/lib/domain-utils';
 
 // Helper component to handle absolute vs relative links
 function SafeLink({ href, children, className }: { href: string; children: React.ReactNode; className?: string }) {
@@ -63,7 +63,7 @@ export default function Footer({ userRole, domainType = 'main' }: { userRole: st
   }
 
   if (userRole === 'admin') {
-    forLawyersLinks.push({ href: `/admin`, label: t('forLawyers.adminDashboard') });
+    forLawyersLinks.push({ href: getAdminLink('/', domainType, !isMounted), label: t('forLawyers.adminDashboard') });
     forLawyersLinks.push({ href: `/lawyer-dashboard?view=admin`, label: t('forLawyers.adminView') });
   }
 

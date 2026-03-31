@@ -13,7 +13,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Label } from '@/components/ui/label';
-import { useFirebase } from '@/firebase';
+import { useFirebase, useUser } from '@/firebase';
+import { submitReviewAction } from '@/app/actions/review-actions';
 
 
 function ReviewPageContent() {
@@ -22,6 +23,7 @@ function ReviewPageContent() {
   const router = useRouter();
   const { toast } = useToast();
   const { firestore } = useFirebase();
+  const { user } = useUser();
 
   const chatId = params.id as string;
   const lawyerId = searchParams.get('lawyerId');
@@ -48,32 +50,56 @@ function ReviewPageContent() {
     fetchLawyer();
   }, [lawyerId, firestore]);
 
-  const handleSubmitReview = () => {
+  const handleSubmitReview = async () => {
     if (rating === 0) {
-        toast({
-            variant: "destructive",
-            title: "กรุณาให้คะแนน",
-            description: "โปรดเลือกดาวเพื่อให้คะแนนความพึงพอใจ",
-        });
-        return;
+      toast({
+        variant: "destructive",
+        title: "กรุณาให้คะแนน",
+        description: "โปรดเลือกดาวเพื่อให้คะแนนความพึงพอใจ",
+      });
+      return;
     }
-    // In a real app, this would save the review to the database
-    console.log({
-      chatId,
-      lawyerId,
-      rating,
-      reviewText,
-    });
-    
-    toast({
+
+    if (!user || !lawyerId) {
+      toast({
+        variant: "destructive",
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่พบข้อมูลทนายความ หรือคุณยังไม่ได้เข้าสู่ระบบ",
+      });
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      await submitReviewAction({
+        lawyerId,
+        userId: user.uid,
+        author: user.displayName || 'Anonymous',
+        avatar: user.photoURL || '',
+        rating: Number(rating),
+        comment: reviewText,
+        caseId: chatId
+      });
+
+      toast({
         title: "ส่งรีวิวสำเร็จ",
         description: "ขอบคุณสำหรับความคิดเห็นของคุณ! ความคิดเห็นของคุณช่วยให้เราพัฒนาบริการได้ดียิ่งขึ้น",
-    });
+      });
 
-    // Redirect to the main dashboard after submitting
-    setTimeout(() => {
+      // Redirect to the main dashboard after submitting
+      setTimeout(() => {
         router.push('/dashboard');
-    }, 1500);
+      }, 1500);
+    } catch (error: any) {
+      console.error("Error submitting review:", error);
+      toast({
+        variant: "destructive",
+        title: "เกิดข้อผิดพลาด",
+        description: `ไม่สามารถส่งรีวิวได้: ${error.message}`,
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   if (isLoading) {

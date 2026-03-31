@@ -84,8 +84,26 @@ export async function POST(request: Request) {
             suggestedRedirect 
         });
     } catch (error: any) {
-        console.error('Session creation error:', error);
-        return NextResponse.json({ error: error.message || 'Unauthorized' }, { status: 401 });
+        console.error('[Firebase Diagnostics] Session creation error details:', {
+            message: error.message,
+            code: error.code,
+            stack: error.stack,
+            fullError: JSON.stringify(error, Object.getOwnPropertyNames(error))
+        });
+        
+        let statusCode = 401;
+        let errorMessage = error.message || 'Unauthorized';
+        
+        if (error.code === 'auth/id-token-expired') {
+            errorMessage = 'Firebase ID Token has expired. Please refresh and try again.';
+        } else if (error.code === 'auth/argument-error') {
+            errorMessage = 'Invalid ID Token provided.';
+        } else if (error.message?.includes('private key')) {
+            errorMessage = 'Server configuration error: Invalid Firebase Private Key.';
+            statusCode = 500;
+        }
+
+        return NextResponse.json({ error: errorMessage, code: error.code }, { status: statusCode });
     }
 }
 

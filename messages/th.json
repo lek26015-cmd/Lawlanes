@@ -140,6 +140,7 @@
     "Navigation": {
         "forSME": "สำหรับ SME",
         "forB2B": "สำหรับธุรกิจ",
+        "corporatePlans": "แพ็กเกจองค์กร",
         "b2bMenu": {
             "dashboard": "ระบบหลังบ้าน (Dashboard)",
             "pricing": "แพ็กเกจองค์กร",
@@ -149,8 +150,8 @@
         "findLawyer": "ค้นหาทนาย",
         "verifyLawyer": "ตรวจสอบทนาย",
         "articles": "บทความ",
-        "forms": "แบบฟอร์ม",
-        "forLawyers": "สำหรับทนายความ",
+        "books": "ร้านหนังสือ",
+        "forLawyers": "สำหรับทนาย",
         "home": "หน้าแรก",
         "login": "เข้าสู่ระบบ",
         "logout": "ออกจากระบบ",
@@ -161,13 +162,82 @@
         "manageAccount": "จัดการบัญชี",
         "searchPlaceholder": "ค้นหาทนาย, ความเชี่ยวชาญ, หรือปัญหา...",
         "smeMenu": {
+            "title": "บริการสำหรับ SME",
             "contracts": "ร่างและตรวจสัญญาธุรกิจ",
             "consultant": "ที่ปรึกษากฎหมายประจำบริษัท",
             "registration": "จดทะเบียนและใบอนุญาต",
-            "dispute": "ระงับข้อพิพาททางธุรกิจ"
+            "dispute": "ระงับข้อพิพาททางธุรกิจ",
+            "forms": "แบบฟอร์มกฎหมาย"
         },
         "capAndDeal": "แคปแล้วดีล",
         "scrollToTop": "เลื่อนขึ้นบนสุด"
+    },
+    "Books": {
+        "title": "หนังสือและคู่มือทางกฎหมาย",
+        "backToBooks": "กลับสู่หน้าร้านหนังสือ",
+        "subtitle": "รวมหนังสือคุณภาพและคู่มือทางกฎหมายเพื่อผู้ประกอบการและนักกฎหมายครบวงจร",
+        "searchPlaceholder": "ค้นหาหนังสือ, ผู้แต่ง, หรือหัวข้อ...",
+        "buyNow": "ซื้อเลย",
+        "addToCart": "เพิ่มลงตะกร้า",
+        "price": "ราคา",
+        "categoriesTitle": "หมวดหมู่",
+        "allBooks": "หนังสือทั้งหมด",
+        "promo": {
+            "title": "สิทธิพิเศษสำหรับสมาชิก",
+            "description": "สมัครสมาชิกรับส่วนลดทันที 10% สำหรับการสั่งซื้อครั้งแรก",
+            "button": "เข้าร่วมเลย"
+        },
+        "noResults": {
+            "title": "ไม่พบผลการค้นหา",
+            "description": "ลองเปลี่ยนคำค้นหาหรือเลือกหมวดหมู่ใหม่เพื่อให้พบกับหนังสือที่คุณต้องการ",
+            "button": "ล้างตัวกรองทั้งหมด"
+        },
+        "cart": {
+            "title": "ตะกร้าสินค้าของคุณ",
+            "empty": "ตะกร้าของคุณยังว่างอยู่",
+            "continueShopping": "เลือกซื้อสินค้าต่อ",
+            "checkout": "ไปที่หน้าชำระเงิน",
+            "subtotal": "ยอดรวม",
+            "itemCount": "{count} รายการ"
+        },
+        "categories": {
+            "all": "ทั้งหมด",
+            "business": "กฎหมายธุรกิจ",
+            "sme": "คู่มือ SME",
+            "contract": "การร่างสัญญา",
+            "litigation": "การว่าความ"
+        },
+        "checkout": {
+            "title": "ชำระเงินซื้อหนังสือ",
+            "summary": "สรุปรายการสั่งซื้อ",
+            "address": "ที่อยู่สำหรับจัดส่ง",
+            "addressPlaceholder": "ระบุที่อยู่จัดส่งโดยละเอียด...",
+            "paymentMethod": "วิธีชำระเงิน",
+            "confirm": "ยืนยันการสั่งซื้อและชำระเงิน",
+            "success": "สั่งซื้อสำเร็จ!",
+            "successDesc": "เราได้รับคำสั่งซื้อของคุณแล้ว คุณสามารถติดตามสถานะได้ในหน้าติดตามสถานะ"
+        },
+        "tracking": {
+            "title": "ติดตามสถานะหนังสือ",
+            "orderId": "เลขที่คำสั่งซื้อ",
+            "status": "สถานะ",
+            "date": "วันที่สั่งซื้อ",
+            "history": "ประวัติการสั่งซื้อ",
+            "noOrders": "คุณยังไม่มีรายการสั่งซื้อหนังสือ",
+            "statuses": {
+                "pending": "รอการชำระเงิน",
+                "paid": "ชำระเงินแล้ว/กำลังเตรียมจัดส่ง",
+                "shipped": "จัดส่งแล้ว",
+                "delivered": "ได้รับสินค้าแล้ว",
+                "cancelled": "ยกเลิก"
+            },
+            "shippingProgress": "สถานะการจัดส่ง",
+            "trackingId": "เลขพัสดุ",
+            "trackingPlaceholder": "เลขพัสดุจะแจ้งให้ทราบหลังจัดส่ง",
+            "orderDetails": "รายละเอียดคำสั่งซื้อ",
+            "total": "ยอดรวม",
+            "quantity": "จำนวน {count} เล่ม"
+        }
     },
     "VerifyLawyer": {
         "backToHome": "กลับไปหน้าแรก",
@@ -315,7 +385,54 @@
         "appointmentWith": "กับ",
         "date": "วันที่",
         "time": "เวลา",
-        "noActiveCases": "ยังไม่มีรายการปรึกษา"
+        "noActiveCases": "ยังไม่มีรายการปรึกษา",
+        "paymentsAndInvoices": "ชำระเงินและใบเสร็จ",
+        "payNow": "ชำระเงิน",
+        "pendingInvoices": "รอการชำระเงิน",
+        "invoiceHistory": "ประวัติการแจ้งหนี้",
+        "invoiceNumber": "เลขที่ใบแจ้งหนี้",
+        "description": "รายการ / เคส",
+        "amount": "จำนวนเงิน",
+        "status": "สถานะ",
+        "nextAction": "ขั้นตอนถัดไป"
+    },
+    "CaseRoom": {
+        "proTools": "เครื่องมือระดับโปร (PRO)",
+        "titleInitial": "การแชทปรึกษาเบื้องต้น",
+        "titleOfficial": "ห้องพิจารณาคดีออนไลน์",
+        "freeBadge": "ปรึกษาฟรี",
+        "officialBadge": "เคสทางการ",
+        "nextAction": "ขั้นตอนถัดไป",
+        "legalVault": "คลังเอกสารคดี (Legal Vault)",
+        "vaultDescription": "จัดเก็บเอกสารอย่างเป็นสัดส่วนและปลอดภัย",
+        "legalResearch": "ค้นหาข้อกฎหมาย (RAG Assistance)",
+        "researchPlaceholder": "พิมพ์คำค้นหาหรือประเด็นทางกฎหมาย...",
+        "viewFullText": "ดูมาตราเต็ม",
+        "citeLaw": "อ้างอิงมาตรานี้",
+        "noResults": "ไม่พบกฎหมายที่เกี่ยวข้อง",
+        "resultsFound": "พบ {count} มาตราที่เกี่ยวข้อง",
+        "docClient": "เอกสารจากลูกค้า",
+        "docLawyer": "เอกสารจากทนาย",
+        "downloadAll": "ดาวน์โหลดทั้งหมด",
+        "interpreterTitle": "ค้นหาล่ามกฎหมายมืออาชีพ",
+        "interpreterSearchPlaceholder": "ค้นหาภาษา หรือ ความเชี่ยวชาญพิเศษ...",
+        "certifiedInterpreter": "ล่ามผ่านการรับรองจากศาล",
+        "legalSpecialty": "เฉพาะทางกฎหมาย",
+        "interpreterRate": "เรทราคาเริ่มต้น {price} / ชม.",
+        "bookInterpreter": "จองล่ามสำหรับเคสนี้",
+        "languages": {
+            "en": "อังกฤษ",
+            "zh": "จีน",
+            "ja": "ญี่ปุ่น",
+            "ko": "เกาหลี",
+            "fr": "ฝรั่งเศส"
+        }
+    },
+    "CaseRoadmap": {
+        "step1": "ปรึกษาเบื้องต้น",
+        "step2": "เปิดคดี/ชำระเงิน",
+        "step3": "ดำเนินงาน/ส่งหลักฐาน",
+        "step4": "สรุปงาน/ปิดคดี"
     },
     "Help": {
         "title": "ศูนย์ช่วยเหลือ",
@@ -858,7 +975,7 @@
             "subtitle": "Contact Us",
             "email": {
                 "title": "อีเมล | Email",
-                "value": "support@lawslane.com"
+                "value": "contact@lawslane.com"
             },
             "phone": {
                 "title": "โทรศัพท์ | Phone",
@@ -1088,7 +1205,7 @@
             },
             "support": {
                 "text": "สำหรับใบกำกับภาษีย้อนหลังหรือข้อสงสัยด้านการเงิน ติดต่อ",
-                "email": "billing@lawslane.com"
+                "email": "contact@lawslane.com"
             },
             "planLabels": {
                 "starter": "Starter — 2,500 บาท/เดือน",

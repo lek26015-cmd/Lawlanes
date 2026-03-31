@@ -75,6 +75,8 @@ export default {
           border: 'hsl(var(--sidebar-border))',
           ring: 'hsl(var(--sidebar-ring))',
         },
+        'deep-blue': '#0B3979',
+        gold: '#C5A47E',
       },
       borderRadius: {
         lg: 'var(--radius)',

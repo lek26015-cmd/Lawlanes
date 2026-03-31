@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """
 Ingest Ratchakitcha (Royal Gazette) OCR data from HuggingFace into Cloudflare Vectorize.
-Downloads JSONL files for the specified year range, chunks the text,
-and sends each chunk to the Cloudflare Worker /ingest endpoint.
+BACKWARDS version: Processes years from END_YEAR down to START_YEAR.
 """
 from __future__ import annotations
 
@@ -24,38 +23,30 @@ DELAY_BETWEEN_CHUNKS = 0.5
 
 # Years to ingest
 START_YEAR = 2020
-END_YEAR = 2025
+END_YEAR = 2026
 CHECKPOINT_FILE = "scripts/checkpoint-ratchakitcha.json"
 
 def load_checkpoint():
     if os.path.exists(CHECKPOINT_FILE):
         try:
             with open(CHECKPOINT_FILE, 'r') as f:
-                return json.load(f)
+                data = json.load(f)
+                return data["year"], data["month"]
         except Exception:
             pass
-    return {"year": START_YEAR, "month": 1}
+    return END_YEAR, 12
 
 def save_checkpoint(year, month):
     with open(CHECKPOINT_FILE, 'w') as f:
         json.dump({"year": year, "month": month}, f)
 
 def update_local_status(status: str, message: str = "", next_retry: str = ""):
-    """Notify the local Next.js API about the current ingestion status."""
-    try:
-        requests.post(
-            LOCAL_API_URL,
-            json={"task": "ratchakitcha", "status": status, "message": message, "nextRetry": next_retry},
-            timeout=5
-        )
-    except Exception:
-        pass
-
+    # Heavy status updates to localhost:9002 was causing Next.js dev server panic (PoisonError).
+    # We will just print to console for now to keep the server stable.
+    print(f"  📊 Status: {status} | {message}")
 
 def download_jsonl(year: int, month: int) -> Optional[str]:
-    """Download a single JSONL file from HuggingFace."""
     from huggingface_hub import hf_hub_download
-    
     month_str = f"{year}-{month:02d}"
     try:
         path = hf_hub_download(
@@ -69,24 +60,18 @@ def download_jsonl(year: int, month: int) -> Optional[str]:
             print(f"  ⚠️ Could not download {month_str}.jsonl: {e}")
         return None
 
-
 def extract_text_from_record(record: dict) -> str:
-    """Extract all page text from an OCR record."""
     if not record.get("success") or not record.get("data"):
         return ""
-    
     ocr_results = record["data"].get("ocr_results", [])
     pages = []
     for page in ocr_results:
         text = page.get("markdown_output", "").strip()
         if text:
             pages.append(text)
-    
     return "\n\n".join(pages)
 
-
 def chunk_text(text: str, chunk_size: int = CHUNK_SIZE, overlap: int = CHUNK_OVERLAP) -> List[str]:
-    """Split text into overlapping chunks."""
     chunks = []
     start = 0
     while start < len(text):
@@ -95,85 +80,45 @@ def chunk_text(text: str, chunk_size: int = CHUNK_SIZE, overlap: int = CHUNK_OVE
         start += chunk_size - overlap
     return chunks
 
-
 def ingest_chunk(text: str, metadata: dict) -> bool:
-    """Send a single chunk to the Cloudflare Worker with ultra-resilient infinite retries."""
-    max_retries = 1000  # Practically infinite for autonomous running
+    max_retries = 1000
     base_wait = 2
-    max_wait = 3600    # Cap wait at 1 hour
-    
+    max_wait = 3600
     for attempt in range(max_retries):
         try:
             update_local_status("active", f"Ingesting chunk for {metadata.get('source', 'unknown')}")
-            
             response = requests.post(
                 f"{WORKER_URL}/ingest",
                 json={"text": text, "metadata": metadata, "id": metadata["id"]},
                 headers={"Content-Type": "application/json"},
                 timeout=30,
             )
-            
             if response.status_code == 429:
                 wait_time = min(base_wait * (2 ** attempt), max_wait)
-                print(f"    ⚠️ Rate limited (429). Retrying in {wait_time}s... (Attempt {attempt+1}/{max_retries})")
-                
-                # Update status for Dashboard
-                update_local_status(
-                    "cooling_down", 
-                    f"Hit rate limit. Cooling down for {wait_time}s", 
-                    f"{wait_time}s"
-                )
-                
                 time.sleep(wait_time)
                 continue
-                
             if not response.ok:
-                print(f"    ❌ Ingest failed: {response.status_code} {response.text[:100]}")
-                if response.status_code >= 500:
-                    wait_time = min(base_wait * (2 ** attempt), max_wait)
-                    update_local_status("cooling_down", f"Server error {response.status_code}. Retrying...", f"{wait_time}s")
-                    time.sleep(wait_time)
-                    continue
-                
-                # For non-retriable fatal errors (like 400 Bad Request), log and try one more time after a long rest
-                print(f"    🚫 Non-retriable error {response.status_code}. Resting for 10 mins...")
-                update_local_status("error", f"Fatal error {response.status_code}. Resting.")
-                time.sleep(600)
+                time.sleep(10)
                 continue
-                
             return True
-        except Exception as e:
-            wait_time = min(base_wait * (2 ** attempt), max_wait)
-            print(f"    ❌ Ingest error: {e}. Retrying in {wait_time}s...")
-            update_local_status("cooling_down", f"Network error. Waiting {wait_time}s", f"{wait_time}s")
-            time.sleep(wait_time)
-            
-    print("    🛑 Ultra-max retries reached for this chunk. Resting for 1 hour to cool system...")
-    update_local_status("error", "Max retries reached. Resting 1h.")
-    time.sleep(3600)
+        except Exception:
+            time.sleep(10)
     return False
 
-
 def process_jsonl_file(filepath: str, year: int, month: int) -> Tuple[int, int]:
-    """Process a single JSONL file and ingest all records."""
     total_chunks = 0
     successful_chunks = 0
-    
     with open(filepath, "r", encoding="utf-8") as f:
         for line_num, line in enumerate(f):
             try:
                 record = json.loads(line.strip())
             except json.JSONDecodeError:
                 continue
-            
             pdf_file = record.get("pdf_file", f"unknown-{line_num}")
             text = extract_text_from_record(record)
-            
             if not text or len(text) < 50:
                 continue
-            
             chunks = chunk_text(text)
-            
             for i, chunk in enumerate(chunks):
                 chunk_id = hashlib.md5(f"rk-{pdf_file}-{i}".encode()).hexdigest()
                 metadata = {
@@ -186,53 +131,41 @@ def process_jsonl_file(filepath: str, year: int, month: int) -> Tuple[int, int]:
                     "totalChunks": len(chunks),
                     "dataset": "ratchakitcha",
                 }
-                
                 total_chunks += 1
                 if ingest_chunk(chunk, metadata):
                     successful_chunks += 1
-                
                 time.sleep(DELAY_BETWEEN_CHUNKS)
-            
             if (line_num + 1) % 10 == 0:
                 print(f"    📄 Processed {line_num + 1} documents...")
-    
     return total_chunks, successful_chunks
 
-
 def main():
-    print(f"🏛️ Ratchakitcha Ingestion — Years {START_YEAR}-{END_YEAR}")
-    print()
+    print(f"🏛️ Ratchakitcha Ingestion (BACKWARDS) — Years {END_YEAR} to {START_YEAR}")
+    current_year, current_month = load_checkpoint()
     
-    checkpoint = load_checkpoint()
-    start_year = checkpoint.get("year", START_YEAR)
-    start_month = checkpoint.get("month", 1)
-    
-    print(f"🔄 Resuming from Year {start_year}, Month {start_month}")
-    
-    grand_total = 0
-    grand_success = 0
-    
-    for year in range(start_year, END_YEAR + 1):
-        print(f"📅 Year {year}")
-        initial_month = start_month if year == start_year else 1
-        for month in range(initial_month, 13):
-            month_str = f"{year}-{month:02d}"
-            filepath = download_jsonl(year, month)
-            if not filepath:
-                save_checkpoint(year, month + 1 if month < 12 else 1)
-                continue
+    while current_year >= START_YEAR:
+        print(f"📅 Year {current_year}")
+        while current_month >= 1:
+            month_str = f"{current_year}-{current_month:02d}"
+            filepath = download_jsonl(current_year, current_month)
+            if filepath:
+                print(f"  ⚙️  Processing {month_str}...")
+                total, success = process_jsonl_file(filepath, current_year, current_month)
+                print(f"  ✅ {month_str}: {success}/{total} chunks ingested")
             
-            print(f"  ⚙️  Processing {month_str}...")
-            total, success = process_jsonl_file(filepath, year, month)
-            grand_total += total
-            grand_success += success
-            print(f"  ✅ {month_str}: {success}/{total} chunks ingested")
-            
-            save_checkpoint(year, month + 1 if month < 12 else 1 if year < END_YEAR else month)
-        
-    print(f"🎉 Ingestion complete! Total: {grand_success}/{grand_total}")
-    update_local_status("idle", "Ingestion complete")
+            current_month -= 1
+            if current_month >= 1:
+                save_checkpoint(current_year, current_month)
+            else:
+                break
+                
+        current_year -= 1
+        current_month = 12
+        if current_year >= START_YEAR:
+            save_checkpoint(current_year, current_month)
 
+    print(f"🎉 Ingestion complete!")
+    update_local_status("idle", "Ingestion complete")
 
 if __name__ == "__main__":
     main()

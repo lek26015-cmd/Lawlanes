@@ -21,6 +21,8 @@ import { HomeRecommendedLawyers } from '@/components/home-recommended-lawyers';
 import { HomeServicesSection } from '@/components/home-services-section';
 import { FadeIn } from '@/components/fade-in';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
+import lawslaneCoverPhoto from '@/pic/lawslane-cover-photo.png';
+import lawslaneHeroCover from '@/pic/Lawlanes-Hero-cover.jpg';
 
 export const dynamic = 'error';
 
@@ -29,6 +31,9 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   setRequestLocale(locale);
   const t = await getTranslations('HomePage');
   const { firestore: db } = initializeFirebase();
+
+  // Fetch lawyers on the server for faster loading
+  const initialLawyers = db ? await getApprovedLawyers(db, 6) : [];
 
   // ข้อมูล Feature แบบภาษาไทย
   const features = [
@@ -68,11 +73,12 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
               <FadeIn direction="right" delay={100} className="absolute bottom-[-40px] left-[2%] w-[45%] h-full">
                 <div className="relative w-full h-full opacity-80">
                   <Image
-                    src="/images/lawslane-cover-photo.png"
+                    src={lawslaneCoverPhoto}
                     alt="Lawslane Cover"
                     fill
                     className="object-contain object-left-bottom"
                     priority
+                    unoptimized
                   />
                 </div>
               </FadeIn>
@@ -83,11 +89,12 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
           <FadeIn direction="right" delay={100} className="lg:hidden absolute top-24 left-0 w-full h-[500px] z-0 pointer-events-none">
             <div className="relative w-full h-full opacity-80">
               <Image
-                src="/images/lawslane-cover-photo.png"
+                src={lawslaneCoverPhoto}
                 alt="Lawslane Cover"
                 fill
                 className="object-cover object-top"
                 priority
+                unoptimized
               />
             </div>
           </FadeIn>
@@ -147,8 +154,8 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
           </div>
         </section>
 
-        {/* Recommended Lawyers - Client Side Fetching */}
-        <HomeRecommendedLawyers />
+        {/* Recommended Lawyers - Server Side Prefetched */}
+        <HomeRecommendedLawyers initialLawyers={initialLawyers} />
 
         {/* Lawyer Search CTA */}
         <section className="w-full py-16 md:py-24 bg-blue-50">

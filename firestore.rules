@@ -34,8 +34,8 @@ service cloud.firestore {
     match /lawyerProfiles/{lawyerId} {
       allow read, list: if true;
       allow create: if isOwner(request.resource.data.userId) || isAdmin();
-      allow update: if isOwner(resource.data.get('userId', null)) || isAdmin() || (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['averageRating', 'reviewCount']));
-      allow delete: if isOwner(resource.data.get('userId', null)) || isAdmin();
+      allow update: if isOwner(lawyerId) || isAdmin() || (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['averageRating', 'reviewCount']));
+      allow delete: if isOwner(lawyerId) || isAdmin();
     }
 
     match /reviews/{reviewId} {
@@ -49,7 +49,11 @@ service cloud.firestore {
         return isSignedIn() && request.auth.uid in resource.data.participants;
       }
       
-      allow get, list: if isSignedIn(); // Broad access for now to fix dashbaord errors
+      allow get: if isSignedIn() && (isParticipant() || isAdmin()); 
+      allow list: if isSignedIn() && (
+        (request.query.limit <= 1000 && request.auth.uid in request.query.filters.participants) || 
+        isAdmin()
+      ); 
       allow create: if isSignedIn();
       allow update: if isParticipant() || isAdmin();
 
@@ -77,12 +81,24 @@ service cloud.firestore {
 
     match /appointments/{appointmentId} {
         allow create: if isSignedIn();
-        allow read, list, update: if isOwner(resource.data.get('userId', null)) || isOwner(resource.data.get('lawyerId', null)) || isAdmin();
+        // Allow read if user is involved or admin
+        allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || resource.data.lawyerId == request.auth.uid || isAdmin());
+        // Allow list only if the query is properly filtered by the user's role/id
+        allow list: if isSignedIn() && (
+          (request.query.limit <= 1000 && (request.auth.uid in request.query.filters.userId || request.auth.uid in request.query.filters.lawyerId)) ||
+          isAdmin()
+        );
+        allow update: if isSignedIn() && (resource.data.userId == request.auth.uid || resource.data.lawyerId == request.auth.uid || isAdmin());
     }
 
     match /tickets/{ticketId} {
         allow create: if isSignedIn();
-        allow read, list, update: if isOwner(resource.data.userId) || isAdmin();
+        allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+        allow list: if isSignedIn() && (
+          (request.query.limit <= 1000 && request.auth.uid in request.query.filters.userId) ||
+          isAdmin()
+        );
+        allow update: if isOwner(resource.data.userId) || isAdmin();
 
         match /messages/{messageId} {
             allow read, list: if isAdmin() || (isSignedIn() && request.auth.uid == get(/databases/$(database)/documents/tickets/$(ticketId)).data.userId);
@@ -92,7 +108,12 @@ service cloud.firestore {
 
     match /withdrawals/{withdrawalId} {
         allow create: if isSignedIn() && request.resource.data.lawyerId == request.auth.uid;
-        allow read, list, update: if isOwner(resource.data.get('lawyerId', null)) || isAdmin();
+        allow get: if isSignedIn() && (resource.data.lawyerId == request.auth.uid || isAdmin());
+        allow list: if isSignedIn() && (
+          (request.query.limit <= 1000 && request.auth.uid in request.query.filters.lawyerId) ||
+          isAdmin()
+        );
+        allow update: if isAdmin(); // Only admins can process withdrawals
     }
 
     match /sme_inquiries/{inquiryId} {
@@ -105,8 +126,12 @@ service cloud.firestore {
     }
     match /notifications/{notificationId} {
         allow create: if isSignedIn();
-        allow read: if isSignedIn() && (resource.data.recipient == request.auth.uid || resource.data.recipient == 'admin' || isAdmin());
-        allow update: if isSignedIn() && (resource.data.recipient == request.auth.uid || resource.data.recipient == 'admin' || isAdmin());
+        allow get: if isSignedIn() && (resource.data.recipient == request.auth.uid || resource.data.recipient == 'admin' || isAdmin());
+        allow list: if isSignedIn() && (
+          (request.auth.uid in request.query.filters.recipient) ||
+          isAdmin()
+        );
+        allow update: if isSignedIn() && (resource.data.recipient == request.auth.uid || isAdmin());
     }
     match /landingPages/{pageId} {
         allow read: if true;
@@ -216,6 +241,17 @@ service cloud.firestore {
       allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
       allow update: if canAccessCompliance();
       allow delete: if isAdmin() || (isSignedIn() && request.auth.uid == resource.data.ownerId);
+    }
+
+    match /bookOrders/{orderId} {
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      // Use get and list for more granular control
+      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (
+        (request.query.limit <= 1000 && request.auth.uid in request.query.filters.userId) ||
+        isAdmin()
+      );
+      allow update: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
     }
 
     // Default deny at the very end

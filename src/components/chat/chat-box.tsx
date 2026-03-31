@@ -1,6 +1,7 @@
 
 'use client';
 import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import {
   collection,
   query,
@@ -18,11 +19,16 @@ import {
   Query,
 } from 'firebase/firestore';
 import { User } from 'firebase/auth';
+import { 
+  ensureChatExistsAction, 
+  sendChatMessageAction, 
+  markChatAsReadAction 
+} from '@/app/actions/chat-actions';
 import type { LawyerProfile, HumanChatMessage } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, Loader2, Sparkles, Languages, AlertTriangle } from 'lucide-react';
+import { Send, Loader2, Sparkles, Languages, AlertTriangle, FolderPlus, Plus } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useChat } from '@/context/chat-context';
@@ -47,6 +53,8 @@ interface MessageWithTranslation extends HumanChatMessage {
   isTranslating?: boolean;
 }
 
+import { useChatSocket } from '@/hooks/use-chat-socket';
+
 export function ChatBox({
   firestore,
   currentUser,
@@ -55,22 +63,88 @@ export function ChatBox({
   isDisabled = false,
   isLawyerView = false,
 }: ChatBoxProps) {
+  const { 
+    messages: socketMessages, 
+    isConnected, 
+    isLoading: isSocketLoading, 
+    sendMessage 
+  } = useChatSocket(chatId, currentUser.uid, currentUser.displayName || 'คู่สนทนา');
+
   const [messages, setMessages] = useState<MessageWithTranslation[]>([]);
   const [input, setInput] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
   const [isChatReady, setIsChatReady] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const { initialChatMessage, setInitialChatMessage } = useChat();
 
+  // Sync socket messages with local state (for translations)
+  useEffect(() => {
+    setMessages(socketMessages.map(msg => ({
+      ...msg,
+      translation: (messages.find(m => m.id === msg.id) as any)?.translation,
+      isTranslating: (messages.find(m => m.id === msg.id) as any)?.isTranslating,
+    })));
+  }, [socketMessages]);
+
+  const [chatMetadata, setChatMetadata] = useState<any>(null);
+
+  // Fetch chat metadata
+  useEffect(() => {
+    if (!chatId || !firestore) return;
+    const chatRef = doc(firestore, 'chats', chatId);
+    getDoc(chatRef).then(docSnap => {
+      if (docSnap.exists()) {
+        setChatMetadata(docSnap.data());
+      }
+    });
+  }, [chatId, firestore]);
+
+  useEffect(() => {
+    if (chatId && currentUser.uid && otherUser.userId && chatMetadata) {
+      // Ensure chat exists in D1
+      const ensureChat = async () => {
+        try {
+          const caseTitle = chatMetadata.caseTitle || chatMetadata.title || 'คดีใหม่';
+          
+          // Fallback to server action first for reliability
+          await ensureChatExistsAction(chatId, [currentUser.uid, otherUser.userId], caseTitle).catch(e => console.warn("D1 Sync via Server Action failed:", e));
+
+          // Then attempt worker sync if available
+          const workerUrl = process.env.NEXT_PUBLIC_CHAT_WORKER_URL;
+          if (workerUrl && workerUrl !== 'undefined') {
+            await fetch(`${workerUrl}/ensure-chat`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                chatId,
+                participants: [currentUser.uid, otherUser.userId],
+                caseTitle: caseTitle
+              })
+            }).catch(e => {
+               // Silently fail worker sync as we have D1/Firebase backup
+               console.warn("Worker sync skipped (unreachable)");
+            });
+          }
+          
+          setIsChatReady(true);
+        } catch (err) {
+          console.error("Chat initialization failed:", err);
+          setIsChatReady(true); // Always allow chat to proceed with Firebase fallback
+        }
+      };
+      ensureChat();
+    } else if (chatId && currentUser.uid && otherUser.userId && !chatMetadata) {
+       // Still proceed if metadata fetch is slow
+       setIsChatReady(true);
+    }
+  }, [chatId, currentUser.uid, otherUser.userId, chatMetadata]);
+
   const handleTranslateMessage = async (messageId: string, text: string) => {
-    // Mark as translating
     setMessages(prev => prev.map(msg =>
       msg.id === messageId ? { ...msg, isTranslating: true } : msg
     ));
 
     try {
       const result = await translateToMultipleLanguages(text);
-      // Translate to English by default
       const translatedText = result.english;
 
       setMessages(prev => prev.map(msg =>
@@ -87,115 +161,12 @@ export function ChatBox({
   };
 
   useEffect(() => {
-    if (!chatId || !currentUser.uid || !otherUser.userId) {
-      console.warn("ChatBox missing required props:", { chatId, currentUser: currentUser?.uid, otherUser: otherUser?.userId });
-      setIsLoading(false);
-      return;
-    }
-
-    const chatRef = doc(firestore, 'chats', chatId);
-
-    const ensureChatExists = async () => {
-      try {
-        const chatSnap = await getDoc(chatRef);
-        if (!chatSnap.exists()) {
-          const newChatData = {
-            participants: [currentUser.uid, otherUser.userId],
-            createdAt: serverTimestamp(),
-            caseTitle: 'คดี: มรดก',
-          };
-          setDoc(chatRef, newChatData)
-            .then(() => {
-              setIsChatReady(true);
-            })
-            .catch(serverError => {
-              const permissionError = new FirestorePermissionError({
-                path: chatRef.path,
-                operation: 'create',
-                requestResourceData: newChatData,
-              });
-              errorEmitter.emit('permission-error', permissionError);
-            });
-        } else {
-          setIsChatReady(true);
-        }
-      } catch (error) {
-        console.error("Error ensuring chat exists:", error);
-        const permissionError = new FirestorePermissionError({
-          path: 'chats',
-          operation: 'get',
-        });
-        errorEmitter.emit('permission-error', permissionError);
-        setIsLoading(false);
-      }
-    };
-
-    ensureChatExists();
-
-  }, [chatId, currentUser.uid, otherUser.userId, firestore]);
-
-  useEffect(() => {
-    if (initialChatMessage && isChatReady) {
-      const messagesColRef = collection(firestore, 'chats', chatId, 'messages');
-
-      const messageData = {
-        text: initialChatMessage,
-        senderId: currentUser.uid,
-        timestamp: serverTimestamp(),
-      };
-
-      addDoc(messagesColRef, messageData)
-        .then(() => {
-          // Update parent chat document
-          const chatRef = doc(firestore, 'chats', chatId);
-          updateDoc(chatRef, {
-            lastMessage: initialChatMessage,
-            lastMessageAt: serverTimestamp(),
-            hasNewMessage: isLawyerView ? false : true,
-            lawyerReadAt: isLawyerView ? serverTimestamp() : null
-          }).catch(console.error);
-        })
-        .catch(serverError => {
-          const permissionError = new FirestorePermissionError({
-            path: messagesColRef.path,
-            operation: 'create',
-            requestResourceData: messageData,
-          });
-          errorEmitter.emit('permission-error', permissionError);
-        });
-
+    if (initialChatMessage && isChatReady && isConnected) {
+      const message = initialChatMessage;
       setInitialChatMessage('');
+      sendMessage(message, otherUser.userId);
     }
-  }, [chatId, initialChatMessage, currentUser.uid, firestore, setInitialChatMessage, isChatReady]);
-
-
-  useEffect(() => {
-    if (!isChatReady) return;
-
-    const messagesQuery = query(
-      collection(firestore, 'chats', chatId, 'messages'),
-      orderBy('timestamp', 'asc')
-    );
-
-    setIsLoading(true);
-    const unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
-      const msgs = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-      } as MessageWithTranslation));
-      setMessages(msgs);
-      setIsLoading(false);
-    }, (error) => {
-      const permissionError = new FirestorePermissionError({
-        path: `chats/${chatId}/messages`,
-        operation: 'list',
-      });
-      errorEmitter.emit('permission-error', permissionError);
-      setIsLoading(false);
-    });
-
-    return () => unsubscribe();
-  }, [chatId, firestore, isChatReady]);
+  }, [chatId, initialChatMessage, isChatReady, isConnected, sendMessage, otherUser.userId, setInitialChatMessage]);
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -209,77 +180,33 @@ export function ChatBox({
 
   const handleSendMessage = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!input.trim() || isDisabled || !isChatReady) return;
+    if (!input.trim() || isDisabled || !isConnected) return;
 
-    const messageData = {
-      text: input,
-      senderId: currentUser.uid,
-      timestamp: serverTimestamp(),
-    };
-
+    const messageText = input;
     setInput('');
-
-    const messagesColRef = collection(firestore, 'chats', chatId, 'messages');
-
-    addDoc(messagesColRef, messageData)
-      .catch(serverError => {
-        const permissionError = new FirestorePermissionError({
-          path: messagesColRef.path,
-          operation: 'create',
-          requestResourceData: messageData,
-        });
-      });
-
-    // Update parent chat document for Dashboard preview
-    const chatRef = doc(firestore, 'chats', chatId);
-    updateDoc(chatRef, {
-      lastMessage: input,
-      lastMessageAt: serverTimestamp(),
-      ...(isLawyerView ? { lawyerReadAt: serverTimestamp(), hasNewMessage: false } : { hasNewMessage: true })
-    }).catch(console.error);
-
-    // Create Notification for the other user
-    const recipientId = otherUser.userId;
-    const senderName = currentUser.displayName || 'คู่สนทนา';
-
-    let notificationLink = '';
-    if (isLawyerView) {
-      notificationLink = `/chat/${chatId}?lawyerId=${currentUser.uid}`;
-    } else {
-      notificationLink = `/chat/${chatId}?lawyerId=${otherUser.userId}&clientId=${currentUser.uid}&view=lawyer`;
-    }
-
-    addDoc(collection(firestore, 'notifications'), {
-      type: 'chat_message',
-      title: `ข้อความใหม่จาก ${senderName}`,
-      message: input.length > 50 ? input.substring(0, 50) + '...' : input,
-      createdAt: serverTimestamp(),
-      read: false,
-      recipient: recipientId,
-      link: notificationLink,
-      relatedId: chatId
-    }).catch(err => console.error("Error creating notification:", err));
+    sendMessage(messageText, otherUser.userId);
   };
 
-  // Mark as read by lawyer
+  // Mark as read (We can still use the Firebase action for now if needed, 
+  // or migrate to worker later. Keeping it for compatibility with old dashboard if any)
   useEffect(() => {
     if (isLawyerView && isChatReady && chatId) {
-      const chatRef = doc(firestore, 'chats', chatId);
-      updateDoc(chatRef, {
-        lawyerReadAt: serverTimestamp()
-      }).catch(err => console.warn("Failed to mark chat as read:", err));
+      markChatAsReadAction(chatId).catch(err => console.warn("Failed to mark chat as read:", err));
     }
-  }, [isLawyerView, isChatReady, chatId, firestore]);
+  }, [isLawyerView, isChatReady, chatId]);
 
   const [lawyerReadAt, setLawyerReadAt] = useState<any>(null);
 
-  // Listen for chat metadata (read status)
+  // Still listening to Firebase for "read" status for now as it's a separate metadata 
+  // that might be used elsewhere.
   useEffect(() => {
     if (!chatId) return;
     const chatRef = doc(firestore, 'chats', chatId);
     const unsubscribe = onSnapshot(chatRef, (doc) => {
       if (doc.exists()) {
         setLawyerReadAt(doc.data().lawyerReadAt);
+        // Also update local metadata if it changed (e.g. title)
+        setChatMetadata(doc.data());
       }
     });
     return () => unsubscribe();
@@ -293,7 +220,9 @@ export function ChatBox({
         <div className="flex justify-between items-center">
           <div>
             <div className="flex items-center gap-2">
-              <CardTitle className="text-xl">คดี: มรดก</CardTitle>
+              <CardTitle className="text-xl">
+                {chatMetadata?.caseTitle || chatMetadata?.title || 'กำลังโหลด...'}
+              </CardTitle>
               <span className="text-xs font-mono text-muted-foreground">({chatId})</span>
               <CopyButton value={chatId} className="h-4 w-4" />
             </div>
@@ -308,7 +237,9 @@ export function ChatBox({
             </div>
           )}
           {isLawyerView && (
-            <QuickReplies onSelect={(text) => setInput(text)} />
+            <div className="flex items-center gap-2">
+              <QuickReplies onSelect={(text) => setInput(text)} />
+            </div>
           )}
         </div>
       </CardHeader>
@@ -342,7 +273,7 @@ export function ChatBox({
               </div>
             </div>
 
-            {isLoading ? (
+            {isSocketLoading ? (
               <div className="flex justify-center items-center h-full">
                 <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
               </div>
@@ -420,13 +351,13 @@ export function ChatBox({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder={isDisabled ? "การสนทนานี้สิ้นสุดแล้ว" : "พิมพ์ข้อความ..."}
-            disabled={isLoading || isDisabled}
+            disabled={isSocketLoading || isDisabled}
             className="flex-grow rounded-full"
           />
           <Button
             type="submit"
             size="icon"
-            disabled={isLoading || !input.trim() || isDisabled}
+            disabled={isSocketLoading || !input.trim() || isDisabled}
             className="rounded-full w-10 h-10 bg-blue-600 hover:bg-blue-700"
           >
             <Send className="w-5 h-5" />

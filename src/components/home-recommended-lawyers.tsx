@@ -12,13 +12,20 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { FadeIn } from '@/components/fade-in';
 import { useTranslations } from 'next-intl';
 
-export function HomeRecommendedLawyers() {
+interface HomeRecommendedLawyersProps {
+    initialLawyers?: LawyerProfile[];
+}
+
+export function HomeRecommendedLawyers({ initialLawyers }: HomeRecommendedLawyersProps) {
     const { firestore } = useFirebase();
-    const [lawyers, setLawyers] = useState<LawyerProfile[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [lawyers, setLawyers] = useState<LawyerProfile[]>(initialLawyers || []);
+    const [loading, setLoading] = useState(!initialLawyers);
     const t = useTranslations('HomePage.recommendedLawyers');
 
     useEffect(() => {
+        // Only fetch if we don't have initial lawyers
+        if (initialLawyers && initialLawyers.length > 0) return;
+
         async function fetchLawyers() {
             if (!firestore) return;
             try {

@@ -140,6 +140,7 @@
     "Navigation": {
         "forSME": "For SME",
         "forB2B": "For Business",
+        "corporatePlans": "Corporate Plans",
         "b2bMenu": {
             "dashboard": "Dashboard",
             "pricing": "Pricing",
@@ -149,7 +150,7 @@
         "findLawyer": "Find Lawyer",
         "verifyLawyer": "Verify Lawyer",
         "articles": "Articles",
-        "forms": "Forms",
+        "books": "Bookstore",
         "forLawyers": "For Lawyers",
         "home": "Home",
         "login": "Login",
@@ -157,17 +158,82 @@
         "myAccount": "My Account",
         "dashboard": "Dashboard",
         "adminDashboard": "Admin Dashboard",
-        "adminView": "Lawyer Dashboard (Admin)",
+        "adminView": "Lawyer Dashboard (Admin View)",
         "manageAccount": "Manage Account",
-        "searchPlaceholder": "Search lawyer, expertise, or problem...",
+        "searchPlaceholder": "Search for lawyers, expertise, or legal issues...",
         "smeMenu": {
-            "contracts": "Business Contracts & Review",
-            "consultant": "Corporate Legal Advisor",
+            "title": "SME Solutions",
+            "contracts": "Business Contracts",
+            "consultant": "Legal Counselor",
             "registration": "Registration & Licenses",
-            "dispute": "Business Dispute Resolution"
+            "dispute": "Business Dispute",
+            "forms": "Legal Forms"
         },
         "capAndDeal": "Cap & Deal",
-        "scrollToTop": "Back to Top"
+        "scrollToTop": "Scroll to Top"
+    },
+    "Books": {
+        "title": "Legal Books & Manuals",
+        "backToBooks": "Back to Bookstore",
+        "subtitle": "Discover professional legal resources and manuals for entrepreneurs and law practitioners.",
+        "searchPlaceholder": "Search books, authors, topics...",
+        "buyNow": "Buy Now",
+        "addToCart": "Add to Cart",
+        "price": "Price",
+        "categoriesTitle": "Categories",
+        "allBooks": "All Books",
+        "promo": {
+            "title": "Member Special",
+            "description": "Join now to get 10% discount on your first order.",
+            "button": "Join Now"
+        },
+        "noResults": {
+            "title": "No results found",
+            "description": "Try a different search query or select another category.",
+            "button": "Clear all filters"
+        },
+        "checkout": {
+            "title": "Checkout",
+            "shipping": "Shipping Address",
+            "payment": "Payment Method",
+            "summary": "Order Summary",
+            "confirm": "Confirm Order"
+        },
+        "cart": {
+            "title": "Shopping Cart",
+            "empty": "Your cart is empty",
+            "continueShopping": "Continue Shopping",
+            "subtotal": "Subtotal",
+            "checkout": "Proceed to Checkout"
+        },
+        "categories": {
+            "all": "All Categories",
+            "business": "Business Law",
+            "sme": "SME Manuals",
+            "contract": "Contract Drafting",
+            "litigation": "Litigation"
+        },
+        "tracking": {
+            "title": "Order Tracking",
+            "orderId": "Order ID",
+            "status": "Status",
+            "date": "Order Date",
+            "history": "Order History",
+            "noOrders": "You have no book orders yet.",
+            "statuses": {
+                "pending": "Pending Payment",
+                "paid": "Paid / Preparing to ship",
+                "shipped": "Shipped",
+                "delivered": "Delivered",
+                "cancelled": "Cancelled"
+            },
+            "shippingProgress": "Shipping Progress",
+            "trackingId": "Tracking ID",
+            "trackingPlaceholder": "Tracking number will be provided after shipping",
+            "orderDetails": "Order Details",
+            "total": "Total",
+            "quantity": "Quantity: {count} pcs"
+        }
     },
     "VerifyLawyer": {
         "backToHome": "Back to Home",
@@ -315,7 +381,32 @@
         "appointmentWith": "With",
         "date": "Date",
         "time": "Time",
-        "noActiveCases": "No active cases"
+        "noActiveCases": "No active cases",
+        "nextAction": "Next Action"
+    },
+    "CaseRoom": {
+        "titleInitial": "Initial Consultation",
+        "titleOfficial": "Online Legal Case Room",
+        "freeBadge": "Free Consult",
+        "officialBadge": "Official Case",
+        "nextAction": "Next Action",
+        "legalVault": "Legal Vault",
+        "vaultDescription": "Secure and organized document management.",
+        "legalResearch": "Legal Research (RAG)",
+        "researchPlaceholder": "Search for laws or legal issues...",
+        "viewFullText": "View Full Text",
+        "citeLaw": "Cite this Law",
+        "noResults": "No relevant laws found",
+        "resultsFound": "Found {count} relevant sections",
+        "docClient": "Client Documents",
+        "docLawyer": "Lawyer Documents",
+        "downloadAll": "Download All"
+    },
+    "CaseRoadmap": {
+        "step1": "Initial Consultation",
+        "step2": "Open Case / Payment",
+        "step3": "Execution / Evidence",
+        "step4": "Summary / Closed"
     },
     "Help": {
         "title": "Help Center",
@@ -526,8 +617,10 @@
         "quickLinks": {
             "title": "Quick Links",
             "home": "Home",
+            "forms": "Legal Forms",
             "about": "About Us",
             "articles": "Articles",
+            "books": "Bookstore",
             "findLawyer": "Find Lawyer",
             "verifyLawyer": "Verify Lawyer Status",
             "customerDashboard": "Customer Dashboard"
@@ -858,7 +951,7 @@
             "subtitle": "Contact Us",
             "email": {
                 "title": "Email",
-                "value": "support@lawslane.com"
+                "value": "contact@lawslane.com"
             },
             "phone": {
                 "title": "Phone",
@@ -1088,7 +1181,7 @@
             },
             "support": {
                 "text": "For past invoices or financial inquiries, contact",
-                "email": "billing@lawslane.com"
+                "email": "contact@lawslane.com"
             },
             "planLabels": {
                 "starter": "Starter — 2,500 THB/Month",

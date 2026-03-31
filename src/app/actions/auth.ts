@@ -81,7 +81,7 @@ export async function sendCustomVerificationEmail(email: string, name: string) {
 
     const resend = new Resend(process.env.RESEND_API_KEY);
     const result = await resend.emails.send({
-      from: 'Lawslane <noreply@lawslane.com>',
+      from: 'Lawslane <contact@lawslane.com>',
       to: email,
       subject: 'ยินดีต้อนรับสู่ Lawslane - กรุณายืนยันอีเมลของคุณ',
       html: emailHtml
@@ -121,7 +121,7 @@ export async function sendCustomPasswordResetEmailV2(email: string) {
 
     const resend = new Resend(process.env.RESEND_API_KEY);
     const result = await resend.emails.send({
-      from: 'Lawslane <noreply@lawslane.com>',
+      from: 'Lawslane <contact@lawslane.com>',
       to: email,
       subject: 'รีเซ็ตรหัสผ่านบัญชี Lawslane ของคุณ',
       html: emailHtml

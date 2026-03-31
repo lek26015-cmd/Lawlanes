@@ -39,7 +39,7 @@ export default function LawyerCard({ lawyer }: LawyerCardProps) {
       router.push('/login');
       return;
     }
-    router.push(`/payment?type=chat&lawyerId=${lawyer.id}`);
+    router.push(`/lawyers/${lawyer.id}?chat=true`);
   };
 
   const handleViewProfile = () => {
@@ -62,11 +62,11 @@ export default function LawyerCard({ lawyer }: LawyerCardProps) {
         <div className="relative h-24 w-24 flex-shrink-0">
           {lawyer.imageUrl ? (
             <img
-              src={getCloudflareVariantUrl(lawyer.imageUrl, 'avatar')}
+              src={getCloudflareVariantUrl(lawyer.imageUrl, 'public')}
               alt={lawyer.name}
               className="w-full h-full rounded-full object-cover ring-4 ring-white shadow-md group-hover:scale-105 transition-transform duration-300"
               onError={(e) => {
-                e.currentTarget.src = '/pic/profile-lawyer.jpg';
+                e.currentTarget.src = '/images/profile-lawyer.jpg';
               }}
             />
           ) : (

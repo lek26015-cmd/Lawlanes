@@ -7,9 +7,10 @@ import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { Button } from '@/components/ui/button';
 import Logo from '@/components/logo';
 import { Input } from '@/components/ui/input';
-import { Search, Menu, User, ChevronDown, LogOut, LayoutDashboard, Camera } from 'lucide-react';
+import { Search, Menu, User, ChevronDown, LogOut, LayoutDashboard, Camera, ShoppingCart, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
+import { useCart } from '@/context/cart-context';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { useUser as useAuthUser, useFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
@@ -27,7 +28,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import profileLawyerImg from '@/pic/profile-lawyer.jpg';
 import { getCloudflareVariantUrl } from '@/lib/cloudflare-images';
 
-import { getMainLink, getBusinessLink } from '@/lib/domain-utils';
+import { getMainLink, getBusinessLink, getAdminLink } from '@/lib/domain-utils';
 
 
 export default function Header({ setUserRole, domainType = 'main' }: { setUserRole: (role: string | null) => void; domainType?: 'main' | 'lawyer' | 'admin' | 'business' }) {
@@ -126,6 +127,7 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
   const useTransparentHeader = isMounted && isHomePage && !isScrolled;
 
   const { toast } = useToast();
+  const { totalItems, setIsOpen: setIsCartOpen } = useCart();
 
   const handleLogout = async () => {
     if (auth) {
@@ -195,14 +197,15 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
             <Link href={getMainLink('/verify-lawyer', domainType)} className={pathname.startsWith(`/verify-lawyer`) ? activeNavLinkClasses : navLinkClasses}>
               {t('verifyLawyer')}
             </Link>
-            <Link href={getMainLink('/forms', domainType)} className={pathname.startsWith(`/forms`) ? activeNavLinkClasses : navLinkClasses}>
-              {t('forms')}
-            </Link>
+
             <a href="https://capdeal.lawslane.com" target="_blank" rel="noopener noreferrer" className={pathname.startsWith(`/services/contracts/screenshot`) ? activeNavLinkClasses : navLinkClasses}>
               <span className="flex items-center gap-1"><Camera className="h-4 w-4" />{t('capAndDeal')}</span>
             </a>
             <Link href={getMainLink('/articles', domainType)} className={pathname.startsWith(`/articles`) ? activeNavLinkClasses : navLinkClasses}>
               {t('articles')}
+            </Link>
+            <Link href={getMainLink('/books', domainType)} className={pathname.startsWith(`/books`) ? activeNavLinkClasses : navLinkClasses}>
+              {t('books')}
             </Link>
             <Link href={getMainLink('/for-lawyers', domainType)} className={pathname.startsWith(`/for-lawyers`) ? activeNavLinkClasses : navLinkClasses}>
               {t('forLawyers')}
@@ -213,14 +216,14 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
                   {t('forB2B')} <ChevronDown className="h-4 w-4" />
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" className="w-56 p-2">
-                  <DropdownMenuLabel className="text-blue-700 font-bold bg-blue-50/50 rounded-md">Corporate Plans</DropdownMenuLabel>
+                  <DropdownMenuLabel className="text-blue-700 font-bold bg-blue-50/50 rounded-md">{t('corporatePlans')}</DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild className="cursor-pointer">
-                    <a href={getBusinessLink('/', domainType)} className="w-full flex items-center px-2 py-1.5">{t('b2bMenu.pricing')}</a>
+                    <Link href={getMainLink('/coming-soon', domainType)} className="w-full flex items-center px-2 py-1.5">{t('b2bMenu.pricing')}</Link>
                   </DropdownMenuItem>
 
                   <div className="mt-2 mb-1">
-                    <DropdownMenuLabel className="text-slate-500 font-bold bg-slate-50 rounded-md">SME Solutions</DropdownMenuLabel>
+                    <DropdownMenuLabel className="text-slate-500 font-bold bg-slate-50 rounded-md">{t('smeMenu.title')}</DropdownMenuLabel>
                     <DropdownMenuSeparator />
                   </div>
                   <DropdownMenuItem asChild className="cursor-pointer">
@@ -234,6 +237,9 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild className="cursor-pointer">
                     <Link href={getMainLink('/b2b#contact', domainType)}>{t('smeMenu.dispute')}</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild className="cursor-pointer">
+                    <Link href={getMainLink('/forms', domainType)}>{t('smeMenu.forms')}</Link>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -258,25 +264,19 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
                   <DropdownMenuLabel>{t('myAccount')}</DropdownMenuLabel>
                   <DropdownMenuSeparator />
 
-                  {isAdmin && (
+                    {isAdmin && (
                     <DropdownMenuItem asChild>
-                      {process.env.NODE_ENV === 'development' ? (
-                        <Link href="/admin">
-                          <LayoutDashboard className="mr-2" />{t('adminDashboard')}
-                        </Link>
-                      ) : (
-                        <a href={`${process.env.NODE_ENV === 'production' ? 'https' : 'http'}://admin.${process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'lawslane.com'}`}>
-                          <LayoutDashboard className="mr-2" />{t('adminDashboard')}
-                        </a>
-                      )}
+                      <a href={getAdminLink('/', domainType, !isMounted)}>
+                        <LayoutDashboard className="mr-2" />{t('adminDashboard')}
+                      </a>
                     </DropdownMenuItem>
                   )}
 
                   {(isLawyer || isSuperUser) && (
                     <DropdownMenuItem asChild>
-                      <NextLink href="/lawyer-dashboard">
+                      <Link href="/lawyer-dashboard">
                         <LayoutDashboard className="mr-2" />{t('dashboard')} {isSuperUser ? '(ทนาย)' : ''}
-                      </NextLink>
+                      </Link>
                     </DropdownMenuItem>
                   )}
 
@@ -291,6 +291,9 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
 
                   <DropdownMenuItem asChild>
                     <Link href="/account"><User className="mr-2" />{t('manageAccount')}</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/books/tracking"><FileText className="mr-2" />ติดตามสถานะการสั่งซื้อ</Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout} className="text-destructive">
@@ -325,6 +328,20 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
                 iconClassName={useTransparentHeader ? "text-white" : "text-slate-900"}
               />
             </div>
+
+            {totalItems > 0 && (
+              <Button
+                variant="ghost"
+                size="icon"
+                className={cn("relative ml-2", loginButtonClasses)}
+                onClick={() => setIsCartOpen(true)}
+              >
+                <ShoppingCart className="w-5 h-5" />
+                <span className="absolute -top-1 -right-1 bg-gold text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white min-w-[18px]">
+                  {totalItems}
+                </span>
+              </Button>
+            )}
           </div>
         </div>
 
@@ -380,7 +397,7 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
                   <Link href={getMainLink('/', domainType, !isMounted)} className="hover:text-primary">{t('home')}</Link>
                   <Link href={getMainLink('/lawyers', domainType)} className="hover:text-primary">{t('findLawyer')}</Link>
                   <Link href={getMainLink('/verify-lawyer', domainType)} className="hover:text-primary" onClick={() => setIsMobileMenuOpen(false)}>{t('verifyLawyer')}</Link>
-                  <Link href={getMainLink('/forms', domainType)} className="hover:text-primary">{t('forms')}</Link>
+
                   <a href="https://capdeal.lawslane.com" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:text-primary"><Camera className="h-5 w-5" />{t('capAndDeal')}</a>
                   <Link href={getMainLink('/articles', domainType)} className="hover:text-primary">{t('articles')}</Link>
                   <Link href={getMainLink('/for-lawyers', domainType)} className="hover:text-primary">{t('forLawyers')}</Link>
@@ -388,14 +405,15 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
                   <div className="flex flex-col gap-2 py-2">
                     <span className="font-semibold text-lg">{t('forB2B')}</span>
 
-                    <span className="pl-4 text-sm font-semibold text-blue-600 mt-2">Corporate Plans</span>
-                    <a href={getBusinessLink('/', domainType, !isMounted)} className="pl-6 text-base hover:text-primary text-muted-foreground" onClick={() => setIsMobileMenuOpen(false)}>{t('b2bMenu.pricing')}</a>
+                    <span className="pl-4 text-sm font-semibold text-blue-600 mt-2">{t('corporatePlans')}</span>
+                    <Link href={getMainLink('/coming-soon', domainType, !isMounted)} className="pl-6 text-base hover:text-primary text-muted-foreground" onClick={() => setIsMobileMenuOpen(false)}>{t('b2bMenu.pricing')}</Link>
 
-                    <span className="pl-4 text-sm font-semibold text-slate-500 mt-2">SME Solutions</span>
+                    <span className="pl-4 text-sm font-semibold text-slate-500 mt-2">{t('smeMenu.title')}</span>
                     <Link href={getMainLink('/services/contracts', domainType)} className="pl-6 text-base hover:text-primary text-muted-foreground" onClick={() => setIsMobileMenuOpen(false)}>{t('smeMenu.contracts')}</Link>
                     <Link href={getMainLink('/services/registration', domainType)} className="pl-6 text-base hover:text-primary text-muted-foreground" onClick={() => setIsMobileMenuOpen(false)}>{t('smeMenu.registration')}</Link>
                     <Link href={getMainLink('/b2b#contact', domainType)} className="pl-6 text-base hover:text-primary text-muted-foreground" onClick={() => setIsMobileMenuOpen(false)}>{t('smeMenu.consultant')}</Link>
                     <Link href={getMainLink('/b2b#contact', domainType)} className="pl-6 text-base hover:text-primary text-muted-foreground" onClick={() => setIsMobileMenuOpen(false)}>{t('smeMenu.dispute')}</Link>
+                    <Link href={getMainLink('/forms', domainType)} className="pl-6 text-base hover:text-primary text-muted-foreground" onClick={() => setIsMobileMenuOpen(false)}>{t('smeMenu.forms')}</Link>
                   </div>
                 </nav>
                 <div className="border-t pt-6">
@@ -413,14 +431,14 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
                       </div>
                       <div className="flex flex-col gap-2">
                         {isAdmin && (
-                          <NextLink href="/admin" className="flex items-center gap-2 p-2 hover:bg-muted rounded-md text-foreground">
+                          <a href={getAdminLink('/', domainType, !isMounted)} className="flex items-center gap-2 p-2 hover:bg-muted rounded-md text-foreground">
                             <LayoutDashboard className="w-4 h-4" /> {t('adminDashboard')}
-                          </NextLink>
+                          </a>
                         )}
                         {(isLawyer || isSuperUser) && (
-                          <NextLink href="/lawyer-dashboard" className="flex items-center gap-2 p-2 hover:bg-muted rounded-md text-foreground">
+                          <Link href="/lawyer-dashboard" className="flex items-center gap-2 p-2 hover:bg-muted rounded-md text-foreground">
                             <LayoutDashboard className="w-4 h-4" /> {t('dashboard')} {isSuperUser ? '(ทนาย)' : ''}
-                          </NextLink>
+                          </Link>
                         )}
                         {!isAdmin && !isLawyer && (
                           <Link href="/dashboard" className="flex items-center gap-2 p-2 hover:bg-muted rounded-md">
@@ -429,6 +447,9 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
                         )}
                         <Link href="/account" className="flex items-center gap-2 p-2 hover:bg-muted rounded-md">
                           <User className="w-4 h-4" /> {t('manageAccount')}
+                        </Link>
+                        <Link href="/books/tracking" className="flex items-center gap-2 p-2 hover:bg-muted rounded-md">
+                          <FileText className="w-4 h-4" /> ติตตามสถานะการสั่งซื้อ
                         </Link>
                       </div>
                       <Button onClick={handleLogout} className="w-full mt-2" variant="destructive">{t('logout')}</Button>

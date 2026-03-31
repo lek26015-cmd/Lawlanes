@@ -167,13 +167,13 @@ export default function TermsOfServicePage() {
               {/* Contact */}
               <div className="p-6 bg-blue-50 rounded-2xl border border-blue-100 text-center space-y-2">
                 <p className="text-blue-800 font-medium m-0">
-                  หากมีข้อสงสัย ติดต่อ: <Link href={`/${locale}/help`} className="text-blue-600 underline hover:text-blue-800">support@lawslane.com</Link>
+                  หากมีข้อสงสัย ติดต่อ: <Link href={`/${locale}/help`} className="text-blue-600 underline hover:text-blue-800">contact@lawslane.com</Link>
                 </p>
                 <p className="text-blue-800 font-medium m-0">
-                  For questions, contact: <Link href={`/${locale}/help`} className="text-blue-600 underline hover:text-blue-800">support@lawslane.com</Link>
+                  For questions, contact: <Link href={`/${locale}/help`} className="text-blue-600 underline hover:text-blue-800">contact@lawslane.com</Link>
                 </p>
                 <p className="text-blue-800 font-medium m-0">
-                  如有疑问，请联系：<Link href={`/${locale}/help`} className="text-blue-600 underline hover:text-blue-800">support@lawslane.com</Link>
+                  如有疑问，请联系：<Link href={`/${locale}/help`} className="text-blue-600 underline hover:text-blue-800">contact@lawslane.com</Link>
                 </p>
               </div>
             </>

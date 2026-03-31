@@ -1,0 +1,16 @@
+name = "lawslane-notification-service"
+main = "src/index.ts"
+compatibility_date = "2024-04-05"
+
+[[queues.consumers]]
+queue = "lawslane-notification-queue"
+max_batch_size = 10
+max_batch_timeout = 30
+max_retries = 3
+
+[vars]
+# Placeholder for API URLs, can be overridden by environment variables
+RESEND_API_URL = "https://api.resend.com/emails"
+LINE_MESSAGING_API_URL = "https://api.line.me/v2/bot/message/push"
+# Admin LINE Group ID or User ID for notifications
+ADMIN_LINE_ID = "Uxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
