@@ -17,7 +17,8 @@ export async function generateLegalAdvice(question: string, locale: string = 'th
         if (!context || context.trim() === '') {
             if (locale.startsWith('en')) return "System could not find relevant legal documents (PDFs) or is indexing. Please try again later.";
             if (locale.startsWith('zh')) return "系统找不到相关的法律文件（PDF）或正在建立索引。请稍后再试。";
-            return "ระบบยังไม่พบฐานข้        let languageInstruction = "ตอบเป็นภาษาไทย";
+            return "ระบบยังไม่พบฐานข้อมูลเอกสารกฎหมาย (PDF) ที่เกี่ยวข้อง หรือกำลังจัดทำดัชนี กรุณาลองใหม่อีกครั้งในภายหลัง";
+        let languageInstruction = "ตอบเป็นภาษาไทย";
         if (locale.startsWith('en')) {
             languageInstruction = "Answer in English (Thai reference for legal terms).";
         } else if (locale.startsWith('zh')) {
