@@ -194,7 +194,7 @@ export default function LawyerProfileClient({ initialLawyer, id }: LawyerProfile
                 sendLawyerNewCaseEmail(
                     lawyer.email,
                     lawyer.name,
-                    user.displayName || 'ลูกค้า',
+                    user.displayName || 'ลูกความ',
                     `Ticket สนทนา: ${initialMessage.substring(0, 30)}...`,
                     caseLink
                 ).then(res => console.log("Email sent:", res)).catch(console.error);
@@ -406,16 +406,34 @@ export default function LawyerProfileClient({ initialLawyer, id }: LawyerProfile
 
             {/* Free Chat Initial Message Modal */}
             <Dialog open={isMessageModalOpen} onOpenChange={setIsMessageModalOpen}>
-                <DialogContent className="sm:max-w-[500px]">
-                    <DialogHeader>
-                        <DialogTitle>ปรึกษาทนายความ (ฟรีเบื้องต้น)</DialogTitle>
-                        <DialogDescription>
-                            กรอกรายละเอียดปัญหาหรือข้อสงสัยเบื้องต้น เพื่อให้ทนายความ {lawyer.name} ประเมินแนวทางการช่วยเหลือ
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="grid gap-4 py-4">
-                        <div className="grid w-full gap-1.5">
-                            <Label htmlFor="message" className="font-semibold text-foreground">
+                <DialogContent className="sm:max-w-[550px] p-0 overflow-hidden flex flex-col h-[100dvh] sm:h-auto sm:max-h-[90vh] sm:rounded-[2rem] border-none">
+                    <div className="relative">
+                        <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent pointer-events-none" />
+                        <div className="p-6 pb-4 sm:p-8 sm:pb-6 relative z-10">
+                            <div className="flex items-center gap-4 mb-4">
+                                <Avatar className="h-16 w-16 border-2 border-primary/20 shadow-sm">
+                                    <AvatarImage src={getCloudflareVariantUrl(lawyer.imageUrl, 'public') || profileLawyerImg.src} alt={lawyer.name} className="object-cover" />
+                                    <AvatarFallback>{lawyer.name.charAt(0)}</AvatarFallback>
+                                </Avatar>
+                                <div>
+                                    <h2 className="text-xl font-bold text-foreground leading-tight">{lawyer.name}</h2>
+                                    {lawyer.specialty?.[0] && (
+                                        <p className="text-sm font-medium text-primary">{translateSpecialty(lawyer.specialty[0])}</p>
+                                    )}
+                                </div>
+                            </div>
+                            <DialogHeader className="text-left">
+                                <DialogTitle className="text-2xl font-headline font-bold text-foreground">ปรึกษาทนายความ</DialogTitle>
+                                <DialogDescription className="text-base text-muted-foreground mt-1">
+                                    กรอกรายละเอียดปัญหาเบื้องต้น เพื่อให้ทนายความประเมินแนวทางการช่วยเหลือฟรี
+                                </DialogDescription>
+                            </DialogHeader>
+                        </div>
+                    </div>
+
+                    <div className="flex-grow overflow-y-auto px-6 sm:px-8 space-y-6">
+                        <div className="grid w-full gap-2">
+                            <Label htmlFor="message" className="text-sm font-semibold text-foreground/80 uppercase tracking-wider">
                                 ข้อความถึงทนาย
                             </Label>
                             <Textarea
@@ -423,22 +441,37 @@ export default function LawyerProfileClient({ initialLawyer, id }: LawyerProfile
                                 placeholder="เช่น มีปัญหาเรื่องที่ดินโดนบุกรุก อยากปรึกษาว่าต้องทำอย่างไร หรือ ส่งข้อตกลงเพื่อร่างสัญญา..."
                                 value={initialMessage}
                                 onChange={(e) => setInitialMessage(e.target.value)}
-                                rows={5}
+                                rows={6}
+                                className="resize-none rounded-2xl border-primary/10 focus:border-primary/30 focus:ring-primary/20 bg-muted/30 p-4 transition-all duration-200"
                             />
                         </div>
-                        <p className="text-xs text-muted-foreground flex items-center gap-1">
-                            <ArrowLeft className="h-3 w-3" />
-                            การให้คำปรึกษาเบื้องต้นไม่มีค่าใช้จ่าย ทนายอาจเสนอราคาหากต้องมีการดำเนินเรื่องทางกฎหมาย
-                        </p>
+                        <div className="bg-primary/5 rounded-2xl p-4 flex items-start gap-4 border border-primary/10">
+                            <div className="mt-1 bg-primary/20 p-2 rounded-full">
+                                <Scale className="h-4 w-4 text-primary" />
+                            </div>
+                            <p className="text-sm text-muted-foreground leading-relaxed">
+                                การให้คำปรึกษาเบื้องต้นไม่มีค่าใช้จ่าย ทนายอาจเสนอราคาหากต้องมีการดำเนินเรื่องทางกฎหมายที่ซับซ้อน
+                            </p>
+                        </div>
                     </div>
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsMessageModalOpen(false)} disabled={isCreatingChat}>
+
+                    <DialogFooter className="p-6 sm:p-8 pt-4 sm:pt-4 bg-white/50 backdrop-blur-sm sm:flex-row flex-col gap-3 sm:gap-4 border-t border-gray-100">
+                        <Button 
+                            variant="ghost" 
+                            onClick={() => setIsMessageModalOpen(false)} 
+                            disabled={isCreatingChat}
+                            className="w-full sm:w-auto rounded-xl hover:bg-red-50 hover:text-red-600 transition-colors order-2 sm:order-1"
+                        >
                             ยกเลิก
                         </Button>
-                        <Button onClick={handleSendMessage} disabled={isCreatingChat || !initialMessage.trim()}>
+                        <Button 
+                            onClick={handleSendMessage} 
+                            disabled={isCreatingChat || !initialMessage.trim()}
+                            className="w-full sm:flex-1 h-12 rounded-xl bg-foreground text-background hover:bg-foreground/90 shadow-lg shadow-foreground/10 text-base font-semibold order-1 sm:order-2"
+                        >
                             {isCreatingChat ? (
                                 <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                                     กำลังเปิดห้องแชท...
                                 </>
                             ) : (

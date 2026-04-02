@@ -89,6 +89,33 @@ export async function sendChatMessageAction(params: {
         });
 
         await batch.commit();
+
+        // 4. Trigger Real-time Notification (Email/LINE) via Background Worker
+        if (!isLawyerView) {
+            try {
+                // Fetch lawyer profile to get email/lineId (recipientId is the lawyer in this case)
+                const lawyerDoc = await db.collection('lawyerProfiles').doc(recipientId).get();
+                if (lawyerDoc.exists) {
+                    const lawyerData = lawyerDoc.data();
+                    if (lawyerData?.email) {
+                        const { NotificationService } = await import('@/services/notification-service');
+                        // Non-blocking trigger
+                        NotificationService.notifyLawyerNewChat({
+                            lawyerId: recipientId,
+                            lawyerName: lawyerData.name || 'ทนายความ',
+                            lawyerEmail: lawyerData.email,
+                            lawyerLineId: lawyerData.lineId,
+                            clientName: senderName,
+                            messageSnippet: text.length > 100 ? text.substring(0, 100) + '...' : text,
+                            chatId: chatId
+                        }).catch(e => console.error("Async notification error:", e));
+                    }
+                }
+            } catch (notifyErr) {
+                console.error("Error triggering chat notification:", notifyErr);
+            }
+        }
+
         return { success: true };
     } catch (error: any) {
         console.error("Error sending chat message action:", error);

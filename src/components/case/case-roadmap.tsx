@@ -1,13 +1,13 @@
-'use client';
-
-import { Check, MessageSquare, CreditCard, FileText, CheckCircle2, Gavel, Scale } from 'lucide-react';
+import { Check, MessageSquare, CreditCard, FileText, CheckCircle2, Gavel, Scale, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface Step {
   id: number;
   label: string;
   icon: any;
+  date?: string;
+  status?: string;
 }
 
 interface CaseRoadmapProps {
@@ -29,23 +29,27 @@ export function CaseRoadmap({ currentStep, className, isPremium = true, steps: c
   const steps = customSteps || defaultSteps;
 
   return (
-    <div className={cn("w-full py-8 px-6 bg-white/40 dark:bg-black/20 backdrop-blur-md rounded-[2.5rem] border border-white/40 dark:border-white/5 shadow-2xl transition-all duration-500", className)}>
-      <div className="relative flex justify-between items-center max-w-4xl mx-auto">
+    <div className={cn("w-full py-12 px-8 bg-white/40 dark:bg-black/20 backdrop-blur-md rounded-[3rem] border border-white/40 dark:border-white/5 shadow-2xl transition-all duration-500", className)}>
+      <div className="relative flex justify-between items-center max-w-5xl mx-auto">
         {/* Progress Line Background */}
-        <div className="absolute top-6 left-0 w-full h-[3px] bg-slate-200/50 dark:bg-slate-800 -z-0 rounded-full">
+        <div className="absolute top-7 left-0 w-full h-[4px] bg-slate-200/50 dark:bg-slate-800 -z-0 rounded-full overflow-hidden">
           {/* Active Progress Line */}
           <motion.div 
             initial={{ width: 0 }}
             animate={{ width: `${((currentStep - 1) / (steps.length - 1)) * 100}%` }}
-            transition={{ duration: 1, ease: "circOut" }}
+            transition={{ duration: 1.5, ease: [0.16, 1, 0.3, 1] }}
             className={cn(
               "h-full rounded-full relative",
               isPremium 
-                ? "bg-gradient-to-r from-blue-400 via-blue-600 to-indigo-600 shadow-[0_0_20px_rgba(37,99,235,0.4)]" 
+                ? "bg-gradient-to-r from-blue-400 via-blue-600 to-indigo-600" 
                 : "bg-blue-500"
             )}
           >
-             <div className="absolute right-0 top-1/2 -translate-y-1/2 w-2 h-2 bg-white rounded-full shadow-lg animate-pulse" />
+             <motion.div 
+               animate={{ x: ['-100%', '200%'] }}
+               transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+               className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent w-20" 
+             />
           </motion.div>
         </div>
 
@@ -57,42 +61,69 @@ export function CaseRoadmap({ currentStep, className, isPremium = true, steps: c
 
           return (
             <div key={step.id} className="relative flex flex-col items-center z-10 group">
+              {/* Pulsing Halo for Active Step */}
+              <AnimatePresence>
+                {isActive && (
+                  <motion.div 
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1.5, opacity: 0.2 }}
+                    exit={{ scale: 2.0, opacity: 0 }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    className="absolute top-0 w-14 h-14 bg-blue-400 rounded-2xl -z-10"
+                  />
+                )}
+              </AnimatePresence>
+
               <motion.div 
                 initial={false}
                 animate={{ 
-                  scale: isActive ? 1.2 : 1,
-                  y: isActive ? -4 : 0
+                  scale: isActive ? 1.3 : 1,
+                  y: isActive ? -8 : 0,
+                  rotate: isActive ? [0, -5, 5, 0] : 0
+                }}
+                transition={{ 
+                   type: "spring", 
+                   stiffness: 300, 
+                   damping: 15,
+                   rotate: { duration: 0.5, repeat: isActive ? 0 : 0 }
                 }}
                 className={cn(
-                  "w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500 border-2 shadow-xl",
+                  "w-14 h-14 rounded-2xl flex items-center justify-center transition-all duration-500 border-2 shadow-2xl relative overflow-hidden",
                   isCompleted 
-                    ? (isPremium ? "bg-blue-600 border-blue-500 text-white shadow-blue-500/20" : "bg-blue-500 border-blue-500 text-white")
+                    ? (isPremium ? "bg-blue-600 border-blue-500 text-white shadow-blue-500/40" : "bg-blue-500 border-blue-500 text-white")
                     : isActive
-                      ? (isPremium ? "bg-white dark:bg-slate-900 border-blue-600 text-blue-600 shadow-[0_10px_30px_rgba(37,99,235,0.3)]" : "bg-white dark:bg-slate-900 border-blue-500 text-blue-500 shadow-lg")
+                      ? (isPremium ? "bg-white dark:bg-slate-900 border-blue-600 text-blue-600 shadow-[0_15px_40px_rgba(37,99,235,0.4)]" : "bg-white dark:bg-slate-900 border-blue-500 text-blue-500 shadow-lg")
                       : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-400"
                 )}
               >
                 {isCompleted ? (
-                   <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}>
-                     <Check className="w-6 h-6" strokeWidth={3} />
+                   <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.2 }}>
+                     <Check className="w-7 h-7" strokeWidth={3} />
                    </motion.div>
                 ) : (
-                   <Icon className={cn("w-5 h-5", isActive && "animate-pulse")} />
+                   <Icon className={cn("w-6 h-6", isActive && "animate-pulse")} />
+                )}
+                
+                {isActive && isPremium && (
+                  <div className="absolute inset-0 bg-gradient-to-tr from-blue-600/10 to-transparent pointer-events-none" />
                 )}
               </motion.div>
               
-              <div className="absolute top-16 flex flex-col items-center whitespace-nowrap">
+              <div className="absolute top-20 flex flex-col items-center whitespace-nowrap">
+                <div className="flex items-center gap-1.5 mb-0.5">
+                  <span 
+                    className={cn(
+                      "text-[9px] font-black uppercase tracking-[0.2em] transition-colors duration-300",
+                      isActive ? "text-blue-600" : isCompleted ? "text-slate-500" : "text-slate-400"
+                    )}
+                  >
+                    PHASE {step.id}
+                  </span>
+                  {isActive && <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity }} className="w-1.5 h-1.5 bg-blue-600 rounded-full" />}
+                </div>
                 <span 
                   className={cn(
-                    "text-[10px] font-black uppercase tracking-widest transition-colors duration-300",
-                    isActive ? "text-blue-600" : isCompleted ? "text-slate-500" : "text-slate-400"
-                  )}
-                >
-                  Step {step.id}
-                </span>
-                <span 
-                  className={cn(
-                    "mt-0.5 text-[11px] font-bold transition-all duration-300 italic",
+                    "text-xs font-black transition-all duration-300 italic tracking-tight",
                     isActive 
                       ? "text-slate-900 dark:text-white scale-110" 
                       : isCompleted 
@@ -102,6 +133,19 @@ export function CaseRoadmap({ currentStep, className, isPremium = true, steps: c
                 >
                   {step.label}
                 </span>
+                
+                {/* Date/Status Info */}
+                <AnimatePresence>
+                  {(isActive || isCompleted) && step.date && (
+                    <motion.span 
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="mt-1 text-[8px] font-bold text-slate-400 bg-slate-100 dark:bg-white/5 px-2 py-0.5 rounded-full uppercase tracking-widest"
+                    >
+                      {step.date}
+                    </motion.span>
+                  )}
+                </AnimatePresence>
               </div>
             </div>
           );

@@ -57,9 +57,11 @@ import { LegalResearchTool } from '@/components/case/legal-research-tool';
 import { InterpreterSearchTool } from '@/components/case/interpreter-search-tool';
 import { Sparkles, BrainCircuit, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { cn } from '@/lib/utils';
 
-import { getCaseMilestones, addCaseMilestoneAction, toggleMilestoneStatusAction } from '@/app/actions/lawyer-case-actions';
+import { getCaseMilestones, addCaseMilestoneAction, toggleMilestoneStatusAction, generateCaseStrategicAdviceAction } from '@/app/actions/lawyer-case-actions';
 import { Milestone } from '@/lib/types/billing-types';
+import ReactMarkdown from 'react-markdown';
 
 function CaseDetailPageContent() {
   const params = useParams();
@@ -92,6 +94,8 @@ function CaseDetailPageContent() {
   const [tempFact, setTempFact] = useState('');
   const [selectedEvidenceCategories, setSelectedEvidenceCategories] = useState<string[]>(['docs', 'tech']);
   const [isSigned, setIsSigned] = useState(false);
+  const [strategicAdvice, setStrategicAdvice] = useState<string | null>(null);
+  const [isGeneratingAdvice, setIsGeneratingAdvice] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -201,6 +205,24 @@ function CaseDetailPageContent() {
       toast({ title: "เพิ่ม Milestone สำเร็จ" });
     } else {
       toast({ title: "ไม่สามารถเพิ่มได้", description: result.error, variant: "destructive" });
+    }
+  };
+
+  const handleGenerateAdvice = async () => {
+    if (!caseData) return;
+    setIsGeneratingAdvice(true);
+    try {
+      const result = await generateCaseStrategicAdviceAction(id, caseData.title, milestones);
+      if (result.success && result.advice) {
+        setStrategicAdvice(result.advice);
+        toast({ title: "วิเคราะห์กลยุทธ์สำเร็จ", description: "AI ได้จัดเตรียมคำแนะนำสำหรับคดีนี้แล้ว" });
+      } else {
+        toast({ title: "ไม่สามารถวิเคราะห์ได้", description: result.error, variant: "destructive" });
+      }
+    } catch (error) {
+       toast({ title: "เกิดข้อผิดพลาด", description: "กรุณาลองใหม่อีกครั้ง", variant: "destructive" });
+    } finally {
+      setIsGeneratingAdvice(false);
     }
   };
 
@@ -373,11 +395,22 @@ function CaseDetailPageContent() {
              ) : (
                <div className="w-full max-w-4xl bg-white shadow-[0_0_100px_rgba(0,0,0,0.5)] p-20 space-y-12 relative overflow-hidden pointer-events-none mb-20 origin-top animate-in slide-in-from-top-12 duration-700">
                   {/* Dynamic Watermark Pattern */}
-                  <div className="absolute inset-0 grid grid-cols-2 grid-rows-4 opacity-[0.03] rotate-[-25deg] pointer-events-none select-none">
+                  <motion.div 
+                    animate={{ 
+                      x: [0, 10, 0, -10, 0],
+                      y: [0, 20, 0, -20, 0]
+                    }}
+                    transition={{ 
+                      duration: 20, 
+                      repeat: Infinity,
+                      ease: "linear"
+                    }}
+                    className="absolute inset-0 grid grid-cols-2 grid-rows-4 opacity-[0.03] rotate-[-25deg] pointer-events-none select-none"
+                  >
                      {[...Array(8)].map((_, i) => (
                        <p key={i} className="text-5xl font-black font-headline self-center justify-self-center text-slate-900 uppercase tracking-tighter">LAWSLANE SECURE ASSET</p>
                      ))}
-                  </div>
+                  </motion.div>
                   
                   <div className="flex justify-between items-start border-b-8 border-slate-900 pb-10">
                      <h1 className="text-6xl font-black text-slate-900 uppercase italic tracking-tighter leading-[0.8]">
@@ -389,10 +422,39 @@ function CaseDetailPageContent() {
                      </div>
                   </div>
 
-                  <div className="space-y-8 pt-10">
-                     {[100, 95, 100, 85, 90, 100, 40, 100, 95, 100, 75, 90, 100, 60].map((w, i) => (
-                       <div key={i} className={`h-6 bg-slate-100/50 rounded-lg w-[${w}%] border border-slate-100 shadow-inner`}></div>
-                     ))}
+                  <div className="space-y-10 pt-10">
+                     <p className="text-slate-900 font-bold leading-relaxed text-lg italic border-l-4 border-blue-600 pl-6">
+                        โดยที่คดีนี้เป็นข้อพิพาทเกี่ยวกับ <span className="bg-slate-900 text-white px-2 not-italic">PROPERTY_DISPUTE_042</span> ตามที่โจทก์ได้ยื่นฟ้องต่อศาลแพ่ง...
+                     </p>
+                     
+                     <div className="space-y-6">
+                        {[
+                          "ข้อเท็จจริงประการที่หนึ่ง พบว่าจำเลยมีพฤติการณ์อันเป็นการผิดสัญญาจ้างทำของ โดยมิได้ส่งมอบงานตามกำหนดเวลาที่ระบุไว้ในสัญญาข้อ ๔.๒...",
+                          "ในการนี้ โจทก์ได้มีหนังสือบอกกล่าวทวงถามไปยังจำเลยแล้วจำนวน ๓ ครั้ง แต่จำเลยยังคงเพิกเฉยไม่ดำเนินการแก้ไขให้ถูกต้องตามสัญญา...",
+                          "อนึ่ง พยานหลักฐานดิจิทัลที่ปรากฏในระบบ Lawslane นี้ ได้รับการรับรองความถูกต้องตามพระราชบัญญัติว่าด้วยธุรกรรมทางอิเล็กทรอนิกส์...",
+                          "จึงขอให้ศาลได้โปรดพิจารณาพยานหลักฐานดังกล่าวประกอบการพิจารณาพิพากษาคดี เพื่อประโยชน์แห่งความยุติธรรมต่อไป"
+                        ].map((text, i) => (
+                          <div key={i} className="relative group/line">
+                             <p className={cn(
+                               "text-slate-600 leading-loose text-base font-medium transition-all group-hover/line:text-slate-900",
+                               i === 1 ? "blur-[1.5px] hover:blur-none transition-all duration-700" : ""
+                             )}>
+                               {text}
+                             </p>
+                             {i === 1 && (
+                               <div className="absolute -right-4 top-0 h-full flex items-center">
+                                  <div className="bg-blue-600 text-white text-[8px] font-black px-2 py-0.5 rounded rotate-90 origin-right">CLEARED</div>
+                               </div>
+                             )}
+                          </div>
+                        ))}
+                     </div>
+                     
+                     <div className="space-y-4 pt-4 opacity-40">
+                        <div className="h-4 bg-slate-100 rounded-full w-[85%]"></div>
+                        <div className="h-4 bg-slate-100 rounded-full w-[90%]"></div>
+                        <div className="h-4 bg-slate-100 rounded-full w-[70%]"></div>
+                     </div>
                   </div>
                   
                   <div className="pt-20 text-center opacity-20">
@@ -740,55 +802,140 @@ function CaseDetailPageContent() {
            )}
 
            {/* Step 3: Signature */}
-           {witnessStep === 3 && (
-             <div className="max-w-md mx-auto text-center space-y-10 animate-in zoom-in-95 duration-500">
-                <div className="space-y-3">
-                   <h2 className="text-2xl font-black text-slate-900 tracking-tighter uppercase italic italic">3. ตรวจสอบและลงนาม</h2>
-                   <p className="text-slate-500 text-sm italic">ยืนยันข้อมูลความถูกเพื่อจัดทำร่างบัญชีพยานฉบับลงนาม</p>
-                </div>
+            {witnessStep === 3 && (
+              <div className="max-w-4xl mx-auto space-y-12 animate-in zoom-in-95 duration-500 pb-20">
+                 <div className="text-center space-y-3">
+                    <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic">3. ตรวจสอบและลงนาม</h2>
+                    <p className="text-slate-500 text-sm italic">ยืนยันความถูกต้องเพื่อจัดทำบัญชีพยาน (Witness List Form 11)</p>
+                 </div>
 
-                <div className="p-8 rounded-[2.5rem] bg-white border-2 border-slate-100 shadow-xl space-y-6 relative overflow-hidden group">
-                   <div className="space-y-1 text-left">
-                      <p className="text-[10px] font-black text-blue-600 uppercase tracking-widest">DOCUMENT STATUS</p>
-                      <h4 className="text-xl font-black text-slate-900 tracking-tighter uppercase italic">เอกสารพร้อมลงนาม</h4>
-                   </div>
-                   <div className="h-32 rounded-2xl bg-slate-50 border-2 border-dashed border-slate-200 flex flex-col items-center justify-center gap-2 group-hover:bg-blue-50/50 group-hover:border-blue-200 transition-colors">
-                      <FileText className="w-8 h-8 text-slate-300" />
-                      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">อัปโหลดลายเซ็นดิจิทัล</p>
-                   </div>
-                   <div className="flex items-center justify-between p-3 bg-slate-900 rounded-xl text-white">
-                      <div className="text-left">
-                         <p className="text-[8px] font-bold text-white/50 uppercase tracking-widest leading-none mb-1">DIGITAL HASH</p>
-                         <p className="text-[9px] font-mono">8f2d...4a1e</p>
-                      </div>
-                      <Badge className="bg-green-500 text-[8px] font-black uppercase italic italic h-5">ACTIVE</Badge>
-                   </div>
-                </div>
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
+                    {/* Document Preview Card */}
+                    <div className="p-8 rounded-[2.5rem] bg-white border-2 border-slate-100 shadow-xl space-y-6 relative overflow-hidden group">
+                       <div className="aspect-[1/1.4] bg-slate-50 border border-slate-200 rounded-2xl flex flex-col p-8 space-y-4 relative overflow-hidden">
+                          <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 to-transparent pointer-events-none" />
+                          <div className="w-full h-4 bg-slate-200/50 rounded-full w-2/3" />
+                          <div className="w-full h-3 bg-slate-100/50 rounded-full" />
+                          <div className="w-full h-3 bg-slate-100/50 rounded-full" />
+                          <div className="w-full h-3 bg-slate-100/50 rounded-full" />
+                          <div className="w-full h-4 bg-slate-200/50 rounded-full w-1/2 pt-8" />
+                          <div className="w-full h-3 bg-slate-100/50 rounded-full ml-8" />
+                          <div className="w-full h-3 bg-slate-100/50 rounded-full ml-8" />
+                          <div className="w-full h-3 bg-slate-100/50 rounded-full ml-12" />
+                          <div className="pt-20 mt-auto flex justify-end">
+                             <div className="w-32 h-12 border-b-2 border-slate-200 relative">
+                                {isSigned && (
+                                   <motion.div 
+                                     initial={{ opacity: 0, scale: 0.5 }} 
+                                     animate={{ opacity: 1, scale: 1 }}
+                                     className="absolute bottom-1 inset-x-0 text-center text-blue-700 italic font-serif text-xl"
+                                   >
+                                     {caseData.lawyerName || 'Krittameth.V'}
+                                   </motion.div>
+                                )}
+                             </div>
+                          </div>
+                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-white/40 backdrop-blur-[2px]">
+                             <Button variant="secondary" size="sm" className="rounded-full shadow-lg font-bold">ขยายดูฉบับร่าง</Button>
+                          </div>
+                       </div>
+                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center italic">PREVIEW: WITNESS_LIST_V2.PDF</p>
+                    </div>
 
-                <div className="space-y-4">
-                   <Button 
-                      className="w-full h-16 rounded-2xl bg-blue-600 text-lg font-black shadow-lg shadow-blue-100 hover:bg-blue-700 transition-all text-white italic uppercase tracking-tighter"
-                      onClick={() => {
-                        toast({
-                          title: "จัดทำบัญชีพยานสำเร็จ",
-                          description: "ระบบกำลังเตรียมเอกสารฉบับลงนาม...",
-                        });
-                        setShowWitnessList(false);
-                        setWitnessStep(0);
-                      }}
-                   >
-                      ยืนยันความถูกต้องและลงนาม <Check className="ml-2 w-5 h-5" />
-                   </Button>
-                   <Button 
-                      variant="ghost" 
-                      className="w-full h-12 rounded-xl font-bold text-slate-400 hover:text-slate-900"
-                      onClick={() => setWitnessStep(2)}
-                   >
-                      ย้อนกลับไปแก้ไข
-                   </Button>
-                </div>
-             </div>
-           )}
+                    {/* Signature Pad Card */}
+                    <div className={cn(
+                      "p-10 rounded-[3rem] bg-white shadow-2xl transition-all duration-700 space-y-10 flex flex-col justify-center border-2",
+                      isSigned ? "border-green-500 ring-8 ring-green-500/5" : "border-blue-600 ring-8 ring-blue-500/5"
+                    )}>
+                       <div className="space-y-6">
+                          <div className="flex items-center justify-between">
+                             <div className="space-y-1">
+                                <h4 className="text-sm font-black text-slate-900 tracking-tighter uppercase italic">Digital Signature Pad</h4>
+                                <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest flex items-center gap-1.5">
+                                   <ShieldCheck className="w-3 h-3 text-blue-500" /> Secure Encryption Active
+                                </p>
+                             </div>
+                             {isSigned && <Badge className="bg-green-500 text-[8px] font-black uppercase italic h-5 animate-in zoom-in">SIGNED ✓</Badge>}
+                          </div>
+
+                          <div 
+                            className={cn(
+                              "h-56 rounded-[2rem] border-2 border-dashed flex flex-col items-center justify-center relative cursor-crosshair group overflow-hidden transition-all duration-500",
+                              isSigned ? "bg-green-50 border-green-200" : "bg-slate-50 border-slate-200 hover:border-blue-400 hover:bg-blue-50/50"
+                            )}
+                            onClick={() => setIsSigned(true)}
+                          >
+                             {isSigned ? (
+                                <motion.div 
+                                  initial={{ opacity: 0, y: 10 }} 
+                                  animate={{ opacity: 1, y: 0 }}
+                                  className="text-blue-700 italic font-serif text-5xl select-none tracking-tighter"
+                                >
+                                  {caseData.lawyerName || 'Krittameth.V'}
+                                </motion.div>
+                             ) : (
+                                <div className="flex flex-col items-center gap-4 group-hover:scale-110 transition-transform duration-500">
+                                   <div className="w-16 h-16 rounded-full bg-white border border-slate-100 flex items-center justify-center shadow-sm group-hover:shadow-blue-500/20">
+                                      <Plus className="w-6 h-6 text-slate-300 group-hover:text-blue-500" />
+                                   </div>
+                                   <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest italic group-hover:text-blue-600">คลิกเพื่อลงนามดิจิทัล</p>
+                                </div>
+                             )}
+                             <div className="absolute inset-x-8 bottom-6 flex justify-between items-center opacity-30">
+                                <span className="text-[10px] font-black italic">X_______________________</span>
+                                {isSigned && (
+                                  <span className="text-[8px] font-mono font-bold">SHA-256: {Math.random().toString(16).substr(2, 6).toUpperCase()}</span>
+                                )}
+                             </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-2 justify-center p-3 bg-slate-50 rounded-2xl border border-slate-100">
+                             <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                             <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">Verified Identity: {caseData.lawyerName || 'ทนายความผู้รับผิดชอบ'}</p>
+                          </div>
+                       </div>
+
+                       <div className="space-y-4 pt-4">
+                          <Button 
+                             className={cn(
+                                "w-full h-16 rounded-2xl text-lg font-black shadow-2xl transition-all italic uppercase tracking-tighter flex items-center justify-center gap-3",
+                                isSigned 
+                                  ? "bg-slate-900 hover:bg-black text-white shadow-slate-200" 
+                                  : "bg-slate-100 text-slate-400 cursor-not-allowed"
+                             )}
+                             disabled={!isSigned}
+                             onClick={() => {
+                               toast({
+                                 title: "จัดทำบัญชีพยานสำเร็จ",
+                                 description: "ระบบกำลังเตรียมเอกสารฉบับลงนาม...",
+                               });
+                               setShowWitnessList(false);
+                               setWitnessStep(0);
+                               setActiveSubView(null);
+                             }}
+                          >
+                             ยืนยันและประกาศใช้ <Check className="w-6 h-6" />
+                          </Button>
+                          <Button 
+                             variant="ghost" 
+                             className="w-full h-10 rounded-xl font-bold text-slate-400 hover:text-red-500 text-xs transition-colors"
+                             onClick={() => setIsSigned(false)}
+                          >
+                             ล้างลายเซ็นและลงนามใหม่
+                          </Button>
+                       </div>
+                    </div>
+                 </div>
+
+                 <Button 
+                    variant="ghost" 
+                    className="w-full h-14 rounded-2xl font-bold text-slate-400 hover:text-slate-900 flex items-center justify-center gap-2 hover:bg-slate-100/50"
+                    onClick={() => setWitnessStep(2)}
+                 >
+                    <ArrowLeft className="w-4 h-4" /> ย้อนกลับไปตรวจสอบข้อเท็จจริง
+                 </Button>
+              </div>
+            )}
         </div>
 
         {/* Add Witness Modal Overlay - Standard Size */}
@@ -912,7 +1059,12 @@ function CaseDetailPageContent() {
                  <CaseRoadmap 
                    currentStep={currentStep} 
                    className="border-none shadow-none bg-transparent" 
-                   steps={milestones.length > 0 ? milestones.map((m, i) => ({ id: i + 1, label: m.title, icon: i === 0 ? Scale : i === 1 ? FileText : Gavel })) : undefined}
+                   steps={milestones.length > 0 ? milestones.map((m, i) => ({ 
+                     id: i + 1, 
+                     label: m.title, 
+                     icon: i === 0 ? Scale : (i === 1 ? FileText : (i === 2 ? Gavel : (i === 3 ? CheckCircle2 : Gavel))),
+                     date: m.dueDate ? format(m.dueDate, 'dd MMM', { locale: th }) : undefined
+                   })) : undefined}
                  />
               </div>
             </FadeIn>
@@ -1010,6 +1162,61 @@ function CaseDetailPageContent() {
                       </Button>
                     </div>
                   </CardContent>
+                </Card>
+
+                {/* AI Strategic Advice Card */}
+                <Card className="rounded-[2rem] border-blue-100 bg-gradient-to-br from-blue-50/80 to-indigo-50/80 shadow-xl overflow-hidden group border-2">
+                   <CardHeader className="pb-2">
+                      <div className="flex items-center justify-between">
+                         <CardTitle className="text-sm font-black italic uppercase tracking-tighter flex items-center gap-2 text-blue-700">
+                           <BrainCircuit className="w-5 h-5" /> AI Strategic Analysis
+                         </CardTitle>
+                         {!strategicAdvice && (
+                            <Badge className="bg-blue-600 text-[8px] animate-pulse">PREMIUM TOOL</Badge>
+                         )}
+                      </div>
+                   </CardHeader>
+                   <CardContent className="space-y-4">
+                      {strategicAdvice ? (
+                        <div className="space-y-4">
+                           <div className="p-5 rounded-[1.5rem] bg-white/90 border border-blue-100 text-[13px] leading-relaxed text-slate-700 prose prose-sm max-w-none prose-blue prose-p:my-1 prose-ul:my-2 prose-li:my-0.5 max-h-[400px] overflow-auto scrollbar-hide">
+                              <ReactMarkdown>{strategicAdvice}</ReactMarkdown>
+                           </div>
+                           <Button 
+                             variant="outline" 
+                             className="w-full rounded-xl h-9 text-[10px] font-bold border-blue-200 text-blue-600 hover:bg-blue-50"
+                             onClick={handleGenerateAdvice}
+                             disabled={isGeneratingAdvice}
+                           >
+                              {isGeneratingAdvice ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Sparkles className="w-4 h-4 mr-2" />}
+                              วิเคราะห์ใหม่ด้วยข้อมูลล่าสุด
+                           </Button>
+                        </div>
+                      ) : (
+                        <div className="text-center py-4 space-y-4">
+                           <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center mx-auto shadow-xl shadow-blue-200 transform group-hover:scale-110 transition-transform duration-500">
+                              <Sparkles className="w-6 h-6 text-white animate-pulse" />
+                           </div>
+                           <div className="space-y-1">
+                              <h4 className="font-bold text-slate-900 text-sm">วิเคราะห์กลยุทธ์ด้วย AI</h4>
+                              <p className="text-[10px] text-slate-500 px-2 line-clamp-2">
+                                ระบบจะเสนอแผนการสู้คดีและความชัดเจนในขั้นตอนถัดไป
+                              </p>
+                           </div>
+                           <Button 
+                             className="w-full h-11 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black italic uppercase tracking-tighter shadow-lg shadow-blue-200 text-xs"
+                             onClick={handleGenerateAdvice}
+                             disabled={isGeneratingAdvice}
+                           >
+                              {isGeneratingAdvice ? (
+                                <><Loader2 className="w-3 h-3 animate-spin mr-2" /> กำลังประมวลผลกลยุทธ์...</>
+                              ) : (
+                                <><BrainCircuit className="w-4 h-4 mr-2" /> เริ่มการวิเคราะห์</>
+                              )}
+                           </Button>
+                        </div>
+                      )}
+                   </CardContent>
                 </Card>
 
                 <Card className="shadow-sm border-slate-200">

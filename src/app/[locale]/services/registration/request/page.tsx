@@ -20,7 +20,6 @@ import { useTranslations } from 'next-intl';
 export default function RegistrationRequestPage() {
     const t = useTranslations('RegistrationRequest');
     const { toast } = useToast();
-    const router = useRouter();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [formData, setFormData] = useState({
         contactName: '',
@@ -56,6 +55,9 @@ export default function RegistrationRequestPage() {
         try {
             // Save to Firestore
             const { firestore: db } = initializeFirebase();
+            if (!db) {
+                throw new Error("Database connection failed");
+            }
             await addDoc(collection(db, 'registrationRequests'), {
                 ...formData,
                 status: 'pending',

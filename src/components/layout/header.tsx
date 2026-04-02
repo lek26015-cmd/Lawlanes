@@ -426,7 +426,7 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
                         </Avatar>
                         <div className="flex flex-col">
                           <span className="font-semibold">{user.displayName || user.email}</span>
-                          <span className="text-xs text-muted-foreground capitalize">{role === 'lawyer' ? 'ทนายความ' : role === 'admin' ? 'ผู้ดูแลระบบ' : 'ลูกค้า'}</span>
+                          <span className="text-xs text-muted-foreground capitalize">{role === 'lawyer' ? 'ทนายความ' : role === 'admin' ? 'ผู้ดูแลระบบ' : 'ลูกความ'}</span>
                         </div>
                       </div>
                       <div className="flex flex-col gap-2">

@@ -222,6 +222,9 @@ function LawyerFinancialsContent() {
                 amount: amount,
                 bankName,
                 accountNumber,
+                accountName,
+                status: 'pending',
+                requestedAt: serverTimestamp(),
             });
 
             // Create Admin Notification (In-App)
@@ -581,7 +584,7 @@ function LawyerFinancialsContent() {
                                         <TableRow>
                                             <TableHead>วันที่</TableHead>
                                             <TableHead>รายการ</TableHead>
-                                            <TableHead>ลูกค้า</TableHead>
+                                            <TableHead>ลูกความ</TableHead>
                                             <TableHead>สถานะ</TableHead>
                                             <TableHead className="text-right">จำนวนเงิน (85%)</TableHead>
                                         </TableRow>

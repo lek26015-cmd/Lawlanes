@@ -140,7 +140,7 @@ export default function ForLawyersPage() {
   const benefits = [
     {
       icon: <Check className="text-green-500" />,
-      text: 'เข้าถึงกลุ่มลูกค้า SME และบุคคลทั่วไปที่ต้องการความช่วยเหลือทางกฎหมาย',
+      text: 'เข้าถึงกลุ่มลูกความ SME และบุคคลทั่วไปที่ต้องการความช่วยเหลือทางกฎหมาย',
     },
     {
       icon: <Check className="text-green-500" />,
@@ -347,6 +347,12 @@ export default function ForLawyersPage() {
           link: `/admin/lawyers/${user.uid}`,
           relatedId: user.uid
         });
+
+        // 7. Send Real-time Notification to Admin
+        const { notifyAdminNewLawyerAction } = await import('@/app/actions/notification-actions');
+        notifyAdminNewLawyerAction(values.name, values.email).catch(e => 
+          console.error("Async admin notification error:", e)
+        );
       } catch (e) {
         console.error("Error creating notification:", e);
       }
@@ -416,7 +422,7 @@ export default function ForLawyersPage() {
               เข้าร่วมเป็นส่วนหนึ่งของ Lawslane
             </h1>
             <p className="text-lg text-muted-foreground">
-              ขยายฐานลูกค้าและพัฒนาการทำงานของคุณไปกับแพลตฟอร์มกฎหมายสำหรับยุคดิจิทัล
+              ขยายฐานลูกความและพัฒนาการทำงานของคุณไปกับแพลตฟอร์มกฎหมายสำหรับยุคดิจิทัล
               เรากำลังมองหาทนายความผู้มีความสามารถและมุ่งมั่นที่จะมอบบริการที่ดีที่สุดเพื่อเข้าร่วมเครือข่ายของเรา
             </p>
             <div className="space-y-4">

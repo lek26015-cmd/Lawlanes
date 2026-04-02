@@ -16,14 +16,14 @@ export function generateStaticParams() {
 export const dynamicParams = false;
 
 export const metadata: Metadata = {
-  title: 'Lawslane - ค้นหาทนายมืออาชีพ',
-  description: 'ปรึกษาปัญหากฎหมายกับทนายความมืออาชีพ',
+  title: 'Lawslane - ที่ปรึกษากฎหมายมืออาชีพเพื่อท่าน',
+  description: 'แพลตฟอร์มที่เชื่อมโยงท่านกับทนายความผู้เชี่ยวชาญ ค้นหาทนายความที่ใช่ หรือปรึกษา AI ทนายความอัจฉริยะในฐานะลูกความผู้ทรงเกียรติ',
   icons: {
     icon: '/icon.jpg',
   },
   openGraph: {
-    title: 'Lawslane',
-    description: 'ปรึกษาปัญหากฎหมายกับทนายความมืออาชีพ',
+    title: 'Lawslane - Digital Legal Hub สำหรับลูกความทุกท่าน',
+    description: 'ปรึกษาปัญหากฎหมายกับทนายความผู้เชี่ยวชาญ มั่นใจในทุกคดีด้วยห้องพิจารณาคดีออนไลน์ระดับพรีเมียม',
     images: [
       {
         url: '/icon.jpg',
@@ -72,8 +72,8 @@ export default async function RootLayout({
               "@type": "Organization",
               "name": "Lawslane",
               "url": "https://lawslane.com",
-              "logo": "https://lawslane.com/logo-lawslane.jpg",
-              "description": "Lawyers working. ปรึกษาปัญหากฎหมายกับ ทนายความมืออาชีพ. แพลตฟอร์มที่เชื่อมโยงคุณกับทนายความผู้เชี่ยวชาญ ค้นหาทนายที่ใช่ หรือปรึกษา AI ทนายความอัจฉริยะได้ทันที.",
+              "logo": "https://lawslane.com/icon.jpg",
+              "description": "ที่ปรึกษากฎหมายมืออาชีพเพื่อท่าน แพลตฟอร์มที่เชื่อมโยงท่านกับทนายความผู้เชี่ยวชาญ ค้นหาทนายที่ใช่ หรือปรึกษา AI ทนายความอัจฉริยะได้ทันที เพื่อความรัดกุมและปลอดภัยสูงสุดของลูกความทุกท่าน",
               "sameAs": [
                 "https://www.facebook.com/lawslane",
                 "https://lin.ee/CZzSmHr",

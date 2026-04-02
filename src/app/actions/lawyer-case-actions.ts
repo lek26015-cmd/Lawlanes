@@ -3,6 +3,7 @@
 import { initAdmin } from '@/lib/firebase-admin';
 import { Case, Milestone, CaseStatus } from '@/lib/types/billing-types';
 import { revalidatePath } from 'next/cache';
+import { callTyphoonAI } from '@/lib/typhoon';
 
 /**
  * Fetch all legal cases for a specific lawyer
@@ -134,6 +135,33 @@ export async function toggleMilestoneStatusAction(milestoneId: string, caseId: s
         return { success: true, newStatus };
     } catch (error) {
         console.error("Error toggling milestone status:", error);
+        return { success: false, error: String(error) };
+    }
+}
+
+/**
+ * Generate strategic advice for a case using AI
+ */
+export async function generateCaseStrategicAdviceAction(caseId: string, caseTitle: string, milestones: Milestone[]) {
+    try {
+        const milestoneSummary = milestones.length > 0 
+            ? milestones.map(m => `- ${m.title} (${m.status === 'completed' ? 'เสร็จสิ้น' : 'รอดำเนินการ'})`).join('\n')
+            : "ยังไม่มี Milestone";
+            
+        const prompt = `ในฐานะผู้ช่วยทนายความอาวุโส โปรดวิเคราะห์และให้คำแนะนำเชิงกลยุทธ์สำหรับคดี "${caseTitle}" 
+โดยพิจารณาจากความคืบหน้าปัจจุบัน (Milestones):\n${milestoneSummary}\n\n
+สิ่งที่ต้องการจากคุณ:
+1. สรุปสถานะปัจจุบันของคดีสั้นๆ (Status Summary)
+2. ระบุความเสี่ยงหรือข้อควรระวังทางกฎหมาย (Risk Assessment)
+3. ข้อเสนอแนะ 3 ขั้นตอนถัดไปที่ควรทำ (Strategic Next Steps)
+
+ตอบเป็นภาษาไทยที่เป็นทางการ สุภาพ และให้ข้อมูลที่เป็นประโยชน์มากที่สุดในฐานะพาร์ทเนอร์ของทนายความ`;
+
+        const advice = await callTyphoonAI(prompt, "ตอบในรูปแบบ Markdown โดยมีหัวข้อชัดเจน ไม่ต้องสปอยล์คำตอบยาวเกินไป เน้นเนื้อหาที่นำไปใช้ได้จริง");
+        
+        return { success: true, advice };
+    } catch (error) {
+        console.error("Error generating strategic advice:", error);
         return { success: false, error: String(error) };
     }
 }

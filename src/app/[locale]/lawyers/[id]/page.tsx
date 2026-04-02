@@ -4,13 +4,23 @@ import { initializeFirebase } from '@/firebase';
 import LawyerProfileClient from './LawyerProfileClient';
 import { Metadata } from 'next';
 
-interface Props {
-    params: Promise<{ id: string; locale: string }>;
+type Props = {
+  params: Promise<{ id: string; locale: string }>
 }
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-    const { id } = await params;
+export async function generateMetadata(
+  props: Props
+): Promise<Metadata> {
+    const params = await props.params;
+    const { id } = params;
     const { firestore } = initializeFirebase();
+
+    if (!firestore) {
+        return {
+            title: 'Lawslane - ค้นหาทนายความ',
+        };
+    }
+
     const lawyer = await getLawyerById(firestore, id);
 
     if (!lawyer) {
@@ -48,9 +58,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     };
 }
 
-export default async function LawyerProfilePage({ params }: Props) {
-    const { id } = await params;
+export default async function LawyerProfilePage(props: Props) {
+    const params = await props.params;
+    const { id } = params;
     const { firestore } = initializeFirebase();
+
+    if (!firestore) {
+        notFound();
+    }
+
     const lawyer = await getLawyerById(firestore, id);
 
     if (!lawyer) {

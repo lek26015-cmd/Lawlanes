@@ -87,18 +87,12 @@ function formatPrivateKey(key: string) {
 }
 
 export function createFirebaseAdminApp(params: FirebaseAdminAppParams) {
+    if (admin.apps.length > 0) {
+        return admin.app();
+    }
+
     console.log('[Firebase Diagnostics] Creating App with ProjectID:', params.projectId, 'ClientEmail:', params.clientEmail);
     const privateKey = formatPrivateKey(params.privateKey);
-
-    if (admin.apps.length > 0) {
-        try {
-            const app = admin.app();
-            console.log('[Firebase Diagnostics] Deleting existing app for re-initialization');
-            app.delete();
-        } catch (e) {
-            // App might not exist or already deleted
-        }
-    }
 
     try {
         const cert = admin.credential.cert({

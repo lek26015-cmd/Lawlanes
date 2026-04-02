@@ -376,7 +376,7 @@ export async function getLawyerDashboardDataAction(lawyerId: string): Promise<{ 
             const data = d.data();
             return {
                 id: d.id,
-                clientName: userProfiles[data.userId]?.name || 'ลูกค้า',
+                clientName: userProfiles[data.userId]?.name || 'ลูกความ',
                 userId: data.userId || '',
                 caseTitle: data.description,
                 description: data.description,
@@ -395,7 +395,7 @@ export async function getLawyerDashboardDataAction(lawyerId: string): Promise<{ 
             return {
                 id: d.id,
                 title: chatData.caseTitle || 'Unknown Case',
-                clientName: userProfiles[clientParticipantId]?.name || 'ลูกค้า',
+                clientName: userProfiles[clientParticipantId]?.name || 'ลูกความ',
                 clientId: clientParticipantId,
                 status: chatData.status,
                 lastUpdate: lastMessageAt.toLocaleDateString('th-TH') || 'N/A',
@@ -457,7 +457,7 @@ export async function getAdminLawyerDashboardDataAction(): Promise<{ newRequests
             const data = d.data();
             return {
                 id: d.id,
-                clientName: userProfiles[data.userId]?.name || 'ลูกค้า',
+                clientName: userProfiles[data.userId]?.name || 'ลูกความ',
                 userId: data.userId || '',
                 caseTitle: data.description,
                 description: data.description,
@@ -473,7 +473,7 @@ export async function getAdminLawyerDashboardDataAction(): Promise<{ newRequests
             return {
                 id: d.id,
                 title: chatData.caseTitle || 'Unknown Case',
-                clientName: userProfiles[clientParticipantId]?.name || 'ลูกค้า',
+                clientName: userProfiles[clientParticipantId]?.name || 'ลูกความ',
                 clientId: clientParticipantId,
                 status: chatData.status,
                 lastUpdate: lastUpdateDate.toLocaleDateString('th-TH') || 'N/A',
@@ -574,7 +574,7 @@ export async function getLawyerFinancialsAction(lawyerId: string) {
                 amount: amount,
                 type: 'revenue',
                 status: isCompleted ? 'completed' : 'pending',
-                clientName: userProfiles[data.userId]?.name || 'ลูกค้า',
+                clientName: userProfiles[data.userId]?.name || 'ลูกความ',
                 rawDateValue: date.getTime()
             });
         });
@@ -605,7 +605,7 @@ export async function getLawyerFinancialsAction(lawyerId: string) {
                 amount: amount,
                 type: 'revenue',
                 status: isCompleted ? 'completed' : 'pending',
-                clientName: userProfiles[clientId]?.name || 'ลูกค้า',
+                clientName: userProfiles[clientId]?.name || 'ลูกความ',
                 rawDateValue: date.getTime()
             });
         });

@@ -342,7 +342,7 @@ export async function getLawyerDashboardData(db: Firestore, lawyerId: string): P
       const data = d.data();
       return {
         id: d.id,
-        clientName: userProfiles[data.userId]?.name || 'ลูกค้า',
+        clientName: userProfiles[data.userId]?.name || 'ลูกความ',
         userId: data.userId || '',
         caseTitle: data.description,
         description: data.description,
@@ -363,7 +363,7 @@ export async function getLawyerDashboardData(db: Firestore, lawyerId: string): P
       return {
         id: d.id,
         title: chatData.caseTitle || 'Unknown Case',
-        clientName: userProfiles[clientParticipantId]?.name || 'ลูกค้า',
+        clientName: userProfiles[clientParticipantId]?.name || 'ลูกความ',
         clientId: clientParticipantId,
         status: chatData.status,
         lastUpdate: lastMessageAt.toLocaleDateString('th-TH') || 'N/A',
@@ -402,11 +402,11 @@ export async function getAdminLawyerDashboardData(db: Firestore): Promise<{ newR
     const requestsSnapshot = await getDocs(requestsQuery);
     newRequests = await Promise.all(requestsSnapshot.docs.map(async d => {
       const data = d.data();
-      let clientName = 'ลูกค้า';
+      let clientName = 'ลูกความ';
       try {
         if (data.userId) {
           const userDoc = await getDoc(doc(db, 'users', data.userId));
-          if (userDoc.exists()) clientName = userDoc.data().name || 'ลูกค้า';
+          if (userDoc.exists()) clientName = userDoc.data().name || 'ลูกความ';
         }
       } catch (e) {
         console.warn("Error fetching client details for request:", e);
@@ -479,7 +479,7 @@ export async function getLawyerAppointmentRequestById(db: Firestore, id: string)
   const docSnap = await getDoc(reqRef);
   if (docSnap.exists()) {
     const data = docSnap.data();
-    let clientName = 'ลูกค้า';
+    let clientName = 'ลูกความ';
     if (data.userId) {
       const userDoc = await getDoc(doc(db, 'users', data.userId));
       if (userDoc.exists()) clientName = userDoc.data().name;
@@ -954,13 +954,13 @@ export async function getCaseById(db: Firestore, id: string): Promise<Case | und
     if (legalDocSnap.exists()) {
       const data = legalDocSnap.data();
       const clientId = data.client_id || '';
-      let clientProfile = { name: 'ลูกค้า', imageUrl: '' };
+      let clientProfile = { name: 'ลูกความ', imageUrl: '' };
       
       if (clientId) {
         const userDoc = await getDoc(doc(db, 'users', clientId));
         if (userDoc.exists()) {
           const uData = userDoc.data();
-          clientProfile = { name: uData.name || 'ลูกค้า', imageUrl: uData.avatar || '' };
+          clientProfile = { name: uData.name || 'ลูกความ', imageUrl: uData.avatar || '' };
         }
       }
 
@@ -985,12 +985,12 @@ export async function getCaseById(db: Firestore, id: string): Promise<Case | und
     const lawyerId = data.lawyerId || (data.participants && data.participants[0]); 
     const clientId = data.participants?.find((p: string) => p !== lawyerId) || '';
 
-    let clientProfile = { name: 'ลูกค้า', imageUrl: '' };
+    let clientProfile = { name: 'ลูกความ', imageUrl: '' };
     if (clientId) {
       const userDoc = await getDoc(doc(db, 'users', clientId));
       if (userDoc.exists()) {
         const uData = userDoc.data();
-        clientProfile = { name: uData.name || 'ลูกค้า', imageUrl: uData.avatar || '' };
+        clientProfile = { name: uData.name || 'ลูกความ', imageUrl: uData.avatar || '' };
       }
     }
 

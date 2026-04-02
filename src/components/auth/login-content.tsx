@@ -397,7 +397,7 @@ function LoginPageContent() {
                             <Tabs defaultValue="customer" className="w-full">
                                 <TabsList className="grid w-full grid-cols-2 h-14 bg-slate-100 rounded-xl p-1">
                                     <TabsTrigger value="customer" asChild className="h-full rounded-lg data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm font-medium text-base transition-all">
-                                        <Link href={`/login`}>ลูกค้า</Link>
+                                        <Link href={`/login`}>ลูกความ</Link>
                                     </TabsTrigger>
                                     <TabsTrigger value="lawyer" asChild className="h-full rounded-lg data-[state=active]:bg-white data-[state=active]:text-primary data-[state=active]:shadow-sm font-medium text-base transition-all">
                                         <Link href={`/lawyer-login`}>ทนายความ</Link>

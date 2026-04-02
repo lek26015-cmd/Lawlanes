@@ -21,7 +21,7 @@ function CloseCasePageContent() {
   const { toast } = useToast();
 
   const caseId = params.id as string;
-  const clientName = searchParams.get('clientName') || 'ลูกค้า';
+  const clientName = searchParams.get('clientName') || 'ลูกความ';
   const lawyerId = searchParams.get('lawyerId');
   const clientId = searchParams.get('clientId');
   
@@ -69,7 +69,7 @@ function CloseCasePageContent() {
     // In a real app, this would update the case status and refund the client.
     toast({
         title: 'ยกเลิกเคสสำเร็จ',
-        description: `เคส ${caseId} ถูกยกเลิกแล้ว ระบบจะดำเนินการคืนเงินให้ลูกค้าต่อไป (จำลอง)`,
+        description: `เคส ${caseId} ถูกยกเลิกแล้ว ระบบจะดำเนินการคืนเงินให้ลูกความต่อไป (จำลอง)`,
         variant: 'default',
         className: 'bg-yellow-100 border-yellow-500 text-yellow-800'
     });
@@ -100,7 +100,7 @@ function CloseCasePageContent() {
                     <span className="font-mono">{caseId}</span>
                 </div>
                 <div className="flex justify-between">
-                    <span className="font-semibold text-muted-foreground">ลูกค้า:</span>
+                    <span className="font-semibold text-muted-foreground">ลูกความ:</span>
                     <span>{clientName}</span>
                 </div>
                  <div className="flex justify-between">
@@ -113,7 +113,7 @@ function CloseCasePageContent() {
           <Card>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2"><FileSignature /> บทสรุปและคำแนะนำสุดท้าย</CardTitle>
-                <CardDescription>กรอกรายละเอียดสรุปผลการให้คำปรึกษาและขั้นตอนต่อไป (ถ้ามี) เพื่อส่งให้ลูกค้า</CardDescription>
+                <CardDescription>กรอกรายละเอียดสรุปผลการให้คำปรึกษาและขั้นตอนต่อไป (ถ้ามี) เพื่อส่งให้ลูกความ</CardDescription>
             </CardHeader>
             <CardContent>
                 <Textarea 
@@ -146,7 +146,7 @@ function CloseCasePageContent() {
                         <Info className="h-4 w-4 !text-blue-600" />
                         <AlertTitle>แจ้งเพื่อทราบ</AlertTitle>
                         <AlertDescription>
-                            ยอดเงินที่ระบุสูงกว่าค่าบริการเริ่มต้น ระบบจะส่งคำขอให้ลูกค้าอนุมัติค่าบริการส่วนต่าง
+                            ยอดเงินที่ระบุสูงกว่าค่าบริการเริ่มต้น ระบบจะส่งคำขอให้ลูกความอนุมัติค่าบริการส่วนต่าง
                         </AlertDescription>
                     </Alert>
                  )}

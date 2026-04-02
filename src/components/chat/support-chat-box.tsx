@@ -111,7 +111,7 @@ export function SupportChatBox({ ticket, isDisabled = false, isAdmin = false }: 
       await addDoc(messagesRef, {
         text,
         senderId: user.uid,
-        senderName: user.displayName || (isAdmin ? 'Admin' : 'ลูกค้า'),
+        senderName: user.displayName || (isAdmin ? 'Admin' : 'ลูกความ'),
         role: isAdmin ? 'admin' : 'user',
         createdAt: serverTimestamp(),
         avatarUrl: user.photoURL || null

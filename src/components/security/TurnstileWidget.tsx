@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import Turnstile, { useTurnstile } from '@marsidev/react-turnstile';
+import Turnstile from 'react-turnstile';
 
 interface TurnstileWidgetProps {
   onVerify: (token: string) => void;
@@ -24,12 +24,10 @@ export const TurnstileWidget: React.FC<TurnstileWidgetProps> = ({
   return (
     <div className="my-4 flex justify-center">
       <Turnstile
-        siteKey={siteKey}
+        sitekey={siteKey}
         onSuccess={(token) => onVerify(token)}
-        options={{
-            theme: 'light',
-            size: 'normal',
-        }}
+        theme="light"
+        size="normal"
       />
     </div>
   );

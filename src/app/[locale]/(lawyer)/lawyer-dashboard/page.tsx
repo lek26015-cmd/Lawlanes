@@ -300,7 +300,7 @@ export default function LawyerDashboardPage() {
                                 <AlertDialogHeader>
                                   <AlertDialogTitle>ยืนยันการรับเคส?</AlertDialogTitle>
                                   <AlertDialogDescription>
-                                    การรับเคสนี้จะสร้างห้องสนทนาส่วนตัวระหว่างคุณและลูกค้า และจะถือว่าเป็นการเริ่มต้นการให้คำปรึกษาอย่างเป็นทางการ
+                                    การรับเคสนี้จะสร้างห้องสนทนาส่วนตัวระหว่างคุณและลูกความ และจะถือว่าเป็นการเริ่มต้นการให้คำปรึกษาอย่างเป็นทางการ
                                   </AlertDialogDescription>
                                 </AlertDialogHeader>
                                 <AlertDialogFooter>
@@ -370,7 +370,7 @@ export default function LawyerDashboardPage() {
                                   </Badge>
                                 )}
                               </div>
-                              <p className="text-sm text-muted-foreground mr-2">ลูกค้า: {caseItem.clientName} | อัปเดตล่าสุด: {caseItem.lastUpdate}</p>
+                              <p className="text-sm text-muted-foreground mr-2">ลูกความ: {caseItem.clientName} | อัปเดตล่าสุด: {caseItem.lastUpdate}</p>
                             </div>
                             <div className="flex items-center gap-2">
                               {((typeof caseItem.notifications === 'number' && caseItem.notifications > 0) || caseItem.notifications === 'document') && (
@@ -393,7 +393,7 @@ export default function LawyerDashboardPage() {
                           <div className="flex items-center justify-between p-4 rounded-3xl hover:bg-gray-200/50 transition-colors opacity-70">
                             <div>
                               <p className="font-semibold">{caseItem.title}</p>
-                              <p className="text-sm text-muted-foreground">ลูกค้า: {caseItem.clientName} | วันที่เสร็จสิ้น: {caseItem.lastUpdate}</p>
+                              <p className="text-sm text-muted-foreground">ลูกความ: {caseItem.clientName} | วันที่เสร็จสิ้น: {caseItem.lastUpdate}</p>
                             </div>
                             <Badge variant="outline" className="rounded-full">ดูประวัติ</Badge>
                           </div>

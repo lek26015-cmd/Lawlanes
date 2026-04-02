@@ -602,7 +602,8 @@
             "privacy": "隐私政策",
             "terms": "服务条款",
             "aiDisclaimer": "AI 免责声明",
-            "help": "帮助中心"
+            "help": "帮助中心",
+            "guide": "用户指南"
         },
         "copyright": "© {year} Lawslane. 版权所有。"
     },

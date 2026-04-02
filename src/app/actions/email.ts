@@ -24,14 +24,14 @@ export async function sendLawyerNewCaseEmail(
       html: `
         <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
           <h2 style="color: #1a365d;">เรียน ทนายความ ${lawyerName}</h2>
-          <p>มีลูกค้าใหม่ต้องการปรึกษาคดีกับคุณ โดยมีรายละเอียดดังนี้:</p>
+          <p>มีลูกความท่านใหม่ต้องการปรึกษาคดีกับท่าน โดยมีรายละเอียดดังนี้:</p>
           
           <div style="background-color: #f7fafc; padding: 15px; border-radius: 8px; margin: 20px 0;">
-            <p><strong>ลูกค้า:</strong> ${clientName}</p>
+            <p><strong>ลูกความ:</strong> ${clientName}</p>
             <p><strong>หัวข้อคดี:</strong> ${caseTitle}</p>
           </div>
 
-          <p>คุณสามารถกดปุ่มด้านล่างเพื่อเข้าสู่ห้องแชทและเริ่มให้คำปรึกษาได้ทันที:</p>
+          <p>ท่านสามารถกดปุ่มด้านล่างเพื่อเข้าสู่ห้องแชทและเริ่มให้คำปรึกษาได้ทันที:</p>
           
           <a href="${caseLink}" style="display: inline-block; background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; font-weight: bold;">
             เข้าสู่ห้องแชท

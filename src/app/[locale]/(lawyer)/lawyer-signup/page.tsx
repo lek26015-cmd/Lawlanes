@@ -242,7 +242,11 @@ export default function LawyerExpressSignupPage() {
                     relatedId: user.uid
                 });
 
-                // Send Email Notification to Admins (removed)
+                // Send Email Notification to Admins
+                const { notifyAdminNewLawyerAction } = await import('@/app/actions/notification-actions');
+                notifyAdminNewLawyerAction(values.name, values.email).catch(e => 
+                    console.error("Async admin notification error:", e)
+                );
             } catch (e) {
                 console.error("Error creating notification:", e);
             }
