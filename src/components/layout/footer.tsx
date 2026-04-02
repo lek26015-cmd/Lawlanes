@@ -51,7 +51,7 @@ export default function Footer({ userRole, domainType = 'main' }: { userRole: st
   }
 
   // Add Business link
-  quickLinks.push({ href: getBusinessLink('/', domainType, !isMounted), label: 'Lawslane for Business' });
+  quickLinks.push({ href: getMainLink('/coming-soon', domainType, !isMounted), label: 'Lawslane for Business' });
 
   let forLawyersLinks = [
     { href: `/${locale}/for-lawyers`, label: t('forLawyers.join') },
