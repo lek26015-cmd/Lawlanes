@@ -7,6 +7,7 @@ import type { LawyerProfile } from '@/lib/types';
 import { useFirebase, useUser } from '@/firebase';
 import { ChatBox } from '@/components/chat/chat-box';
 import { uploadFileAction } from '../actions';
+import { requestFeeAction } from '@/app/actions/chat-actions';
 import { submitReviewAction } from '@/app/actions/review-actions';
 import { useTranslations } from 'next-intl';
 import { CaseRoadmap } from '@/components/case/case-roadmap';
@@ -217,22 +218,27 @@ function ChatPageContent() {
     };
 
     const handleRequestFee = async () => {
-        if (!feeRequestAmount || isNaN(Number(feeRequestAmount)) || Number(feeRequestAmount) <= 0 || !firestore) return;
+        if (!user || !feeRequestAmount || isNaN(Number(feeRequestAmount)) || Number(feeRequestAmount) <= 0) return;
         setIsRequestingFee(true);
         try {
-            await updateDoc(doc(firestore, 'chats', chatId), {
-                pendingFeeRequest: {
-                    amount: Number(feeRequestAmount),
-                    reason: feeRequestReason,
-                    requestedAt: serverTimestamp()
-                }
+            const result = await requestFeeAction({
+                chatId,
+                lawyerId: user.uid,
+                lawyerName: user.displayName || 'ทนายความ',
+                amount: Number(feeRequestAmount),
+                reason: feeRequestReason
             });
-            toast({ title: "ส่งคำขอสำเร็จ" });
-            setIsFeeModalOpen(false);
-            setFeeRequestAmount('');
-            setFeeRequestReason('');
-        } catch (error) {
-            toast({ variant: "destructive", title: "เกิดข้อผิดพลาด" });
+
+            if (result.success) {
+                toast({ title: "ส่งข้อเสนอราคาสำเร็จ", description: "ระบบได้แจ้งเตือนลูกความเรียบร้อยแล้ว" });
+                setIsFeeModalOpen(false);
+                setFeeRequestAmount('');
+                setFeeRequestReason('');
+            } else {
+                throw new Error(result.error);
+            }
+        } catch (error: any) {
+            toast({ variant: "destructive", title: "เกิดข้อผิดพลาด", description: error.message });
         } finally {
             setIsRequestingFee(false);
         }
@@ -264,19 +270,21 @@ function ChatPageContent() {
                         </Badge>
                     </h1>
                 </div>
-                <div className="flex-1 max-w-xl">
-                    <CaseRoadmap currentStep={currentStep} isPremium={isOfficial} />
-                </div>
+                {isOfficial && (
+                    <div className="flex-1 max-w-xl">
+                        <CaseRoadmap currentStep={currentStep} isPremium={isOfficial} />
+                    </div>
+                )}
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                <div className="lg:col-span-3 h-[800px] flex flex-col">
+            <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+                <div className="xl:col-span-3 h-[calc(100vh-220px)] min-h-[600px] flex flex-col">
                     <div className="flex-1 min-h-0">
                         <ChatBox firestore={firestore} currentUser={user} otherUser={otherUser} chatId={chatId} isDisabled={isChatDisabled} isLawyerView={isLawyerView} />
                     </div>
                 </div>
                 
-                <div className="lg:col-span-1 space-y-6">
+                <div className="xl:col-span-1 space-y-6">
                     <Tabs defaultValue="info" className="w-full">
                         <TabsList className={cn("w-full grid mb-4 h-12", isLawyerView && isOfficial ? "grid-cols-3" : "grid-cols-2")}>
                             <TabsTrigger value="info" className="text-[10px] font-bold uppercase tracking-widest">{tCommon('viewDetails')}</TabsTrigger>

@@ -109,21 +109,21 @@ export function CaseRoadmap({ currentStep, className, isPremium = true, steps: c
                 )}
               </motion.div>
               
-              <div className="absolute top-20 flex flex-col items-center whitespace-nowrap">
-                <div className="flex items-center gap-1.5 mb-0.5">
+              <div className="absolute top-20 flex flex-col items-center text-center w-[90px] px-1 pointer-events-none">
+                <div className="flex items-center justify-center gap-1.5 mb-1 w-full">
                   <span 
                     className={cn(
-                      "text-[9px] font-black uppercase tracking-[0.2em] transition-colors duration-300",
+                      "text-[9px] font-black uppercase tracking-[0.1em] transition-colors duration-300",
                       isActive ? "text-blue-600" : isCompleted ? "text-slate-500" : "text-slate-400"
                     )}
                   >
                     PHASE {step.id}
                   </span>
-                  {isActive && <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity }} className="w-1.5 h-1.5 bg-blue-600 rounded-full" />}
+                  {isActive && <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity }} className="w-1.5 h-1.5 bg-blue-600 rounded-full flex-shrink-0" />}
                 </div>
                 <span 
                   className={cn(
-                    "text-xs font-black transition-all duration-300 italic tracking-tight",
+                    "text-[11px] font-black transition-all duration-300 italic tracking-tight leading-tight line-clamp-2 min-h-[2em]",
                     isActive 
                       ? "text-slate-900 dark:text-white scale-110" 
                       : isCompleted 
@@ -140,7 +140,7 @@ export function CaseRoadmap({ currentStep, className, isPremium = true, steps: c
                     <motion.span 
                       initial={{ opacity: 0, y: 5 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="mt-1 text-[8px] font-bold text-slate-400 bg-slate-100 dark:bg-white/5 px-2 py-0.5 rounded-full uppercase tracking-widest"
+                      className="mt-1 text-[8px] font-bold text-slate-400 bg-slate-100 dark:bg-white/5 px-2 py-0.5 rounded-full uppercase tracking-widest truncate max-w-full"
                     >
                       {step.date}
                     </motion.span>

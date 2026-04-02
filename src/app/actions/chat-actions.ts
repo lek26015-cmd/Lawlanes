@@ -90,17 +90,28 @@ export async function sendChatMessageAction(params: {
 
         await batch.commit();
 
-        // 4. Trigger Real-time Notification (Email/LINE) via Background Worker
+        // 4. Trigger Real-time Notification (Email/LINE/Push) with Smart Checks
+        const chatDoc = await db.collection('chats').doc(chatId).get();
+        const chatData = chatDoc.data();
+        const now = Date.now();
+        const ACTIVE_THRESHOLD_MS = 90 * 1000; // 90 seconds
+        const NOTIFICATION_LIMIT_MS = 24 * 60 * 60 * 1000; // 24 hours (วันต่อวัน)
+
         if (!isLawyerView) {
+            // Client sent message -> Notify Lawyer
             try {
-                // Fetch lawyer profile to get email/lineId (recipientId is the lawyer in this case)
                 const lawyerDoc = await db.collection('lawyerProfiles').doc(recipientId).get();
                 if (lawyerDoc.exists) {
-                    const lawyerData = lawyerDoc.data();
-                    if (lawyerData?.email) {
+                    const lawyerData = lawyerDoc.data() || {};
+                    const lawyerSeenAt = chatData?.lawyerLastSeenAt?.toDate()?.getTime() || 0;
+                    const lawyerLastNotifiedAt = chatData?.lawyerLastNotifiedAt?.toDate()?.getTime() || 0;
+
+                    const isActive = (now - lawyerSeenAt) < ACTIVE_THRESHOLD_MS;
+                    const isRecentlyNotified = (now - lawyerLastNotifiedAt) < NOTIFICATION_LIMIT_MS;
+
+                    if (!isActive && !isRecentlyNotified && lawyerData.email) {
                         const { NotificationService } = await import('@/services/notification-service');
-                        // Non-blocking trigger
-                        NotificationService.notifyLawyerNewChat({
+                        await NotificationService.notifyLawyerNewChat({
                             lawyerId: recipientId,
                             lawyerName: lawyerData.name || 'ทนายความ',
                             lawyerEmail: lawyerData.email,
@@ -108,11 +119,48 @@ export async function sendChatMessageAction(params: {
                             clientName: senderName,
                             messageSnippet: text.length > 100 ? text.substring(0, 100) + '...' : text,
                             chatId: chatId
-                        }).catch(e => console.error("Async notification error:", e));
+                        });
+
+                        // Update last notified timestamp
+                        await db.collection('chats').doc(chatId).update({
+                            lawyerLastNotifiedAt: admin.firestore.FieldValue.serverTimestamp()
+                        });
                     }
                 }
             } catch (notifyErr) {
-                console.error("Error triggering chat notification:", notifyErr);
+                console.error("Error triggering lawyer notification:", notifyErr);
+            }
+        } else {
+            // Lawyer sent message -> Notify Client
+            try {
+                const clientDoc = await db.collection('users').doc(recipientId).get();
+                if (clientDoc.exists) {
+                    const clientData = clientDoc.data() || {};
+                    const clientSeenAt = chatData?.clientLastSeenAt?.toDate()?.getTime() || 0;
+                    const clientLastNotifiedAt = chatData?.clientLastNotifiedAt?.toDate()?.getTime() || 0;
+
+                    const isActive = (now - clientSeenAt) < ACTIVE_THRESHOLD_MS;
+                    const isRecentlyNotified = (now - clientLastNotifiedAt) < NOTIFICATION_LIMIT_MS;
+
+                    if (!isActive && !isRecentlyNotified && clientData.email) {
+                        const { NotificationService } = await import('@/services/notification-service');
+                        await NotificationService.notifyClientNewChat({
+                            clientId: recipientId,
+                            clientName: clientData.name || 'ลูกความ',
+                            clientEmail: clientData.email,
+                            lawyerName: senderName,
+                            messageSnippet: text.length > 100 ? text.substring(0, 100) + '...' : text,
+                            chatId: chatId
+                        });
+
+                        // Update last notified timestamp
+                        await db.collection('chats').doc(chatId).update({
+                            clientLastNotifiedAt: admin.firestore.FieldValue.serverTimestamp()
+                        });
+                    }
+                }
+            } catch (notifyErr) {
+                console.error("Error triggering client notification:", notifyErr);
             }
         }
 
@@ -142,3 +190,68 @@ export async function markChatAsReadAction(chatId: string) {
         return { success: false, error: error.message };
     }
 }
+
+/**
+ * Handles a lawyer's request for a case opening fee.
+ * Updates the chat document and notifies the client.
+ */
+export async function requestFeeAction(params: {
+    chatId: string;
+    lawyerId: string;
+    lawyerName: string;
+    amount: number;
+    reason: string;
+}) {
+    const adminApp = await initAdmin();
+    if (!adminApp) throw new Error('Firebase Admin not initialized.');
+    const db = adminApp.firestore();
+
+    const { chatId, lawyerId, lawyerName, amount, reason } = params;
+
+    try {
+        const chatRef = db.collection('chats').doc(chatId);
+        const chatSnap = await chatRef.get();
+        if (!chatSnap.exists) throw new Error('Chat not found');
+
+        const chatData = chatSnap.data();
+        const clientId = chatData?.participants?.find((p: string) => p !== lawyerId) || chatData?.userId;
+
+        if (!clientId) throw new Error('Client not found for this chat');
+
+        // 1. Update Firestore
+        await chatRef.update({
+            pendingFeeRequest: {
+                amount,
+                reason,
+                requestedAt: admin.firestore.FieldValue.serverTimestamp()
+            }
+        });
+
+        // 2. Trigger Notification
+        try {
+            const clientDoc = await db.collection('users').doc(clientId).get();
+            if (clientDoc.exists) {
+                const clientData = clientDoc.data();
+                if (clientData?.email) {
+                    const { NotificationService } = await import('@/services/notification-service');
+                    await NotificationService.notifyClientFeeRequested({
+                        clientName: clientData.name || 'ลูกความ',
+                        clientEmail: clientData.email,
+                        lawyerName,
+                        amount,
+                        reason,
+                        chatId
+                    });
+                }
+            }
+        } catch (notifyErr) {
+            console.error("Async client fee notification error:", notifyErr);
+        }
+
+        return { success: true };
+    } catch (error: any) {
+        console.error("Error in requestFeeAction:", error);
+        return { success: false, error: error.message };
+    }
+}
+

@@ -8,6 +8,7 @@ import { pushToNotificationQueue } from "@/lib/queue-publisher";
 import { generateStandardEmailHtml } from "@/lib/email-templates";
 import { Resend } from "resend";
 
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://lawslane.com';
 const ADMIN_EMAILS = ["contact@lawslane.com", "lek.26015@gmail.com"];
 
 /**
@@ -83,7 +84,7 @@ export const NotificationService = {
       title: "มีทนายความใหม่ลงทะเบียนในระบบ",
       content: `เรียนทีมแอดมิน,<br><br>มีทนายความใหม่ชื่อ <span class="highlight">${lawyerName}</span> ${lawyerEmail ? `(${lawyerEmail}) ` : ''}ได้ลงทะเบียนเข้าสู่ระบบ Lawslane เรียบร้อยแล้ว<br><br>กรุณาเข้าสู่ระบบจัดการเพื่อตรวจสอบเอกสารและอนุมัติการใช้งาน`,
       buttonText: "ดูรายชื่อทนายความ",
-      buttonLink: "https://lawslane.com/admin/lawyers"
+      buttonLink: `${SITE_URL}/admin/lawyers`
     });
 
     const results = await Promise.all(
@@ -110,7 +111,7 @@ export const NotificationService = {
       title: "มีรายการตั๋วความช่วยเหลือใหม่",
       content: `เรียนทีมแอดมิน,<br><br>มีตั๋วความช่วยเหลือใหม่เข้าสู่ระบบ (Ticket #${ticketId})<br><br><span class="highlight">หัวข้อ:</span> ${subject}`,
       buttonText: "ดูรายการตั๋ว",
-      buttonLink: `https://lawslane.com/admin/tickets`
+      buttonLink: `${SITE_URL}/admin/tickets`
     });
 
     const results = await Promise.all(
@@ -140,7 +141,7 @@ export const NotificationService = {
       title: "ท่านมีข้อความใหม่จากลูกความ",
       content: `เรียนทนายความ <span class="highlight">${lawyerName}</span>,<br><br>ท่านได้รับข้อความใหม่จากคุณ <span class="highlight">${clientName}</span>:<br><br><i>"${messageSnippet}"</i>`,
       buttonText: "ตอบแชททันที",
-      buttonLink: `https://lawslane.com/chat/${chatId}?view=lawyer`
+      buttonLink: `${SITE_URL}/chat/${chatId}?view=lawyer`
     });
 
     const emailRes = await sendEmailFlexible(lawyerEmail, `[Lawslane] ข้อความใหม่จากคุณ ${clientName}`, emailHtml);
@@ -151,12 +152,61 @@ export const NotificationService = {
       lineRes = await pushToNotificationQueue({
         type: "LINE_NOTIFICATION",
         to: lawyerLineId,
-        text: `💬 ท่านมีข้อความใหม่จากคุณ ${clientName}: "${messageSnippet.substring(0, 30)}${messageSnippet.length > 30 ? '...' : ''}"\nคลิกเพื่อตอบแชท: https://lawslane.com/chat/${chatId}?view=lawyer`,
+        text: `💬 ท่านมีข้อความใหม่จากคุณ ${clientName}: "${messageSnippet.substring(0, 30)}${messageSnippet.length > 30 ? '...' : ''}"\nคลิกเพื่อตอบแชท: ${SITE_URL}/chat/${chatId}?view=lawyer`,
       });
     }
 
     return { success: emailRes.success && lineRes.success };
   },
+
+  /**
+   * Trigger 5: Send an Email notification to a client for a new chat message from lawyer.
+   */
+  async notifyClientNewChat(params: {
+    clientId: string;
+    clientName: string;
+    clientEmail: string;
+    lawyerName: string;
+    messageSnippet: string;
+    chatId: string;
+  }) {
+    const { clientName, clientEmail, lawyerName, messageSnippet, chatId } = params;
+    console.log(`Queueing chat notifications for client ${params.clientId}`);
+
+    const emailHtml = generateStandardEmailHtml({
+      title: "ท่านมีข้อความใหม่จากทนายความ",
+      content: `เรียนคุณ <span class="highlight">${clientName}</span>,<br><br>ท่านได้รับข้อความใหม่จากทนายความ <span class="highlight">${lawyerName}</span>:<br><br><i>"${messageSnippet}"</i>`,
+      buttonText: "อ่านข้อความเบื้องต้น",
+      buttonLink: `${SITE_URL}/chat/${chatId}`
+    });
+
+    return await sendEmailFlexible(clientEmail, `[Lawslane] ข้อความใหม่จากทนายความ ${lawyerName}`, emailHtml);
+  },
+
+  /**
+   * Trigger 6: Send an Email notification to a client when a lawyer requests a fee to open a case.
+   */
+  async notifyClientFeeRequested(params: {
+    clientName: string;
+    clientEmail: string;
+    lawyerName: string;
+    amount: number;
+    reason?: string;
+    chatId: string;
+  }) {
+    const { clientName, clientEmail, lawyerName, amount, reason, chatId } = params;
+    console.log(`Queueing fee request notifications for client`);
+
+    const emailHtml = generateStandardEmailHtml({
+      title: "ท่านได้รับข้อเสนอราคาเพื่อเริ่มงาน (เปิดคดี)",
+      content: `เรียนคุณ <span class="highlight">${clientName}</span>,<br><br>ทนายความ <span class="highlight">${lawyerName}</span> ได้ส่งข้อเสนอราคาเพื่อเริ่มต้นดำเนินการทางกฎหมายให้ท่านอย่างเป็นทางการ:<br><br><span class="highlight">เหตุผล/ขอบเขต:</span> ${reason || "ตามที่ตกลงในแชท"}<br><span class="highlight">ยอดชำระ:</span> ฿${amount.toLocaleString()}<br><br>ท่านสามารถชำระเงินผ่านระบบ Lawlane เพื่อให้เงินของท่านได้รับความคุ้มครองอย่างปลอดภัย และเริ่มงานได้ทันทีค่ะ`,
+      buttonText: "ดูข้อเสนอและชำระเงิน",
+      buttonLink: `${SITE_URL}/chat/${chatId}`
+    });
+
+    return await sendEmailFlexible(clientEmail, `[Lawslane] ข้อเสนอราคาเปิดคดีจากทนายความ ${lawyerName}`, emailHtml);
+  },
+
 
   /**
    * General Email Trigger

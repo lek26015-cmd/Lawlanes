@@ -70,6 +70,30 @@ export function ChatBox({
     sendMessage 
   } = useChatSocket(chatId, currentUser.uid, currentUser.displayName || 'คู่สนทนา');
 
+  // Update "Last Seen" presence logic
+  useEffect(() => {
+    if (!chatId || !firestore || !currentUser) return;
+    
+    const updatePresence = async () => {
+      try {
+        const chatRef = doc(firestore, 'chats', chatId);
+        const presenceField = isLawyerView ? 'lawyerLastSeenAt' : 'clientLastSeenAt';
+        await updateDoc(chatRef, {
+          [presenceField]: serverTimestamp()
+        });
+      } catch (err) {
+        console.warn("Failed to update chat presence:", err);
+      }
+    };
+
+    // Update immediately on mount
+    updatePresence();
+    
+    // Then every 60 seconds
+    const interval = setInterval(updatePresence, 60 * 1000);
+    return () => clearInterval(interval);
+  }, [chatId, firestore, currentUser, isLawyerView]);
+
   const [messages, setMessages] = useState<MessageWithTranslation[]>([]);
   const [input, setInput] = useState('');
   const [isChatReady, setIsChatReady] = useState(false);
@@ -180,7 +204,7 @@ export function ChatBox({
 
   const handleSendMessage = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!input.trim() || isDisabled || !isConnected) return;
+    if (!input.trim() || isDisabled) return;
 
     const messageText = input;
     setInput('');
