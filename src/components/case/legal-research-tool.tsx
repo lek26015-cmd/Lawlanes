@@ -65,14 +65,14 @@ export function LegalResearchTool({ onCite, className }: LegalResearchToolProps)
     <div className={cn("flex flex-col h-full bg-white/40 dark:bg-slate-900/40 backdrop-blur-xl border-l border-white/20 dark:border-white/5", className)}>
       {/* Header */}
       <div className="p-6 border-b border-white/20 dark:border-white/5 bg-gradient-to-br from-blue-600/5 to-indigo-600/5">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-sm font-black flex items-center gap-2 italic uppercase tracking-tighter text-slate-900 dark:text-white">
-            <div className="p-1.5 bg-blue-600 rounded-lg text-white shadow-lg shadow-blue-500/20">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <h3 className="text-sm font-black flex items-center gap-2 italic uppercase tracking-tighter text-slate-900 dark:text-white min-w-0">
+            <div className="p-1.5 bg-blue-600 rounded-lg text-white shadow-lg shadow-blue-500/20 shrink-0">
               <BookOpen className="w-4 h-4" />
             </div>
-            {t('legalResearch')}
+            <span className="truncate">{t('legalResearch')}</span>
           </h3>
-          <Badge variant="outline" className="bg-blue-50/50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-blue-200/50 text-[9px] font-black uppercase tracking-widest italic">
+          <Badge variant="outline" className="bg-blue-50/50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border-blue-200/50 text-[9px] font-black uppercase tracking-widest italic shrink-0">
             AI Powered
           </Badge>
         </div>
@@ -84,7 +84,7 @@ export function LegalResearchTool({ onCite, className }: LegalResearchToolProps)
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={t('researchPlaceholder')}
-              className="pl-11 h-12 text-sm bg-white/80 dark:bg-slate-950/80 border-white/40 dark:border-white/5 rounded-2xl shadow-inner focus:ring-4 ring-blue-500/10 transition-all font-medium"
+              className="pl-11 pr-16 h-12 text-sm bg-white/80 dark:bg-slate-950/80 border-white/40 dark:border-white/5 rounded-2xl shadow-inner focus:ring-4 ring-blue-500/10 transition-all font-medium"
             />
           </div>
           <Button 

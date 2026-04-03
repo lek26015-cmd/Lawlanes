@@ -47,12 +47,12 @@ export async function sendLawyerNewCaseEmail(
 
     if (error) {
       console.error('Resend Error:', error);
-      return { success: false, error };
+      return { success: false, error: JSON.stringify(error) };
     }
 
-    return { success: true, data };
-  } catch (error) {
+    return { success: true, data: JSON.parse(JSON.stringify(data)) };
+  } catch (error: any) {
     console.error('Email Sending Error:', error);
-    return { success: false, error };
+    return { success: false, error: error.message || 'Unknown email error' };
   }
 }

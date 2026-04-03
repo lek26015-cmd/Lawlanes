@@ -361,6 +361,7 @@
         "lawyerCannotBook": "บัญชีทนายความไม่สามารถจองคิวได้"
     },
     "Dashboard": {
+        "backToHome": "กลับสู่หน้าหลัก",
         "upcomingAppointments": "นัดหมายที่กำลังจะมาถึง",
         "noAppointments": "ยังไม่มีการนัดหมาย",
         "viewDetails": "ดูรายละเอียด",

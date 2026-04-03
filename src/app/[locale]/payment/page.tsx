@@ -457,7 +457,7 @@ function PaymentPageContent() {
                                 <div className="flex justify-between items-center py-2 px-1">
                                     <div>
                                         <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest leading-none mb-1">ชื่อบัญชี</p>
-                                        <p className="font-bold text-slate-700 text-lg">บจก. ลอว์เลน (Lawslane Co., Ltd.)</p>
+                                        <p className="font-bold text-slate-700 text-lg">วิศรุต บุ่งอุทุม</p>
                                     </div>
                                 </div>
                             </div>

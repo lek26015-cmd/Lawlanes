@@ -39,7 +39,8 @@ import {
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
 import { useUser } from '@/firebase';
-import { createManualCaseAction } from '@/app/actions/lawyer-actions';
+import { createManualCaseAction, getLawyerClientsAction } from '@/app/actions/lawyer-actions';
+import { getChatDetailsAction } from '@/app/actions/chat-actions';
 import { Copy, Check, ExternalLink } from 'lucide-react';
 
 export default function NewCasePage() {
@@ -59,6 +60,8 @@ function NewCaseForm() {
   const [createdChatId, setCreatedChatId] = useState<string | null>(null);
   const [isCopied, setIsCopied] = useState(false);
   const [category, setCategory] = useState<string>('civil');
+  const [clients, setClients] = useState<any[]>([]);
+  const [isLoadingData, setIsLoadingData] = useState(false);
   
   // States for chat import and form fields
   const [showImportBox, setShowImportBox] = useState(false);
@@ -91,29 +94,53 @@ function NewCaseForm() {
     setInstallments(newInstallments);
   };
   
-  // Handle Query Params
+  // Handle Data Fetching
   useEffect(() => {
-    const clientId = searchParams.get('clientId');
-    const chatId = searchParams.get('chatId');
+    if (!user) return;
 
-    if (clientId) {
-      const mockClientMapping: Record<string, string> = {
-        'W S9 w 7 y s N Y U a j N s B Y Z 6 C 7 n 2 A f e 9 H 3': 'c1',
-        'cli-1': 'c1',
-        'cli-2': 'c2',
-        'cli-3': 'c3'
-      };
-      
-      const mappedId = mockClientMapping[clientId] || 'c1';
-      setClient(mappedId);
-      
-      if (chatId) {
-        setImportedTitle('ข้อพิพาท (นำเข้าจากแชทล่าสุด)');
-        setImportedSummary('สรุปข้อมูลจากแชท: ลูกความต้องการปรึกษาเร่งด่วนเกี่ยวกับคดีและเอกสารที่แนบมา...');
-        setShowImportBox(true);
+    const fetchData = async () => {
+      setIsLoadingData(true);
+      try {
+        const lawyerClients = await getLawyerClientsAction(user.uid);
+        setClients(lawyerClients);
+
+        const clientIdParam = searchParams.get('clientId');
+        const chatIdParam = searchParams.get('chatId');
+
+        // Pre-select client if ID exists in URL
+        if (clientIdParam) {
+          setClient(clientIdParam);
+          const currentClient = lawyerClients.find((c: any) => c.id === clientIdParam);
+          if (currentClient) {
+            setClientName(currentClient.name);
+          }
+        }
+
+        // Fetch real chat context for import
+        if (chatIdParam) {
+          const chatDetails = await getChatDetailsAction(chatIdParam);
+          if (chatDetails) {
+            setImportedTitle(chatDetails.caseTitle || chatDetails.title || 'ข้อมูลจากแชท');
+            setImportedSummary(chatDetails.aiSummary || chatDetails.lastMessage || 'ไม่มีสรุปข้อมูล');
+            setShowImportBox(true);
+
+            // If we have clientInfo in chat, pre-fill it
+            if (chatDetails.clientInfo) {
+              setClientName(chatDetails.clientInfo.name || '');
+              setClientAddress(chatDetails.clientInfo.address || '');
+              setClientTaxId(chatDetails.clientInfo.taxId || '');
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching page data:", error);
+      } finally {
+        setIsLoadingData(false);
       }
-    }
-  }, [searchParams]);
+    };
+
+    fetchData();
+  }, [user, searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -419,12 +446,11 @@ ${showInstallments ? `โดยแบ่งชำระเป็นดังน�
                         <SelectTrigger className="rounded-2xl h-11 border-slate-200">
                           <SelectValue placeholder="ค้นหาชื่อลูกความ..." />
                         </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="c1">คุณมานี รักดี</SelectItem>
-                          <SelectItem value="c2">บจก. ก่อสร้างดี</SelectItem>
-                          <SelectItem value="c3">คุณสมศํกดิ์ มั่นคง</SelectItem>
-                          <SelectItem value="test" className="text-blue-600 font-bold">⭐ จำลองเคสเต็มลูป (Full Test)</SelectItem>
-                          <SelectItem value="new">+ เพิ่มชื่อลูกความใหม่</SelectItem>
+                        <SelectContent className="max-h-[300px]">
+                          {clients.map((c) => (
+                            <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+                          ))}
+                          <SelectItem value="new" className="font-bold text-blue-600 border-t border-slate-100 mt-2">+ เพิ่มลูกความคนใหม่</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>

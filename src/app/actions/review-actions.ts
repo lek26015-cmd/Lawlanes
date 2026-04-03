@@ -83,11 +83,17 @@ export async function getReviewsAction(lawyerId: string, limitCount: number = 10
 
         const reviewsData = reviewsSnap.docs.map(doc => {
             const data = doc.data();
+            // Ensure no non-serializable objects (like Timestamps) are passed to the client
             return {
                 id: doc.id,
-                ...data,
+                author: data.author || 'Anonymous',
+                avatar: data.avatar || '',
+                rating: Number(data.rating) || 0,
+                comment: data.comment || '',
+                lawyerId: data.lawyerId,
+                userId: data.userId,
+                caseId: data.caseId,
                 createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : new Date().toISOString(),
-                // Pre-format date for the client if needed, or send raw
                 dateText: data.createdAt?.toDate ? data.createdAt.toDate().toLocaleDateString('th-TH', { year: 'numeric', month: 'long' }) : 'N/A'
             };
         });

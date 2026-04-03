@@ -599,10 +599,6 @@ export default function LawyerDashboardPage() {
                   </p>
                 </div>
 
-                <div className="p-3 bg-blue-50 rounded-2xl border border-blue-100">
-                  <p className="text-xs text-blue-800 font-medium">💡 ค่า Platform Fee (GP)</p>
-                  <p className="text-xs text-blue-600 mt-1">แพลตฟอร์มหัก {(platformGPRate * 100).toFixed(1)}% จากค่าบริการทั้งหมด</p>
-                </div>
 
                 {isMockAdmin && (
                   <div className="p-3 bg-yellow-50 rounded-2xl border border-yellow-200">

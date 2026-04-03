@@ -69,10 +69,6 @@ function ChatPageContent() {
     const [chatStatus, setChatStatus] = useState<string>(searchParams.get('status') || 'active');
     const [chatAmount, setChatAmount] = useState<number>(0);
     const [pendingFeeRequest, setPendingFeeRequest] = useState<{ amount: number, reason: string } | null>(null);
-    const [isFeeModalOpen, setIsFeeModalOpen] = useState(false);
-    const [feeRequestAmount, setFeeRequestAmount] = useState('');
-    const [feeRequestReason, setFeeRequestReason] = useState('');
-    const [isRequestingFee, setIsRequestingFee] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { toast } = useToast();
 
@@ -217,32 +213,6 @@ function ChatPageContent() {
         }
     };
 
-    const handleRequestFee = async () => {
-        if (!user || !feeRequestAmount || isNaN(Number(feeRequestAmount)) || Number(feeRequestAmount) <= 0) return;
-        setIsRequestingFee(true);
-        try {
-            const result = await requestFeeAction({
-                chatId,
-                lawyerId: user.uid,
-                lawyerName: user.displayName || 'ทนายความ',
-                amount: Number(feeRequestAmount),
-                reason: feeRequestReason
-            });
-
-            if (result.success) {
-                toast({ title: "ส่งข้อเสนอราคาสำเร็จ", description: "ระบบได้แจ้งเตือนลูกความเรียบร้อยแล้ว" });
-                setIsFeeModalOpen(false);
-                setFeeRequestAmount('');
-                setFeeRequestReason('');
-            } else {
-                throw new Error(result.error);
-            }
-        } catch (error: any) {
-            toast({ variant: "destructive", title: "เกิดข้อผิดพลาด", description: error.message });
-        } finally {
-            setIsRequestingFee(false);
-        }
-    };
 
     if (isLoading) return <div className="flex h-screen items-center justify-center">Loading chat...</div>;
 
@@ -286,12 +256,17 @@ function ChatPageContent() {
                 
                 <div className="xl:col-span-1 space-y-6">
                     <Tabs defaultValue="info" className="w-full">
-                        <TabsList className={cn("w-full grid mb-4 h-12", isLawyerView && isOfficial ? "grid-cols-3" : "grid-cols-2")}>
-                            <TabsTrigger value="info" className="text-[10px] font-bold uppercase tracking-widest">{tCommon('viewDetails')}</TabsTrigger>
-                            <TabsTrigger value="vault" className="text-[10px] font-bold uppercase tracking-widest">{tCase('legalVault').split(' ')[0]}</TabsTrigger>
+                        <TabsList className={cn("w-full flex p-1 h-auto min-h-12 bg-slate-100/50 dark:bg-slate-800/50 rounded-2xl mb-4", isLawyerView && isOfficial ? "gap-1" : "gap-2")}>
+                            <TabsTrigger value="info" className="flex-1 text-[9px] sm:text-[10px] font-black uppercase tracking-widest py-2 rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                                {tCommon('viewDetails')}
+                            </TabsTrigger>
+                            <TabsTrigger value="vault" className="flex-1 text-[9px] sm:text-[10px] font-black uppercase tracking-widest py-2 rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                                {tCase('legalVault').split(' ')[0]}
+                            </TabsTrigger>
                             {isLawyerView && isOfficial && (
-                                <TabsTrigger value="tools" className="text-[10px] font-bold uppercase tracking-widest flex items-center gap-1.5">
-                                    <Sparkles className="w-3 h-3 text-blue-500" /> {tCase('proTools')}
+                                <TabsTrigger value="tools" className="flex-1 text-[8px] sm:text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-1 py-1.5 rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm leading-tight text-center">
+                                    <Sparkles className="w-2.5 h-2.5 text-blue-500 shrink-0" /> 
+                                    <span className="break-words">{tCase('proTools')}</span>
                                 </TabsTrigger>
                             )}
                         </TabsList>
@@ -337,37 +312,38 @@ function ChatPageContent() {
                                     <CardFooter className="flex-col gap-2 pt-2">
                                         {!isCompleted && (
                                             <>
-                                                <AlertDialog open={isFeeModalOpen} onOpenChange={setIsFeeModalOpen}>
+                                                <Button className="w-full bg-blue-600 hover:bg-blue-700 text-xs h-10 font-bold rounded-2xl shadow-lg shadow-blue-500/20" asChild>
+                                                    <Link href={`/lawyer-dashboard/pipeline/new?chatId=${chatId}&clientId=${clientId}`}>
+                                                        <Plus className="w-4 h-4 mr-2" /> เสนอราคาเปิดคดี
+                                                    </Link>
+                                                </Button>
+                                                
+                                                <AlertDialog>
                                                     <AlertDialogTrigger asChild>
-                                                        <Button variant="default" className="w-full bg-blue-600 hover:bg-blue-700 text-xs h-9 font-bold">
-                                                            <Plus className="w-3.5 h-3.5 mr-1.5" /> {chatAmount === 0 ? "เสนอราคาเปิดคดี" : "เรียกเก็บเพิ่มเติม"}
+                                                        <Button variant="ghost" className="w-full h-9 text-xs text-slate-500 hover:text-slate-900">
+                                                            ปิดสรุปเคส
                                                         </Button>
                                                     </AlertDialogTrigger>
-                                                    <AlertDialogContent>
+                                                    <AlertDialogContent className="rounded-3xl border-none shadow-2xl">
                                                         <AlertDialogHeader>
-                                                            <AlertDialogTitle>{chatAmount === 0 ? "เสนอราคาเพื่อเปิดคดี" : "เรียกเก็บเพิ่มเติม"}</AlertDialogTitle>
+                                                            <AlertDialogTitle className="text-xl font-bold flex items-center gap-2">
+                                                                <FileText className="w-5 h-5 text-slate-400" /> ยืนยันการปิดคดี
+                                                            </AlertDialogTitle>
+                                                            <AlertDialogDescription className="text-base py-2">
+                                                                การปิดสรุปเคสหมายถึงคุณได้ให้คำปรึกษาเสร็จสิ้นแล้ว และจะไม่มีการเปิดเคสเป็นทางการต่อ คุณต้องการดำเนินการต่อใช่หรือไม่?
+                                                            </AlertDialogDescription>
                                                         </AlertDialogHeader>
-                                                        <div className="space-y-4 py-4">
-                                                            <div className="space-y-2">
-                                                                <Label>จำนวนเงิน (บาท)</Label>
-                                                                <Input type="number" placeholder="เช่น 5,000" value={feeRequestAmount} onChange={(e) => setFeeRequestAmount(e.target.value)} />
-                                                            </div>
-                                                            <div className="space-y-2">
-                                                                <Label>เหตุผล / ขอบเขตงาน</Label>
-                                                                <Textarea placeholder="รายละเอียด..." value={feeRequestReason} onChange={(e) => setFeeRequestReason(e.target.value)} />
-                                                            </div>
-                                                        </div>
-                                                        <AlertDialogFooter>
-                                                            <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
-                                                            <AlertDialogAction onClick={(e) => { e.preventDefault(); handleRequestFee(); }} disabled={isRequestingFee}>
-                                                                {isRequestingFee ? 'กำลังส่ง...' : 'ส่งข้อเสนอ'}
+                                                        <AlertDialogFooter className="gap-2">
+                                                            <AlertDialogCancel className="rounded-full border-slate-200">ยกเลิก</AlertDialogCancel>
+                                                            <AlertDialogAction 
+                                                                onClick={handleConfirmRelease}
+                                                                className="bg-slate-900 hover:bg-black text-white rounded-full font-bold"
+                                                            >
+                                                                ยืนยันปิดคดี
                                                             </AlertDialogAction>
                                                         </AlertDialogFooter>
                                                     </AlertDialogContent>
                                                 </AlertDialog>
-                                                <Button variant="outline" className="w-full h-9 text-xs" asChild>
-                                                    <Link href={`/lawyer-dashboard/close-case/${chatId}`}>ปิดสรุปเคส</Link>
-                                                </Button>
                                             </>
                                         )}
                                     </CardFooter>

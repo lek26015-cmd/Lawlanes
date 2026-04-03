@@ -32,11 +32,12 @@ export async function getApprovedLawyers(db: Firestore, limitCount: number = 50)
     return querySnapshot.docs.map(doc => {
       const data = doc.data();
       return {
-        id: doc.id,
         ...data,
+        id: doc.id,
         joinedAt: data.joinedAt?.toDate ? data.joinedAt.toDate().toISOString() : (data.joinedAt || new Date().toISOString()),
         dob: data.dob?.toDate ? data.dob.toDate().toISOString() : (data.dob || null),
         updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate().toISOString() : (data.updatedAt || null),
+        createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : (data.createdAt || data.joinedAt?.toDate ? data.joinedAt.toDate().toISOString() : new Date().toISOString()),
       } as unknown as LawyerProfile;
     });
   } catch (error) {
@@ -52,11 +53,12 @@ export async function getLawyerById(db: Firestore, id: string): Promise<LawyerPr
   if (docSnap.exists()) {
     const data = docSnap.data();
     return {
-      id: docSnap.id,
       ...data,
+      id: docSnap.id,
       joinedAt: data.joinedAt?.toDate ? data.joinedAt.toDate().toISOString() : (data.joinedAt || new Date().toISOString()),
       dob: data.dob?.toDate ? data.dob.toDate().toISOString() : (data.dob || null),
       updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate().toISOString() : (data.updatedAt || null),
+      createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : (data.createdAt || data.joinedAt?.toDate ? data.joinedAt.toDate().toISOString() : new Date().toISOString()),
     } as unknown as LawyerProfile;
   }
   return undefined;

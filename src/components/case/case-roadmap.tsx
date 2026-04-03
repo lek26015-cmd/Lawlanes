@@ -109,7 +109,7 @@ export function CaseRoadmap({ currentStep, className, isPremium = true, steps: c
                 )}
               </motion.div>
               
-              <div className="absolute top-20 flex flex-col items-center text-center w-[90px] px-1 pointer-events-none">
+              <div className="absolute top-20 flex flex-col items-center text-center w-[110px] sm:w-[120px] px-1 pointer-events-none">
                 <div className="flex items-center justify-center gap-1.5 mb-1 w-full">
                   <span 
                     className={cn(
@@ -123,9 +123,9 @@ export function CaseRoadmap({ currentStep, className, isPremium = true, steps: c
                 </div>
                 <span 
                   className={cn(
-                    "text-[11px] font-black transition-all duration-300 italic tracking-tight leading-tight line-clamp-2 min-h-[2em]",
+                    "text-[11px] font-black transition-all duration-300 italic tracking-tight leading-tight line-clamp-2 min-h-[2.2em]",
                     isActive 
-                      ? "text-slate-900 dark:text-white scale-110" 
+                      ? "text-slate-900 dark:text-white" 
                       : isCompleted 
                         ? "text-slate-600 dark:text-slate-400"
                         : "text-slate-400"

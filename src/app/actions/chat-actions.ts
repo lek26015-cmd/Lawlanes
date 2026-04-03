@@ -255,3 +255,25 @@ export async function requestFeeAction(params: {
     }
 }
 
+
+/**
+ * Fetches basic details of a specific chat.
+ */
+export async function getChatDetailsAction(chatId: string) {
+    const adminApp = await initAdmin();
+    if (!adminApp) throw new Error('Firebase Admin not initialized.');
+    const db = adminApp.firestore();
+
+    try {
+        const chatSnap = await db.collection('chats').doc(chatId).get();
+        if (!chatSnap.exists) return null;
+        
+        return JSON.parse(JSON.stringify({
+            id: chatSnap.id,
+            ...chatSnap.data()
+        }));
+    } catch (error) {
+        console.error("Error fetching chat details:", error);
+        return null;
+    }
+}

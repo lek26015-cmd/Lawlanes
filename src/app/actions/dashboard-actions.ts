@@ -308,13 +308,13 @@ export async function getLawyerStatsAction(lawyerId: string) {
             responseRate = 100;
         }
 
-        return {
-            incomeThisMonth,
-            totalIncome,
-            completedCases,
-            rating,
-            responseRate
-        };
+        return JSON.parse(JSON.stringify({
+            incomeThisMonth: Number(incomeThisMonth) || 0,
+            totalIncome: Number(totalIncome) || 0,
+            completedCases: Number(completedCases) || 0,
+            rating: Number(rating) || 4.8,
+            responseRate: Number(responseRate) || 95
+        }));
     } catch (error) {
         console.error("Error calculating lawyer stats action:", error);
         return {
@@ -405,7 +405,7 @@ export async function getLawyerDashboardDataAction(lawyerId: string): Promise<{ 
             };
         });
 
-        return {
+        return JSON.parse(JSON.stringify({
             newRequests,
             activeCases: lawyerCases
                 .filter(c => c.status === 'active' || c.status === 'pending_payment')
@@ -413,7 +413,7 @@ export async function getLawyerDashboardDataAction(lawyerId: string): Promise<{ 
             completedCases: lawyerCases
                 .filter(c => c.status === 'closed')
                 .sort((a: any, b: any) => b.updatedAt.getTime() - a.updatedAt.getTime()) as LawyerCase[],
-        };
+        }));
     } catch (error) {
         console.error("Error fetching lawyer dashboard action:", error);
         return { newRequests: [], activeCases: [], completedCases: [] };
@@ -481,7 +481,7 @@ export async function getAdminLawyerDashboardDataAction(): Promise<{ newRequests
             };
         });
 
-        return {
+        return JSON.parse(JSON.stringify({
             newRequests,
             activeCases: lawyerCases
                 .filter(c => c.status === 'active' || c.status === 'pending_payment')
@@ -489,7 +489,7 @@ export async function getAdminLawyerDashboardDataAction(): Promise<{ newRequests
             completedCases: lawyerCases
                 .filter(c => c.status === 'closed')
                 .sort((a: any, b: any) => b.updatedAt.getTime() - a.updatedAt.getTime()) as LawyerCase[],
-        };
+        }));
     } catch (error) {
         console.error("Error fetching admin dashboard action:", error);
         return { newRequests: [], activeCases: [], completedCases: [] };
@@ -636,7 +636,7 @@ export async function getLawyerFinancialsAction(lawyerId: string) {
         allTransactions.sort((a, b) => b.rawDateValue - a.rawDateValue);
         withdrawals.sort((a, b) => b.rawDateValue - a.rawDateValue);
 
-        return {
+        return JSON.parse(JSON.stringify({
             transactions: allTransactions,
             withdrawals: withdrawals,
             stats: {
@@ -655,7 +655,7 @@ export async function getLawyerFinancialsAction(lawyerId: string) {
                 corporateTaxId: lawyerProfile?.corporateTaxId || '',
                 corporateAddress: lawyerProfile?.corporateAddress || ''
             }
-        };
+        }));
 
     } catch (error) {
         console.error("Error fetching lawyer financials action:", error);

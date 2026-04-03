@@ -357,6 +357,7 @@
         "lawyerCannotBook": "Lawyer accounts cannot book appointments"
     },
     "Dashboard": {
+        "backToHome": "Back to Home",
         "upcomingAppointments": "Upcoming Appointments",
         "noAppointments": "No appointments yet",
         "viewDetails": "View Details",

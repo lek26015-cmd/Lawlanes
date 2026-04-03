@@ -19,10 +19,10 @@ export async function getLawyerLegalCases(lawyerId: string): Promise<Case[]> {
             .orderBy('updatedAt', 'desc')
             .get();
 
-        return casesSnap.docs.map(doc => ({
+        return JSON.parse(JSON.stringify(casesSnap.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
-        } as Case));
+        } as Case))));
     } catch (error) {
         console.error("Error fetching lawyer legal cases:", error);
         return [];
@@ -49,10 +49,10 @@ export async function getCaseMilestones(caseId?: string, lawyerId?: string): Pro
         }
 
         const snap = await query.get();
-        return snap.docs.map(doc => ({
+        return JSON.parse(JSON.stringify(snap.docs.map(doc => ({
             id: doc.id,
             ...doc.data()
-        } as Milestone));
+        } as Milestone))));
     } catch (error) {
         console.error("Error fetching milestones:", error);
         return [];

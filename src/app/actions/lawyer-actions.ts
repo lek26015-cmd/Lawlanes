@@ -27,13 +27,15 @@ export async function getLawyerProfileAction(lawyerId: string): Promise<LawyerPr
                 return val;
             };
 
-            return {
+            const result = {
                 id: docSnap.id,
                 ...data,
                 dob: convertTimestamp(data?.dob),
                 joinedAt: convertTimestamp(data?.joinedAt),
                 createdAt: convertTimestamp(data?.createdAt),
-            } as LawyerProfile;
+            };
+
+            return JSON.parse(JSON.stringify(result));
         }
         return null;
     } catch (error) {
@@ -79,7 +81,7 @@ export async function getPlatformSettingsAction() {
     try {
         const settingsDoc = await db.collection('settings').doc('platform').get();
         if (settingsDoc.exists) {
-            return settingsDoc.data();
+            return JSON.parse(JSON.stringify(settingsDoc.data()));
         }
         return { platformFeeRate: 0.15 }; // Default fallback
     } catch (error) {
@@ -98,10 +100,7 @@ export async function getUserRoleAction(userId: string) {
 
     try {
         const userDoc = await db.collection('users').doc(userId).get();
-        if (userDoc.exists) {
-            return userDoc.data()?.role || 'customer';
-        }
-        return 'customer';
+        return JSON.parse(JSON.stringify(userDoc.exists ? (userDoc.data()?.role || 'customer') : 'customer'));
     } catch (error) {
         console.error("Error fetching user role action:", error);
         return 'customer';
@@ -183,5 +182,59 @@ export async function createManualCaseAction(lawyerId: string, data: {
     } catch (error: any) {
         console.error("Error creating manual case action:", error);
         return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Fetches unique clients who have interacted with a specific lawyer.
+ */
+export async function getLawyerClientsAction(lawyerId: string) {
+    const adminApp = await initAdmin();
+    if (!adminApp) throw new Error('Firebase Admin not initialized.');
+    const db = adminApp.firestore();
+
+    try {
+        // Query chats where this lawyer is a participant
+        const chatsSnap = await db.collection('chats')
+            .where('participants', 'array-contains', lawyerId)
+            .get();
+
+        const clientIds = new Set<string>();
+        chatsSnap.docs.forEach(doc => {
+            const data = doc.data();
+            if (data.participants) {
+                data.participants.forEach((p: string) => {
+                    if (p !== lawyerId) clientIds.add(p);
+                });
+            }
+        });
+
+        if (clientIds.size === 0) return [];
+
+        const clients: any[] = [];
+        const ids = Array.from(clientIds);
+        
+        // Firestore 'in' query limit is 30, but we'll use 10 for safety
+        for (let i = 0; i < ids.length; i += 10) {
+            const chunk = ids.slice(i, i + 10);
+            const usersSnap = await db.collection('users')
+                .where('__name__', 'in', chunk)
+                .get();
+            
+            usersSnap.docs.forEach(doc => {
+                const userData = doc.data();
+                clients.push({
+                    id: doc.id,
+                    name: userData.name || 'Anonymous Client',
+                    email: userData.email,
+                    avatar: userData.avatar || ''
+                });
+            });
+        }
+
+        return JSON.parse(JSON.stringify(clients));
+    } catch (error) {
+        console.error("Error fetching lawyer clients:", error);
+        return [];
     }
 }
