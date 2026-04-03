@@ -280,3 +280,78 @@ export async function requestFeeAction(params: {
     }
 }
 
+/**
+ * Sends email notifications after a payment is completed.
+ * Called from the client-side payment page.
+ */
+export async function notifyPaymentCompletedAction(params: {
+    chatId: string;
+    lawyerId: string;
+    amount: number;
+    caseTitle: string;
+    payerName: string;
+    isAutoApproved: boolean;
+}) {
+    try {
+        const adminApp = await initAdmin();
+        if (!adminApp) return { success: false, error: 'Firebase Admin not initialized.' };
+        const db = adminApp.firestore();
+
+        const { chatId, lawyerId, amount, caseTitle, payerName, isAutoApproved } = params;
+
+        // Fetch lawyer info
+        const lawyerDoc = await db.collection('lawyerProfiles').doc(lawyerId).get();
+        const lawyerData = lawyerDoc.exists ? lawyerDoc.data() : null;
+        const lawyerEmail = lawyerData?.email;
+        const lawyerName = lawyerData?.name || 'ทนายความ';
+
+        // Fetch client info from chat
+        const chatDoc = await db.collection('chats').doc(chatId).get();
+        const chatData = chatDoc.exists ? chatDoc.data() : null;
+        const clientId = chatData?.clientId || chatData?.userId;
+        let clientEmail = '';
+        let clientName = payerName;
+
+        if (clientId) {
+            const clientDoc = await db.collection('users').doc(clientId).get();
+            if (clientDoc.exists) {
+                const cd = clientDoc.data();
+                clientEmail = cd?.email || '';
+                clientName = cd?.name || payerName;
+            }
+        }
+
+        const { NotificationService } = await import('@/services/notification-service');
+
+        // Notify lawyer
+        if (lawyerEmail) {
+            await NotificationService.notifyPaymentReceived({
+                lawyerName,
+                lawyerEmail,
+                clientName,
+                amount,
+                caseTitle: caseTitle || chatData?.caseTitle || 'เคส',
+                chatId,
+                isAutoApproved,
+            });
+        }
+
+        // Confirm to client
+        if (clientEmail) {
+            await NotificationService.notifyClientPaymentConfirmation({
+                clientName,
+                clientEmail,
+                lawyerName,
+                amount,
+                caseTitle: caseTitle || chatData?.caseTitle || 'เคส',
+                chatId,
+                isAutoApproved,
+            });
+        }
+
+        return { success: true };
+    } catch (error: any) {
+        console.error("Error in notifyPaymentCompletedAction:", error);
+        return { success: false, error: error.message };
+    }
+}

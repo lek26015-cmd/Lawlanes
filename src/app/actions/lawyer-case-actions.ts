@@ -4,6 +4,7 @@ import { initAdmin } from '@/lib/firebase-admin';
 import { Case, Milestone, CaseStatus } from '@/lib/types/billing-types';
 import { revalidatePath } from 'next/cache';
 import { callTyphoonAI } from '@/lib/typhoon';
+import { NotificationService } from '@/services/notification-service';
 
 /**
  * Fetch all legal cases for a specific lawyer
@@ -205,6 +206,31 @@ export async function closeCaseAction(caseId: string, data: {
                 updatedAt: new Date(),
             });
 
+            // Send email notification for additional fee request
+            try {
+                const chatData = chatDoc.data();
+                const clientId = chatData?.clientId || chatData?.userId;
+                if (clientId) {
+                    const clientDoc = await db.collection('users').doc(clientId).get();
+                    const lawyerDoc = await db.collection('lawyerProfiles').doc(data.lawyerId).get();
+                    if (clientDoc.exists) {
+                        const clientData = clientDoc.data();
+                        await NotificationService.notifyAdditionalFeeFromCloseCase({
+                            clientName: clientData?.name || 'ลูกความ',
+                            clientEmail: clientData?.email || '',
+                            lawyerName: lawyerDoc.exists ? lawyerDoc.data()?.name : 'ทนายความ',
+                            caseTitle: chatData?.caseTitle || 'เคส',
+                            additionalAmount: data.finalFee - data.originalFee,
+                            totalAmount: data.finalFee,
+                            reason: data.summary,
+                            chatId: caseId,
+                        });
+                    }
+                }
+            } catch (emailError) {
+                console.error('Email notification failed (non-blocking):', emailError);
+            }
+
             return { success: true, requiresApproval: true };
         } else {
             // Close the case immediately
@@ -225,6 +251,30 @@ export async function closeCaseAction(caseId: string, data: {
                 timestamp: new Date(),
                 type: 'case_summary'
             });
+
+            // Send email notification to client
+            try {
+                const chatData = chatDoc.data();
+                const clientId = chatData?.clientId || chatData?.userId;
+                if (clientId) {
+                    const clientDoc = await db.collection('users').doc(clientId).get();
+                    const lawyerDoc = await db.collection('lawyerProfiles').doc(data.lawyerId).get();
+                    if (clientDoc.exists) {
+                        const clientData = clientDoc.data();
+                        await NotificationService.notifyCaseClosed({
+                            clientName: clientData?.name || 'ลูกความ',
+                            clientEmail: clientData?.email || '',
+                            lawyerName: lawyerDoc.exists ? lawyerDoc.data()?.name : 'ทนายความ',
+                            caseTitle: chatData?.caseTitle || 'เคส',
+                            summary: data.summary,
+                            chatId: caseId,
+                            lawyerId: data.lawyerId,
+                        });
+                    }
+                }
+            } catch (emailError) {
+                console.error('Email notification failed (non-blocking):', emailError);
+            }
 
             return { success: true, requiresApproval: false };
         }
@@ -271,6 +321,27 @@ export async function cancelCaseAction(caseId: string, lawyerId: string) {
             timestamp: new Date(),
             type: 'case_cancelled'
         });
+
+        // Send email notification to client
+        try {
+            const clientId = chatData?.clientId || chatData?.userId;
+            if (clientId) {
+                const clientDoc = await db.collection('users').doc(clientId).get();
+                const lawyerDoc = await db.collection('lawyerProfiles').doc(lawyerId).get();
+                if (clientDoc.exists) {
+                    const clientDocData = clientDoc.data();
+                    await NotificationService.notifyCaseCancelled({
+                        clientName: clientDocData?.name || 'ลูกความ',
+                        clientEmail: clientDocData?.email || '',
+                        lawyerName: lawyerDoc.exists ? lawyerDoc.data()?.name : 'ทนายความ',
+                        caseTitle: chatData?.caseTitle || 'เคส',
+                        refundAmount: paidAmount,
+                    });
+                }
+            }
+        } catch (emailError) {
+            console.error('Email notification failed (non-blocking):', emailError);
+        }
 
         return { success: true, refundAmount: paidAmount };
     } catch (error: any) {

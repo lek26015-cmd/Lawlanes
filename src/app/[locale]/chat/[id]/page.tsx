@@ -9,6 +9,8 @@ import { ChatBox } from '@/components/chat/chat-box';
 import { uploadFileAction } from '../actions';
 import { requestFeeAction, getChatDetailsAction, ensureChatExistsAction } from '@/app/actions/chat-actions';
 import { submitReviewAction } from '@/app/actions/review-actions';
+import { getCaseMilestones } from '@/app/actions/lawyer-case-actions';
+import type { Milestone } from '@/lib/types/billing-types';
 import { useTranslations } from 'next-intl';
 import { CaseRoadmap } from '@/components/case/case-roadmap';
 import { LegalResearchTool } from '@/components/case/legal-research-tool';
@@ -73,6 +75,7 @@ function ChatPageContent() {
     const [caseTitle, setCaseTitle] = useState<string>('');
     const [description, setDescription] = useState<string>('');
     const [pendingFeeRequest, setPendingFeeRequest] = useState<{ amount: number, reason: string } | null>(null);
+    const [milestones, setMilestones] = useState<Milestone[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { toast } = useToast();
 
@@ -84,7 +87,20 @@ function ChatPageContent() {
     const [isChatDisabled, setIsChatDisabled] = useState(isCompleted);
 
     const isOfficial = chatAmount > 0;
-    const currentStep = isCompleted ? 5 : (isOfficial ? 4 : (pendingFeeRequest ? 2 : 1));
+
+    // Compute milestoneSteps and currentStep from real milestones
+    const milestoneSteps = milestones.length > 0 ? milestones.map((m, idx) => ({
+      id: idx + 1,
+      label: m.title,
+      icon: m.status === 'completed' ? CheckCircle2 : FileText,
+      date: m.status === 'completed' ? '✓ เสร็จสิ้น' : undefined,
+    })) : undefined;
+
+    const currentStep = isCompleted 
+      ? (milestones.length > 0 ? milestones.length : 5) 
+      : milestones.length > 0 
+        ? milestones.filter(m => m.status === 'completed').length + 1
+        : (isOfficial ? 4 : (pendingFeeRequest ? 2 : 1));
 
     const [rating, setRating] = useState(0);
     const [reviewText, setReviewText] = useState("");
@@ -113,6 +129,14 @@ function ChatPageContent() {
 
         return () => unsubscribe();
     }, [firestore, chatId, user]);
+
+    // Fetch milestones when case is official
+    useEffect(() => {
+        if (!isOfficial || !chatId) return;
+        getCaseMilestones(chatId).then(ms => {
+            if (ms && ms.length > 0) setMilestones(ms);
+        }).catch(err => console.error('Milestones fetch error:', err));
+    }, [isOfficial, chatId]);
 
     useEffect(() => {
         if (!firestore) return;
@@ -303,7 +327,7 @@ function ChatPageContent() {
                 </div>
                 {isOfficial && (
                     <div className="flex-1 max-w-xl">
-                        <CaseRoadmap currentStep={currentStep} isPremium={isOfficial} />
+                        <CaseRoadmap currentStep={currentStep} isPremium={isOfficial} steps={milestoneSteps} />
                     </div>
                 )}
             </div>

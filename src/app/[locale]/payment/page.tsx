@@ -25,6 +25,7 @@ import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '@/lib/constants';
 import { compressImageToBase64 } from '@/lib/image-utils';
 import { cn } from '@/lib/utils';
 import jsQR from 'jsqr';
+import { notifyPaymentCompletedAction } from '@/app/actions/chat-actions';
 
 
 function PaymentPageContent() {
@@ -270,7 +271,10 @@ function PaymentPageContent() {
                 }
             }
 
-            const baseStatus = slipOkData ? 'paid' : 'awaiting_admin_approval';
+            // If SlipOK verified: mark as 'paid' (auto-approved)
+            // If no SlipOK: keep 'pending_payment' with hasNewPayment flag for Admin to review
+            const baseStatus = slipOkData ? 'paid' : 'pending_payment';
+            const hasNewPayment = !slipOkData; // Flag for Admin to see new slip uploaded
 
             if (paymentType === 'chat') {
                 const newChatId = uuidv4();
@@ -289,7 +293,8 @@ function PaymentPageContent() {
                     amount: finalFee,
                     originalFee: fee,
                     discount: discountAmount,
-                    couponCode: appliedCoupon?.code || null
+                    couponCode: appliedCoupon?.code || null,
+                    hasNewPayment,
                 };
 
                 await setDoc(chatRef, chatPayload);
@@ -316,7 +321,8 @@ function PaymentPageContent() {
                     slipOkData: slipOkData || null,
                     amount: finalFee,
                     originalFee: fee,
-                    discount: discountAmount
+                    discount: discountAmount,
+                    hasNewPayment,
                 };
 
                 await addDoc(appointmentRef, appointmentPayload);
@@ -331,9 +337,10 @@ function PaymentPageContent() {
                         type: paymentType,
                         submittedAt: new Date()
                     },
-                    status: slipOkData ? 'active' : 'awaiting_admin_approval',
+                    status: slipOkData ? 'active' : 'pending_payment',
                     paidAt: serverTimestamp(),
                     paidAmount: finalFee,
+                    hasNewPayment,
                 };
                 // If slipOkData confirmed, mark payment officially done
                 if (slipOkData) {
@@ -342,6 +349,16 @@ function PaymentPageContent() {
                 }
                 await updateDoc(chatRef, updatePayload);
                 setPaymentSuccess(true);
+
+                // Fire email notifications (non-blocking)
+                notifyPaymentCompletedAction({
+                    chatId: chatId || '',
+                    lawyerId: lawyerId || '',
+                    amount: finalFee,
+                    caseTitle: '',
+                    payerName: user?.displayName || 'ลูกความ',
+                    isAutoApproved: !!slipOkData,
+                }).catch(e => console.error('Payment notification failed:', e));
             }
         } catch (error) {
             console.error("Payment error:", error);

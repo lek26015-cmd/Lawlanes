@@ -208,11 +208,144 @@ export const NotificationService = {
   },
 
 
+
   /**
    * General Email Trigger
    */
   async sendEmail(to: string, subject: string, html: string) {
     console.log(`Queueing Email for ${to}`);
     return await sendEmailFlexible(to, subject, html);
+  },
+
+  // ============================================================
+  // Case Lifecycle Notifications
+  // ============================================================
+
+  /**
+   * Trigger 7: Notify lawyer when client completes payment
+   */
+  async notifyPaymentReceived(params: {
+    lawyerName: string;
+    lawyerEmail: string;
+    clientName: string;
+    amount: number;
+    caseTitle: string;
+    chatId: string;
+    isAutoApproved: boolean;
+  }) {
+    const { lawyerName, lawyerEmail, clientName, amount, caseTitle, chatId, isAutoApproved } = params;
+    console.log(`[NotificationService] Payment received notification for lawyer`);
+
+    const emailHtml = generateStandardEmailHtml({
+      title: "ลูกความชำระเงินเรียบร้อยแล้ว",
+      content: `เรียนทนายความ <span class="highlight">${lawyerName}</span>,<br><br>ลูกความ <span class="highlight">${clientName}</span> ได้ชำระค่าบริการสำหรับเคส "<span class="highlight">${caseTitle}</span>" เรียบร้อยแล้ว<br><br><span class="highlight">จำนวนเงิน:</span> ฿${amount.toLocaleString()}<br><span class="highlight">สถานะ:</span> ${isAutoApproved ? '✅ อนุมัติอัตโนมัติ (SlipOK ยืนยันแล้ว)' : '⏳ รอเจ้าหน้าที่ตรวจสอบสลิป'}`,
+      buttonText: "เข้าสู่ห้องแชท",
+      buttonLink: `${SITE_URL}/chat/${chatId}?view=lawyer`
+    });
+
+    return await sendEmailFlexible(lawyerEmail, `[Lawslane] ลูกความชำระเงินแล้ว — ${caseTitle}`, emailHtml);
+  },
+
+  /**
+   * Trigger 7b: Confirm payment to client
+   */
+  async notifyClientPaymentConfirmation(params: {
+    clientName: string;
+    clientEmail: string;
+    lawyerName: string;
+    amount: number;
+    caseTitle: string;
+    chatId: string;
+    isAutoApproved: boolean;
+  }) {
+    const { clientName, clientEmail, lawyerName, amount, caseTitle, chatId, isAutoApproved } = params;
+    console.log(`[NotificationService] Payment confirmation for client`);
+
+    const emailHtml = generateStandardEmailHtml({
+      title: "ยืนยันการชำระเงินสำเร็จ",
+      content: `เรียนคุณ <span class="highlight">${clientName}</span>,<br><br>เราได้รับหลักฐานการชำระเงินของท่านเรียบร้อยแล้ว<br><br><span class="highlight">เคส:</span> ${caseTitle}<br><span class="highlight">ทนายความ:</span> ${lawyerName}<br><span class="highlight">จำนวนเงิน:</span> ฿${amount.toLocaleString()}<br><br>${isAutoApproved ? '✅ ระบบตรวจสอบอัตโนมัติเรียบร้อยแล้ว สามารถเริ่มดำเนินการได้ทันที' : '⏳ เจ้าหน้าที่จะตรวจสอบสลิปของท่านและอนุมัติในเวลาอันสั้น'}`,
+      buttonText: "กลับไปยังห้องแชท",
+      buttonLink: `${SITE_URL}/chat/${chatId}`
+    });
+
+    return await sendEmailFlexible(clientEmail, `[Lawslane] ยืนยันการชำระเงิน — ฿${amount.toLocaleString()}`, emailHtml);
+  },
+
+  /**
+   * Trigger 8: Notify client when case is closed
+   */
+  async notifyCaseClosed(params: {
+    clientName: string;
+    clientEmail: string;
+    lawyerName: string;
+    caseTitle: string;
+    summary: string;
+    chatId: string;
+    lawyerId: string;
+  }) {
+    const { clientName, clientEmail, lawyerName, caseTitle, summary, chatId, lawyerId } = params;
+    console.log(`[NotificationService] Case closed notification for client`);
+
+    const emailHtml = generateStandardEmailHtml({
+      title: "เคสของท่านถูกปิดเรียบร้อยแล้ว",
+      content: `เรียนคุณ <span class="highlight">${clientName}</span>,<br><br>ทนายความ <span class="highlight">${lawyerName}</span> ได้ปิดเคส "<span class="highlight">${caseTitle}</span>" เรียบร้อยแล้ว<br><br><span class="highlight">สรุปผล:</span><br>${summary.substring(0, 200)}${summary.length > 200 ? '...' : ''}<br><br>กรุณาให้คะแนนบริการเพื่อช่วยพัฒนาระบบของเรา`,
+      buttonText: "ให้คะแนนบริการ",
+      buttonLink: `${SITE_URL}/review/${chatId}?lawyerId=${lawyerId}`
+    });
+
+    return await sendEmailFlexible(clientEmail, `[Lawslane] เคส "${caseTitle}" ปิดเรียบร้อยแล้ว`, emailHtml);
+  },
+
+  /**
+   * Trigger 9: Notify client when case is cancelled
+   */
+  async notifyCaseCancelled(params: {
+    clientName: string;
+    clientEmail: string;
+    lawyerName: string;
+    caseTitle: string;
+    refundAmount: number;
+  }) {
+    const { clientName, clientEmail, lawyerName, caseTitle, refundAmount } = params;
+    console.log(`[NotificationService] Case cancelled notification for client`);
+
+    const refundText = refundAmount > 0
+      ? `<br><br><span class="highlight">การคืนเงิน:</span> ระบบจะดำเนินการคืนเงิน ฿${refundAmount.toLocaleString()} ให้ท่านภายใน 3-5 วันทำการ`
+      : '';
+
+    const emailHtml = generateStandardEmailHtml({
+      title: "เคสของท่านถูกยกเลิก",
+      content: `เรียนคุณ <span class="highlight">${clientName}</span>,<br><br>ทนายความ <span class="highlight">${lawyerName}</span> ได้ยกเลิกเคส "<span class="highlight">${caseTitle}</span>"${refundText}<br><br>หากมีข้อสงสัยกรุณาติดต่อฝ่ายสนับสนุน`,
+      buttonText: "ติดต่อฝ่ายสนับสนุน",
+      buttonLink: `${SITE_URL}/dashboard`
+    });
+
+    return await sendEmailFlexible(clientEmail, `[Lawslane] เคส "${caseTitle}" ถูกยกเลิก`, emailHtml);
+  },
+
+  /**
+   * Trigger 10: Notify client when lawyer requests additional fee (from close-case)
+   */
+  async notifyAdditionalFeeFromCloseCase(params: {
+    clientName: string;
+    clientEmail: string;
+    lawyerName: string;
+    caseTitle: string;
+    additionalAmount: number;
+    totalAmount: number;
+    reason: string;
+    chatId: string;
+  }) {
+    const { clientName, clientEmail, lawyerName, caseTitle, additionalAmount, totalAmount, reason, chatId } = params;
+    console.log(`[NotificationService] Additional fee request notification for client`);
+
+    const emailHtml = generateStandardEmailHtml({
+      title: "ทนายความขอค่าบริการเพิ่มเติม",
+      content: `เรียนคุณ <span class="highlight">${clientName}</span>,<br><br>ทนายความ <span class="highlight">${lawyerName}</span> ขอค่าบริการเพิ่มเติมสำหรับเคส "<span class="highlight">${caseTitle}</span>"<br><br><span class="highlight">ค่าบริการเพิ่มเติม:</span> ฿${additionalAmount.toLocaleString()}<br><span class="highlight">ยอดรวมทั้งสิ้น:</span> ฿${totalAmount.toLocaleString()}<br><span class="highlight">เหตุผล:</span> ${reason?.substring(0, 150) || 'ตามที่ตกลงในแชท'}<br><br>กรุณาตรวจสอบและดำเนินการชำระเงินเพิ่มเติม`,
+      buttonText: "ดูรายละเอียดและชำระเงิน",
+      buttonLink: `${SITE_URL}/chat/${chatId}`
+    });
+
+    return await sendEmailFlexible(clientEmail, `[Lawslane] ค่าบริการเพิ่มเติม — ${caseTitle}`, emailHtml);
   },
 };
