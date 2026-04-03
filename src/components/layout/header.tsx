@@ -29,6 +29,7 @@ import profileLawyerImg from '@/pic/profile-lawyer.jpg';
 import { getCloudflareVariantUrl } from '@/lib/cloudflare-images';
 
 import { getMainLink, getBusinessLink, getAdminLink } from '@/lib/domain-utils';
+import NotificationBell from './notification-bell';
 
 
 export default function Header({ setUserRole, domainType = 'main' }: { setUserRole: (role: string | null) => void; domainType?: 'main' | 'lawyer' | 'admin' | 'business' }) {
@@ -329,6 +330,12 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
               />
             </div>
 
+            {user && (
+              <div className="ml-2">
+                <NotificationBell />
+              </div>
+            )}
+
             {totalItems > 0 && (
               <Button
                 variant="ghost"
@@ -360,6 +367,11 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
               iconClassName={useTransparentHeader ? "text-white" : "text-slate-900"}
             />
           </div>
+          {user && (
+            <div className="mr-1">
+              <NotificationBell />
+            </div>
+          )}
           {user ? (
             <Link href="/account">
               <Avatar className="w-8 h-8 border border-border/50">

@@ -15,6 +15,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Label } from '@/components/ui/label';
 import { useFirebase, useUser } from '@/firebase';
 import { submitReviewAction } from '@/app/actions/review-actions';
+import { doc, getDoc } from 'firebase/firestore';
 
 
 function ReviewPageContent() {
@@ -32,9 +33,11 @@ function ReviewPageContent() {
   const [isLoading, setIsLoading] = useState(true);
   const [rating, setRating] = useState(0);
   const [reviewText, setReviewText] = useState("");
+  const [caseTitle, setCaseTitle] = useState('');
+  const [hasReviewed, setHasReviewed] = useState(false);
 
   useEffect(() => {
-    async function fetchLawyer() {
+    async function fetchData() {
       if (!lawyerId || !firestore) {
         setIsLoading(false);
         return;
@@ -45,10 +48,23 @@ function ReviewPageContent() {
         notFound();
       }
       setLawyer(lawyerData);
+
+      // Fetch case title from chat document
+      if (chatId) {
+        try {
+          const chatDoc = await getDoc(doc(firestore, 'chats', chatId));
+          if (chatDoc.exists()) {
+            setCaseTitle(chatDoc.data()?.caseTitle || '');
+          }
+        } catch (e) {
+          console.error('Error fetching chat doc for review:', e);
+        }
+      }
+
       setIsLoading(false);
     }
-    fetchLawyer();
-  }, [lawyerId, firestore]);
+    fetchData();
+  }, [lawyerId, firestore, chatId]);
 
   const handleSubmitReview = async () => {
     if (rating === 0) {
@@ -123,7 +139,7 @@ function ReviewPageContent() {
                 <CardHeader className="text-center">
                     <CardTitle className="text-2xl font-headline">ให้คะแนนและรีวิว</CardTitle>
                     <CardDescription>
-                        คุณกำลังรีวิวการบริการสำหรับเคส "คดี: มรดก"
+                        คุณกำลังรีวิวการบริการสำหรับเคส "{caseTitle || 'บริการให้คำปรึกษา'}"
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">

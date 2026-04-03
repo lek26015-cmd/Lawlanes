@@ -270,7 +270,7 @@ function PaymentPageContent() {
                 }
             }
 
-            const baseStatus = slipOkData ? 'awaiting_admin_final_check' : 'pending_payment';
+            const baseStatus = slipOkData ? 'paid' : 'awaiting_admin_approval';
 
             if (paymentType === 'chat') {
                 const newChatId = uuidv4();
@@ -323,7 +323,7 @@ function PaymentPageContent() {
                 setPaymentSuccess(true);
             } else if ((paymentType === 'additional' || paymentType === 'case') && chatId) {
                 const chatRef = doc(firestore, 'chats', chatId);
-                const updatePayload = {
+                const updatePayload: any = {
                     pendingPaymentDetails: {
                         amount: finalFee,
                         slipUrl,
@@ -331,8 +331,15 @@ function PaymentPageContent() {
                         type: paymentType,
                         submittedAt: new Date()
                     },
-                    status: baseStatus
+                    status: slipOkData ? 'active' : 'awaiting_admin_approval',
+                    paidAt: serverTimestamp(),
+                    paidAmount: finalFee,
                 };
+                // If slipOkData confirmed, mark payment officially done
+                if (slipOkData) {
+                    updatePayload.lastMessage = `✅ ลูกความชำระเงินเรียบร้อยแล้ว (฿${finalFee.toLocaleString()})`;
+                    updatePayload.lastMessageAt = serverTimestamp();
+                }
                 await updateDoc(chatRef, updatePayload);
                 setPaymentSuccess(true);
             }
@@ -398,9 +405,16 @@ function PaymentPageContent() {
                             เราได้รับหลักฐานการชำระเงินของคุณแล้ว {slipOkData ? "ระบบตรวจสอบเบื้องต้นผ่านแล้ว " : ""} เจ้าหน้าที่จะทำการอนุมัติในเวลาอันสั้น
                         </p>
                     </div>
-                    <Button asChild className="rounded-xl px-8 h-12 bg-[#0B3979] hover:bg-[#082a5a]">
-                        <Link href="/dashboard">ไปที่แดชบอร์ด</Link>
-                    </Button>
+                    <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                        {chatId && (
+                            <Button asChild variant="outline" className="rounded-xl px-8 h-12 border-blue-200 text-blue-700 hover:bg-blue-50">
+                                <Link href={`/chat/${chatId}?lawyerId=${lawyerId}`}>กลับไปยังห้องแชท</Link>
+                            </Button>
+                        )}
+                        <Button asChild className="rounded-xl px-8 h-12 bg-[#0B3979] hover:bg-[#082a5a]">
+                            <Link href="/dashboard">ไปที่แดชบอร์ด</Link>
+                        </Button>
+                    </div>
                 </CardContent>
             </Card>
         )

@@ -1,42 +1,31 @@
-
 'use client';
-import { useState, useEffect, useRef } from 'react';
-import Link from 'next/link';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  collection,
-  query,
-  where,
-  getDocs,
-  addDoc,
-  serverTimestamp,
-  onSnapshot,
-  orderBy,
   doc,
   getDoc,
-  setDoc,
-  updateDoc,
+  onSnapshot,
   Firestore,
-  Query,
+  serverTimestamp,
 } from 'firebase/firestore';
 import { User } from 'firebase/auth';
 import { 
-  ensureChatExistsAction, 
   sendChatMessageAction, 
   markChatAsReadAction 
 } from '@/app/actions/chat-actions';
-import type { LawyerProfile, HumanChatMessage } from '@/lib/types';
+import type { HumanChatMessage } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, Loader2, Sparkles, Languages, AlertTriangle, FolderPlus, Plus } from 'lucide-react';
+import { Send, Loader2, Sparkles, Languages, AlertTriangle, RefreshCcw, Check, CheckCheck } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useChat } from '@/context/chat-context';
-import { FirestorePermissionError } from '@/firebase/errors';
-import { errorEmitter } from '@/firebase/error-emitter';
 import { translateToMultipleLanguages } from '@/app/actions/translate';
 import { QuickReplies } from './quick-replies';
 import { CopyButton } from '@/components/ui/copy-button';
+import { useChatSocket } from '@/hooks/use-chat-socket';
+import { ErrorBoundary } from '@/components/ui/error-boundary';
+import { cn } from '@/lib/utils';
 
 interface ChatBoxProps {
   firestore: Firestore;
@@ -47,15 +36,12 @@ interface ChatBoxProps {
   isLawyerView?: boolean;
 }
 
-// Extend message type with translation
-interface MessageWithTranslation extends HumanChatMessage {
+interface MessageWithStatus extends HumanChatMessage {
   translation?: string;
   isTranslating?: boolean;
 }
 
-import { useChatSocket } from '@/hooks/use-chat-socket';
-
-export function ChatBox({
+function ChatBoxContent({
   firestore,
   currentUser,
   otherUser,
@@ -67,327 +53,311 @@ export function ChatBox({
     messages: socketMessages, 
     isConnected, 
     isLoading: isSocketLoading, 
-    sendMessage 
+    isPartnerTyping,
+    sendMessage,
+    sendTypingEvent 
   } = useChatSocket(chatId, currentUser.uid, currentUser.displayName || 'คู่สนทนา');
 
-  // Update "Last Seen" presence logic
-  useEffect(() => {
-    if (!chatId || !firestore || !currentUser) return;
-    
-    const updatePresence = async () => {
-      try {
-        const chatRef = doc(firestore, 'chats', chatId);
-        const presenceField = isLawyerView ? 'lawyerLastSeenAt' : 'clientLastSeenAt';
-        await updateDoc(chatRef, {
-          [presenceField]: serverTimestamp()
-        });
-      } catch (err) {
-        console.warn("Failed to update chat presence:", err);
-      }
-    };
-
-    // Update immediately on mount
-    updatePresence();
-    
-    // Then every 60 seconds
-    const interval = setInterval(updatePresence, 60 * 1000);
-    return () => clearInterval(interval);
-  }, [chatId, firestore, currentUser, isLawyerView]);
-
-  const [messages, setMessages] = useState<MessageWithTranslation[]>([]);
+  const [messages, setMessages] = useState<MessageWithStatus[]>([]);
+  const [optimisticMessages, setOptimisticMessages] = useState<MessageWithStatus[]>([]);
   const [input, setInput] = useState('');
-  const [isChatReady, setIsChatReady] = useState(false);
+  const [chatMetadata, setChatMetadata] = useState<any>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const { initialChatMessage, setInitialChatMessage } = useChat();
 
-  // Sync socket messages with local state (for translations)
+  // 1. Presence Logic
+  useEffect(() => {
+    if (!chatId || !firestore || !currentUser) return;
+    const updatePresence = async () => {
+      try {
+        const { markChatAsReadAction } = await import('@/app/actions/chat-actions');
+        await markChatAsReadAction(chatId, isLawyerView);
+      } catch (err) {
+        console.warn("Presence update failed:", err);
+      }
+    };
+    updatePresence();
+    const interval = setInterval(updatePresence, 30 * 1000);
+    return () => clearInterval(interval);
+  }, [chatId, firestore, currentUser, isLawyerView]);
+
+  // 2. Draft Persistence (localStorage)
+  useEffect(() => {
+    const draft = localStorage.getItem(`chat_draft_${chatId}`);
+    if (draft) setInput(draft);
+  }, [chatId]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = e.target.value;
+    setInput(val);
+    localStorage.setItem(`chat_draft_${chatId}`, val);
+    
+    // Typing Indicator
+    sendTypingEvent(val.length > 0);
+  };
+
+  // 3. Metadata listener (Read statuses, Title etc)
+  useEffect(() => {
+    if (!chatId || !firestore) return;
+    const chatRef = doc(firestore, 'chats', chatId);
+    const unsubscribe = onSnapshot(chatRef, (snap) => {
+      if (snap.exists()) setChatMetadata(snap.data());
+    });
+    return () => unsubscribe();
+  }, [chatId, firestore]);
+
+  // 4. Sync Messages with Socket
   useEffect(() => {
     setMessages(socketMessages.map(msg => ({
       ...msg,
       translation: (messages.find(m => m.id === msg.id) as any)?.translation,
       isTranslating: (messages.find(m => m.id === msg.id) as any)?.isTranslating,
     })));
+    
+    // Clear optimistic messages once they appear in the real socket feed
+    if (socketMessages.length > 0) {
+       const lastSocketMsg = socketMessages[socketMessages.length - 1];
+       setOptimisticMessages(prev => prev.filter(m => m.text !== lastSocketMsg.text));
+    }
   }, [socketMessages]);
 
-  const [chatMetadata, setChatMetadata] = useState<any>(null);
-
-  // Fetch chat metadata
-  useEffect(() => {
-    if (!chatId || !firestore) return;
-    const chatRef = doc(firestore, 'chats', chatId);
-    getDoc(chatRef).then(docSnap => {
-      if (docSnap.exists()) {
-        setChatMetadata(docSnap.data());
-      }
-    });
-  }, [chatId, firestore]);
-
-  useEffect(() => {
-    if (chatId && currentUser.uid && otherUser.userId && chatMetadata) {
-      // Ensure chat exists in D1
-      const ensureChat = async () => {
-        try {
-          const caseTitle = chatMetadata.caseTitle || chatMetadata.title || 'คดีใหม่';
-          
-          // Fallback to server action first for reliability
-          await ensureChatExistsAction(chatId, [currentUser.uid, otherUser.userId], caseTitle).catch(e => console.warn("D1 Sync via Server Action failed:", e));
-
-          // Then attempt worker sync if available
-          const workerUrl = process.env.NEXT_PUBLIC_CHAT_WORKER_URL;
-          if (workerUrl && workerUrl !== 'undefined') {
-            await fetch(`${workerUrl}/ensure-chat`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                chatId,
-                participants: [currentUser.uid, otherUser.userId],
-                caseTitle: caseTitle
-              })
-            }).catch(e => {
-               // Silently fail worker sync as we have D1/Firebase backup
-               console.warn("Worker sync skipped (unreachable)");
-            });
-          }
-          
-          setIsChatReady(true);
-        } catch (err) {
-          console.error("Chat initialization failed:", err);
-          setIsChatReady(true); // Always allow chat to proceed with Firebase fallback
-        }
-      };
-      ensureChat();
-    } else if (chatId && currentUser.uid && otherUser.userId && !chatMetadata) {
-       // Still proceed if metadata fetch is slow
-       setIsChatReady(true);
-    }
-  }, [chatId, currentUser.uid, otherUser.userId, chatMetadata]);
-
-  const handleTranslateMessage = async (messageId: string, text: string) => {
-    setMessages(prev => prev.map(msg =>
-      msg.id === messageId ? { ...msg, isTranslating: true } : msg
-    ));
-
-    try {
-      const result = await translateToMultipleLanguages(text);
-      const translatedText = result.english;
-
-      setMessages(prev => prev.map(msg =>
-        msg.id === messageId
-          ? { ...msg, translation: translatedText, isTranslating: false }
-          : msg
-      ));
-    } catch (error) {
-      console.error('Translation failed:', error);
-      setMessages(prev => prev.map(msg =>
-        msg.id === messageId ? { ...msg, isTranslating: false } : msg
-      ));
-    }
-  };
-
-  useEffect(() => {
-    if (initialChatMessage && isChatReady && isConnected) {
-      const message = initialChatMessage;
-      setInitialChatMessage('');
-      sendMessage(message, otherUser.userId);
-    }
-  }, [chatId, initialChatMessage, isChatReady, isConnected, sendMessage, otherUser.userId, setInitialChatMessage]);
-
-  useEffect(() => {
-    if (scrollAreaRef.current) {
-      const scrollableNode = scrollAreaRef.current.querySelector('div[style*="overflow: scroll"]');
-      if (scrollableNode) {
-        scrollableNode.scrollTop = scrollableNode.scrollHeight;
-      }
-    }
-  }, [messages]);
-
-
-  const handleSendMessage = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleSendMessage = async (e?: React.FormEvent) => {
+    e?.preventDefault();
     if (!input.trim() || isDisabled) return;
 
     const messageText = input;
+    const tempId = `temp-${Date.now()}`;
+    
+    // 1. Add Optimistic Message
+    const optMsg: MessageWithStatus = {
+      id: tempId,
+      text: messageText,
+      senderId: currentUser.uid,
+      timestamp: Date.now(),
+      status: 'sending'
+    };
+    setOptimisticMessages(prev => [...prev, optMsg]);
     setInput('');
-    sendMessage(messageText, otherUser.userId);
+    localStorage.removeItem(`chat_draft_${chatId}`);
+    sendTypingEvent(false);
+
+    try {
+      await sendMessage(messageText, otherUser.userId, isLawyerView);
+      // Success will be handled by socketMessages update clearing the optimistic list
+    } catch (error) {
+      console.error("Message send failed:", error);
+      setOptimisticMessages(prev => prev.map(m => m.id === tempId ? { ...m, status: 'error' } : m));
+    }
   };
 
-  // Mark as read (We can still use the Firebase action for now if needed, 
-  // or migrate to worker later. Keeping it for compatibility with old dashboard if any)
-  useEffect(() => {
-    if (isLawyerView && isChatReady && chatId) {
-      markChatAsReadAction(chatId).catch(err => console.warn("Failed to mark chat as read:", err));
+  const retryMessage = async (msg: MessageWithStatus) => {
+     setOptimisticMessages(prev => prev.map(m => m.id === msg.id ? { ...m, status: 'sending' } : m));
+     try {
+       await sendMessage(msg.text, otherUser.userId, isLawyerView);
+     } catch (e) {
+       setOptimisticMessages(prev => prev.map(m => m.id === msg.id ? { ...m, status: 'error' } : m));
+     }
+  };
+
+  const handleTranslateMessage = async (messageId: string, text: string) => {
+    setMessages(prev => prev.map(msg => msg.id === messageId ? { ...msg, isTranslating: true } : msg));
+    try {
+      const result = await translateToMultipleLanguages(text);
+      setMessages(prev => prev.map(msg => msg.id === messageId ? { ...msg, translation: result.english, isTranslating: false } : msg));
+    } catch (error) {
+      setMessages(prev => prev.map(msg => msg.id === messageId ? { ...msg, isTranslating: false } : msg));
     }
-  }, [isLawyerView, isChatReady, chatId]);
+  };
 
-  const [lawyerReadAt, setLawyerReadAt] = useState<any>(null);
-
-  // Still listening to Firebase for "read" status for now as it's a separate metadata 
-  // that might be used elsewhere.
   useEffect(() => {
-    if (!chatId) return;
-    const chatRef = doc(firestore, 'chats', chatId);
-    const unsubscribe = onSnapshot(chatRef, (doc) => {
-      if (doc.exists()) {
-        setLawyerReadAt(doc.data().lawyerReadAt);
-        // Also update local metadata if it changed (e.g. title)
-        setChatMetadata(doc.data());
-      }
-    });
-    return () => unsubscribe();
-  }, [chatId, firestore]);
+    if (initialChatMessage && isConnected) {
+      const text = initialChatMessage;
+      setInitialChatMessage('');
+      setInput(text);
+      // Let it flow through normal send flow for optimistic UI
+    }
+  }, [initialChatMessage, isConnected, setInitialChatMessage]);
 
-  const firstUserMessage = messages.find(m => m.senderId !== (isLawyerView ? currentUser.uid : otherUser.userId));
+  useEffect(() => {
+    if (scrollAreaRef.current) {
+      const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (viewport) viewport.scrollTop = viewport.scrollHeight;
+    }
+  }, [messages, optimisticMessages]);
+
+  const allMessages = [...messages, ...optimisticMessages];
+  const firstUserMessage = allMessages.find(m => m.senderId !== (isLawyerView ? currentUser.uid : otherUser.userId));
 
   return (
-    <Card className="flex flex-col h-[80vh] shadow-lg">
-      <CardHeader className="border-b">
+    <Card className="flex flex-col h-[75vh] md:h-[80vh] shadow-xl border-none rounded-3xl overflow-hidden bg-white">
+      <CardHeader className="border-b bg-gray-50/50 py-4">
         <div className="flex justify-between items-center">
-          <div>
-            <div className="flex items-center gap-2">
-              <CardTitle className="text-xl">
-                {chatMetadata?.caseTitle || chatMetadata?.title || 'กำลังโหลด...'}
-              </CardTitle>
-              <span className="text-xs font-mono text-muted-foreground">({chatId})</span>
-              <CopyButton value={chatId} className="h-4 w-4" />
+          <div className="flex items-center gap-3">
+            <Avatar className="h-10 w-10 border-2 border-primary/10">
+               <AvatarImage src={otherUser.imageUrl} />
+               <AvatarFallback className="bg-primary/5 text-primary font-bold">{otherUser.name.charAt(0)}</AvatarFallback>
+            </Avatar>
+            <div>
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-lg font-bold">
+                  {chatMetadata?.caseTitle || chatMetadata?.title || 'กำลังโหลด...'}
+                </CardTitle>
+                {isConnected ? (
+                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" title="Connected" />
+                ) : (
+                  <div className="w-2 h-2 rounded-full bg-gray-300" title="Offline" />
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                {isLawyerView ? `ลูกความ: ${otherUser.name}` : `ทนายความ: ${otherUser.name}`}
+              </p>
             </div>
-            <p className="text-sm text-muted-foreground">
-              {isLawyerView ? `เคสของ ${otherUser.name}` : `สนทนากับ ${otherUser.name}`}
-            </p>
           </div>
-          {!isLawyerView && lawyerReadAt && (
-            <div className="flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full border border-green-200">
-              <Sparkles className="w-3 h-3" />
-              <span>ทนายอ่านแล้ว</span>
-            </div>
-          )}
-          {isLawyerView && (
-            <div className="flex items-center gap-2">
-              <QuickReplies onSelect={(text) => setInput(text)} />
-            </div>
-          )}
+          <div className="flex items-center gap-2">
+             {isLawyerView && <QuickReplies onSelect={(text) => { setInput(text); localStorage.setItem(`chat_draft_${chatId}`, text); }} />}
+             <CopyButton value={chatId} className="h-8 w-8 rounded-full" />
+          </div>
         </div>
       </CardHeader>
 
-      <CardContent className="flex-grow p-0 flex flex-col min-h-0">
-        <ScrollArea className="flex-grow p-6" ref={scrollAreaRef}>
+      <CardContent className="flex-grow p-0 flex flex-col min-h-0 bg-slate-50/30">
+        <ScrollArea className="flex-grow p-4 md:p-6" ref={scrollAreaRef}>
           <div className="space-y-6">
-            {/* Payment Warning Warning Banner */}
-            <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3 text-red-800 shadow-sm animate-pulse-slow">
-              <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5 text-red-600" />
-              <div className="text-sm">
-                <p className="font-bold">คำเตือนเพื่อความปลอดภัย</p>
-                <p>ห้ามโอนเงินหรือตกลงค่าใช้จ่ายนอกระบบ Lawlanes โดยเด็ดขาด เพื่อป้องกันการถูกหลอกลวงและความคุ้มครองจากแพลตฟอร์ม</p>
-              </div>
+            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3 text-amber-900 text-xs md:text-sm">
+              <AlertTriangle className="w-5 h-5 flex-shrink-0 text-amber-600" />
+              <p>คำเตือน: ห้ามโอนเงินนอกระบบ Lawlanes เพื่อความปลอดภัยของข้อมูลและเงินของคุณ</p>
             </div>
 
-            {/* Show Summary to BOTH Lawyer and Client */}
             <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
-                <Sparkles className="w-5 h-5" />
+              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+                <Sparkles className="w-4 h-4" />
               </div>
-              <div className="flex-1">
-                <div className="p-4 rounded-lg bg-yellow-50 border border-yellow-200">
-                  <p className="font-semibold text-sm text-yellow-800">
-                    {isLawyerView ? "AI: สรุปข้อเท็จจริงเบื้องต้นจากลูกความ" : "ข้อมูลที่คุณส่งให้ทนายความ"}
+              <div className="flex-1 max-w-[85%]">
+                <div className="p-4 rounded-2xl bg-white border border-gray-100 shadow-sm">
+                  <p className="font-bold text-xs text-primary uppercase tracking-wider mb-1">
+                    {isLawyerView ? "AI: สรุปข้อความเบื้องต้น" : "ข้อมูลที่คุณส่งให้ทนาย"}
                   </p>
-                  <p className="text-sm text-yellow-700 mt-1">
-                    {firstUserMessage ? `"${firstUserMessage.text}"` : "กำลังรอข้อความแรก..."}
+                  <p className="text-sm text-gray-700 italic">
+                    {firstUserMessage ? `"${firstUserMessage.text}"` : "กำลังรอข้อมูล..."}
                   </p>
                 </div>
               </div>
             </div>
 
-            {isSocketLoading ? (
-              <div className="flex justify-center items-center h-full">
-                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-              </div>
-            ) : !isChatReady ? (
-              <div className="text-center text-destructive text-sm py-8">
-                ไม่สามารถโหลดข้อมูลแชทได้ กรุณาลองใหม่อีกครั้ง
-              </div>
-            ) : messages.length === 0 && !initialChatMessage ? (
-              <div className="text-center text-muted-foreground text-sm py-8">
-                เริ่มต้นการสนทนา...
-              </div>
-            ) : (
-              messages.map((msg) => {
-                const isOwnMessage = msg.senderId === currentUser.uid;
+            {allMessages.map((msg, idx) => {
+              const isOwn = msg.senderId === currentUser.uid;
+              const showAvatar = !isOwn && (idx === 0 || allMessages[idx-1].senderId !== msg.senderId);
+              const isLastMsg = idx === allMessages.length - 1;
 
-                return (
-                  <div
-                    key={msg.id}
-                    className={`flex items-end gap-2 ${isOwnMessage ? 'justify-end' : 'justify-start'}`}
-                  >
-                    {!isOwnMessage && (
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={otherUser.imageUrl} />
-                        <AvatarFallback>
-                          {otherUser.name.charAt(0)}
-                        </AvatarFallback>
-                      </Avatar>
+              return (
+                <div key={msg.id} className={cn("flex flex-col", isOwn ? "items-end" : "items-start")}>
+                  <div className={cn("flex items-end gap-2 max-w-[85%] md:max-w-[70%]", isOwn && "flex-row-reverse")}>
+                    {!isOwn && (
+                      <div className="w-8 flex-shrink-0">
+                        {showAvatar && (
+                          <Avatar className="h-8 w-8 shadow-sm">
+                            <AvatarImage src={otherUser.imageUrl} />
+                            <AvatarFallback>{otherUser.name.charAt(0)}</AvatarFallback>
+                          </Avatar>
+                        )}
+                      </div>
                     )}
                     <div className="flex flex-col gap-1">
-                      <div
-                        className={`max-w-md rounded-lg px-4 py-2 shadow-sm text-sm ${isOwnMessage
-                          ? 'bg-foreground text-background'
-                          : 'bg-gray-200'
-                          }`}
-                      >
-                        <p>{msg.text}</p>
+                      <div className={cn(
+                        "rounded-2xl px-4 py-2.5 text-sm shadow-sm",
+                        isOwn ? "bg-primary text-white rounded-tr-none" : "bg-white border border-gray-100 text-gray-800 rounded-tl-none",
+                        msg.status === 'sending' && "opacity-70 animate-pulse",
+                        msg.status === 'error' && "border-red-500 bg-red-50 text-red-800"
+                      )}>
+                        <p className="whitespace-pre-wrap break-words">{msg.text}</p>
                       </div>
-
-                      {/* Translate button - show for messages from other user */}
-                      {!isOwnMessage && (
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => handleTranslateMessage(msg.id, msg.text)}
-                            disabled={msg.isTranslating}
-                            className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800 disabled:opacity-50"
-                          >
-                            {msg.isTranslating ? (
-                              <Loader2 className="w-3 h-3 animate-spin" />
-                            ) : (
-                              <Languages className="w-3 h-3" />
-                            )}
-                            <span>{msg.translation ? 'แปลใหม่' : 'แปลภาษา'}</span>
-                          </button>
-                        </div>
+                      
+                      {msg.status === 'error' && (
+                        <button onClick={() => retryMessage(msg)} className="text-[10px] text-red-500 flex items-center gap-1 mt-1 hover:underline">
+                          <RefreshCcw className="w-3 h-3" /> ส่งไม่สำเร็จ คลิกเพื่อลองใหม่
+                        </button>
                       )}
 
-                      {/* Translation display */}
-                      {msg.translation && !isOwnMessage && (
-                        <div className="max-w-md px-3 py-2 rounded-lg bg-blue-50 border border-blue-200 text-xs">
-                          <p className="text-blue-700 font-medium mb-1">คำแปล:</p>
-                          <p className="text-blue-800">{msg.translation}</p>
+                      {!isOwn && (
+                        <button 
+                          onClick={() => handleTranslateMessage(msg.id, msg.text)}
+                          className="text-[10px] text-primary hover:underline flex items-center gap-1 mt-0.5"
+                        >
+                          {msg.isTranslating ? <Loader2 className="w-3 h-3 animate-spin"/> : <Languages className="w-3 h-3"/>}
+                          {msg.translation ? 'แปลซ้ำ' : 'แปลภาษา'}
+                        </button>
+                      )}
+                      
+                      {msg.translation && !isOwn && (
+                        <div className="mt-1 p-2 rounded-xl bg-primary/5 border border-primary/10 text-[11px] text-primary/80 italic">
+                           {msg.translation}
                         </div>
                       )}
                     </div>
                   </div>
-                );
-              })
+                  {isOwn && isLastMsg && (
+                    <div className="mt-1 mr-2 flex items-center gap-1 text-[10px] text-muted-foreground">
+                       {isLawyerView ? (
+                         chatMetadata?.clientReadAt ? (
+                           <span className="text-green-600 flex items-center gap-0.5"><CheckCheck className="w-3 h-3"/> อ่านแล้ว</span>
+                         ) : <Check className="w-3 h-3"/>
+                       ) : (
+                         chatMetadata?.lawyerReadAt ? (
+                           <span className="text-green-600 flex items-center gap-0.5"><CheckCheck className="w-3 h-3"/> ทนายอ่านแล้ว</span>
+                         ) : <Check className="w-3 h-3"/>
+                       )}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            {isPartnerTyping && (
+              <div className="flex items-center gap-2 text-xs text-muted-foreground animate-pulse ml-10">
+                <div className="flex gap-1">
+                  <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0ms'}}/>
+                  <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '150ms'}}/>
+                  <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '300ms'}}/>
+                </div>
+                <span>{otherUser.name} กำลังพิมพ์...</span>
+              </div>
             )}
           </div>
         </ScrollArea>
       </CardContent>
+
       <CardFooter className="p-4 border-t bg-white">
-        <form onSubmit={handleSendMessage} className="flex items-center w-full space-x-2">
-          <Input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder={isDisabled ? "การสนทนานี้สิ้นสุดแล้ว" : "พิมพ์ข้อความ..."}
-            disabled={isSocketLoading || isDisabled}
-            className="flex-grow rounded-full"
-          />
+        <form 
+          onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }} 
+          className="flex items-center w-full gap-2"
+        >
+          <div className="relative flex-grow">
+            <Input
+              value={input}
+              onChange={handleInputChange}
+              placeholder={isDisabled ? "การสนทนานี้สิ้นสุดแล้ว" : "พิมพ์ข้อความที่นี่..."}
+              disabled={isSocketLoading || isDisabled}
+              className="pr-12 rounded-2xl bg-gray-50 border-none h-11 focus-visible:ring-primary shadow-inner"
+            />
+          </div>
           <Button
             type="submit"
             size="icon"
             disabled={isSocketLoading || !input.trim() || isDisabled}
-            className="rounded-full w-10 h-10 bg-blue-600 hover:bg-blue-700"
+            className="rounded-xl w-11 h-11 bg-primary hover:bg-primary/90 shadow-md transition-all active:scale-95"
           >
             <Send className="w-5 h-5" />
           </Button>
         </form>
       </CardFooter>
     </Card>
+  );
+}
+
+export function ChatBox(props: ChatBoxProps) {
+  return (
+    <ErrorBoundary>
+      <ChatBoxContent {...props} />
+    </ErrorBoundary>
   );
 }

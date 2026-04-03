@@ -16,7 +16,8 @@ import {
   Loader2,
   Sparkles,
   DollarSign,
-  ScrollText
+  ScrollText,
+  ArrowRight
 } from 'lucide-react';
 import { 
   Card, 
@@ -79,6 +80,7 @@ function NewCaseForm() {
   const [step, setStep] = useState(1);
   const [contractText, setContractText] = useState('');
   const [isFinalizing, setIsFinalizing] = useState(false);
+  const [totalFee, setTotalFee] = useState('');
   const [installments, setInstallments] = useState([
     { description: 'งวดที่ 1: เมื่อเริ่มงาน', amount: '' },
     { description: 'งวดที่ 2: เมื่อส่งมอบงาน', amount: '' }
@@ -118,8 +120,9 @@ function NewCaseForm() {
 
         // Fetch real chat context for import
         if (chatIdParam) {
-          const chatDetails = await getChatDetailsAction(chatIdParam);
-          if (chatDetails) {
+          const response = await getChatDetailsAction(chatIdParam);
+          if (response && response.success && response.data) {
+            const chatDetails = response.data;
             setImportedTitle(chatDetails.caseTitle || chatDetails.title || 'ข้อมูลจากแชท');
             setImportedSummary(chatDetails.aiSummary || chatDetails.lastMessage || 'ไม่มีสรุปข้อมูล');
             setShowImportBox(true);
@@ -151,7 +154,7 @@ function NewCaseForm() {
     
     // Generate Draft Contract
     const finalClientName = clientName || 'ลูกความผู้ว่าจ้าง';
-    const totalFee = (document.getElementById('total-fee') as HTMLInputElement)?.value || '0';
+    const currentFee = totalFee || '0';
     
     const draft = `สัญญาว่าจ้างทนายความ
 
@@ -166,10 +169,10 @@ ${clientAddress ? `ที่อยู่: ${clientAddress}\n` : ''}${clientTaxId
 ${description || 'ตามที่ระบุในรายละเอียดคดี'}
 
 2. ระยะเวลาดำเนินการ (Timeline):
-ประมาณ ${document.querySelector('[value="3-6"]') ? '3-6 เดือน' : 'ตามที่ตกลง'} โดยมีการอัปเดตงานทุกๆ เดือน
+ประมาณ 3-6 เดือน โดยมีการอัปเดตงานทุกๆ เดือน
 
 3. ค่าจ้างและเงื่อนไขการชำระเงิน (Fees):
-ค่าจ้างรวมทั้งสิ้นจำนวน ${totalFee} บาท (ไม่รวมภาษีมูลค่าเพิ่ม) 
+ค่าจ้างรวมทั้งสิ้นจำนวน ${currentFee} บาท (ไม่รวมภาษีมูลค่าเพิ่ม) 
 ${showInstallments ? `โดยแบ่งชำระเป็นดังนี้:\n${installments.map((inst, i) => `- งวดที่ ${i+1}: ${inst.description} จำนวน ${inst.amount} บาท`).join('\n')}` : 'โดยชำระงวดเดียวเมื่อเริ่มงาน'}
 
 4. นโยบายการดำเนินงาน:
@@ -190,25 +193,28 @@ ${showInstallments ? `โดยแบ่งชำระเป็นดังน�
     setIsFinalizing(true);
     
     try {
-      const totalFee = (document.getElementById('total-fee') as HTMLInputElement)?.value || '0';
+      const chatIdParam = searchParams.get('chatId');
+      
       const result = await createManualCaseAction(user.uid, {
         title: title,
         description: description,
         category: category,
-        amount: parseFloat(totalFee),
+        amount: parseFloat(totalFee || '0'),
         installments: showInstallments ? installments : [],
         clientInfo: {
           name: clientName,
           address: clientAddress,
           taxId: clientTaxId
-        }
+        },
+        existingChatId: chatIdParam || undefined,
+        clientId: client || searchParams.get('clientId') || undefined
       });
 
       if (result.success && result.chatId) {
         setCreatedChatId(result.chatId);
         toast({
           title: "สร้างคดีสำเร็จ!",
-          description: "คุณสามารถคัดลอกลิงก์ชำระเงินส่งให้ลูกความได้ทันที",
+          description: "ข้อเสนอเปิดคดีถูกส่งไปยังลูกความแล้ว",
         });
       } else {
         throw new Error(result.error || 'Failed to create case');
@@ -245,12 +251,15 @@ ${showInstallments ? `โดยแบ่งชำระเป็นดังน�
                 <CheckCircle2 className="w-12 h-12" />
               </div>
               <CardTitle className="text-3xl font-black text-slate-900 uppercase italic">สร้างคดีสำเร็จ!</CardTitle>
-              <CardDescription className="text-lg">คดี "{title}" ถูกบันทึกเข้าระบบเรียบร้อยแล้ว</CardDescription>
+              <CardDescription className="text-lg">
+                ข้อเสนอเปิดคดีของคุณถูกส่งไปยังลูกความทางแชทเรียบร้อยแล้ว <br/>
+                คุณสามารถกลับไปยังห้องแชทเพื่อตรวจสอบสถานะการชำระเงินของลูกความได้ทันที
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6 px-10 pb-10">
               <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100 space-y-4">
                 <p className="font-bold text-slate-700 flex items-center gap-2">
-                   <DollarSign className="w-5 h-5 text-blue-600" /> ลิงก์สำหรับส่งให้ลูกความเพื่อชำระเงิน:
+                   <DollarSign className="w-5 h-5 text-blue-600" /> ลิงก์สำหรับส่งให้ลูกความเพื่อชำระเงิน (สำรอง):
                 </p>
                 <div className="flex gap-2">
                   <div className="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-mono text-slate-500 break-all h-auto min-h-[48px] flex items-center">
@@ -264,23 +273,27 @@ ${showInstallments ? `โดยแบ่งชำระเป็นดังน�
                   </Button>
                 </div>
                 <p className="text-xs text-slate-400 italic">
-                  * ลูกความต้องเข้าสู่ระบบก่อนดำเนินการชำระเงินเพื่อความปลอดภัย
+                  * ลูกความเห็นข้อเสนอและปุ่มชำระเงินในแชทแล้ว แต่คุณสามารถส่งลิงก์นี้ซ้ำได้หากจำเป็น
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Button 
-                  variant="outline" 
-                  className="h-12 rounded-2xl font-bold border-slate-200"
-                  onClick={() => router.push('/lawyer-dashboard/pipeline')}
+                   variant="outline" 
+                   className="h-12 rounded-2xl font-bold border-slate-200 order-2 sm:order-1"
+                   onClick={() => router.push('/lawyer-dashboard/pipeline')}
                 >
                   กลับไปหน้า Pipeline
                 </Button>
+                
                 <Button 
-                  className="h-12 rounded-2xl font-bold bg-slate-900 hover:bg-slate-800 flex items-center gap-2"
-                  onClick={() => window.open(paymentLink, '_blank')}
+                  className="h-12 rounded-2xl font-bold bg-[#0B3979] hover:bg-[#082a5a] shadow-xl shadow-blue-500/20 order-1 sm:order-2"
+                  onClick={() => {
+                    const chatId = searchParams.get('chatId') || createdChatId;
+                    router.push(`/chat/${chatId}?lawyerId=${user?.uid}&clientId=${searchParams.get('clientId')}&view=lawyer`);
+                  }}
                 >
-                  <ExternalLink className="w-4 h-4" /> ดูหน้าการชำระเงิน
+                  กลับไปยังห้องแชท <ArrowRight className="ml-2 w-4 h-4" />
                 </Button>
               </div>
             </CardContent>
@@ -430,9 +443,10 @@ ${showInstallments ? `โดยแบ่งชำระเป็นดังน�
                               { description: 'ค่าวิชาชีพงวดสุดท้าย (ศาลมีคำพิพากษา)', amount: '15000' }
                             ]);
                           } else {
-                            setClientName(val === 'c1' ? 'คุณมานี รักดี' : val === 'c2' ? 'บจก. ก่อสร้างดี' : val === 'c3' ? 'คุณสมศํกดิ์ มั่นคง' : '');
-                            setClientAddress(val === 'c1' ? '123/45 ถนนพหลโยธิน แขวงลาดยาว เขตจตุจักร กรุงเทพฯ 10900' : val === 'c2' ? 'บจก. ก่อสร้างดี สาขาใหญ่ 88/1 ถนนรัชดาภิเษก กรุงเทพฯ 10400' : '');
-                            setClientTaxId(val === 'c2' ? '0105560000001' : '');
+                            const foundClient = clients.find(c => c.id === val);
+                            setClientName(foundClient?.name || '');
+                            setClientAddress('');
+                            setClientTaxId('');
                           }
                           setShowImportBox(true);
                         } else {
@@ -570,6 +584,8 @@ ${showInstallments ? `โดยแบ่งชำระเป็นดังน�
                         <Input 
                           id="total-fee" 
                           type="number"
+                          value={totalFee}
+                          onChange={(e) => setTotalFee(e.target.value)}
                           placeholder="เช่น 50,000" 
                           className="rounded-2xl h-11 border-slate-200 pl-8"
                         />

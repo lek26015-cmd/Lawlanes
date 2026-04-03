@@ -354,7 +354,7 @@ export async function getLawyerDashboardData(db: Firestore, lawyerId: string): P
 
     const lawyerCases = casesSnapshot.docs.map(d => {
       const chatData = d.data();
-      const clientParticipantId = chatData.participants.find((p: string) => p !== lawyerId);
+      const clientParticipantId = (chatData.participants || []).find((p: string) => p !== lawyerId) || chatData.clientId || chatData.userId || '';
 
       // Calculate if unread for lawyer
       const lastMessageAt = chatData.lastMessageAt?.toDate() || chatData.createdAt?.toDate() || new Date(0);

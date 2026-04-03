@@ -1,6 +1,7 @@
 'use server';
 
 import { initAdmin } from '@/lib/firebase-admin';
+import * as admin from 'firebase-admin';
 import type { LawyerProfile } from '@/lib/types';
 
 /**
@@ -142,7 +143,7 @@ export async function addToVerifiedRegistry(data: {
 }
 
 /**
- * Creates a new manual case (Chat document) for a lawyer.
+ * Creates or updates a manual case (Chat document) for a lawyer.
  */
 export async function createManualCaseAction(lawyerId: string, data: {
     title: string;
@@ -151,36 +152,65 @@ export async function createManualCaseAction(lawyerId: string, data: {
     amount: number;
     installments?: { description: string, amount: string }[];
     clientInfo?: { name: string, address: string, taxId: string };
+    existingChatId?: string;
+    clientId?: string;
 }) {
     const adminApp = await initAdmin();
     if (!adminApp) throw new Error('Firebase Admin not initialized.');
     const db = adminApp.firestore();
 
     try {
-        const chatRef = db.collection('chats').doc();
-        const chatId = chatRef.id;
+        const chatId = data.existingChatId || db.collection('chats').doc().id;
+        const chatRef = db.collection('chats').doc(chatId);
 
-        const chatPayload = {
+        // Resolve clientId from existing chat if not provided
+        let resolvedClientId = data.clientId;
+        if (!resolvedClientId && data.existingChatId) {
+            const existingChat = await chatRef.get();
+            if (existingChat.exists) {
+                const chatData = existingChat.data();
+                resolvedClientId = chatData?.clientId || chatData?.userId || 
+                    chatData?.participants?.find((p: string) => p !== lawyerId);
+            }
+        }
+
+        const chatPayload: any = {
             lawyerId: lawyerId,
-            participants: [lawyerId], // Client will be added upon payment
             caseTitle: data.title,
             description: data.description,
             category: data.category,
             amount: data.amount,
-            status: 'active', // Case is created and active, waiting for client
+            status: 'pending_payment',
             isManualCase: true,
             installments: data.installments || [],
             clientInfo: data.clientInfo || null,
-            createdAt: new Date(),
-            lastMessageAt: new Date(),
-            lastMessage: 'คดีถูกสร้างเรียบร้อยแล้ว กรุณาชำระเงินเพื่อเริ่มดำเนินการ',
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            lastMessageAt: admin.firestore.FieldValue.serverTimestamp(),
+            lastMessage: `ข้อเสนอเปิดคดี: ${data.title} จำนวน ฿${data.amount.toLocaleString()}`,
         };
 
-        await chatRef.set(chatPayload);
+        // Set clientId/userId fields for easier querying
+        if (resolvedClientId) {
+            chatPayload.clientId = resolvedClientId;
+            chatPayload.userId = resolvedClientId;
+        }
+
+        if (!data.existingChatId) {
+            // New chat: include both lawyerId and clientId in participants
+            chatPayload.participants = resolvedClientId 
+                ? [lawyerId, resolvedClientId] 
+                : [lawyerId];
+            chatPayload.createdAt = admin.firestore.FieldValue.serverTimestamp();
+        } else if (resolvedClientId) {
+            // Existing chat: ensure clientId is in participants
+            chatPayload.participants = admin.firestore.FieldValue.arrayUnion(lawyerId, resolvedClientId);
+        }
+
+        await chatRef.set(chatPayload, { merge: true });
 
         return { success: true, chatId: chatId };
     } catch (error: any) {
-        console.error("Error creating manual case action:", error);
+        console.error("Error creating/updating manual case action:", error);
         return { success: false, error: error.message };
     }
 }

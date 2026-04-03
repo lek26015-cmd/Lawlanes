@@ -11,9 +11,26 @@ export function useChatSocket(chatId: string, userId: string, userName: string) 
   const [messages, setMessages] = useState<HumanChatMessage[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPartnerTyping, setIsPartnerTyping] = useState(false);
   const socketRef = useRef<WebSocket | null>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const keysRef = useRef<{ public: CryptoKey | null; private: CryptoKey | null }>({ public: null, private: null });
   const recipientPublicKeyRef = useRef<CryptoKey | null>(null);
+  const prevMessageCountRef = useRef<number>(0);
+
+  // Helper for notification sound
+  const playNotificationSound = useCallback(() => {
+    if (document.hidden) {
+      try {
+        // A subtle "pop" sound for chat notifications
+        const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3");
+        audio.volume = 0.3;
+        audio.play().catch(() => { /* Ignore autoplay blocks */ });
+      } catch (e) {
+        console.warn("Failed to play notification sound", e);
+      }
+    }
+  }, []);
 
   // 1. Key Lifecycle & Initialization
   useEffect(() => {
@@ -48,6 +65,7 @@ export function useChatSocket(chatId: string, userId: string, userName: string) 
           try {
             await fetch(`${WORKER_URL}/key/${userId}`, {
               method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ userId, publicKey: pubBase64 })
             }).catch(e => console.warn("Worker key registration skipped (unreachable)"));
           } catch (err) {
@@ -77,7 +95,6 @@ export function useChatSocket(chatId: string, userId: string, userName: string) 
           if (response && response.ok) {
             const history = await response.json();
             const decryptedHistory = await Promise.all(history.map(async (msg: any) => {
-               // Try to decrypt if it looks like hybrid ciphertext
                if (msg.text.startsWith("[E2EE-v2]")) {
                   const encryptedData = msg.text.replace("[E2EE-v2]", "");
                   const decrypted = await crypto.decryptHybrid(encryptedData, userId, keysRef.current.private!);
@@ -106,11 +123,12 @@ export function useChatSocket(chatId: string, userId: string, userName: string) 
     const q = query(messagesRef, orderBy('timestamp', 'asc'));
 
     const unsubscribe = onSnapshot(q, async (snapshot) => {
+      if (snapshot.metadata.hasPendingWrites) return; // Ignore optimistic local updates
+
       const fbMessages = await Promise.all(snapshot.docs.map(async (doc) => {
         const data = doc.data();
         let text = data.text;
 
-        // Decrypt if needed
         if (text.startsWith("[E2EE-v2]") && keysRef.current.private) {
           try {
             const encryptedData = text.replace("[E2EE-v2]", "");
@@ -129,8 +147,16 @@ export function useChatSocket(chatId: string, userId: string, userName: string) 
         } as HumanChatMessage;
       }));
 
+      if (fbMessages.length > prevMessageCountRef.current) {
+          // Play sound if new message arrived from partner
+          const lastMsg = fbMessages[fbMessages.length - 1];
+          if (lastMsg.senderId !== userId) {
+            playNotificationSound();
+          }
+      }
+      prevMessageCountRef.current = fbMessages.length;
+
       setMessages((prev) => {
-        // Merge without duplicates, prioritizing Firestore as it's the source of truth for persistence
         const merged = [...prev];
         fbMessages.forEach(newMsg => {
           const index = merged.findIndex(m => m.id === newMsg.id);
@@ -140,7 +166,6 @@ export function useChatSocket(chatId: string, userId: string, userName: string) 
             merged[index] = newMsg;
           }
         });
-        // Sort by timestamp
         return merged.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
       });
       
@@ -150,7 +175,7 @@ export function useChatSocket(chatId: string, userId: string, userName: string) 
     });
 
     return () => unsubscribe();
-  }, [chatId, firestore, userId, keysRef.current.private]);
+  }, [chatId, firestore, userId, keysRef.current.private, playNotificationSound]);
 
   // 3. WebSocket Connection
   useEffect(() => {
@@ -165,20 +190,25 @@ export function useChatSocket(chatId: string, userId: string, userName: string) 
     ws.onmessage = async (event) => {
       try {
         const data = JSON.parse(event.data);
+        
+        if (data.type === 'typing') {
+          if (data.userId !== userId) {
+            setIsPartnerTyping(data.isTyping);
+          }
+          return;
+        }
+
         if (data.type === 'message') {
           let text = data.text;
           if (text.startsWith("[E2EE-v2]")) {
              const encryptedData = text.replace("[E2EE-v2]", "");
              text = await crypto.decryptHybrid(encryptedData, userId, keysRef.current.private!);
-          } else if (text.startsWith("[E2EE]")) {
-             // Backward compatibility for v1 (optional)
-             const ciphertext = text.replace("[E2EE]", "");
-             // Note: v1 only supported recipient decryption in my previous partial code, 
-             // but if we want to be safe, we just handle it or show an error.
           }
 
           setMessages((prev) => {
             if (prev.some(m => m.id === data.id)) return prev;
+            // Play sound for real-time messages too if tab is hidden
+            if (data.senderId !== userId) playNotificationSound();
             return [...prev, { ...data, text }];
           });
         }
@@ -188,12 +218,23 @@ export function useChatSocket(chatId: string, userId: string, userName: string) 
     };
     ws.onclose = () => setIsConnected(false);
     return () => ws.close();
-  }, [chatId, userId, keysRef.current.private]);
+  }, [chatId, userId, keysRef.current.private, playNotificationSound]);
 
-  const sendMessage = useCallback(async (text: string, recipientId: string) => {
+  const sendTypingEvent = useCallback((isTyping: boolean) => {
+    if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+      socketRef.current.send(JSON.stringify({
+        type: 'typing',
+        chatId,
+        userId,
+        isTyping
+      }));
+    }
+  }, [chatId, userId]);
+
+  const sendMessage = useCallback(async (text: string, recipientId: string, isLawyerView: boolean) => {
     let finalMessage = text;
     
-    // 1. Encrypt message if keys are available
+    // 1. Encrypt message
     try {
       if (!recipientPublicKeyRef.current && WORKER_URL) {
          try {
@@ -221,19 +262,17 @@ export function useChatSocket(chatId: string, userId: string, userName: string) 
       console.error("Encryption failed, sending cleartext as fallback:", err);
     }
 
-    // 2. Try WebSocket send first for real-time
+    // 2. Try WebSocket send
     if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
-      const payload = {
+      socketRef.current.send(JSON.stringify({
         type: 'message',
         chatId,
         text: finalMessage,
         senderName: userName,
         recipientId
-      };
-      socketRef.current.send(JSON.stringify(payload));
+      }));
     } else {
-      // 3. Fallback to Server Action (Firestore)
-      console.warn("WebSocket not open, falling back to Server Action...");
+      // 3. Fallback to Server Action
       try {
         const { sendChatMessageAction } = await import('@/app/actions/chat-actions');
         await sendChatMessageAction({
@@ -242,7 +281,7 @@ export function useChatSocket(chatId: string, userId: string, userName: string) 
           senderId: userId,
           senderName: userName,
           recipientId,
-          isLawyerView: window.location.search.includes('view=lawyer') // Simple heuristic
+          isLawyerView
         });
       } catch (err) {
         console.error("Fallback send failed:", err);
@@ -250,5 +289,12 @@ export function useChatSocket(chatId: string, userId: string, userName: string) 
     }
   }, [chatId, userName, userId]);
 
-  return { messages, isConnected, isLoading, sendMessage };
+  return { 
+    messages, 
+    isConnected, 
+    isLoading, 
+    isPartnerTyping, 
+    sendMessage, 
+    sendTypingEvent 
+  };
 }

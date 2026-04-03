@@ -85,6 +85,7 @@ export interface HumanChatMessage {
   text: string;
   senderId: string;
   timestamp: any;
+  status?: 'sending' | 'sent' | 'error';
 }
 
 

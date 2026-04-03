@@ -21,6 +21,17 @@ export async function submitReviewAction(data: {
     try {
         const { lawyerId, userId, author, avatar, rating, comment, caseId } = data;
 
+        // Check for duplicate review (same user + same case)
+        const existingReview = await db.collection('reviews')
+            .where('userId', '==', userId)
+            .where('caseId', '==', caseId)
+            .limit(1)
+            .get();
+
+        if (!existingReview.empty) {
+            throw new Error('คุณได้ส่งรีวิวสำหรับเคสนี้ไปแล้ว');
+        }
+
         // 1. Add the review document
         const reviewRef = await db.collection('reviews').add({
             lawyerId,

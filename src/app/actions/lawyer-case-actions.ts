@@ -165,3 +165,150 @@ export async function generateCaseStrategicAdviceAction(caseId: string, caseTitl
         return { success: false, error: String(error) };
     }
 }
+
+/**
+ * Close a case: update chat document with summary, final fee, and status.
+ * If finalFee > originalFee, sends an additional fee request to the client.
+ */
+export async function closeCaseAction(caseId: string, data: {
+    lawyerId: string;
+    summary: string;
+    finalFee: number;
+    originalFee: number;
+}) {
+    const adminApp = await initAdmin();
+    if (!adminApp) throw new Error('Firebase Admin not initialized.');
+    const db = adminApp.firestore();
+
+    try {
+        const chatRef = db.collection('chats').doc(caseId);
+        const chatDoc = await chatRef.get();
+        
+        if (!chatDoc.exists) {
+            return { success: false, error: 'ไม่พบเคสนี้ในระบบ' };
+        }
+
+        const requiresApproval = data.finalFee > data.originalFee;
+
+        if (requiresApproval) {
+            // Additional fee requested — don't close yet, just send request
+            await chatRef.update({
+                additionalFeeRequest: {
+                    amount: data.finalFee - data.originalFee,
+                    totalAmount: data.finalFee,
+                    reason: data.summary,
+                    requestedAt: new Date(),
+                    status: 'pending'
+                },
+                lastMessage: `ทนายความขอเรียกเก็บค่าบริการเพิ่มเติม ฿${(data.finalFee - data.originalFee).toLocaleString()}`,
+                lastMessageAt: new Date(),
+                updatedAt: new Date(),
+            });
+
+            return { success: true, requiresApproval: true };
+        } else {
+            // Close the case immediately
+            await chatRef.update({
+                status: 'closed',
+                closedAt: new Date(),
+                caseSummary: data.summary,
+                finalFee: data.finalFee,
+                lastMessage: `เคสถูกปิดเรียบร้อยแล้ว — สรุป: ${data.summary.substring(0, 50)}...`,
+                lastMessageAt: new Date(),
+                updatedAt: new Date(),
+            });
+
+            // Also add summary as a system message
+            await chatRef.collection('messages').add({
+                text: `📋 **สรุปเคส:**\n${data.summary}`,
+                senderId: 'system',
+                timestamp: new Date(),
+                type: 'case_summary'
+            });
+
+            return { success: true, requiresApproval: false };
+        }
+    } catch (error: any) {
+        console.error("Error closing case:", error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Cancel a case: update chat status and mark refund as pending.
+ */
+export async function cancelCaseAction(caseId: string, lawyerId: string) {
+    const adminApp = await initAdmin();
+    if (!adminApp) throw new Error('Firebase Admin not initialized.');
+    const db = adminApp.firestore();
+
+    try {
+        const chatRef = db.collection('chats').doc(caseId);
+        const chatDoc = await chatRef.get();
+        
+        if (!chatDoc.exists) {
+            return { success: false, error: 'ไม่พบเคสนี้ในระบบ' };
+        }
+
+        const chatData = chatDoc.data();
+        const paidAmount = chatData?.paidAmount || chatData?.amount || 0;
+
+        await chatRef.update({
+            status: 'cancelled',
+            cancelledAt: new Date(),
+            cancelledBy: lawyerId,
+            refundStatus: paidAmount > 0 ? 'pending_refund' : 'no_refund_needed',
+            refundAmount: paidAmount,
+            lastMessage: '❌ เคสถูกยกเลิกโดยทนายความ',
+            lastMessageAt: new Date(),
+            updatedAt: new Date(),
+        });
+
+        // Add system message
+        await chatRef.collection('messages').add({
+            text: `❌ เคสถูกยกเลิกโดยทนายความ${paidAmount > 0 ? ` — ระบบจะดำเนินการคืนเงิน ฿${paidAmount.toLocaleString()} ให้ลูกความ` : ''}`,
+            senderId: 'system',
+            timestamp: new Date(),
+            type: 'case_cancelled'
+        });
+
+        return { success: true, refundAmount: paidAmount };
+    } catch (error: any) {
+        console.error("Error cancelling case:", error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Fetch case details from chat document for close-case page
+ */
+export async function getCaseDetailsAction(caseId: string) {
+    const adminApp = await initAdmin();
+    if (!adminApp) throw new Error('Firebase Admin not initialized.');
+    const db = adminApp.firestore();
+
+    try {
+        const chatDoc = await db.collection('chats').doc(caseId).get();
+        if (!chatDoc.exists) {
+            return { success: false, error: 'ไม่พบเคสนี้' };
+        }
+        
+        const data = chatDoc.data();
+        return { 
+            success: true, 
+            data: JSON.parse(JSON.stringify({
+                caseTitle: data?.caseTitle || '',
+                amount: data?.amount || 0,
+                paidAmount: data?.paidAmount || data?.amount || 0,
+                status: data?.status || '',
+                clientId: data?.clientId || data?.userId || '',
+                lawyerId: data?.lawyerId || '',
+                description: data?.description || '',
+            }))
+        };
+    } catch (error: any) {
+        console.error("Error getting case details:", error);
+        return { success: false, error: error.message };
+    }
+}
+

@@ -495,7 +495,7 @@ export default function ChatModal() {
                 onClick={() => fileInputRef.current?.click()}
                 className="p-2 rounded-full lg:rounded-2xl border-none lg:border-2 lg:border-gray-100 hover:border-[#0B3979] hover:bg-blue-50 transition-all w-10 h-10 lg:w-12 lg:h-12 flex-shrink-0"
               >
-                <Plus className="w-5 h-5 lg:w-6 lg:w-6 text-[#0B3979]" />
+                <Plus className="w-5 h-5 lg:w-6 lg:h-6 text-[#0B3979]" />
               </Button>
               <div className="flex-grow">
                 <textarea

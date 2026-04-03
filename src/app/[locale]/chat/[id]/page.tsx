@@ -7,7 +7,7 @@ import type { LawyerProfile } from '@/lib/types';
 import { useFirebase, useUser } from '@/firebase';
 import { ChatBox } from '@/components/chat/chat-box';
 import { uploadFileAction } from '../actions';
-import { requestFeeAction } from '@/app/actions/chat-actions';
+import { requestFeeAction, getChatDetailsAction, ensureChatExistsAction } from '@/app/actions/chat-actions';
 import { submitReviewAction } from '@/app/actions/review-actions';
 import { useTranslations } from 'next-intl';
 import { CaseRoadmap } from '@/components/case/case-roadmap';
@@ -41,7 +41,7 @@ import {
     TabsTrigger,
 } from "@/components/ui/tabs";
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, FileText, Check, Upload, Scale, Ticket, Briefcase, User as UserIcon, DollarSign, ArrowLeft, Plus, Sparkles, BrainCircuit, Globe } from 'lucide-react';
+import { AlertTriangle, FileText, Check, Upload, Scale, Ticket, Briefcase, User as UserIcon, DollarSign, ArrowLeft, Plus, Sparkles, BrainCircuit, Globe, ArrowRight, CheckCircle2, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -68,6 +68,10 @@ function ChatPageContent() {
     const [files, setFiles] = useState<{ name: string, url: string, size: number }[]>([]);
     const [chatStatus, setChatStatus] = useState<string>(searchParams.get('status') || 'active');
     const [chatAmount, setChatAmount] = useState<number>(0);
+    const [isManualCase, setIsManualCase] = useState<boolean>(false);
+    const [installments, setInstallments] = useState<any[]>([]);
+    const [caseTitle, setCaseTitle] = useState<string>('');
+    const [description, setDescription] = useState<string>('');
     const [pendingFeeRequest, setPendingFeeRequest] = useState<{ amount: number, reason: string } | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { toast } = useToast();
@@ -76,11 +80,11 @@ function ChatPageContent() {
     const tCommon = useTranslations('Dashboard');
 
     const isCompleted = chatStatus === 'closed';
-    const isLawyerView = view === 'lawyer';
+    const [effectiveIsLawyerView, setEffectiveIsLawyerView] = useState(view === 'lawyer');
     const [isChatDisabled, setIsChatDisabled] = useState(isCompleted);
 
     const isOfficial = chatAmount > 0;
-    const currentStep = isCompleted ? 4 : (isOfficial ? 3 : (pendingFeeRequest ? 2 : 1));
+    const currentStep = isCompleted ? 5 : (isOfficial ? 4 : (pendingFeeRequest ? 2 : 1));
 
     const [rating, setRating] = useState(0);
     const [reviewText, setReviewText] = useState("");
@@ -99,6 +103,10 @@ function ChatPageContent() {
                 setIsChatDisabled(data.status === 'closed');
                 if (data.files) setFiles(data.files);
                 if (data.amount !== undefined) setChatAmount(data.amount);
+                setIsManualCase(data.isManualCase || false);
+                setInstallments(data.installments || []);
+                setCaseTitle(data.caseTitle || '');
+                setDescription(data.description || '');
                 setPendingFeeRequest(data.pendingFeeRequest || null);
             }
         });
@@ -108,35 +116,85 @@ function ChatPageContent() {
 
     useEffect(() => {
         if (!firestore) return;
+
+        // Sanitize IDs - common mistake to have "undefined" or "null" as string
+        const sanitizeId = (id: string | null) => (id === 'undefined' || id === 'null') ? null : id;
+        const sanitizedLawyerId = sanitizeId(lawyerId);
+        const sanitizedClientId = sanitizeId(clientId);
+
         async function fetchData() {
             setIsLoading(true);
-            let effectiveLawyerId = lawyerId;
+            try {
+                let currentLawyerId = sanitizedLawyerId;
+                let currentClientId = sanitizedClientId;
+                let chatData: any = null;
+                
+                // 1. Fetch chat document via SERVER ACTION to bypass permission issues
+                const response = await getChatDetailsAction(chatId);
+                
+                if (response && response.success && response.data) {
+                    chatData = response.data;
+                    // Try to find missing IDs in chat document if URL params are missing/broken
+                    if (!currentLawyerId) currentLawyerId = chatData.lawyerId;
+                    if (!currentClientId) currentClientId = chatData.clientId || chatData.userId;
+                    
+                    // If STILL missing, search in participants
+                    if (chatData.participants && Array.isArray(chatData.participants)) {
+                        if (!currentLawyerId) {
+                            // If user is lawyer, currentLawyerId is user.uid
+                            const isUserLawyer = chatData.lawyerId === user?.uid || (view === 'lawyer');
+                            currentLawyerId = isUserLawyer ? user?.uid : chatData.participants.find((p: string) => p !== chatData.userId && p !== chatData.clientId);
+                        }
+                        if (!currentClientId) {
+                            currentClientId = chatData.participants.find((p: string) => p !== currentLawyerId);
+                        }
+                    }
 
-            if (!effectiveLawyerId && chatId) {
-                const chatRef = doc(firestore!, 'chats', chatId);
-                const chatSnap = await getDoc(chatRef);
-                if (chatSnap.exists()) {
-                    const chatData = chatSnap.data();
-                    effectiveLawyerId = chatData.lawyerId || chatData.participants?.find((p: string) => p !== user?.uid);
+                    // Sync/Repair participants if needed
+                    if (currentLawyerId && currentClientId) {
+                        const repairResult = await ensureChatExistsAction(chatId, [currentLawyerId, currentClientId], chatData.caseTitle || 'คดี: มรดก');
+                        if (!repairResult || !repairResult.success) {
+                            console.warn("D1/Worker sync repair failed:", repairResult?.error);
+                        }
+                    }
+                } else if (response && !response.success) {
+                    console.error("Chat details fetch failed:", response.error);
                 }
-            }
 
-            if (effectiveLawyerId) {
-                const lawyerData = await getLawyerById(firestore!, effectiveLawyerId);
-                setLawyer(lawyerData || null);
-            }
-            if (isLawyerView && clientId) {
-                const clientRef = doc(firestore!, 'users', clientId);
-                const userDocSnap = await getDoc(clientRef);
-                if (userDocSnap.exists()) {
-                    const userData = userDocSnap.data();
-                    setClient({ id: clientId, name: userData.name, imageUrl: userData.avatar || '' });
+                // 2. Fetch Profiles
+                let fetchedLawyer: LawyerProfile | null = null;
+                if (currentLawyerId) {
+                    fetchedLawyer = await getLawyerById(firestore!, currentLawyerId) || null;
+                    setLawyer(fetchedLawyer);
                 }
+                
+                if (currentClientId) {
+                    const clientRef = doc(firestore!, 'users', currentClientId);
+                    const userDocSnap = await getDoc(clientRef);
+                    if (userDocSnap.exists()) {
+                        const userData = userDocSnap.data();
+                        setClient({ id: currentClientId, name: userData.name, imageUrl: userData.avatar || '' });
+                    } else {
+                        // Fallback for missing user doc
+                        setClient({ id: currentClientId, name: 'ลูกความ (ยังไม่มีโปรไฟล์)', imageUrl: '' });
+                    }
+                }
+
+                // 3. Automatically determine if current user is the lawyer
+                const isUserLawyer = (fetchedLawyer?.userId === user?.uid) || 
+                                   (currentLawyerId === user?.uid) || 
+                                   (chatData?.lawyerId === user?.uid);
+                
+                const currentIsLawyerView = isUserLawyer || (view === 'lawyer');
+                setEffectiveIsLawyerView(currentIsLawyerView);
+            } catch (err) {
+                console.error("Error in ChatPage fetchData:", err);
+            } finally {
+                setIsLoading(false);
             }
-            setIsLoading(false);
         }
         fetchData();
-    }, [lawyerId, clientId, isLawyerView, firestore, chatId, user]);
+    }, [lawyerId, clientId, firestore, chatId, user, view]);
 
     const handleUploadClick = () => fileInputRef.current?.click();
 
@@ -216,20 +274,23 @@ function ChatPageContent() {
 
     if (isLoading) return <div className="flex h-screen items-center justify-center">Loading chat...</div>;
 
-    const chatPartner = isLawyerView ? client : lawyer;
-    if (!chatPartner || !user || !firestore) return <div>Unable to load chat. Missing information.</div>;
+    const chatPartner = effectiveIsLawyerView ? client : lawyer;
+    if (!chatPartner || !user || !firestore) {
+        if (isLoading) return <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin" /> กำลังโหลดข้อมูล...</div>;
+        return <div>Unable to load chat. Missing information (Partner: {chatPartner ? 'OK' : 'MISSING'}).</div>;
+    }
 
     const otherUser = {
-        name: isLawyerView ? (client?.name ?? 'Client') : (lawyer?.name ?? 'Lawyer'),
-        userId: isLawyerView ? (client?.id ?? '') : (lawyer?.userId || lawyer?.id || ''),
-        imageUrl: isLawyerView ? (client?.imageUrl ?? "") : (lawyer?.imageUrl ?? ''),
+        name: effectiveIsLawyerView ? (client?.name || 'ลูกความ') : (lawyer?.name || 'ทนายความ'),
+        userId: effectiveIsLawyerView ? (client?.id || '') : (lawyer?.userId || lawyer?.id || ''),
+        imageUrl: effectiveIsLawyerView ? (client?.imageUrl || "") : (lawyer?.imageUrl || ""),
     };
 
     return (
         <div className="container mx-auto px-4 md:px-6 py-8">
             <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div className="flex flex-col gap-1">
-                    <Link href={isLawyerView ? "/lawyer-dashboard" : "/dashboard"} className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 transition-colors">
+                    <Link href={effectiveIsLawyerView ? "/lawyer-dashboard" : "/dashboard"} className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 transition-colors">
                         <ArrowLeft className="w-3.5 h-3.5" />
                         {tCommon('backToHome')}
                     </Link>
@@ -248,22 +309,30 @@ function ChatPageContent() {
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
-                <div className="xl:col-span-3 h-[calc(100vh-220px)] min-h-[600px] flex flex-col">
-                    <div className="flex-1 min-h-0">
-                        <ChatBox firestore={firestore} currentUser={user} otherUser={otherUser} chatId={chatId} isDisabled={isChatDisabled} isLawyerView={isLawyerView} />
-                    </div>
+                <div className="xl:col-span-3">
+                    <ChatBox 
+                        chatId={chatId} 
+                        currentUser={user} 
+                        otherUser={otherUser}
+                        isDisabled={isChatDisabled}
+                        isLawyerView={effectiveIsLawyerView}
+                        firestore={firestore}
+                    />
                 </div>
-                
+
                 <div className="xl:col-span-1 space-y-6">
                     <Tabs defaultValue="info" className="w-full">
-                        <TabsList className={cn("w-full flex p-1 h-auto min-h-12 bg-slate-100/50 dark:bg-slate-800/50 rounded-2xl mb-4", isLawyerView && isOfficial ? "gap-1" : "gap-2")}>
+                        <TabsList className="w-full bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl h-auto flex flex-nowrap overflow-x-auto custom-scrollbar no-bg-tablist">
+                            <TabsTrigger value="overview" className="flex-1 text-[9px] sm:text-[10px] font-black uppercase tracking-widest py-2 rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                                Overview
+                            </TabsTrigger>
                             <TabsTrigger value="info" className="flex-1 text-[9px] sm:text-[10px] font-black uppercase tracking-widest py-2 rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm">
                                 {tCommon('viewDetails')}
                             </TabsTrigger>
                             <TabsTrigger value="vault" className="flex-1 text-[9px] sm:text-[10px] font-black uppercase tracking-widest py-2 rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm">
                                 {tCase('legalVault').split(' ')[0]}
                             </TabsTrigger>
-                            {isLawyerView && isOfficial && (
+                            {effectiveIsLawyerView && isOfficial && (
                                 <TabsTrigger value="tools" className="flex-1 text-[8px] sm:text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-1 py-1.5 rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm leading-tight text-center">
                                     <Sparkles className="w-2.5 h-2.5 text-blue-500 shrink-0" /> 
                                     <span className="break-words">{tCase('proTools')}</span>
@@ -272,7 +341,7 @@ function ChatPageContent() {
                         </TabsList>
                         
                         <TabsContent value="info" className="space-y-6">
-                            {isLawyerView ? (
+                            {effectiveIsLawyerView ? (
                                 <Card className="border-none shadow-sm bg-slate-50 dark:bg-slate-900/50">
                                     <CardHeader className="pb-3">
                                         <CardTitle className="text-sm font-semibold flex items-center gap-2">
@@ -283,7 +352,7 @@ function ChatPageContent() {
                                     <CardContent className="space-y-4 text-sm">
                                         <div className="flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700">
                                             <Avatar className="h-10 w-10">
-                                                <AvatarImage src={otherUser.imageUrl} />
+                                                <AvatarImage src={otherUser.imageUrl || undefined} />
                                                 <AvatarFallback>{otherUser.name.charAt(0)}</AvatarFallback>
                                             </Avatar>
                                             <div>
@@ -300,8 +369,8 @@ function ChatPageContent() {
                                         </div>
                                         <div className="flex justify-between px-1">
                                             <span className="text-xs text-slate-500 font-medium">สถานะ:</span>
-                                            <Badge variant={isCompleted ? "secondary" : (pendingFeeRequest ? "destructive" : "default")} className="text-[10px] px-1.5 py-0">
-                                                {isCompleted ? 'เสร็จสิ้น' : (pendingFeeRequest ? "รอชำระเงิน" : 'กำลังดำเนินการ')}
+                                            <Badge variant={isCompleted ? "secondary" : (chatStatus === 'pending_payment' ? "destructive" : "default")} className="text-[10px] px-1.5 py-0">
+                                                {isCompleted ? 'เสร็จสิ้น' : (chatStatus === 'pending_payment' ? "รอชำระเงิน" : 'กำลังดำเนินการ')}
                                             </Badge>
                                         </div>
                                         <div className="flex justify-between px-1">
@@ -348,8 +417,38 @@ function ChatPageContent() {
                                         )}
                                     </CardFooter>
                                 </Card>
-                            ) : isCompleted ? (
-                                <Card className="border-green-100 bg-green-50/30">
+                            ) : (
+                                <Card className="border-none shadow-sm bg-slate-50 dark:bg-slate-900/50">
+                                    <CardHeader className="pb-3">
+                                        <CardTitle className="text-sm font-semibold flex items-center gap-2 text-slate-800 dark:text-white">
+                                            <UserIcon className="w-4 h-4 text-blue-500" />
+                                            โปรไฟล์ทนาย
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4">
+                                        <div className="flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700">
+                                            <Avatar className="h-10 w-10">
+                                                <AvatarImage src={lawyer?.imageUrl || undefined} />
+                                                <AvatarFallback>{lawyer?.name?.charAt(0) || 'L'}</AvatarFallback>
+                                            </Avatar>
+                                            <div>
+                                                <p className="font-bold text-slate-900 dark:text-white leading-tight">{lawyer?.name || 'Lawyer'}</p>
+                                                <p className="text-[10px] text-slate-500 mt-0.5">{lawyer?.specialty?.join(', ')}</p>
+                                            </div>
+                                        </div>
+                                        <Button variant="outline" className="w-full text-xs h-9 rounded-xl border-slate-200" asChild disabled={!lawyer}>
+                                            <Link href={`/lawyer/${lawyerId}`}>
+                                                ดูโปรไฟล์ฉบับเต็ม
+                                            </Link>
+                                        </Button>
+                                    </CardContent>
+                                </Card>
+                            )}
+                        </TabsContent>
+
+                        <TabsContent value="overview" className="mt-0 space-y-6">
+                            {isCompleted ? (
+                                <Card className="border-green-100 shadow-xl shadow-green-500/5 bg-white">
                                     <CardHeader className="pb-3 text-center text-sm font-bold">ให้คะแนนบริการ</CardHeader>
                                     <CardContent className="space-y-4">
                                         <div className="flex items-center justify-center gap-1.5 py-2">
@@ -363,6 +462,52 @@ function ChatPageContent() {
                                     </CardContent>
                                     <CardFooter>
                                         <Button onClick={handleSubmitReview} className="w-full font-bold h-9 text-xs" disabled={rating === 0}>ส่งรีวิว</Button>
+                                    </CardFooter>
+                                </Card>
+                            ) : (isManualCase && chatStatus === 'pending_payment') ? (
+                                <Card className="border-blue-500 shadow-2xl ring-4 ring-blue-500/10 bg-white overflow-hidden animate-in fade-in zoom-in-95 duration-500">
+                                    <div className="bg-blue-600 py-1.5 px-3 text-white text-center">
+                                        <p className="text-[9px] font-black uppercase tracking-[0.2em] italic">Official Case Proposal</p>
+                                    </div>
+                                    <CardHeader className="pb-2 pt-4">
+                                        <CardTitle className="text-sm font-bold flex items-center gap-2 text-slate-800">
+                                            <Briefcase className="w-5 h-5 text-blue-600" /> {caseTitle || "ข้อเสนอเริ่มดำเนินคดี"}
+                                        </CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="space-y-4 text-sm">
+                                        <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl text-slate-600 text-[11px] leading-relaxed">
+                                            <p className="font-bold mb-1 uppercase tracking-wider text-[9px] text-blue-600">ขอบเขตงาน (Scope of Work):</p>
+                                            <p className="line-clamp-3">{description || "ตามที่ระบุในสัญญาจ้างงาน"}</p>
+                                        </div>
+                                        
+                                        {installments && installments.length > 0 && (
+                                            <div className="space-y-2">
+                                                <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest pl-1">แผนการชำระเงิน (Installments)</p>
+                                                <div className="max-h-[120px] overflow-y-auto pr-1 space-y-1.5 custom-scrollbar">
+                                                    {installments.map((inst: any, idx: number) => (
+                                                        <div key={idx} className="flex justify-between items-center bg-slate-50/50 p-2.5 rounded-xl border border-slate-100/50">
+                                                            <span className="text-[10px] text-slate-500 font-medium">{inst.description}</span>
+                                                            <span className="font-bold text-slate-700 text-xs">฿{parseFloat(inst.amount).toLocaleString()}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        <div className="p-4 rounded-2xl border-2 border-blue-100 bg-blue-50/30 text-center shadow-inner">
+                                            <p className="text-[10px] uppercase font-bold text-blue-600 mb-0.5 tracking-tighter">ค่าบริการรวมทั้งสิ้น</p>
+                                            <p className="text-3xl font-black text-slate-900 tracking-tight">฿{chatAmount.toLocaleString()}</p>
+                                        </div>
+                                    </CardContent>
+                                    <CardFooter className="flex flex-col gap-2 bg-slate-50/50 border-t border-slate-100 p-5">
+                                        <Button className="w-full bg-[#0B3979] hover:bg-[#082a5a] font-black h-12 shadow-xl shadow-blue-500/20 text-white rounded-2xl text-sm" asChild>
+                                            <Link href={`/payment?chatId=${chatId}&lawyerId=${lawyerId}&amount=${chatAmount}&type=case`}>
+                                                ชำระเงินเพื่อเริ่มงาน <ArrowRight className="ml-2 w-4 h-4" />
+                                            </Link>
+                                        </Button>
+                                        <p className="text-[9px] text-center text-slate-400 font-medium flex items-center justify-center gap-1">
+                                            <CheckCircle2 className="w-3 h-3 text-green-500" /> เงินถูกคุ้มครองโดยระบบ Lawlane Guarantee
+                                        </p>
                                     </CardFooter>
                                 </Card>
                             ) : pendingFeeRequest ? (
@@ -414,7 +559,7 @@ function ChatPageContent() {
                         </TabsContent>
                         
                         <TabsContent value="tools" className="space-y-4">
-                            {isLawyerView && isOfficial && (
+                            {effectiveIsLawyerView && isOfficial && (
                                 <>
                                     <Card className="border-blue-100 bg-blue-50/20 overflow-hidden shadow-sm">
                                         <div className="p-4 bg-white/60 border-b border-blue-100">
