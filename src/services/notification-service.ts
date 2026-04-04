@@ -222,7 +222,7 @@ export const NotificationService = {
     chatId: string;
   }) {
     const { clientName, clientEmail, lawyerName, caseTitle, amount, chatId } = params;
-    console.log(`[NotificationService] New case proposal notification for client`);
+    console.log(`[NotificationService] New case proposal notification for client: ${clientEmail}`);
 
     const emailHtml = generateStandardEmailHtml({
       title: "ท่านได้รับข้อเสนอราคาเปิดคดีใหม่",
@@ -231,7 +231,23 @@ export const NotificationService = {
       buttonLink: `${SITE_URL}/chat/${chatId}`
     });
 
-    return await sendEmailFlexible(clientEmail, `[Lawslane] ข้อเสนอราคาเปิดคดีใหม่: ${caseTitle}`, emailHtml);
+    // 1. Send to Client
+    const clientResult = await sendEmailFlexible(clientEmail, `[Lawslane] ข้อเสนอราคาเปิดคดีใหม่: ${caseTitle}`, emailHtml);
+    
+    // 2. Send to Admin
+    const adminHtml = generateStandardEmailHtml({
+      title: "มีข้อเสนอราคาเปิดคดีใหม่เข้าระบบ",
+      content: `เรียนแอดมิน,<br><br>ทนายความ <span class="highlight">${lawyerName}</span> ได้ส่งข้อเสนอราคาเปิดคดีใหม่ให้แก่คุณ <span class="highlight">${clientName}</span><br><br><span class="highlight">ชื่อคดี:</span> ${caseTitle}<br><span class="highlight">ยอดชำระ:</span> ฿${amount.toLocaleString()}`,
+      buttonText: "ตรวจสอบในหน้าแอดมิน",
+      buttonLink: `https://admin.lawslane.com/financials?tab=verification`
+    });
+    
+    for (const adminEmail of ADMIN_EMAILS) {
+      console.log(`[NotificationService] Notifying admin: ${adminEmail}`);
+      await sendEmailFlexible(adminEmail, `[Admin Notice] New Case Proposal: ${caseTitle} (฿${amount.toLocaleString()})`, adminHtml);
+    }
+
+    return clientResult;
   },
 
 

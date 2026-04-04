@@ -249,6 +249,11 @@ export async function createManualCaseAction(lawyerId: string, data: {
                     const clientData = clientDoc.data();
                     const lawyerData = lawyerDoc.data();
                     
+                    console.log(`[NotificationTrigger] Triggering emails for: ${clientData?.email}`);
+                    if (!clientData?.email) {
+                        console.error("❌ NotificationTrigger: Client email is missing in Firestore!");
+                    }
+                    
                     await NotificationService.notifyNewCaseProposal({
                         clientName: clientData?.name || 'ลูกความ',
                         clientEmail: clientData?.email || '',
