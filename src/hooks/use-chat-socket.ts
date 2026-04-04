@@ -25,8 +25,8 @@ export function useChatSocket(chatId: string, userId: string, userName: string) 
   // Helper for notification sound
   const playNotificationSound = useCallback(() => {
     try {
-      // A subtle "pop" sound for chat notifications
-      const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3");
+      // A clear crystal bell chime for chat notifications
+      const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3");
       audio.volume = 0.4;
       audio.play().catch(() => { /* Ignore autoplay blocks */ });
     } catch (e) {
