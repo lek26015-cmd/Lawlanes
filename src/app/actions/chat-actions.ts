@@ -176,17 +176,21 @@ export async function sendChatMessageAction(params: {
         await batch.commit();
 
         // 5. Trigger Real-time Notification (Email/Push)
-        // ... (existing logic for smart notifications) ...
-        const chatDoc = await db.collection('chats').doc(chatId).get();
-        const chatData = chatDoc.data();
-        const now = Date.now();
-        const ACTIVE_THRESHOLD_MS = 90 * 1000;
+        // Background process: we want to start this but not let it block the core success if it's slow
+        // However, we still await it here for serverless execution stability, but in a safe wrapper
+        try {
+            const now = Date.now();
+            const ACTIVE_THRESHOLD_MS = 90 * 1000;
 
-        if (!isLawyerView) {
-            try {
+            if (!isLawyerView) {
+                // Client sending to Lawyer
                 const lawyerDoc = await db.collection('lawyerProfiles').doc(recipientId).get();
                 if (lawyerDoc.exists) {
                     const lawyerData = lawyerDoc.data() || {};
+                    // Use a more direct check or rely on the previous fetch if possible
+                    const chatDoc = await db.collection('chats').doc(chatId).get();
+                    const chatData = chatDoc.data();
+                    
                     const lawyerSeenAt = chatData?.lawyerLastSeenAt?.toDate()?.getTime() || 0;
                     const isActive = (now - lawyerSeenAt) < ACTIVE_THRESHOLD_MS;
                     if (!isActive && lawyerData.email) {
@@ -201,12 +205,14 @@ export async function sendChatMessageAction(params: {
                         });
                     }
                 }
-            } catch (e) { console.error("Notify fail:", e); }
-        } else {
-            try {
+            } else {
+                // Lawyer sending to Client
                 const clientDoc = await db.collection('users').doc(recipientId).get();
                 if (clientDoc.exists) {
                     const clientData = clientDoc.data() || {};
+                    const chatDoc = await db.collection('chats').doc(chatId).get();
+                    const chatData = chatDoc.data();
+                    
                     const clientSeenAt = chatData?.clientLastSeenAt?.toDate()?.getTime() || 0;
                     const isActive = (now - clientSeenAt) < ACTIVE_THRESHOLD_MS;
                     if (!isActive && clientData.email) {
@@ -221,7 +227,10 @@ export async function sendChatMessageAction(params: {
                         });
                     }
                 }
-            } catch (e) { console.error("Notify fail:", e); }
+            }
+        } catch (notifyErr) {
+            console.error("Non-blocking notification error:", notifyErr);
+            // We DO NOT fail the action for notification errors after batch commit
         }
 
         return { success: true };

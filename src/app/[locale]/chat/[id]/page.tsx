@@ -198,8 +198,29 @@ function ChatPageContent() {
                         const userData = userDocSnap.data();
                         setClient({ id: currentClientId, name: userData.name, imageUrl: userData.avatar || '' });
                     } else {
-                        // Fallback for missing user doc
-                        setClient({ id: currentClientId, name: 'ลูกความ (ยังไม่มีโปรไฟล์)', imageUrl: '' });
+                        // RECOVERY: If doc missing but current user is the client, use Auth display name
+                        let fallbackName = 'ลูกความ';
+                        if (user?.uid === currentClientId) {
+                            fallbackName = user.displayName || user.email?.split('@')[0] || 'ลูกความ';
+                            
+                            // AUTO-REPAIR: If current user is client and profile missing, create it
+                            import('firebase/firestore').then(({ setDoc, serverTimestamp }) => {
+                                setDoc(clientRef, {
+                                    uid: user.uid,
+                                    name: fallbackName,
+                                    email: user.email,
+                                    role: 'customer',
+                                    status: 'active',
+                                    createdAt: serverTimestamp()
+                                }, { merge: true }).catch(e => console.error("Auto-repair profile failed:", e));
+                            });
+                        } else if (chatData?.clientName) {
+                            fallbackName = chatData.clientName;
+                        } else if (chatData?.clientEmail) {
+                            fallbackName = chatData.clientEmail.split('@')[0];
+                        }
+                        
+                        setClient({ id: currentClientId, name: fallbackName, imageUrl: '' });
                     }
                 }
 
@@ -248,6 +269,21 @@ function ChatPageContent() {
             await updateDoc(doc(firestore, 'chats', chatId), {
                 files: arrayUnion(fileData)
             });
+
+            // 10. NOTIFY counterpart about the new document
+            try {
+                const { sendChatMessageAction } = await import('@/app/actions/chat-actions');
+                await sendChatMessageAction({
+                    chatId,
+                    text: `[อัปโหลดไฟล์] ${file.name}`,
+                    senderId: user.uid,
+                    senderName: user.displayName || 'ลูกความ',
+                    recipientId: otherUser.userId,
+                    isLawyerView: effectiveIsLawyerView,
+                });
+            } catch (notifyErr) {
+                console.warn("Upload notification failed:", notifyErr);
+            }
 
             toast({ title: "อัปโหลดไฟล์สำเร็จ", description: `ไฟล์ "${file.name}" ถูกเพิ่มแล้ว` });
         } catch (error: any) {

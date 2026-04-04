@@ -60,6 +60,28 @@ export default function NotificationBell({ isAdmin = false }: { isAdmin?: boolea
         }
     };
 
+    const markAllAsRead = async () => {
+        if (!firestore || !user || notifications.length === 0) return;
+        try {
+            const { writeBatch, doc } = await import('firebase/firestore');
+            const batch = writeBatch(firestore);
+            let unreadExist = false;
+            
+            notifications.forEach(notif => {
+                if (!notif.read) {
+                    batch.update(doc(firestore, 'notifications', notif.id), { read: true });
+                    unreadExist = true;
+                }
+            });
+
+            if (unreadExist) {
+                await batch.commit();
+            }
+        } catch (error) {
+            console.error("Error marking all notifications as read:", error);
+        }
+    };
+
     const getIcon = (type: string) => {
         switch (type) {
             case 'chat_message': return <MessageSquare className="w-4 h-4 text-blue-500" />;
@@ -83,8 +105,24 @@ export default function NotificationBell({ isAdmin = false }: { isAdmin?: boolea
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-80 p-0 rounded-2xl shadow-2xl border-slate-100 overflow-hidden">
                 <div className="p-4 bg-slate-50 border-b border-slate-100 flex justify-between items-center">
-                    <DropdownMenuLabel className="font-bold text-slate-900 m-0 p-0 text-base">การแจ้งเตือน</DropdownMenuLabel>
-                    {unreadCount > 0 && <Badge variant="secondary" className="bg-blue-100 text-blue-700 border-blue-200">ใหม่ {unreadCount}</Badge>}
+                    <div className="flex items-center gap-2">
+                        <DropdownMenuLabel className="font-bold text-slate-900 m-0 p-0 text-base">การแจ้งเตือน</DropdownMenuLabel>
+                        {unreadCount > 0 && <Badge variant="secondary" className="bg-blue-100 text-blue-700 border-blue-200">ใหม่ {unreadCount}</Badge>}
+                    </div>
+                    {unreadCount > 0 && (
+                        <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            className="h-7 px-2 text-[10px] font-bold text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                markAllAsRead();
+                            }}
+                        >
+                            อ่านทั้งหมด
+                        </Button>
+                    )}
                 </div>
                 
                 <div className="max-h-[70vh] overflow-y-auto no-scrollbar">
