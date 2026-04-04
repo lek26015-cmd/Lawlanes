@@ -334,13 +334,14 @@ export async function notifyPaymentCompletedAction(params: {
     caseTitle: string;
     payerName: string;
     isAutoApproved: boolean;
+    skipAdminNotification?: boolean;
 }) {
     try {
         const adminApp = await initAdmin();
         if (!adminApp) return { success: false, error: 'Firebase Admin not initialized.' };
         const db = adminApp.firestore();
 
-        const { chatId, lawyerId, amount, caseTitle, payerName, isAutoApproved } = params;
+        const { chatId, lawyerId, amount, caseTitle, payerName, isAutoApproved, skipAdminNotification } = params;
 
         // Fetch lawyer info
         const lawyerDoc = await db.collection('lawyerProfiles').doc(lawyerId).get();
@@ -396,16 +397,18 @@ export async function notifyPaymentCompletedAction(params: {
             });
         }
 
-        // Notify Admin
-        console.log(`[notifyPaymentCompletedAction] Sending email to admins`);
-        await NotificationService.notifyAdminPaymentReceived({
-            lawyerName,
-            clientName,
-            amount,
-            caseTitle: caseTitle || chatData?.caseTitle || 'เคส',
-            chatId,
-            isAutoApproved,
-        });
+        // Notify Admin only if not skipped
+        if (!skipAdminNotification) {
+            console.log(`[notifyPaymentCompletedAction] Sending email to admins`);
+            await NotificationService.notifyAdminPaymentReceived({
+                lawyerName,
+                clientName,
+                amount,
+                caseTitle: caseTitle || chatData?.caseTitle || 'เคส',
+                chatId,
+                isAutoApproved,
+            });
+        }
 
         return { success: true };
     } catch (error: any) {
