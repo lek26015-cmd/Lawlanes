@@ -68,7 +68,7 @@ export function HomeRecommendedLawyers({ initialLawyers }: HomeRecommendedLawyer
                 {/* Header Section */}
                 <FadeIn direction="up">
                     <div className="flex flex-col items-center justify-center gap-6 mb-16 text-center">
-                        <div className="max-w-3xl">
+                        <div className="w-full max-w-4xl xl:max-w-5xl px-4">
                             <h2 className='text-3xl font-bold tracking-tight text-[#0B3979] font-headline sm:text-5xl drop-shadow-sm'>{t('title')}</h2>
                             <p className="mt-4 text-slate-600 text-lg leading-relaxed">
                                 {t('subtitle')}

@@ -19,7 +19,7 @@ import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { th } from 'date-fns/locale';
 
-export default function NotificationBell() {
+export default function NotificationBell({ isAdmin = false }: { isAdmin?: boolean }) {
     const { user } = useUser();
     const { firestore } = useFirebase();
     const [notifications, setNotifications] = useState<any[]>([]);
@@ -28,9 +28,11 @@ export default function NotificationBell() {
     useEffect(() => {
         if (!user || !firestore) return;
 
+        const recipients = isAdmin ? [user.uid, 'admin'] : [user.uid];
+
         const q = query(
             collection(firestore, 'notifications'),
-            where('recipient', 'in', [user.uid, 'admin']),
+            where('recipient', 'in', recipients),
             orderBy('createdAt', 'desc'),
             limit(10)
         );

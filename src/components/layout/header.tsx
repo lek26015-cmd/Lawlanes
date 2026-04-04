@@ -197,11 +197,11 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
 
   return (
     <header className={headerClasses}>
-      <div className="container mx-auto flex h-20 items-center justify-between px-4 md:px-6">
+      <div className="container mx-auto flex h-20 items-center justify-between px-4 md:px-6 gap-4">
         <Logo
           href={getMainLink('/', domainType, !isMounted)}
           variant={useTransparentHeader ? "white" : "color"}
-          className={cn(useTransparentHeader ? 'text-white' : 'text-[#0B3979]')}
+          className={cn('shrink-0', useTransparentHeader ? 'text-white' : 'text-[#0B3979]')}
           subtitle={domainType === 'business' ? "legal os" : undefined}
         />
 
@@ -274,7 +274,7 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
                       <AvatarImage src={getCloudflareVariantUrl(avatarUrl, 'avatar') || profileLawyerImg.src} />
                       <AvatarFallback>{user.displayName?.charAt(0) || user.email?.charAt(0)}</AvatarFallback>
                     </Avatar>
-                    <span className="hidden lg:inline">{user.displayName || user.email}</span>
+                    <span className="hidden lg:inline max-w-[150px] truncate">{user.displayName || user.email}</span>
                     <ChevronDown className="w-4 h-4" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -349,7 +349,7 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
 
             {user && (
               <div className="ml-2">
-                <NotificationBell />
+                <NotificationBell isAdmin={isAdmin} />
               </div>
             )}
 
@@ -386,7 +386,7 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
           </div>
           {user && (
             <div className="mr-1">
-              <NotificationBell />
+              <NotificationBell isAdmin={isAdmin} />
             </div>
           )}
           {user ? (
