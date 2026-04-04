@@ -357,6 +357,9 @@ export default function CheckoutPage() {
 
                   <TabsContent value="bank-transfer" className="space-y-6">
                     <div className="bg-gradient-to-br from-slate-50 to-white p-6 rounded-2xl border border-slate-100 items-center justify-center flex flex-col space-y-3">
+                      <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-sm overflow-hidden bg-white p-0.5 border border-slate-100 mb-1">
+                        <img src="/images/logo-bank/กสิกร.png" alt="Kasikornbank" className="w-full h-full object-contain rounded-lg" />
+                      </div>
                       <span className="text-xs uppercase tracking-widest text-slate-400 font-bold">ข้อมูลบัญชี</span>
                       <p className="text-lg font-bold text-deep-blue">ธนาคารกสิกรไทย</p>
                       <p className="text-2xl font-bold text-gold tracking-tighter">144-3-46310-7</p>

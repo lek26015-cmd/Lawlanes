@@ -270,6 +270,7 @@ export function useChatSocket(chatId: string, userId: string, userName: string) 
     }
 
     // 2. Try WebSocket send
+    let wsSuccess = false;
     if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
       socketRef.current.send(JSON.stringify({
         type: 'message',
@@ -278,23 +279,28 @@ export function useChatSocket(chatId: string, userId: string, userName: string) 
         senderName: userName,
         recipientId
       }));
-    } else {
-      // 3. Fallback to Server Action (with auth token)
-      try {
-        const authToken = authUser ? await authUser.getIdToken() : undefined;
-        const { sendChatMessageAction } = await import('@/app/actions/chat-actions');
-        await sendChatMessageAction({
-          chatId,
-          text: finalMessage,
-          senderId: userId,
-          senderName: userName,
-          recipientId,
-          isLawyerView,
-          authToken
-        });
-      } catch (err) {
-        console.error("Fallback send failed:", err);
-      }
+      wsSuccess = true;
+    }
+    
+    // 3. Always invoke Server Action to ensure notifications fire & metadata updates.
+    // If WS succeeded, we skip saving the message text duplication.
+    try {
+      const authToken = authUser ? await authUser.getIdToken() : undefined;
+      const { sendChatMessageAction } = await import('@/app/actions/chat-actions');
+      await sendChatMessageAction({
+        chatId,
+        text: finalMessage,
+        senderId: userId,
+        senderName: userName,
+        recipientId,
+        isLawyerView,
+        authToken,
+        skipMessageSave: wsSuccess
+      });
+    } catch (err) {
+      console.error("Action/Notification send failed:", err);
+      // If WS failed and Action failed, we throw so UI shows error state
+      if (!wsSuccess) throw err;
     }
   }, [chatId, userName, userId]);
 

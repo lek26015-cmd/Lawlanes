@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect, Suspense, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import Link from 'next/link';
+import { Link } from '@/navigation';
 import { getLawyerById } from '@/lib/data';
 import type { LawyerProfile } from '@/lib/types';
 import { ArrowLeft, Calendar, User, CheckCircle, MessageSquare, Pencil, Loader2, Landmark, Upload, Copy, AlertCircle } from 'lucide-react';
@@ -25,7 +25,7 @@ import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '@/lib/constants';
 import { compressImageToBase64 } from '@/lib/image-utils';
 import { cn } from '@/lib/utils';
 import jsQR from 'jsqr';
-import { notifyPaymentCompletedAction } from '@/app/actions/chat-actions';
+import { notifyPaymentCompletedAction, markInstallmentPaidAction } from '@/app/actions/chat-actions';
 
 
 function PaymentPageContent() {
@@ -41,6 +41,8 @@ function PaymentPageContent() {
     const amountParam = searchParams.get('amount');
     const dateStr = searchParams.get('date');
     const description = searchParams.get('description');
+    const installmentIndexParam = searchParams.get('installmentIndex');
+    const installmentIndex = installmentIndexParam !== null ? parseInt(installmentIndexParam) : null;
 
     const [lawyer, setLawyer] = useState<LawyerProfile | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -64,15 +66,25 @@ function PaymentPageContent() {
     const appointmentFee = 3500;
     const chatTicketFee = 500;
     let fee = paymentType === 'chat' ? chatTicketFee : appointmentFee;
-    if ((paymentType === 'additional' || paymentType === 'case') && amountParam) {
+    if ((paymentType === 'additional' || paymentType === 'case' || paymentType === 'installment') && amountParam) {
         fee = Number(amountParam);
     } else if (paymentType === 'case' && caseData) {
         fee = Number(caseData.amount || 0);
     }
 
     const finalFee = Math.max(0, fee - discountAmount);
-    const title = paymentType === 'chat' ? 'ยืนยันการเปิด Ticket สนทนา' : (paymentType === 'additional' ? 'ชำระค่าบริการเพิ่มเติม' : (paymentType === 'case' ? 'ชำระค่าบริการเพื่อเริ่มงาน' : 'ยืนยันการนัดหมายและชำระเงิน'));
-    const descriptionText = paymentType === 'chat' ? 'กรุณาตรวจสอบรายละเอียดและดำเนินการชำระเงินค่าเปิด Ticket' : (paymentType === 'additional' ? 'กรุณาชำระค่าบริการเพิ่มเติมตามที่ทนายความร้องขอ' : (paymentType === 'case' ? 'กรุณาชำระค่าบริการเพื่อเริ่มต้นคดีตามที่คุณได้รับแจ้ง' : 'กรุณาตรวจสอบรายละเอียดและดำเนินการชำระเงินค่าปรึกษา'));
+
+    // Installment-specific metadata
+    const installmentData = (paymentType === 'installment' && installmentIndex !== null && caseData?.installments?.[installmentIndex])
+        ? caseData.installments[installmentIndex]
+        : null;
+
+    const title = paymentType === 'installment'
+        ? `ชำระค่าบริการ — งวดที่ ${(installmentIndex ?? 0) + 1}`
+        : paymentType === 'chat' ? 'ยืนยันการเปิด Ticket สนทนา' : (paymentType === 'additional' ? 'ชำระค่าบริการเพิ่มเติม' : (paymentType === 'case' ? 'ชำระค่าบริการเพื่อเริ่มงาน' : 'ยืนยันการนัดหมายและชำระเงิน'));
+    const descriptionText = paymentType === 'installment'
+        ? `ชำระเงินงวดที่ ${(installmentIndex ?? 0) + 1}: ${installmentData?.description || 'ตามแผนการชำระเงิน'}`
+        : paymentType === 'chat' ? 'กรุณาตรวจสอบรายละเอียดและดำเนินการชำระเงินค่าเปิด Ticket' : (paymentType === 'additional' ? 'กรุณาชำระค่าบริการเพิ่มเติมตามที่ทนายความร้องขอ' : (paymentType === 'case' ? 'กรุณาชำระค่าบริการเพื่อเริ่มต้นคดีตามที่คุณได้รับแจ้ง' : 'กรุณาตรวจสอบรายละเอียดและดำเนินการชำระเงินค่าปรึกษา'));
 
     useEffect(() => {
         async function fetchLawyer() {
@@ -99,7 +111,7 @@ function PaymentPageContent() {
             const lawyerData = await getLawyerById(firestore, lawyerId);
             setLawyer(lawyerData || null);
 
-            if (chatId && paymentType === 'case') {
+            if (chatId && (paymentType === 'case' || paymentType === 'installment')) {
                 const chatSnap = await getDoc(doc(firestore, 'chats', chatId));
                 if (chatSnap.exists()) {
                     setCaseData(chatSnap.data());
@@ -327,7 +339,37 @@ function PaymentPageContent() {
 
                 await addDoc(appointmentRef, appointmentPayload);
                 setPaymentSuccess(true);
+            } else if (paymentType === 'installment' && chatId && installmentIndex !== null) {
+                // ======= INSTALLMENT PAYMENT =======
+                const result = await markInstallmentPaidAction({
+                    chatId,
+                    installmentIndex,
+                    slipUrl,
+                    slipOkData: slipOkData || null,
+                    amount: finalFee,
+                    payerName: user?.displayName || 'ลูกความ',
+                });
+
+                if (!result.success) {
+                    toast({ variant: 'destructive', title: 'เกิดข้อผิดพลาด', description: result.error });
+                    setIsProcessing(false);
+                    return;
+                }
+
+                setPaymentSuccess(true);
+
+                // Fire email notifications (non-blocking)
+                notifyPaymentCompletedAction({
+                    chatId,
+                    lawyerId: lawyerId || '',
+                    amount: finalFee,
+                    caseTitle: `งวดที่ ${installmentIndex + 1}`,
+                    payerName: user?.displayName || 'ลูกความ',
+                    isAutoApproved: !!slipOkData,
+                }).catch(e => console.error('Installment payment notification failed:', e));
+
             } else if ((paymentType === 'additional' || paymentType === 'case') && chatId) {
+                // ======= FULL CASE PAYMENT =======
                 const chatRef = doc(firestore, 'chats', chatId);
                 const updatePayload: any = {
                     pendingPaymentDetails: {
@@ -340,10 +382,9 @@ function PaymentPageContent() {
                     status: slipOkData ? 'active' : 'pending_payment',
                     paidAt: serverTimestamp(),
                     paidAmount: finalFee,
-                    amount: finalFee, // Ensures chat page recognizes this as an official case (isOfficial = amount > 0)
+                    amount: finalFee,
                     hasNewPayment,
                 };
-                // If slipOkData confirmed, mark payment officially done
                 if (slipOkData) {
                     updatePayload.lastMessage = `✅ ลูกความชำระเงินเรียบร้อยแล้ว (฿${finalFee.toLocaleString()})`;
                     updatePayload.lastMessageAt = serverTimestamp();
@@ -351,7 +392,6 @@ function PaymentPageContent() {
                 await updateDoc(chatRef, updatePayload);
                 setPaymentSuccess(true);
 
-                // Fire email notifications (non-blocking)
                 notifyPaymentCompletedAction({
                     chatId: chatId || '',
                     lawyerId: lawyerId || '',
@@ -468,8 +508,8 @@ function PaymentPageContent() {
                             <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-3xl p-8 border border-slate-200/50 space-y-6 shadow-inner">
                                 <div className="flex justify-between items-center">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 bg-[#00A950] rounded-xl flex items-center justify-center shadow-md">
-                                           <span className="text-white font-black text-xl italic">K</span>
+                                        <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-md overflow-hidden bg-white shrink-0 p-0.5 border border-slate-100">
+                                            <img src="/images/logo-bank/กสิกร.png" alt="Kasikornbank" className="w-full h-full object-contain rounded-lg" />
                                         </div>
                                         <div>
                                             <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest leading-none mb-1">ธนาคารกสิกรไทย</p>
@@ -503,7 +543,7 @@ function PaymentPageContent() {
                             <div className="space-y-4">
                                <div
                                   className={cn(
-                                      "relative flex flex-col items-center justify-center w-full aspect-[4/3] md:aspect-video border-2 border-dashed rounded-[2.5rem] transition-all cursor-pointer group",
+                                      "relative flex flex-col items-center justify-center w-full min-h-[200px] py-10 border-2 border-dashed rounded-[2.5rem] transition-all cursor-pointer group",
                                       slipFile ? "border-green-200 bg-green-50/50" : "border-slate-200 bg-slate-50/30 hover:border-blue-400 hover:bg-blue-50/50"
                                   )}
                                   onClick={() => fileInputRef.current?.click()}
@@ -588,7 +628,12 @@ function PaymentPageContent() {
                             ) : (
                                 <div className="flex items-start gap-3 text-slate-600 bg-slate-50 p-4 rounded-2xl">
                                     <MessageSquare className="w-5 h-5 text-blue-600 shrink-0 mt-1" />
-                                    <span className="font-bold text-sm leading-snug">{paymentType === 'case' ? (caseData?.caseTitle || 'ดำเนินคดีส่วนตัว') : 'ห้องสนทนาปรึกษากฎหมายส่วนตัว'}</span>
+                                    <div className="space-y-1">
+                                        <span className="font-bold text-sm leading-snug block">{paymentType === 'installment' ? (caseData?.caseTitle || 'ชำระค่าบริการตามงวด') : paymentType === 'case' ? (caseData?.caseTitle || 'ดำเนินคดีส่วนตัว') : 'ห้องสนทนาปรึกษากฎหมายส่วนตัว'}</span>
+                                        {paymentType === 'installment' && installmentData && (
+                                            <span className="text-xs text-blue-600 font-bold">งวดที่ {(installmentIndex ?? 0) + 1}: {installmentData.description}</span>
+                                        )}
+                                    </div>
                                 </div>
                             )}
                         </div>

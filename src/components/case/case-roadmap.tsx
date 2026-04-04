@@ -1,4 +1,4 @@
-import { Check, MessageSquare, CreditCard, FileText, CheckCircle2, Gavel, Scale, AlertCircle } from 'lucide-react';
+import { Check, MessageSquare, CreditCard, FileText, CheckCircle2, Gavel, Scale, AlertCircle, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -22,14 +22,14 @@ export function CaseRoadmap({ currentStep, className, isPremium = true, steps: c
     { id: 1, label: 'วิเคราะห์รูปคดี', icon: Scale },
     { id: 2, label: 'จัดเตรียมเอกสาร', icon: FileText },
     { id: 3, label: 'ยื่นคำฟ้อง', icon: Gavel },
-    { id: 4, label: 'ตรวจพยานหลักฐาน', icon: CheckCircle2 },
+    { id: 4, label: 'ตรวจพยานหลักฐาน', icon: Search },
     { id: 5, label: 'นัดสืบพยาน', icon: Gavel },
   ];
 
   const steps = customSteps || defaultSteps;
 
   return (
-    <div className={cn("w-full py-12 px-8 bg-white/40 dark:bg-black/20 backdrop-blur-md rounded-[3rem] border border-white/40 dark:border-white/5 shadow-2xl transition-all duration-500", className)}>
+    <div className={cn("w-full pt-10 pb-16 px-8 bg-white/40 dark:bg-black/20 backdrop-blur-md rounded-[3rem] border border-white/40 dark:border-white/5 shadow-2xl transition-all duration-500", className)}>
       <div className="relative flex justify-between items-center max-w-5xl mx-auto">
         {/* Progress Line Background */}
         <div className="absolute top-7 left-0 w-full h-[4px] bg-slate-200/50 dark:bg-slate-800 -z-0 rounded-full overflow-hidden">
@@ -65,11 +65,11 @@ export function CaseRoadmap({ currentStep, className, isPremium = true, steps: c
               <AnimatePresence>
                 {isActive && (
                   <motion.div 
-                    initial={{ scale: 0.8, opacity: 0 }}
-                    animate={{ scale: 1.5, opacity: 0.2 }}
-                    exit={{ scale: 2.0, opacity: 0 }}
+                    initial={{ scale: 0.8, opacity: 0, y: -4 }}
+                    animate={{ scale: 1.35, opacity: 0.25, y: -4 }}
+                    exit={{ scale: 1.8, opacity: 0, y: -4 }}
                     transition={{ duration: 2, repeat: Infinity }}
-                    className="absolute top-0 w-14 h-14 bg-blue-400 rounded-2xl -z-10"
+                    className="absolute top-0 w-14 h-14 bg-blue-500 rounded-[1.25rem] -z-10"
                   />
                 )}
               </AnimatePresence>
@@ -77,8 +77,8 @@ export function CaseRoadmap({ currentStep, className, isPremium = true, steps: c
               <motion.div 
                 initial={false}
                 animate={{ 
-                  scale: isActive ? 1.3 : 1,
-                  y: isActive ? -8 : 0,
+                  scale: isActive ? 1.15 : 1,
+                  y: isActive ? -4 : 0,
                   rotate: isActive ? [0, -5, 5, 0] : 0
                 }}
                 transition={{ 

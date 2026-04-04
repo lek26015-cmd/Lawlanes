@@ -74,14 +74,15 @@ export async function sendChatMessageAction(params: {
     senderName: string,
     recipientId: string,
     isLawyerView: boolean,
-    authToken?: string
+    authToken?: string,
+    skipMessageSave?: boolean
 }) {
     try {
         const adminApp = await initAdmin();
         if (!adminApp) return { success: false, error: 'Firebase Admin not initialized.' };
         const db = adminApp.firestore();
 
-        const { chatId, text, senderId, senderName, recipientId, isLawyerView, authToken } = params;
+        const { chatId, text, senderId, senderName, recipientId, isLawyerView, authToken, skipMessageSave } = params;
 
         // 0. Auth Verification — verify the caller is who they claim to be
         if (authToken) {
@@ -114,13 +115,15 @@ export async function sendChatMessageAction(params: {
 
         const batch = db.batch();
 
-        // 2. Add message to subcollection
-        const messageRef = db.collection('chats').doc(chatId).collection('messages').doc();
-        batch.set(messageRef, {
-            text,
-            senderId,
-            timestamp: admin.firestore.FieldValue.serverTimestamp()
-        });
+        // 2. Add message to subcollection if not skipped
+        if (!skipMessageSave) {
+            const messageRef = db.collection('chats').doc(chatId).collection('messages').doc();
+            batch.set(messageRef, {
+                text,
+                senderId,
+                timestamp: admin.firestore.FieldValue.serverTimestamp()
+            });
+        }
 
         // 3. Update parent chat metadata
         //    FIX: When sender writes, clear the RECIPIENT's ReadAt field so UI won't show stale "Read" status.
@@ -393,5 +396,128 @@ export async function notifyPaymentCompletedAction(params: {
     } catch (error: any) {
         console.error("Error in notifyPaymentCompletedAction:", error);
         return { success: false, error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' };
+    }
+}
+
+/**
+ * Atomically marks a single installment as paid within a chat document.
+ * - Updates the installment's status, paidAt, and slipUrl
+ * - Recalculates paidInstallments count and totalPaid sum
+ * - Sets the chat status to 'active' if this is the first installment paid
+ */
+export async function markInstallmentPaidAction(params: {
+    chatId: string;
+    installmentIndex: number;
+    slipUrl: string;
+    slipOkData: any;
+    amount: number;
+    payerName?: string;
+}) {
+    try {
+        const adminApp = await initAdmin();
+        if (!adminApp) return { success: false, error: 'Firebase Admin not initialized.' };
+        const db = adminApp.firestore();
+
+        const chatRef = db.collection('chats').doc(params.chatId);
+        const chatSnap = await chatRef.get();
+
+        if (!chatSnap.exists) {
+            return { success: false, error: 'ไม่พบห้องแชทนี้ในระบบ' };
+        }
+
+        const chatData = chatSnap.data()!;
+        const installments = chatData.installments || [];
+
+        // Validate index
+        if (params.installmentIndex < 0 || params.installmentIndex >= installments.length) {
+            return { success: false, error: 'หมายเลขงวดไม่ถูกต้อง' };
+        }
+
+        const targetInstallment = installments[params.installmentIndex];
+
+        // Check if already paid
+        if (targetInstallment.status === 'paid') {
+            return { success: false, error: 'งวดนี้ได้รับการชำระเงินแล้ว' };
+        }
+
+        // Enforce sequential payment: all previous installments must be paid
+        for (let i = 0; i < params.installmentIndex; i++) {
+            if (installments[i].status !== 'paid') {
+                return { success: false, error: `กรุณาชำระงวดที่ ${i + 1} ก่อน` };
+            }
+        }
+
+        // Update the specific installment
+        installments[params.installmentIndex] = {
+            ...targetInstallment,
+            status: 'paid',
+            paidAt: new Date().toISOString(),
+            slipUrl: params.slipUrl,
+            slipOkData: params.slipOkData || null,
+        };
+
+        // Recalculate totals
+        const paidInstallments = installments.filter((inst: any) => inst.status === 'paid').length;
+        const totalPaid = installments
+            .filter((inst: any) => inst.status === 'paid')
+            .reduce((sum: number, inst: any) => {
+                const amt = parseFloat(String(inst.amount).replace(/,/g, ''));
+                return sum + (isNaN(amt) ? 0 : amt);
+            }, 0);
+        const allPaid = paidInstallments === installments.length;
+        const isFirstPayment = paidInstallments === 1;
+
+        // Build the update payload
+        const updatePayload: any = {
+            installments,
+            paidInstallments,
+            totalPaid,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        };
+
+        // First installment paid → activate the case
+        if (isFirstPayment) {
+            updatePayload.status = 'active';
+            updatePayload.paidAt = admin.firestore.FieldValue.serverTimestamp();
+            updatePayload.lastMessage = `✅ ลูกความชำระเงินงวดที่ 1 เรียบร้อยแล้ว (฿${params.amount.toLocaleString()})`;
+            updatePayload.lastMessageAt = admin.firestore.FieldValue.serverTimestamp();
+        } else {
+            updatePayload.lastMessage = `✅ ลูกความชำระเงินงวดที่ ${params.installmentIndex + 1} เรียบร้อยแล้ว (฿${params.amount.toLocaleString()})`;
+            updatePayload.lastMessageAt = admin.firestore.FieldValue.serverTimestamp();
+        }
+
+        if (allPaid) {
+            updatePayload.lastMessage = `🎉 ลูกความชำระเงินครบทุกงวดแล้ว (฿${totalPaid.toLocaleString()})`;
+        }
+
+        // If SlipOK auto-verified, add flag
+        if (params.slipOkData) {
+            updatePayload.hasNewPayment = false;
+        } else {
+            updatePayload.hasNewPayment = true; // Needs admin review
+        }
+
+        // Store per-installment payment details for admin audit
+        updatePayload[`pendingPaymentDetails_installment_${params.installmentIndex}`] = {
+            amount: params.amount,
+            slipUrl: params.slipUrl,
+            slipOkData: params.slipOkData || null,
+            type: 'installment',
+            installmentIndex: params.installmentIndex,
+            submittedAt: new Date().toISOString(),
+        };
+
+        await chatRef.update(updatePayload);
+
+        return {
+            success: true,
+            paidInstallments,
+            totalPaid,
+            allPaid,
+            isFirstPayment,
+        };
+    } catch (error: any) {
+        console.error("Error in markInstallmentPaidAction:", error);
+        return { success: false, error: 'เกิดข้อผิดพลาดในการบันทึกการชำระเงิน กรุณาลองใหม่อีกครั้ง' };
     }
 }

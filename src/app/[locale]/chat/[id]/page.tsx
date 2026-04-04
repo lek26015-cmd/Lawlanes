@@ -14,7 +14,6 @@ import type { Milestone } from '@/lib/types/billing-types';
 import { useTranslations } from 'next-intl';
 import { CaseRoadmap } from '@/components/case/case-roadmap';
 import { LegalResearchTool } from '@/components/case/legal-research-tool';
-import { InterpreterSearchTool } from '@/components/case/interpreter-search-tool';
 import { cn } from '@/lib/utils';
 
 import {
@@ -49,7 +48,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { CopyButton } from '@/components/ui/copy-button';
-import Link from 'next/link';
+import { Link } from '@/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { doc, getDoc, updateDoc, arrayUnion, onSnapshot, serverTimestamp } from 'firebase/firestore';
@@ -325,31 +324,34 @@ function ChatPageContent() {
         userId: effectiveIsLawyerView ? (client?.id || '') : (lawyer?.userId || lawyer?.id || ''),
         imageUrl: effectiveIsLawyerView ? (client?.imageUrl || "") : (lawyer?.imageUrl || ""),
     };
+    
+    // Fallback lawyer ID for payment routes when missing from URL param
+    const resolvedLawyerId = lawyerId || (effectiveIsLawyerView ? user.uid : otherUser.userId) || '';
 
     return (
         <div className="container mx-auto px-4 md:px-6 py-8">
-            <div className="mb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="mb-8 space-y-6">
                 <div className="flex flex-col gap-1">
                     <Link href={effectiveIsLawyerView ? "/lawyer-dashboard" : "/dashboard"} className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 transition-colors">
                         <ArrowLeft className="w-3.5 h-3.5" />
                         {tCommon('backToHome')}
                     </Link>
-                    <h1 className="text-2xl font-bold font-headline mt-1 flex items-center gap-2">
+                    <h1 className="text-3xl font-bold font-headline mt-1 flex items-center gap-3">
                         {isOfficial ? tCase('titleOfficial') : tCase('titleInitial')}
-                        <Badge variant={isOfficial ? "default" : "secondary"} className={cn("rounded-full uppercase text-[10px] tracking-widest px-2 py-0", isOfficial && "bg-amber-100 text-amber-700 border-amber-200")}>
+                        <Badge variant={isOfficial ? "default" : "secondary"} className={cn("rounded-full uppercase text-[11px] tracking-widest px-2.5 py-0.5", isOfficial && "bg-amber-100 text-amber-700 border-amber-200")}>
                             {isOfficial ? tCase('officialBadge') : tCase('freeBadge')}
                         </Badge>
                     </h1>
                 </div>
                 {isOfficial && (
-                    <div className="flex-1 max-w-xl">
+                    <div className="w-full bg-slate-50 dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 p-2 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
                         <CaseRoadmap currentStep={currentStep} isPremium={isOfficial} steps={milestoneSteps} />
                     </div>
                 )}
             </div>
 
-            <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
-                <div className="xl:col-span-3">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pb-12 items-start">
+                <div className="lg:col-span-2 h-[calc(100vh-250px)] min-h-[600px] bg-white dark:bg-slate-900 rounded-3xl overflow-hidden shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col">
                     <ChatBox 
                         chatId={chatId} 
                         currentUser={user} 
@@ -360,9 +362,9 @@ function ChatPageContent() {
                     />
                 </div>
 
-                <div className="xl:col-span-1 space-y-6">
+                <div className="lg:col-span-1 space-y-6 sticky top-24 h-max">
                     <Tabs defaultValue="info" className="w-full">
-                        <TabsList className="w-full bg-slate-100 dark:bg-slate-800 p-1 rounded-2xl h-auto flex flex-nowrap overflow-x-auto custom-scrollbar no-bg-tablist">
+                        <TabsList className="w-full bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl h-auto flex flex-wrap lg:flex-nowrap gap-1">
                             <TabsTrigger value="overview" className="flex-1 text-[9px] sm:text-[10px] font-black uppercase tracking-widest py-2 rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm">
                                 Overview
                             </TabsTrigger>
@@ -520,31 +522,78 @@ function ChatPageContent() {
                                             <p className="line-clamp-3">{description || "ตามที่ระบุในสัญญาจ้างงาน"}</p>
                                         </div>
                                         
-                                        {installments && installments.length > 0 && (
+                                        {installments && installments.length > 0 ? (
                                             <div className="space-y-2">
-                                                <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest pl-1">แผนการชำระเงิน (Installments)</p>
-                                                <div className="max-h-[120px] overflow-y-auto pr-1 space-y-1.5 custom-scrollbar">
-                                                    {installments.map((inst: any, idx: number) => (
-                                                        <div key={idx} className="flex justify-between items-center bg-slate-50/50 p-2.5 rounded-xl border border-slate-100/50">
-                                                            <span className="text-[10px] text-slate-500 font-medium">{inst.description}</span>
-                                                            <span className="font-bold text-slate-700 text-xs">฿{parseFloat(inst.amount).toLocaleString()}</span>
-                                                        </div>
-                                                    ))}
+                                                <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest pl-1">แผนการชำระเงิน ({installments.filter((i: any) => i.status === 'paid').length}/{installments.length} งวด)</p>
+                                                <div className="space-y-2">
+                                                    {installments.map((inst: any, idx: number) => {
+                                                        const isPaid = inst.status === 'paid';
+                                                        const previousAllPaid = installments.slice(0, idx).every((prev: any) => prev.status === 'paid');
+                                                        const isNextToPay = !isPaid && previousAllPaid;
+                                                        const instAmount = inst.amount && !isNaN(parseFloat(inst.amount)) ? parseFloat(String(inst.amount).replace(/,/g, '')) : 0;
+
+                                                        return (
+                                                            <div key={idx} className={cn(
+                                                                "p-3 rounded-xl border transition-all",
+                                                                isPaid 
+                                                                    ? "bg-green-50 border-green-200" 
+                                                                    : isNextToPay 
+                                                                        ? "bg-blue-50 border-blue-300 ring-2 ring-blue-200/50 shadow-sm" 
+                                                                        : "bg-slate-50/50 border-slate-100/50 opacity-60"
+                                                            )}>
+                                                                <div className="flex justify-between items-center mb-1.5">
+                                                                    <span className={cn("text-[10px] font-bold", isPaid ? "text-green-700" : isNextToPay ? "text-blue-700" : "text-slate-400")}>
+                                                                        งวดที่ {idx + 1}
+                                                                    </span>
+                                                                    {isPaid ? (
+                                                                        <span className="text-[9px] font-black uppercase bg-green-100 text-green-700 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                                                            <CheckCircle2 className="w-3 h-3" /> ชำระแล้ว
+                                                                        </span>
+                                                                    ) : isNextToPay ? (
+                                                                        <span className="text-[9px] font-black uppercase bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full animate-pulse">
+                                                                            รอชำระ
+                                                                        </span>
+                                                                    ) : (
+                                                                        <span className="text-[9px] font-bold text-slate-300 uppercase">รอคิว</span>
+                                                                    )}
+                                                                </div>
+                                                                <p className="text-[10px] text-slate-500 font-medium truncate">{inst.description}</p>
+                                                                <div className="flex justify-between items-center mt-2">
+                                                                    <span className="font-bold text-slate-700 text-sm">฿{instAmount.toLocaleString()}</span>
+                                                                    {isNextToPay && (
+                                                                        <Button size="sm" className="h-7 rounded-lg bg-[#0B3979] hover:bg-[#082a5a] text-[10px] font-bold px-3 shadow-md shadow-blue-500/20" asChild>
+                                                                            <Link href={`/payment?chatId=${chatId}&lawyerId=${resolvedLawyerId}&amount=${instAmount}&type=installment&installmentIndex=${idx}`}>
+                                                                                ชำระงวดนี้ <ArrowRight className="ml-1 w-3 h-3" />
+                                                                            </Link>
+                                                                        </Button>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
                                                 </div>
+                                            </div>
+                                        ) : (
+                                            <div className="p-4 rounded-2xl border-2 border-blue-100 bg-blue-50/30 text-center shadow-inner">
+                                                <p className="text-[10px] uppercase font-bold text-blue-600 mb-0.5 tracking-tighter">ค่าบริการรวมทั้งสิ้น</p>
+                                                <p className="text-3xl font-black text-slate-900 tracking-tight">฿{chatAmount.toLocaleString()}</p>
                                             </div>
                                         )}
 
-                                        <div className="p-4 rounded-2xl border-2 border-blue-100 bg-blue-50/30 text-center shadow-inner">
-                                            <p className="text-[10px] uppercase font-bold text-blue-600 mb-0.5 tracking-tighter">ค่าบริการรวมทั้งสิ้น</p>
-                                            <p className="text-3xl font-black text-slate-900 tracking-tight">฿{chatAmount.toLocaleString()}</p>
+                                        {/* Total summary */}
+                                        <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 flex justify-between items-center">
+                                            <span className="text-[10px] font-bold text-slate-400 uppercase">ยอดรวมทั้งหมด</span>
+                                            <span className="text-lg font-black text-slate-900">฿{chatAmount.toLocaleString()}</span>
                                         </div>
                                     </CardContent>
                                     <CardFooter className="flex flex-col gap-2 bg-slate-50/50 border-t border-slate-100 p-5">
-                                        <Button className="w-full bg-[#0B3979] hover:bg-[#082a5a] font-black h-12 shadow-xl shadow-blue-500/20 text-white rounded-2xl text-sm" asChild>
-                                            <Link href={`/payment?chatId=${chatId}&lawyerId=${lawyerId}&amount=${chatAmount}&type=case`}>
-                                                ชำระเงินเพื่อเริ่มงาน <ArrowRight className="ml-2 w-4 h-4" />
-                                            </Link>
-                                        </Button>
+                                        {(!installments || installments.length === 0) && (
+                                            <Button className="w-full bg-[#0B3979] hover:bg-[#082a5a] font-black h-12 shadow-xl shadow-blue-500/20 text-white rounded-2xl text-sm" asChild>
+                                                <Link href={`/payment?chatId=${chatId}&lawyerId=${resolvedLawyerId}&amount=${chatAmount}&type=case`}>
+                                                    ชำระเงินเพื่อเริ่มงาน <ArrowRight className="ml-2 w-4 h-4" />
+                                                </Link>
+                                            </Button>
+                                        )}
                                         <p className="text-[9px] text-center text-slate-400 font-medium flex items-center justify-center gap-1">
                                             <CheckCircle2 className="w-3 h-3 text-green-500" /> เงินถูกคุ้มครองโดยระบบ Lawlane Guarantee
                                         </p>
@@ -569,7 +618,7 @@ function ChatPageContent() {
                                     </CardContent>
                                     <CardFooter>
                                         <Button className="w-full bg-amber-500 hover:bg-amber-600 font-bold h-10 shadow-lg text-white" asChild>
-                                            <Link href={`/payment?chatId=${chatId}&lawyerId=${lawyerId}&amount=${pendingFeeRequest.amount}&type=additional`}>
+                                            <Link href={`/payment?chatId=${chatId}&lawyerId=${resolvedLawyerId}&amount=${pendingFeeRequest.amount}&type=additional`}>
                                                 ชำระเงินเปิดห้องคดี
                                             </Link>
                                         </Button>
@@ -610,17 +659,6 @@ function ChatPageContent() {
                                         <LegalResearchTool 
                                             onCite={(text) => toast({ title: "Cite successful", description: "Selected text cited to chat." })} 
                                             className="h-[350px] border-none" 
-                                        />
-                                    </Card>
-
-                                    <Card className="border-indigo-100 bg-indigo-50/20 overflow-hidden shadow-sm">
-                                        <div className="p-4 bg-white/60 border-b border-indigo-100">
-                                            <h4 className="text-[10px] font-black uppercase text-indigo-600 tracking-widest flex items-center gap-2 italic">
-                                                <Globe className="w-4 h-4" /> Global Interpreters
-                                            </h4>
-                                        </div>
-                                        <InterpreterSearchTool 
-                                            className="h-[400px] border-none" 
                                         />
                                     </Card>
                                 </>

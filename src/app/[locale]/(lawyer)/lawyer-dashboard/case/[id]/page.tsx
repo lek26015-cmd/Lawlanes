@@ -54,7 +54,6 @@ import { th } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { CaseRoadmap } from '@/components/case/case-roadmap';
 import { LegalResearchTool } from '@/components/case/legal-research-tool';
-import { InterpreterSearchTool } from '@/components/case/interpreter-search-tool';
 import { Sparkles, BrainCircuit, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
@@ -1042,9 +1041,6 @@ function CaseDetailPageContent() {
                 <TabsTrigger value="research" className="border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:bg-transparent rounded-none px-1 pb-4 pt-0 shadow-none font-bold flex items-center gap-1">
                   <BrainCircuit className="w-4 h-4 text-blue-600" /> ค้นคว้าข้อกฎหมาย (AI)
                 </TabsTrigger>
-                <TabsTrigger value="interpreters" className="border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:bg-transparent rounded-none px-1 pb-4 pt-0 shadow-none font-bold flex items-center gap-1">
-                  <Globe className="w-4 h-4 text-indigo-600" /> ค้นหาล่ามกฎหมาย
-                </TabsTrigger>
               </TabsList>
             </div>
           </div>
@@ -1518,12 +1514,6 @@ function CaseDetailPageContent() {
                     description: "คุณสามารถวางในเอกสารฉบับร่างได้ทันที",
                   });
                }} />
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="interpreters" className="m-0 h-[calc(100vh-250px)]">
-            <Card className="h-full rounded-[2.5rem] border-white/40 bg-white/40 backdrop-blur-xl shadow-2xl overflow-hidden">
-               <InterpreterSearchTool />
             </Card>
           </TabsContent>
         </div>

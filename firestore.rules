@@ -122,7 +122,8 @@ service cloud.firestore {
         allow create: if isSignedIn();
         allow get: if isSignedIn() && (resource.data.recipient == request.auth.uid || resource.data.recipient == 'admin' || isAdmin());
         allow list: if isSignedIn() && (
-          (request.auth.uid in request.query.filters.recipient) ||
+          resource.data.recipient == request.auth.uid ||
+          (resource.data.recipient == 'admin' && isAdmin()) ||
           isAdmin()
         );
         allow update: if isSignedIn() && (resource.data.recipient == request.auth.uid || isAdmin());

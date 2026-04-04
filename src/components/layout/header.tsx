@@ -349,7 +349,7 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
 
             {user && (
               <div className="ml-2">
-                <NotificationBell isAdmin={isAdmin} />
+                <NotificationBell isAdmin={isAdmin && !pathname.includes('/lawyer-dashboard') && !pathname.includes('/dashboard')} />
               </div>
             )}
 
@@ -386,7 +386,7 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
           </div>
           {user && (
             <div className="mr-1">
-              <NotificationBell isAdmin={isAdmin} />
+              <NotificationBell isAdmin={isAdmin && !pathname.includes('/lawyer-dashboard') && !pathname.includes('/dashboard')} />
             </div>
           )}
           {user ? (
