@@ -212,7 +212,30 @@ export async function createManualCaseAction(lawyerId: string, data: {
             chatPayload.participants = admin.firestore.FieldValue.arrayUnion(lawyerId, resolvedClientId);
         }
 
-        await chatRef.set(chatPayload, { merge: true });
+        const chatRes = await chatRef.set(chatPayload, { merge: true });
+
+        // DUAL-WRITE: Create/Update the Pipeline document (legalCases)
+        try {
+            const legalCaseRef = db.collection('legalCases').doc(chatId);
+            const legalCaseData: any = {
+                lawyer_id: lawyerId,
+                client_id: resolvedClientId || 'unknown',
+                title: data.title,
+                description: data.description,
+                status: 'pending', // Initial status for Pipeline
+                updatedAt: Date.now(),
+            };
+
+            // Only set createdAt if it doesn't exist
+            const existingLegalCase = await legalCaseRef.get();
+            if (!existingLegalCase.exists) {
+                legalCaseData.createdAt = Date.now();
+            }
+
+            await legalCaseRef.set(legalCaseData, { merge: true });
+        } catch (legalCaseErr) {
+            console.error("Failed to sync legalCase to Pipeline (non-blocking):", legalCaseErr);
+        }
 
         return { success: true, chatId: chatId };
     } catch (error: any) {

@@ -123,8 +123,16 @@ function NewCaseForm() {
           const response = await getChatDetailsAction(chatIdParam);
           if (response && response.success && response.data) {
             const chatDetails = response.data;
-            setImportedTitle(chatDetails.caseTitle || chatDetails.title || 'ข้อมูลจากแชท');
-            setImportedSummary(chatDetails.aiSummary || chatDetails.lastMessage || 'ไม่มีสรุปข้อมูล');
+            const chatTitle = chatDetails.caseTitle || chatDetails.title || '';
+            const chatSummary = chatDetails.aiSummary || chatDetails.lastMessage || '';
+            
+            setImportedTitle(chatTitle || 'ข้อมูลจากแชท');
+            setImportedSummary(chatSummary || 'กำลังดึงสรุปข้อมูล...');
+            
+            // AUTOMATIC PRE-FILL: Set form fields directly
+            if (chatTitle) setTitle(chatTitle);
+            if (chatSummary) setDescription(chatSummary);
+            
             setShowImportBox(true);
 
             // If we have clientInfo in chat, pre-fill it
@@ -414,47 +422,23 @@ ${showInstallments ? `โดยแบ่งชำระเป็นดังน�
                         value={client}
                         onValueChange={(val) => {
                           setClient(val);
-                          const titles: Record<string, string> = {
-                            'c1': 'ข้อพิพาทมรดกที่ดิน',
-                            'c2': 'ร่างสัญญาจ้างก่อสร้างเฟส 2',
-                            'c3': 'คดีแพ่ง: คืนเงินกู้',
-                            'test': 'คดีผิดสัญญาเช่าอาคารพาณิชย์ (เคสจำลอง)'
-                          };
-                        const summaries: Record<string, string> = {
-                          'c1': 'ลูกความต้องการปรึกษาเรื่องการแบ่งมรดกที่ดินที่ไม่ได้ทำพินัยกรรมไว้ โดยมีทายาททั้งหมด 5 คน...',
-                          'c2': 'การร่างสัญญาสำหรับโครงการพักอาศัยใหม่ โดยเน้นเรื่องงวดงานและค่าปรับในกรณีล่าช้า...',
-                          'c3': 'ลูกความถูกกู้ยืมเงินไปจำนวน 500,000 บาท มีสัญญากู้ยืมชัดเจน แต่ผู้กู้ไม่ยอมคืนตามกำหนด...',
-                          'test': 'ลูกความเบี้ยวค่าเช่าอาคารพาณิชย์ย่านสาทรมาแล้ว 3 เดือน รวมมูลค่า 150,000 บาท ต้องการบอกเลิกสัญญาและขับไล่ พร้อมเรียกค่าเสียหายเพิ่มเติม...'
-                        };
                           
-                        if (val !== 'new' && val !== '') {
-                          setImportedTitle(titles[val] || '');
-                          setImportedSummary(summaries[val] || '');
-                          
-                          if (val === 'test') {
-                            setClientName('บจก. พรอพเพอร์ตี้พลัส (สำนักงานใหญ่)');
-                            setClientAddress('999 อาคารสาทรทาวเวอร์ ชั้น 45 ถนนสาทรใต้ แขวงยานนาวา เขตสาทร กรุงเทพฯ 10120');
-                            setClientTaxId('0105560001234');
-                            // Specifically for test case, pre-enable installments
-                            setShowInstallments(true);
-                            setInstallments([
-                              { description: 'ค่าวิชาชีพงวดแรก (เริ่มงาน)', amount: '20000' },
-                              { description: 'ค่าวิชาชีพงวดที่ 2 (ยื่นฟ้อง)', amount: '15000' },
-                              { description: 'ค่าวิชาชีพงวดสุดท้าย (ศาลมีคำพิพากษา)', amount: '15000' }
-                            ]);
-                          } else {
+                          if (val !== 'new' && val !== '') {
                             const foundClient = clients.find(c => c.id === val);
                             setClientName(foundClient?.name || '');
                             setClientAddress('');
                             setClientTaxId('');
+                            
+                            // Only show import box if we don't have a title yet
+                            if (!title) {
+                              setShowImportBox(true);
+                            }
+                          } else {
+                            setClientName('');
+                            setClientAddress('');
+                            setClientTaxId('');
+                            setShowImportBox(false);
                           }
-                          setShowImportBox(true);
-                        } else {
-                          setClientName('');
-                          setClientAddress('');
-                          setClientTaxId('');
-                          setShowImportBox(false);
-                        }
                         }}
                       >
                         <SelectTrigger className="rounded-2xl h-11 border-slate-200">

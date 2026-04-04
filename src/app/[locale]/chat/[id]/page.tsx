@@ -194,34 +194,41 @@ function ChatPageContent() {
                 if (currentClientId) {
                     const clientRef = doc(firestore!, 'users', currentClientId);
                     const userDocSnap = await getDoc(clientRef);
+                    
+                    let resolvedName = 'ลูกความ';
+                    let resolvedAvatar = '';
+
                     if (userDocSnap.exists()) {
                         const userData = userDocSnap.data();
-                        setClient({ id: currentClientId, name: userData.name, imageUrl: userData.avatar || '' });
-                    } else {
-                        // RECOVERY: If doc missing but current user is the client, use Auth display name
-                        let fallbackName = 'ลูกความ';
-                        if (user?.uid === currentClientId) {
-                            fallbackName = user.displayName || user.email?.split('@')[0] || 'ลูกความ';
-                            
-                            // AUTO-REPAIR: If current user is client and profile missing, create it
-                            import('firebase/firestore').then(({ setDoc, serverTimestamp }) => {
-                                setDoc(clientRef, {
-                                    uid: user.uid,
-                                    name: fallbackName,
-                                    email: user.email,
-                                    role: 'customer',
-                                    status: 'active',
-                                    createdAt: serverTimestamp()
-                                }, { merge: true }).catch(e => console.error("Auto-repair profile failed:", e));
-                            });
-                        } else if (chatData?.clientName) {
-                            fallbackName = chatData.clientName;
-                        } else if (chatData?.clientEmail) {
-                            fallbackName = chatData.clientEmail.split('@')[0];
-                        }
-                        
-                        setClient({ id: currentClientId, name: fallbackName, imageUrl: '' });
+                        resolvedName = userData.name || 'ลูกความ';
+                        resolvedAvatar = userData.avatar || '';
                     }
+
+                    // RECOVERY: If Firestore name is generic or missing, prioritize the name from Server Action (Auth)
+                    if (resolvedName === 'ลูกความ' || !resolvedName) {
+                        if (chatData?.clientName && chatData.clientName !== 'ลูกความ') {
+                            resolvedName = chatData.clientName;
+                        }
+                    }
+                    
+                    // If current user is the client, they can also contribute their own name
+                    if (user?.uid === currentClientId && (resolvedName === 'ลูกความ' || !resolvedName)) {
+                        resolvedName = user.displayName || user.email?.split('@')[0] || 'ลูกความ';
+                        
+                        // AUTO-REPAIR: Create/Fix the missing profile document
+                        import('firebase/firestore').then(({ setDoc, serverTimestamp }) => {
+                            setDoc(clientRef, {
+                                uid: user.uid,
+                                name: resolvedName,
+                                email: user.email,
+                                role: 'customer',
+                                status: 'active',
+                                createdAt: serverTimestamp()
+                            }, { merge: true }).catch(e => console.error("Auto-repair profile failed:", e));
+                        });
+                    }
+                    
+                    setClient({ id: currentClientId, name: resolvedName, imageUrl: resolvedAvatar });
                 }
 
                 // 3. Automatically determine if current user is the lawyer

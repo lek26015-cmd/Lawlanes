@@ -13,12 +13,52 @@ export async function getChatDetailsAction(chatId: string) {
         const chatSnap = await db.collection('chats').doc(chatId).get();
         if (!chatSnap.exists) return { success: false, error: 'Chat not found.' };
         
-        const data = chatSnap.data();
+        const data = chatSnap.id ? chatSnap.data() : null;
+        if (!data) return { success: false, error: 'Chat data empty.' };
+
+        // RECOVERY: If participant names are missing or generic, look them up in Auth
+        const participants: string[] = data.participants || [];
+        const clientId = data.clientId || data.userId || participants.find(p => p !== data.lawyerId);
+        
+        let clientName = data.clientName || 'ลูกความ';
+        
+        if (clientId && (clientName === 'ลูกความ' || !clientName)) {
+            try {
+                // 1. Try Firestore users collection first
+                const userDoc = await db.collection('users').doc(clientId).get();
+                if (userDoc.exists && userDoc.data()?.name && userDoc.data()?.name !== 'ลูกความ') {
+                    clientName = userDoc.data()?.name;
+                } else {
+                    // 2. Fallback to Firebase Auth (Admin SDK)
+                    const userRecord = await adminApp.auth().getUser(clientId);
+                    if (userRecord.displayName) {
+                        clientName = userRecord.displayName;
+                        // Auto-repair the Firestore doc if it exists but has a generic name
+                        if (userDoc.exists) {
+                            await db.collection('users').doc(clientId).update({ name: clientName });
+                        } else {
+                            await db.collection('users').doc(clientId).set({
+                                uid: clientId,
+                                name: clientName,
+                                email: userRecord.email,
+                                role: 'customer',
+                                status: 'active',
+                                createdAt: admin.firestore.FieldValue.serverTimestamp()
+                            });
+                        }
+                    }
+                }
+            } catch (err) {
+                console.warn(`[getChatDetailsAction] Auth lookup failed for ${clientId}:`, err);
+            }
+        }
+
         return {
             success: true,
             data: JSON.parse(JSON.stringify({
                 id: chatSnap.id,
                 ...data,
+                clientName, // Return the recovered name
                 createdAt: data?.createdAt?.toDate(),
                 lastMessageAt: data?.lastMessageAt?.toDate()
             }))
@@ -42,10 +82,22 @@ export async function ensureChatExistsAction(chatId: string, participants: strin
         const chatSnap = await chatRef.get();
 
         if (!chatSnap.exists) {
+            // NEW: Try to populate names from Auth immediately upon creation
+            let clientName = 'ลูกความ';
+            const clientId = participants.find(p => p.length > 20); // Basic heuristic for UID vs potential other IDs
+            
+            if (clientId) {
+                try {
+                    const userRecord = await adminApp.auth().getUser(clientId);
+                    if (userRecord.displayName) clientName = userRecord.displayName;
+                } catch (e) {}
+            }
+
             await chatRef.set({
                 participants,
                 createdAt: admin.firestore.FieldValue.serverTimestamp(),
                 caseTitle,
+                clientName,
                 status: 'active'
             });
         } else {
