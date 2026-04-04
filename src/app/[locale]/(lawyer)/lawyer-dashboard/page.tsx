@@ -244,7 +244,7 @@ export default function LawyerDashboardPage() {
             variant="outline" 
             size="sm" 
             onClick={() => {
-              const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3");
+              const audio = new Audio("https://cdn.pixabay.com/audio/2022/11/22/audio_febc6da86b.mp3");
               audio.volume = 0.5;
               audio.play().catch(e => console.error("Audio play failed:", e));
             }}
