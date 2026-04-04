@@ -250,6 +250,34 @@ export const NotificationService = {
   },
 
   /**
+   * Trigger 7a: Notify admin when client completes payment
+   */
+  async notifyAdminPaymentReceived(params: {
+    lawyerName: string;
+    clientName: string;
+    amount: number;
+    caseTitle: string;
+    chatId: string;
+    isAutoApproved: boolean;
+  }) {
+    const { lawyerName, clientName, amount, caseTitle, chatId, isAutoApproved } = params;
+    console.log(`[NotificationService] Payment received notification for Admin`);
+
+    const emailHtml = generateStandardEmailHtml({
+      title: "✅ มีรายการชำระเงินใหม่เข้าสู่ระบบ",
+      content: `เรียนทีมแอดมิน,<br><br>ลูกความ <span class="highlight">${clientName}</span> ได้ชำระค่าบริการทางกฎหมายสำหรับเคส "<span class="highlight">${caseTitle}</span>" ของทนายความ <span class="highlight">${lawyerName}</span><br><br><span class="highlight">จำนวนเงิน:</span> ฿${amount.toLocaleString()}<br><span class="highlight">สถานะ:</span> ${isAutoApproved ? '✅ อนุมัติอัตโนมัติ ด้วย SlipOK' : '⏳ รอส่งต่อให้แอดมินตรวจสอบสลิปในหลังบ้าน'}`,
+      buttonText: "ตรวจสอบในแอดมิน",
+      buttonLink: `${SITE_URL}/admin/payments`
+    });
+
+    const results = await Promise.all(
+      ADMIN_EMAILS.map(email => sendEmailFlexible(email, `[Lawslane Admin] ชำระเงินใหม่: ฿${amount.toLocaleString()} - ${caseTitle}`, emailHtml))
+    );
+
+    return { success: results.every(r => r.success) };
+  },
+
+  /**
    * Trigger 7b: Confirm payment to client
    */
   async notifyClientPaymentConfirmation(params: {

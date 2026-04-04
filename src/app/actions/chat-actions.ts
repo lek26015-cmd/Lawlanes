@@ -368,6 +368,7 @@ export async function notifyPaymentCompletedAction(params: {
 
         // Notify lawyer
         if (lawyerEmail) {
+            console.log(`[notifyPaymentCompletedAction] Sending email to lawyer: ${lawyerEmail}`);
             await NotificationService.notifyPaymentReceived({
                 lawyerName,
                 lawyerEmail,
@@ -377,10 +378,13 @@ export async function notifyPaymentCompletedAction(params: {
                 chatId,
                 isAutoApproved,
             });
+        } else {
+            console.warn(`[notifyPaymentCompletedAction] No lawyer email found for lawyerId: ${lawyerId}`);
         }
 
         // Confirm to client
         if (clientEmail) {
+            console.log(`[notifyPaymentCompletedAction] Sending email to client: ${clientEmail}`);
             await NotificationService.notifyClientPaymentConfirmation({
                 clientName,
                 clientEmail,
@@ -392,12 +396,24 @@ export async function notifyPaymentCompletedAction(params: {
             });
         }
 
+        // Notify Admin
+        console.log(`[notifyPaymentCompletedAction] Sending email to admins`);
+        await NotificationService.notifyAdminPaymentReceived({
+            lawyerName,
+            clientName,
+            amount,
+            caseTitle: caseTitle || chatData?.caseTitle || 'เคส',
+            chatId,
+            isAutoApproved,
+        });
+
         return { success: true };
     } catch (error: any) {
         console.error("Error in notifyPaymentCompletedAction:", error);
         return { success: false, error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' };
     }
 }
+
 
 /**
  * Atomically marks a single installment as paid within a chat document.
