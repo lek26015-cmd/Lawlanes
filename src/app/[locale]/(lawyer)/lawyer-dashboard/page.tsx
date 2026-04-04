@@ -13,7 +13,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
-import { Briefcase, CheckCircle, Clock, DollarSign, FileText, Inbox, Percent, Star, User, Settings, BarChart, CalendarPlus, FileUp, Loader2, ShieldX, AlertCircle, LogOut, Wallet, ChevronDown, ChevronUp, Plus } from 'lucide-react';
+import { Briefcase, CheckCircle, Clock, DollarSign, FileText, Inbox, Percent, Star, User, Settings, BarChart, CalendarPlus, FileUp, Loader2, ShieldX, AlertCircle, LogOut, Wallet, ChevronDown, ChevronUp, Plus, Bell } from 'lucide-react';
 import { cn } from "@/lib/utils";
 import { 
   getLawyerStatsAction, 
@@ -235,9 +235,24 @@ export default function LawyerDashboardPage() {
           </Alert>
         )}
 
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold font-headline">แดชบอร์ดทนายความ</h1>
-          <p className="text-muted-foreground">ภาพรวมการทำงานและจัดการเคสของคุณ</p>
+        <div className="mb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold font-headline">แดชบอร์ดทนายความ</h1>
+            <p className="text-muted-foreground">ภาพรวมการทำงานและจัดการเคสของคุณ</p>
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => {
+              const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2571/2571-preview.mp3");
+              audio.volume = 0.5;
+              audio.play().catch(e => console.error("Audio play failed:", e));
+            }}
+            className="w-full md:w-auto gap-2 border-primary/20 hover:border-primary/50 text-primary rounded-full bg-white shadow-sm"
+          >
+            <Bell className="h-4 w-4" />
+            ทดสอบเสียงแจ้งเตือน (กระดิ่ง)
+          </Button>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
