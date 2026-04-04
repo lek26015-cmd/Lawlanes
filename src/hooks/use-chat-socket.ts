@@ -24,15 +24,13 @@ export function useChatSocket(chatId: string, userId: string, userName: string) 
 
   // Helper for notification sound
   const playNotificationSound = useCallback(() => {
-    if (document.hidden) {
-      try {
-        // A subtle "pop" sound for chat notifications
-        const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3");
-        audio.volume = 0.3;
-        audio.play().catch(() => { /* Ignore autoplay blocks */ });
-      } catch (e) {
-        console.warn("Failed to play notification sound", e);
-      }
+    try {
+      // A subtle "pop" sound for chat notifications
+      const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3");
+      audio.volume = 0.4;
+      audio.play().catch(() => { /* Ignore autoplay blocks */ });
+    } catch (e) {
+      console.warn("Failed to play notification sound", e);
     }
   }, []);
 
