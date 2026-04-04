@@ -111,7 +111,7 @@ export function TestAccountsControl() {
             await setDoc(doc(firestore, 'users', user.uid), {
                 email,
                 name: `ลูกความทดสอบ #${randomId}`,
-                role: 'user',
+                role: 'customer',
                 createdAt: serverTimestamp(),
             });
 

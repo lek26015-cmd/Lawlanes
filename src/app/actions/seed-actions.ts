@@ -101,7 +101,7 @@ export async function setupTestAccounts() {
     try {
         const testAccounts = [
             { email: 'lawyer-test@lawslane.com', password: 'lawslane1234', role: 'lawyer', name: 'ทนายทดสอบ ระบบ (Test Lawyer)' },
-            { email: 'client-test@lawslane.com', password: 'lawslane1234', role: 'user', name: 'ลูกความทดสอบ ระบบ (Test Client)' }
+            { email: 'client-test@lawslane.com', password: 'lawslane1234', role: 'customer', name: 'ลูกความทดสอบ ระบบ (Test Client)' }
         ];
 
         for (const account of testAccounts) {
@@ -140,10 +140,10 @@ export async function setupTestAccounts() {
                         name: account.name,
                         email: account.email,
                         role: 'lawyer',
-                        specialization: ['กฎหมายแพ่ง', 'กฎหมายอาญา'],
+                        specialty: ['กฎหมายแพ่ง', 'กฎหมายอาญา'],
                         rating: 5.0,
                         reviewCount: 12,
-                        status: 'verified',
+                        status: 'approved',
                         isOnline: true,
                         createdAt: admin.firestore.FieldValue.serverTimestamp(),
                         pricing: {
@@ -160,7 +160,7 @@ export async function setupTestAccounts() {
                     await userRef.set({
                         name: account.name,
                         email: account.email,
-                        role: 'user',
+                        role: 'customer',
                         createdAt: admin.firestore.FieldValue.serverTimestamp(),
                     });
                 }
