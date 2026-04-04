@@ -12,10 +12,9 @@ import { Building2, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { initializeFirebase } from '@/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
+import { submitRegistrationRequestAction } from '@/app/actions/form-actions';
 
 export default function RegistrationRequestPage() {
     const t = useTranslations('RegistrationRequest');
@@ -53,38 +52,33 @@ export default function RegistrationRequestPage() {
         setIsSubmitting(true);
 
         try {
-            // Save to Firestore
-            const { firestore: db } = initializeFirebase();
-            if (!db) {
-                throw new Error("Database connection failed");
+            const result = await submitRegistrationRequestAction(formData);
+
+            if (result.success) {
+                toast({
+                    title: t('toast.successTitle'),
+                    description: t('toast.successDesc'),
+                });
+
+                // Reset form
+                setFormData({
+                    contactName: '',
+                    companyName: '',
+                    phone: '',
+                    email: '',
+                    registrationType: '',
+                    details: ''
+                });
             }
-            await addDoc(collection(db, 'registrationRequests'), {
-                ...formData,
-                status: 'pending',
-                createdAt: serverTimestamp(),
-                updatedAt: serverTimestamp()
-            });
 
-            toast({
-                title: t('toast.successTitle'),
-                description: t('toast.successDesc'),
-            });
-
-            // Reset form
-            setFormData({
-                contactName: '',
-                companyName: '',
-                phone: '',
-                email: '',
-                registrationType: '',
-                details: ''
-            });
-
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error submitting request:", error);
+            
+            const isRateLimit = error.message?.includes('TOO_MANY_REQUESTS') || error.message?.includes('Rate limit exceeded');
+            
             toast({
-                title: t('toast.errorTitle'),
-                description: t('toast.errorDesc'),
+                title: isRateLimit ? 'ส่งคำขอมากเกินไป' : t('toast.errorTitle'),
+                description: isRateLimit ? 'กรุณารอสักครู่แล้วลองใหม่อีกครั้ง' : t('toast.errorDesc'),
                 variant: "destructive"
             });
         } finally {

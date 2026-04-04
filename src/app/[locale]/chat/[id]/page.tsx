@@ -259,6 +259,10 @@ function ChatPageContent() {
 
     const handleConfirmRelease = async () => {
         if (!firestore) return;
+        if (!effectiveIsLawyerView) {
+            toast({ variant: "destructive", title: "ไม่มีสิทธิ์", description: "เฉพาะทนายความเท่านั้นที่สามารถปิดเคสได้" });
+            return;
+        }
         try {
             await updateDoc(doc(firestore, 'chats', chatId), {
                 status: 'closed',
@@ -266,7 +270,12 @@ function ChatPageContent() {
             });
             toast({ title: "ดำเนินการสำเร็จ", description: "เคสเสร็จสมบูรณ์แล้ว" });
             setTimeout(() => {
-                router.push(`/review/${chatId}?lawyerId=${lawyerId}`);
+                if (lawyerId) {
+                    router.push(`/review/${chatId}?lawyerId=${lawyerId}`);
+                } else {
+                    toast({ variant: "destructive", title: "ข้อผิดพลาด", description: "ไม่พบรหัสประจำตัวทนายความ ไม่สามารถส่งไปยังหน้ารีวิวได้" });
+                    router.push('/dashboard');
+                }
             }, 1500);
         } catch (error) {
             toast({ variant: "destructive", title: "เกิดข้อผิดพลาด", description: "ไม่สามารถปิดเคสได้" });
@@ -274,7 +283,14 @@ function ChatPageContent() {
     };
 
     const handleSubmitReview = async () => {
-        if (rating === 0 || !user || !lawyerId) return;
+        if (rating === 0) {
+            toast({ variant: "destructive", title: "ข้อผิดพลาด", description: "กรุณาให้คะแนนก่อนส่งรีวิว" });
+            return;
+        }
+        if (!user || !lawyerId) {
+            toast({ variant: "destructive", title: "ข้อผิดพลาด", description: "ไม่พบข้อมูลทนายความในระบบ" });
+            return;
+        }
         try {
             setIsLoading(true);
             await submitReviewAction({
@@ -460,8 +476,8 @@ function ChatPageContent() {
                                                 <p className="text-[10px] text-slate-500 mt-0.5">{lawyer?.specialty?.join(', ')}</p>
                                             </div>
                                         </div>
-                                        <Button variant="outline" className="w-full text-xs h-9 rounded-xl border-slate-200" asChild disabled={!lawyer}>
-                                            <Link href={`/lawyer/${lawyerId}`}>
+                                        <Button variant="outline" className="w-full text-xs h-9 rounded-xl border-slate-200" asChild disabled={!lawyer || !lawyerId}>
+                                            <Link href={`/lawyer/${lawyerId || ''}`}>
                                                 ดูโปรไฟล์ฉบับเต็ม
                                             </Link>
                                         </Button>
@@ -574,7 +590,7 @@ function ChatPageContent() {
                                             <div className="py-2">
                                                 <p className="text-3xl font-black text-slate-900 mb-2">฿{chatAmount.toLocaleString()}</p>
                                                 <p className="text-[10px] text-slate-500">เงินถูกคุ้มครองโดยระบบ Lawlane</p>
-                                                <Button className="w-full mt-4 bg-green-600 hover:bg-green-700 font-bold h-9 text-xs" onClick={handleConfirmRelease}>ยืนยันปิดเคส</Button>
+                                                {effectiveIsLawyerView && <Button className="w-full mt-4 bg-green-600 hover:bg-green-700 font-bold h-9 text-xs" onClick={handleConfirmRelease}>ยืนยันปิดเคส</Button>}
                                             </div>
                                         )}
                                     </CardContent>

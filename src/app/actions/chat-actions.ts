@@ -25,7 +25,7 @@ export async function getChatDetailsAction(chatId: string) {
         };
     } catch (error: any) {
         console.error("Error fetching chat details action:", error);
-        return { success: false, error: error.message };
+        return { success: false, error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' };
     }
 }
 
@@ -63,7 +63,7 @@ export async function ensureChatExistsAction(chatId: string, participants: strin
         return { success: true };
     } catch (error: any) {
         console.error("Error ensuring chat exists action:", error);
-        return { success: false, error: error.message };
+        return { success: false, error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' };
     }
 }
 
@@ -73,14 +73,38 @@ export async function sendChatMessageAction(params: {
     senderId: string,
     senderName: string,
     recipientId: string,
-    isLawyerView: boolean
+    isLawyerView: boolean,
+    authToken?: string
 }) {
     try {
         const adminApp = await initAdmin();
         if (!adminApp) return { success: false, error: 'Firebase Admin not initialized.' };
         const db = adminApp.firestore();
 
-        const { chatId, text, senderId, senderName, recipientId, isLawyerView } = params;
+        const { chatId, text, senderId, senderName, recipientId, isLawyerView, authToken } = params;
+
+        // 0. Auth Verification — verify the caller is who they claim to be
+        if (authToken) {
+            try {
+                const decodedToken = await adminApp.auth().verifyIdToken(authToken);
+                if (decodedToken.uid !== senderId) {
+                    console.error(`[Auth] Token UID mismatch: token=${decodedToken.uid}, senderId=${senderId}`);
+                    return { success: false, error: 'Unauthorized: sender identity mismatch.' };
+                }
+            } catch (authErr: any) {
+                console.error('[Auth] Token verification failed:', authErr.message);
+                return { success: false, error: 'Unauthorized: invalid auth token.' };
+            }
+        } else {
+            // No token provided — verify senderId is a participant of the chat as a weaker guard
+            const chatSnap = await db.collection('chats').doc(chatId).get();
+            if (!chatSnap.exists) return { success: false, error: 'Chat not found.' };
+            const participants: string[] = chatSnap.data()?.participants || [];
+            if (!participants.includes(senderId)) {
+                console.error(`[Auth] senderId ${senderId} is not a participant of chat ${chatId}`);
+                return { success: false, error: 'Unauthorized: not a participant of this chat.' };
+            }
+        }
 
         // 1. Rate Limiting Protection (10 messages per 5 seconds)
         const rateCheck = await checkRateLimit(senderId, 10, 5000);
@@ -99,12 +123,28 @@ export async function sendChatMessageAction(params: {
         });
 
         // 3. Update parent chat metadata
+        //    FIX: When sender writes, clear the RECIPIENT's ReadAt field so UI won't show stale "Read" status.
         const chatRef = db.collection('chats').doc(chatId);
         batch.update(chatRef, {
             lastMessage: text,
             lastMessageAt: admin.firestore.FieldValue.serverTimestamp(),
             hasNewMessage: !isLawyerView,
-            ...(isLawyerView ? { lawyerReadAt: admin.firestore.FieldValue.serverTimestamp(), lawyerReadStatus: 'read' } : { clientReadStatus: 'unread' })
+            ...(isLawyerView
+                ? {
+                    lawyerReadAt: admin.firestore.FieldValue.serverTimestamp(),
+                    lawyerReadStatus: 'read',
+                    // Clear client's read status so UI shows "unread" for the new message
+                    clientReadAt: admin.firestore.FieldValue.delete(),
+                    clientReadStatus: 'unread',
+                  }
+                : {
+                    clientReadAt: admin.firestore.FieldValue.serverTimestamp(),
+                    clientReadStatus: 'read',
+                    // Clear lawyer's read status so UI shows "unread" for the new message
+                    lawyerReadAt: admin.firestore.FieldValue.delete(),
+                    lawyerReadStatus: 'unread',
+                  }
+            )
         });
 
         // 4. Create In-App Notification
@@ -184,7 +224,7 @@ export async function sendChatMessageAction(params: {
         return { success: true };
     } catch (error: any) {
         console.error("Error sending chat message action:", error);
-        return { success: false, error: error.message };
+        return { success: false, error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' };
     }
 }
 
@@ -211,7 +251,7 @@ export async function markChatAsReadAction(chatId: string, isLawyerView: boolean
         return { success: true };
     } catch (error: any) {
         console.error("Error marking chat as read action:", error);
-        return { success: false, error: error.message };
+        return { success: false, error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' };
     }
 }
 
@@ -276,7 +316,7 @@ export async function requestFeeAction(params: {
         return { success: true };
     } catch (error: any) {
         console.error("Error in requestFeeAction:", error);
-        return { success: false, error: error.message };
+        return { success: false, error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' };
     }
 }
 
@@ -352,6 +392,6 @@ export async function notifyPaymentCompletedAction(params: {
         return { success: true };
     } catch (error: any) {
         console.error("Error in notifyPaymentCompletedAction:", error);
-        return { success: false, error: error.message };
+        return { success: false, error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' };
     }
 }

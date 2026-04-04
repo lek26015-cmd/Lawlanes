@@ -9,7 +9,6 @@ import {
 } from 'firebase/firestore';
 import { User } from 'firebase/auth';
 import { 
-  sendChatMessageAction, 
   markChatAsReadAction 
 } from '@/app/actions/chat-actions';
 import type { HumanChatMessage } from '@/lib/types';
@@ -39,6 +38,7 @@ interface ChatBoxProps {
 interface MessageWithStatus extends HumanChatMessage {
   translation?: string;
   isTranslating?: boolean;
+  _optimisticText?: string; // Original text tag for cleanup matching
 }
 
 function ChatBoxContent({
@@ -114,10 +114,10 @@ function ChatBoxContent({
       isTranslating: (messages.find(m => m.id === msg.id) as any)?.isTranslating,
     })));
     
-    // Clear optimistic messages once they appear in the real socket feed
+    // Clear optimistic messages whose text has appeared in the real socket feed
     if (socketMessages.length > 0) {
-       const lastSocketMsg = socketMessages[socketMessages.length - 1];
-       setOptimisticMessages(prev => prev.filter(m => m.text !== lastSocketMsg.text));
+       const socketTexts = new Set(socketMessages.map(m => m.text));
+       setOptimisticMessages(prev => prev.filter(m => !socketTexts.has(m._optimisticText ?? m.text)));
     }
   }, [socketMessages]);
 
@@ -134,7 +134,8 @@ function ChatBoxContent({
       text: messageText,
       senderId: currentUser.uid,
       timestamp: Date.now(),
-      status: 'sending'
+      status: 'sending',
+      _optimisticText: messageText, // Tag for reliable cleanup matching
     };
     setOptimisticMessages(prev => [...prev, optMsg]);
     setInput('');

@@ -489,7 +489,7 @@ async function fallbackChat(prompt: string, history: any[], locale: string = 'th
       ? `Sorry, we cannot access the database at this time (${error?.message || 'Unknown Error'}). Please try again.`
       : (locale.startsWith('zh')
         ? `抱歉，我们目前无法访问数据库 (${error?.message || 'Unknown Error'})。请重试。`
-        : `ขออภัยครับ ไม่สามารถเข้าถึงฐานข้อมูลได้ในขณะนี้ (${error?.message || 'Unknown Error'}) กรุณาลองใหม่อีกครั้ง หรือติดต่อเจ้าหน้าที่`);
+        : `ขออภัยค่ะ ไม่สามารถเข้าถึงฐานข้อมูลได้ในขณะนี้ (${error?.message || 'Unknown Error'}) กรุณาลองใหม่อีกครั้ง หรือติดต่อเจ้าหน้าที่`);
 
     return {
       sections: [

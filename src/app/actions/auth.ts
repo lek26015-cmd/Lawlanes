@@ -89,13 +89,13 @@ export async function sendCustomVerificationEmail(email: string, name: string) {
 
     if (result.error) {
       console.error('Error sending verification email with Resend:', result.error);
-      return { success: false, error: result.error.message };
+      return { success: false, error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' };
     }
 
     return { success: true };
   } catch (error: any) {
     console.error('Error creating custom verification email:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' };
   }
 }
 
@@ -129,12 +129,12 @@ export async function sendCustomPasswordResetEmailV2(email: string) {
 
     if (result.error) {
       console.error('Error sending reset email with Resend:', result.error);
-      return { success: false, error: result.error.message };
+      return { success: false, error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' };
     }
 
     return { success: true };
   } catch (error: any) {
     console.error('Error in custom password reset:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' };
   }
 }

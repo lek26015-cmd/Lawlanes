@@ -706,71 +706,46 @@ export async function getFinancialStats(db: Firestore) {
     monthlyData: []
   };
 
-  let totalServiceValue = 0;
-  let platformRevenueThisMonth = 0;
-  let platformTotalRevenue = 0;
-  const monthlyRevenue: { [key: string]: number } = {};
-
   try {
-    // Fetch in parallel
-    const [appointmentsSnapshot, chatsSnapshot] = await Promise.all([
-      getDocs(query(collection(db, 'appointments'), limit(500))),
-      getDocs(query(collection(db, 'chats'), limit(500)))
-    ]);
+    const globalStatsRef = doc(db, 'system', 'global_stats');
+    const docSnap = await getDoc(globalStatsRef);
 
-    appointmentsSnapshot.docs.forEach(doc => {
-      const data = doc.data();
-      if (data.status !== 'pending' && data.status !== 'pending_payment' && data.status !== 'cancelled') {
-        const amount = 3500; // Fixed price for now
-        totalServiceValue += amount;
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      
+      // Compute platformRevenueThisMonth from monthlyData
+      const now = new Date();
+      const currentMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      const platformRevenueThisMonth = data.monthlyData?.[currentMonthKey] || 0;
 
-        const date = data.createdAt ? data.createdAt.toDate() : new Date();
-        const monthKey = format(date, 'MMM', { locale: th });
-        monthlyRevenue[monthKey] = (monthlyRevenue[monthKey] || 0) + (amount * 0.15); // Platform share
+      // Extract and format monthly data for chart
+      const monthsOrder = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+      const monthlyData = monthsOrder.map((month, index) => {
+          const monthIndex = String(index + 1).padStart(2, '0');
+          // For the chart, we might aggregate all years, or just the current year. Let's do current year.
+          const key = `${now.getFullYear()}-${monthIndex}`;
+          return {
+              month,
+              total: data.monthlyData?.[key] || 0
+          };
+      }).filter(d => d.total > 0);
 
-        const now = new Date();
-        if (date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()) {
-          platformRevenueThisMonth += amount * 0.15;
-        }
-      }
-    });
-
-    chatsSnapshot.docs.forEach(doc => {
-      const data = doc.data();
-      // Assuming chats created are paid if not 'pending_payment'
-      if (data.status !== 'pending_payment') {
-        const amount = 500; // Fixed price
-        totalServiceValue += amount;
-
-        const date = data.createdAt ? data.createdAt.toDate() : new Date();
-        const monthKey = format(date, 'MMM', { locale: th });
-        monthlyRevenue[monthKey] = (monthlyRevenue[monthKey] || 0) + (amount * 0.15);
-
-        const now = new Date();
-        if (date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()) {
-          platformRevenueThisMonth += amount * 0.15;
-        }
-      }
-    });
-
-    platformTotalRevenue = totalServiceValue * 0.15;
-
+      return {
+        totalServiceValue: data.totalServiceValue || 0,
+        platformRevenueThisMonth,
+        platformTotalRevenue: data.platformTotalRevenue || 0,
+        monthlyData
+      };
+    }
   } catch (error) {
-    console.error("Error calculating financial stats:", error);
+    console.error("Error fetching financial stats from global_stats:", error);
   }
 
-  // Format monthly data for chart
-  const monthsOrder = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
-  const monthlyData = monthsOrder.map(month => ({
-    month,
-    total: monthlyRevenue[month] || 0
-  })).filter(d => d.total > 0); // Only show months with revenue
-
   return {
-    totalServiceValue,
-    platformRevenueThisMonth,
-    platformTotalRevenue,
-    monthlyData
+    totalServiceValue: 0,
+    platformRevenueThisMonth: 0,
+    platformTotalRevenue: 0,
+    monthlyData: []
   };
 }
 
@@ -791,50 +766,37 @@ export async function getLawyerStats(db: Firestore, lawyerId: string) {
 
   try {
     // 1. Parallelize data fetching
-    const [appointmentsSnapshot, chatsSnapshot, reviewsSnapshot, allChatsSnapshot] = await Promise.all([
+    const [transactionsSnapshot, appointmentsSnapshot, chatsSnapshot, reviewsSnapshot, allChatsSnapshot] = await Promise.all([
+      getDocs(query(collection(db, 'transactions'), where('lawyerId', '==', lawyerId), where('status', '==', 'completed'), limit(1000))),
       getDocs(query(collection(db, 'appointments'), where('lawyerId', '==', lawyerId), where('status', '==', 'completed'), limit(200))),
-      getDocs(query(collection(db, 'chats'), where('participants', 'array-contains', lawyerId), limit(500))),
+      getDocs(query(collection(db, 'chats'), where('participants', 'array-contains', lawyerId), where('status', '==', 'closed'), limit(500))),
       getDocs(query(collection(db, 'reviews'), where('lawyerId', '==', lawyerId), limit(200))),
       getDocs(query(collection(db, 'chats'), where('participants', 'array-contains', lawyerId), limit(500)))
     ]);
 
-    appointmentsSnapshot.docs.forEach(doc => {
+    // Calculate revenue from transactions
+    transactionsSnapshot.docs.forEach(doc => {
       const data = doc.data();
-      const amount = 3500; // Fixed price
-      const lawyerShare = amount * 0.85; // 85% share
+      const netAmount = data.netAmount || 0;
+      totalIncome += netAmount;
 
-      totalIncome += lawyerShare;
-
-      const date = data.createdAt ? data.createdAt.toDate() : new Date();
+      const date = data.createdAt?.toDate ? data.createdAt.toDate() : new Date();
       const now = new Date();
       if (date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()) {
-        incomeThisMonth += lawyerShare;
-      }
-      completedCases++;
-    });
-
-    chatsSnapshot.docs.forEach(doc => {
-      const data = doc.data();
-      if (data.status === 'closed') {
-        const amount = 500; // Fixed price
-        const lawyerShare = amount * 0.85; // 85% share
-
-        totalIncome += lawyerShare;
-
-        const date = data.createdAt ? data.createdAt.toDate() : new Date();
-        const now = new Date();
-        if (date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()) {
-          incomeThisMonth += lawyerShare;
-        }
-        completedCases++;
+        incomeThisMonth += netAmount;
       }
     });
 
+    // Count completions
+    completedCases = appointmentsSnapshot.size + chatsSnapshot.size;
+
+    // Calculate ratings
     if (!reviewsSnapshot.empty) {
       const totalRating = reviewsSnapshot.docs.reduce((acc, doc) => acc + (doc.data().rating || 0), 0);
       rating = totalRating / reviewsSnapshot.size;
     }
 
+    // Calculate response rate based on chats
     if (!allChatsSnapshot.empty) {
       const engagedChats = allChatsSnapshot.docs.filter(doc => {
         const data = doc.data();

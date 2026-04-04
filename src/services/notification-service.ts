@@ -9,7 +9,10 @@ import { generateStandardEmailHtml } from "@/lib/email-templates";
 import { Resend } from "resend";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://lawslane.com';
-const ADMIN_EMAILS = ["contact@lawslane.com", "lek.26015@gmail.com"];
+const ADMIN_EMAILS = (process.env.ADMIN_NOTIFICATION_EMAILS || "contact@lawslane.com")
+  .split(",")
+  .map(e => e.trim())
+  .filter(Boolean);
 
 /**
  * Checks if Cloudflare Queue is properly configured.

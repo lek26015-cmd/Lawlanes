@@ -340,6 +340,7 @@ function PaymentPageContent() {
                     status: slipOkData ? 'active' : 'pending_payment',
                     paidAt: serverTimestamp(),
                     paidAmount: finalFee,
+                    amount: finalFee, // Ensures chat page recognizes this as an official case (isOfficial = amount > 0)
                     hasNewPayment,
                 };
                 // If slipOkData confirmed, mark payment officially done

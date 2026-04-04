@@ -67,7 +67,7 @@ export async function updateLawyerPricingAction(lawyerId: string, pricing: {
         return { success: true };
     } catch (error: any) {
         console.error("Error updating lawyer pricing action:", error);
-        return { success: false, error: error.message };
+        return { success: false, error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' };
     }
 }
 
@@ -138,7 +138,7 @@ export async function addToVerifiedRegistry(data: {
         return { success: true };
     } catch (error: any) {
         console.error("Error adding to verified registry action:", error);
-        return { success: false, error: error.message };
+        return { success: false, error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' };
     }
 }
 
@@ -211,7 +211,7 @@ export async function createManualCaseAction(lawyerId: string, data: {
         return { success: true, chatId: chatId };
     } catch (error: any) {
         console.error("Error creating/updating manual case action:", error);
-        return { success: false, error: error.message };
+        return { success: false, error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' };
     }
 }
 

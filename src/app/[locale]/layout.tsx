@@ -8,6 +8,7 @@ import { ClientProviders } from '../client-providers';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import ScrollToTopButton from '@/components/ui/scroll-to-top';
+import { TestAccountsControl } from '@/components/dev/test-accounts-control';
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
@@ -104,6 +105,7 @@ export default async function RootLayout({
           <ClientProviders domainType={domainType}>
             {children}
             <ScrollToTopButton />
+            <TestAccountsControl />
           </ClientProviders>
         </NextIntlClientProvider>
       </body>

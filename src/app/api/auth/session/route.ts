@@ -65,6 +65,12 @@ export async function POST(request: Request) {
             console.error('Error fetching user role from Firestore:', dbErr);
         }
 
+        // Add a role hint cookie for middleware RBAC
+        cookieStore.set('role_hint', role, {
+            ...cookieOptions,
+            httpOnly: false,
+        });
+
         // Calculate a safe suggested redirect
         let suggestedRedirect = role === 'lawyer' ? '/lawyer-dashboard' : '/dashboard';
         
@@ -149,6 +155,7 @@ export async function DELETE() {
 
         cookieStore.delete({ name: 'session', ...cookieOptions });
         cookieStore.delete({ name: 'session_hint', ...cookieOptions });
+        cookieStore.delete({ name: 'role_hint', ...cookieOptions });
 
         return NextResponse.json({ success: true });
     } catch (error) {

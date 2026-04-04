@@ -190,7 +190,7 @@ export async function getUserDashboardData(userId: string) {
 
         return { cases, appointments, tickets, capDeals, bookOrders, invoices };
     } catch (error) {
-        throw error;
+        throw new Error('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
     }
 }
 
@@ -221,7 +221,7 @@ export async function getBookOrders(userId: string, limitCount: number = 50) {
         return bookOrders;
     } catch (error) {
         console.error("Error fetching book orders server-side:", error);
-        throw error;
+        throw new Error('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
     }
 }
 
@@ -507,26 +507,17 @@ export async function getLawyerFinancialsAction(lawyerId: string) {
         const withdrawalsRef = db.collection('withdrawals');
         const lawyerRef = db.collection('lawyerProfiles').doc(lawyerId);
 
-        const [appSnapshot, chatSnapshot, withdrawSnapshot, lawyerDoc] = await Promise.all([
-            appointmentsRef.where('lawyerId', '==', lawyerId).get(),
-            chatsRef.where('participants', 'array-contains', lawyerId).get(),
+        const [transactionsSnapshot, withdrawSnapshot, lawyerDoc] = await Promise.all([
+            db.collection('transactions').where('lawyerId', '==', lawyerId).get(),
             withdrawalsRef.where('lawyerId', '==', lawyerId).get(),
             lawyerRef.get()
         ]);
 
         const lawyerProfile = lawyerDoc.data();
-        const appointmentFeeBase = lawyerProfile?.pricing?.appointmentFee || 3500;
-        const chatFeeBase = lawyerProfile?.pricing?.chatFee || 500;
-        const platformFeeRate = lawyerProfile?.pricing?.platformFeeRate || 0.15;
 
-        // Collect user IDs for batch fetching
+        // Collect user IDs for batch fetching mapped to transactions
         const userIds = new Set<string>();
-        appSnapshot.docs.forEach(d => { if (d.get('userId')) userIds.add(d.get('userId')); });
-        chatSnapshot.docs.forEach(d => {
-            const participants = d.get('participants');
-            const clientParticipantId = participants?.find((p: string) => p !== lawyerId);
-            if (clientParticipantId) userIds.add(clientParticipantId);
-        });
+        transactionsSnapshot.docs.forEach(d => { if (d.get('clientId')) userIds.add(d.get('clientId')); });
 
         const userProfiles: Record<string, any> = {};
         if (userIds.size > 0) {
@@ -549,63 +540,36 @@ export async function getLawyerFinancialsAction(lawyerId: string) {
         let thisMonth = 0;
         const now = new Date();
 
-        // Process Appointments
-        appSnapshot.docs.forEach(d => {
+        // Process Transactions
+        transactionsSnapshot.docs.forEach(d => {
             const data = d.data();
-            if (data.status === 'cancelled' || data.status === 'pending_payment') return;
 
-            const amount = appointmentFeeBase * (1 - platformFeeRate);
+            const netAmount = data.netAmount || 0;
             const isCompleted = data.status === 'completed';
 
             const date = data.createdAt?.toDate ? data.createdAt.toDate() : new Date();
             if (isCompleted) {
-                total += amount;
+                total += netAmount;
                 if (date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()) {
-                    thisMonth += amount;
+                    thisMonth += netAmount;
                 }
             } else {
-                pending += amount;
+                pending += netAmount;
             }
+
+            // Derive description from id (e.g. "apt_xxx" -> "นัดหมายปรึกษา", "chat_xxx" -> "ปรึกษาผ่านแชท")
+            let description = 'ทำรายการ';
+            if (d.id.startsWith('apt_')) description = 'นัดหมายปรึกษา';
+            else if (d.id.startsWith('chat_')) description = 'ปรึกษาผ่านแชท';
 
             allTransactions.push({
                 id: d.id,
                 date: date.toISOString(),
-                description: 'นัดหมายปรึกษา',
-                amount: amount,
-                type: 'revenue',
+                description: description,
+                amount: netAmount, // Dashboard uses amount strictly to display revenue
+                type: data.type || 'revenue',
                 status: isCompleted ? 'completed' : 'pending',
-                clientName: userProfiles[data.userId]?.name || 'ลูกความ',
-                rawDateValue: date.getTime()
-            });
-        });
-
-        // Process Chats
-        chatSnapshot.docs.forEach(d => {
-            const data = d.data();
-            if (data.status === 'pending_payment') return;
-
-            const clientId = data.participants?.find((p: string) => p !== lawyerId);
-            const amount = chatFeeBase * (1 - platformFeeRate);
-            const isCompleted = data.status === 'closed';
-
-            const date = data.createdAt?.toDate ? data.createdAt.toDate() : new Date();
-            if (isCompleted) {
-                total += amount;
-                if (date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()) {
-                    thisMonth += amount;
-                }
-            } else {
-                pending += amount;
-            }
-
-            allTransactions.push({
-                id: d.id,
-                date: date.toISOString(),
-                description: 'ปรึกษาผ่านแชท',
-                amount: amount,
-                type: 'revenue',
-                status: isCompleted ? 'completed' : 'pending',
-                clientName: userProfiles[clientId]?.name || 'ลูกความ',
+                clientName: userProfiles[data.clientId]?.name || 'ลูกความ',
                 rawDateValue: date.getTime()
             });
         });
@@ -659,6 +623,6 @@ export async function getLawyerFinancialsAction(lawyerId: string) {
 
     } catch (error) {
         console.error("Error fetching lawyer financials action:", error);
-        throw error;
+        throw new Error('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
     }
 }

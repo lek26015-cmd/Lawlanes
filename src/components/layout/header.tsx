@@ -46,10 +46,12 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
   const { auth, firestore } = useFirebase();
   const { user, isUserLoading: isLoading } = useAuthUser();
 
-  const isSuperUser = user && (user.uid === 'N5ehLbkYXbQQLX5KEuwJbeL3cXO2' || user.uid === 'wS9w7ysNYUajNsBYZ6C7n2Afe9H3');
   const [role, setRole] = useState<string | null>(null);
-  const isAdmin = role === 'admin' || isSuperUser;
-  const isLawyer = role === 'lawyer' || isSuperUser;
+  const [customClaims, setCustomClaims] = useState<{ admin?: boolean; lawyer?: boolean }>({});
+
+  const isAdmin = role === 'admin' || customClaims.admin === true;
+  const isLawyer = role === 'lawyer' || customClaims.lawyer === true;
+  const isSuperUser = customClaims.admin === true;
 
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
@@ -58,34 +60,49 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
       if (!user || !firestore) return;
 
       try {
-        // 1. Check Lawyer Profile FIRST (Priority)
+        // 1. Read custom claims from Firebase Auth token
+        const tokenResult = await user.getIdTokenResult();
+        const claims = tokenResult.claims || {};
+        setCustomClaims({
+          admin: claims.admin === true,
+          lawyer: claims.lawyer === true,
+        });
+
+        // If user has admin claim, set role immediately
+        if (claims.admin === true) {
+          setRole('admin');
+          setUserRole('admin');
+        }
+
+        // 2. Check Lawyer Profile (Firestore)
         const lawyerDocRef = doc(firestore, "lawyerProfiles", user.uid);
         const lawyerSnap = await getDoc(lawyerDocRef);
 
-        // Hotfix for specific user
-        if (lawyerSnap.exists() || user.uid === 'N5ehLbkYXbQQLX5KEuwJbeL3cXO2' || user.uid === 'wS9w7ysNYUajNsBYZ6C7n2Afe9H3') {
+        if (lawyerSnap.exists() || claims.lawyer === true) {
           console.log("User is a lawyer:", user.uid);
-          setRole('lawyer');
-          setUserRole('lawyer');
+          if (!claims.admin) {
+            setRole('lawyer');
+            setUserRole('lawyer');
+          }
           setAvatarUrl(lawyerSnap.exists() ? lawyerSnap.data().imageUrl : user.photoURL);
-          return; // Exit early if lawyer
+          if (!claims.admin) return; // Exit early if lawyer (non-admin)
         }
 
-        // 2. Check User Profile
-        const userDocRef = doc(firestore, "users", user.uid);
-        const userSnap = await getDoc(userDocRef);
+        // 3. Check User Profile (Firestore fallback)
+        if (!claims.admin && !lawyerSnap.exists()) {
+          const userDocRef = doc(firestore, "users", user.uid);
+          const userSnap = await getDoc(userDocRef);
 
-        if (userSnap.exists()) {
-          const data = userSnap.data();
-          console.log("User is a regular user:", data.role);
-          setRole(data.role || 'user');
-          setUserRole(data.role || 'user');
-          setAvatarUrl(data.avatar || user.photoURL);
-        } else {
-          // No profile found
-          setRole('user');
-          setUserRole('user');
-          setAvatarUrl(user.photoURL);
+          if (userSnap.exists()) {
+            const data = userSnap.data();
+            setRole(data.role || 'user');
+            setUserRole(data.role || 'user');
+            setAvatarUrl(data.avatar || user.photoURL);
+          } else {
+            setRole('user');
+            setUserRole('user');
+            setAvatarUrl(user.photoURL);
+          }
         }
 
       } catch (error) {

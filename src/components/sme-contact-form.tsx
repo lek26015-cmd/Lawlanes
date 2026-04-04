@@ -78,27 +78,27 @@ export function SmeContactForm() {
                 fileUrl = await uploadToR2(data, 'sme-requests');
             }
 
-            const { firestore: db } = initializeFirebase();
-            if (!db) throw new Error("Firestore not initialized");
-
-            await addDoc(collection(db, 'smeRequests'), {
+            const { submitSmeRequestAction } = await import('@/app/actions/form-actions');
+            const result = await submitSmeRequestAction({
                 ...formData,
                 fileUrl,
                 fileName: file ? file.name : '',
-                status: 'new',
-                createdAt: serverTimestamp(),
             });
 
-            setIsSuccess(true);
-            toast({
-                title: t('toast.successTitle'),
-                description: t('toast.successDesc'),
-            });
-        } catch (error) {
+            if (result.success) {
+                setIsSuccess(true);
+                toast({
+                    title: t('toast.successTitle'),
+                    description: t('toast.successDesc'),
+                });
+            }
+        } catch (error: any) {
             console.error("Error submitting form:", error);
+            const isRateLimit = error.message?.includes('TOO_MANY_REQUESTS') || error.message?.includes('Rate limit exceeded');
+            
             toast({
-                title: t('toast.errorTitle'),
-                description: t('toast.errorDesc'),
+                title: isRateLimit ? 'ส่งคำขอมากเกินไป' : t('toast.errorTitle'),
+                description: isRateLimit ? 'กรุณารอสักครู่แล้วลองใหม่อีกครั้ง' : t('toast.errorDesc'),
                 variant: "destructive"
             });
         } finally {

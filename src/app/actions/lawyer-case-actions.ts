@@ -78,7 +78,7 @@ export async function updateCaseStatusAction(caseId: string, newStatus: CaseStat
         return { success: true };
     } catch (error) {
         console.error("Error updating case status:", error);
-        return { success: false, error: String(error) };
+        return { success: false, error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' };
     }
 }
 
@@ -107,7 +107,7 @@ export async function addCaseMilestoneAction(caseId: string, title: string) {
         return { success: true, id: docRef.id };
     } catch (error) {
         console.error("Error adding milestone:", error);
-        return { success: false, error: String(error) };
+        return { success: false, error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' };
     }
 }
 
@@ -136,7 +136,7 @@ export async function toggleMilestoneStatusAction(milestoneId: string, caseId: s
         return { success: true, newStatus };
     } catch (error) {
         console.error("Error toggling milestone status:", error);
-        return { success: false, error: String(error) };
+        return { success: false, error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' };
     }
 }
 
@@ -163,7 +163,7 @@ export async function generateCaseStrategicAdviceAction(caseId: string, caseTitl
         return { success: true, advice };
     } catch (error) {
         console.error("Error generating strategic advice:", error);
-        return { success: false, error: String(error) };
+        return { success: false, error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' };
     }
 }
 
@@ -234,7 +234,8 @@ export async function closeCaseAction(caseId: string, data: {
             return { success: true, requiresApproval: true };
         } else {
             // Close the case immediately
-            await chatRef.update({
+            const batch = db.batch();
+            batch.update(chatRef, {
                 status: 'closed',
                 closedAt: new Date(),
                 caseSummary: data.summary,
@@ -245,12 +246,15 @@ export async function closeCaseAction(caseId: string, data: {
             });
 
             // Also add summary as a system message
-            await chatRef.collection('messages').add({
+            const summaryMsgRef = chatRef.collection('messages').doc();
+            batch.set(summaryMsgRef, {
                 text: `📋 **สรุปเคส:**\n${data.summary}`,
                 senderId: 'system',
                 timestamp: new Date(),
                 type: 'case_summary'
             });
+
+            await batch.commit();
 
             // Send email notification to client
             try {
@@ -280,7 +284,7 @@ export async function closeCaseAction(caseId: string, data: {
         }
     } catch (error: any) {
         console.error("Error closing case:", error);
-        return { success: false, error: error.message };
+        return { success: false, error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' };
     }
 }
 
@@ -303,7 +307,8 @@ export async function cancelCaseAction(caseId: string, lawyerId: string) {
         const chatData = chatDoc.data();
         const paidAmount = chatData?.paidAmount || chatData?.amount || 0;
 
-        await chatRef.update({
+        const batch = db.batch();
+        batch.update(chatRef, {
             status: 'cancelled',
             cancelledAt: new Date(),
             cancelledBy: lawyerId,
@@ -315,12 +320,15 @@ export async function cancelCaseAction(caseId: string, lawyerId: string) {
         });
 
         // Add system message
-        await chatRef.collection('messages').add({
+        const systemMsgRef = chatRef.collection('messages').doc();
+        batch.set(systemMsgRef, {
             text: `❌ เคสถูกยกเลิกโดยทนายความ${paidAmount > 0 ? ` — ระบบจะดำเนินการคืนเงิน ฿${paidAmount.toLocaleString()} ให้ลูกความ` : ''}`,
             senderId: 'system',
             timestamp: new Date(),
             type: 'case_cancelled'
         });
+
+        await batch.commit();
 
         // Send email notification to client
         try {
@@ -346,7 +354,7 @@ export async function cancelCaseAction(caseId: string, lawyerId: string) {
         return { success: true, refundAmount: paidAmount };
     } catch (error: any) {
         console.error("Error cancelling case:", error);
-        return { success: false, error: error.message };
+        return { success: false, error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' };
     }
 }
 
@@ -379,7 +387,7 @@ export async function getCaseDetailsAction(caseId: string) {
         };
     } catch (error: any) {
         console.error("Error getting case details:", error);
-        return { success: false, error: error.message };
+        return { success: false, error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' };
     }
 }
 

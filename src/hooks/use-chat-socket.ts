@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { useFirebase } from '@/firebase';
 import { HumanChatMessage } from '@/lib/types';
@@ -7,13 +7,17 @@ import * as crypto from '@/lib/crypto-utils';
 const WORKER_URL = process.env.NEXT_PUBLIC_CHAT_WORKER_URL || '';
 
 export function useChatSocket(chatId: string, userId: string, userName: string) {
-  const { firestore } = useFirebase();
+  const { firestore, user: authUser } = useFirebase();
   const [messages, setMessages] = useState<HumanChatMessage[]>([]);
   const [isConnected, setIsConnected] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isPartnerTyping, setIsPartnerTyping] = useState(false);
   const socketRef = useRef<WebSocket | null>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // Keys stored in state so useEffect can properly react to key generation
+  const [privateKey, setPrivateKey] = useState<CryptoKey | null>(null);
+  const [publicKey, setPublicKey] = useState<CryptoKey | null>(null);
+  // Refs mirror the state for use inside stable callbacks (sendMessage) to avoid stale closures
   const keysRef = useRef<{ public: CryptoKey | null; private: CryptoKey | null }>({ public: null, private: null });
   const recipientPublicKeyRef = useRef<CryptoKey | null>(null);
   const prevMessageCountRef = useRef<number>(0);
@@ -59,6 +63,9 @@ export function useChatSocket(chatId: string, userId: string, userName: string) 
         }
 
         keysRef.current = { public: pubKey, private: privKey };
+        // Update state to trigger dependent useEffects
+        setPrivateKey(privKey);
+        setPublicKey(pubKey);
 
         // Ensure worker has our public key
         if (WORKER_URL) {
@@ -83,7 +90,7 @@ export function useChatSocket(chatId: string, userId: string, userName: string) 
 
   // 2. Fetch History and Decrypt
   useEffect(() => {
-    if (!chatId || !keysRef.current.private) return;
+    if (!chatId || !privateKey) return;
 
     const fetchAndDecryptHistory = async () => {
       try {
@@ -97,7 +104,7 @@ export function useChatSocket(chatId: string, userId: string, userName: string) 
             const decryptedHistory = await Promise.all(history.map(async (msg: any) => {
                if (msg.text.startsWith("[E2EE-v2]")) {
                   const encryptedData = msg.text.replace("[E2EE-v2]", "");
-                  const decrypted = await crypto.decryptHybrid(encryptedData, userId, keysRef.current.private!);
+                  const decrypted = await crypto.decryptHybrid(encryptedData, userId, privateKey!);
                   return { ...msg, text: decrypted };
                }
                return msg;
@@ -113,7 +120,7 @@ export function useChatSocket(chatId: string, userId: string, userName: string) 
     };
 
     fetchAndDecryptHistory();
-  }, [chatId, userId, keysRef.current.private]);
+  }, [chatId, userId, privateKey]);
 
   // 2.5 Firestore Fallback (Real-time listener for messages subcollection)
   useEffect(() => {
@@ -129,10 +136,10 @@ export function useChatSocket(chatId: string, userId: string, userName: string) 
         const data = doc.data();
         let text = data.text;
 
-        if (text.startsWith("[E2EE-v2]") && keysRef.current.private) {
+        if (text.startsWith("[E2EE-v2]") && privateKey) {
           try {
             const encryptedData = text.replace("[E2EE-v2]", "");
-            text = await crypto.decryptHybrid(encryptedData, userId, keysRef.current.private);
+            text = await crypto.decryptHybrid(encryptedData, userId, privateKey);
           } catch (err) {
             console.warn("Failed to decrypt Firestore message:", err);
           }
@@ -175,11 +182,11 @@ export function useChatSocket(chatId: string, userId: string, userName: string) 
     });
 
     return () => unsubscribe();
-  }, [chatId, firestore, userId, keysRef.current.private, playNotificationSound]);
+  }, [chatId, firestore, userId, privateKey, playNotificationSound]);
 
   // 3. WebSocket Connection
   useEffect(() => {
-    if (!chatId || !userId || !WORKER_URL || !keysRef.current.private) return;
+    if (!chatId || !userId || !WORKER_URL || !privateKey) return;
 
     const wsUrl = `${WORKER_URL.replace('https', 'wss')}/ws/${chatId}?userId=${userId}`;
     const ws = new WebSocket(wsUrl);
@@ -202,7 +209,7 @@ export function useChatSocket(chatId: string, userId: string, userName: string) 
           let text = data.text;
           if (text.startsWith("[E2EE-v2]")) {
              const encryptedData = text.replace("[E2EE-v2]", "");
-             text = await crypto.decryptHybrid(encryptedData, userId, keysRef.current.private!);
+             text = await crypto.decryptHybrid(encryptedData, userId, privateKey!);
           }
 
           setMessages((prev) => {
@@ -218,7 +225,7 @@ export function useChatSocket(chatId: string, userId: string, userName: string) 
     };
     ws.onclose = () => setIsConnected(false);
     return () => ws.close();
-  }, [chatId, userId, keysRef.current.private, playNotificationSound]);
+  }, [chatId, userId, privateKey, playNotificationSound]);
 
   const sendTypingEvent = useCallback((isTyping: boolean) => {
     if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
@@ -272,8 +279,9 @@ export function useChatSocket(chatId: string, userId: string, userName: string) 
         recipientId
       }));
     } else {
-      // 3. Fallback to Server Action
+      // 3. Fallback to Server Action (with auth token)
       try {
+        const authToken = authUser ? await authUser.getIdToken() : undefined;
         const { sendChatMessageAction } = await import('@/app/actions/chat-actions');
         await sendChatMessageAction({
           chatId,
@@ -281,7 +289,8 @@ export function useChatSocket(chatId: string, userId: string, userName: string) 
           senderId: userId,
           senderName: userName,
           recipientId,
-          isLawyerView
+          isLawyerView,
+          authToken
         });
       } catch (err) {
         console.error("Fallback send failed:", err);
