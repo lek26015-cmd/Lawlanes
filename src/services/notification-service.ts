@@ -231,10 +231,10 @@ export const NotificationService = {
       buttonLink: `${SITE_URL}/chat/${chatId}`
     });
 
-    // 1. Send to Client
+    // 1. Send to Client (Non-blocking if possible, but we wait for result to return)
     const clientResult = await sendEmailFlexible(clientEmail, `[Lawslane] ข้อเสนอราคาเปิดคดีใหม่: ${caseTitle}`, emailHtml);
     
-    // 2. Send to Admin
+    // 2. Send to Admin (Parallel)
     const adminHtml = generateStandardEmailHtml({
       title: "มีข้อเสนอราคาเปิดคดีใหม่เข้าระบบ",
       content: `เรียนแอดมิน,<br><br>ทนายความ <span class="highlight">${lawyerName}</span> ได้ส่งข้อเสนอราคาเปิดคดีใหม่ให้แก่คุณ <span class="highlight">${clientName}</span><br><br><span class="highlight">ชื่อคดี:</span> ${caseTitle}<br><span class="highlight">ยอดชำระ:</span> ฿${amount.toLocaleString()}`,
@@ -242,10 +242,13 @@ export const NotificationService = {
       buttonLink: `https://admin.lawslane.com/financials?tab=verification`
     });
     
-    for (const adminEmail of ADMIN_EMAILS) {
+    // Send to all admins in parallel to prevent Server Action timeouts
+    const adminPromises = ADMIN_EMAILS.map(adminEmail => {
       console.log(`[NotificationService] Notifying admin: ${adminEmail}`);
-      await sendEmailFlexible(adminEmail, `[Admin Notice] New Case Proposal: ${caseTitle} (฿${amount.toLocaleString()})`, adminHtml);
-    }
+      return sendEmailFlexible(adminEmail, `[Admin Notice] New Case Proposal: ${caseTitle} (฿${amount.toLocaleString()})`, adminHtml);
+    });
+
+    await Promise.allSettled(adminPromises);
 
     return clientResult;
   },

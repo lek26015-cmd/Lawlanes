@@ -291,10 +291,10 @@ export async function createManualCaseAction(lawyerId: string, data: {
             console.error("Failed to sync legalCase to Pipeline (non-blocking):", legalCaseErr);
         }
 
-        return { success: true, chatId: chatId };
+        return JSON.parse(JSON.stringify({ success: true, chatId: chatId }));
     } catch (error: any) {
         console.error("Error creating/updating manual case action:", error);
-        return { success: false, error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' };
+        return JSON.parse(JSON.stringify({ success: false, error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' }));
     }
 }
 
