@@ -39,7 +39,8 @@ export async function approvePaymentSlipAction(params: {
                 amount,
                 caseTitle: caseTitle || 'เคส',
                 payerName: payerName || 'ลูกความ',
-                isAutoApproved: false
+                isAutoApproved: false,
+                skipAdminNotification: true
             });
 
         } else if (type === 'appointment') {
