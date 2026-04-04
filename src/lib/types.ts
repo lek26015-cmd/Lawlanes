@@ -193,6 +193,7 @@ export interface LawyerCase {
   lastUpdate: string;
   notifications?: number | 'document';
   lastMessage?: string;
+  hasNewPayment?: boolean;
 }
 
 export interface Ad {

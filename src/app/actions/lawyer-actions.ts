@@ -214,6 +214,55 @@ export async function createManualCaseAction(lawyerId: string, data: {
 
         const chatRes = await chatRef.set(chatPayload, { merge: true });
 
+        // BILLING FIX: Reset pending payment flags to prevent old consultation slips from being inherited
+        await chatRef.update({
+            hasNewPayment: false,
+            pendingPaymentDetails: admin.firestore.FieldValue.delete(),
+        });
+
+        // FEED VISIBILITY FIX: Post a system message to the chat feed
+        const messagesRef = chatRef.collection('messages');
+        const newMessageRef = messagesRef.doc();
+        const proposalMessage = {
+            chatId: chatId,
+            text: `📋 **ใบเสนอราคาใหม่:** ${data.title}\nจำนวนเงินรวม: ฿${data.amount.toLocaleString()}\nกรุณาตรวจสอบรายละเอียดและชำระเงินในเมนู "ข้อเสนอคดี"`,
+            senderId: 'system',
+            senderName: 'System',
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            type: 'case_proposal',
+            metadata: {
+                caseTitle: data.title,
+                amount: data.amount,
+                isManualCase: true
+            }
+        };
+        await newMessageRef.set(proposalMessage);
+
+        // NOTIFICATION: Trigger Email/Push to the client
+        if (resolvedClientId) {
+            try {
+                const { NotificationService } = await import('@/services/notification-service');
+                const clientDoc = await db.collection('users').doc(resolvedClientId).get();
+                const lawyerDoc = await db.collection('lawyerProfiles').doc(lawyerId).get();
+                
+                if (clientDoc.exists) {
+                    const clientData = clientDoc.data();
+                    const lawyerData = lawyerDoc.data();
+                    
+                    await NotificationService.notifyNewCaseProposal({
+                        clientName: clientData?.name || 'ลูกความ',
+                        clientEmail: clientData?.email || '',
+                        lawyerName: lawyerData?.name || 'ทนายความ',
+                        caseTitle: data.title,
+                        amount: data.amount,
+                        chatId: chatId,
+                    });
+                }
+            } catch (notifyErr) {
+                console.error("Non-blocking notification error:", notifyErr);
+            }
+        }
+
         // DUAL-WRITE: Create/Update the Pipeline document (legalCases)
         try {
             const legalCaseRef = db.collection('legalCases').doc(chatId);

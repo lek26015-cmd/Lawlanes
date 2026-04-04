@@ -14,6 +14,7 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible";
 import { Briefcase, CheckCircle, Clock, DollarSign, FileText, Inbox, Percent, Star, User, Settings, BarChart, CalendarPlus, FileUp, Loader2, ShieldX, AlertCircle, LogOut, Wallet, ChevronDown, ChevronUp, Plus } from 'lucide-react';
+import { cn } from "@/lib/utils";
 import { 
   getLawyerStatsAction, 
   getLawyerDashboardDataAction, 
@@ -339,8 +340,13 @@ export default function LawyerDashboardPage() {
                               <div className="flex items-center gap-2">
                                 <p className="font-semibold">{caseItem.title}</p>
                                 {caseItem.status === 'pending_payment' && (
-                                  <Badge variant="outline" className="text-yellow-600 border-yellow-600 bg-yellow-50 text-xs py-0 h-5">
-                                    รอตรวจสอบสลิป
+                                  <Badge variant="outline" className={cn(
+                                    "text-xs py-0 h-5 px-2 font-bold",
+                                    caseItem.hasNewPayment 
+                                      ? "text-red-600 border-red-600 bg-red-50 animate-pulse" 
+                                      : "text-amber-600 border-amber-600 bg-amber-50"
+                                  )}>
+                                    {caseItem.hasNewPayment ? 'รอตรวจสอบสลิป' : 'รอชำระเงิน'}
                                   </Badge>
                                 )}
                               </div>

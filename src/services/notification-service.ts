@@ -210,6 +210,30 @@ export const NotificationService = {
     return await sendEmailFlexible(clientEmail, `[Lawslane] ข้อเสนอราคาเปิดคดีจากทนายความ ${lawyerName}`, emailHtml);
   },
 
+  /**
+   * Trigger 6a: Notify client when a lawyer proposes a new manual case
+   */
+  async notifyNewCaseProposal(params: {
+    clientName: string;
+    clientEmail: string;
+    lawyerName: string;
+    caseTitle: string;
+    amount: number;
+    chatId: string;
+  }) {
+    const { clientName, clientEmail, lawyerName, caseTitle, amount, chatId } = params;
+    console.log(`[NotificationService] New case proposal notification for client`);
+
+    const emailHtml = generateStandardEmailHtml({
+      title: "ท่านได้รับข้อเสนอราคาเปิดคดีใหม่",
+      content: `เรียนคุณ <span class="highlight">${clientName}</span>,<br><br>ทนายความ <span class="highlight">${lawyerName}</span> ได้ส่งข้อเสนอราคาเพื่อเริ่มต้นดำเนินคดี "<span class="highlight">${caseTitle}</span>" ให้ท่านแล้ว<br><br><span class="highlight">ยอดรวมค่าบริการ:</span> ฿${amount.toLocaleString()}<br><br>กรุณาตรวจสอบรายละเอียดขอบเขตงานและแผนการชำระเงินในห้องแชท เพื่อเริ่มต้นการทำงานอย่างเป็นทางการค่ะ`,
+      buttonText: "ดูข้อเสนอและชำระเงิน",
+      buttonLink: `${SITE_URL}/chat/${chatId}`
+    });
+
+    return await sendEmailFlexible(clientEmail, `[Lawslane] ข้อเสนอราคาเปิดคดีใหม่: ${caseTitle}`, emailHtml);
+  },
+
 
 
   /**
