@@ -40,7 +40,7 @@ async function purgeFolder(prefix: string) {
     let continuationToken: string | undefined = undefined;
 
     do {
-        const listCommand = new ListObjectsV2Command({
+        const listCommand: ListObjectsV2Command = new ListObjectsV2Command({
             Bucket: R2_BUCKET_NAME,
             Prefix: prefix,
             ContinuationToken: continuationToken,
