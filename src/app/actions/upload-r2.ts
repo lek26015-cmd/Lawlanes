@@ -3,6 +3,11 @@
 import { r2 } from '@/lib/r2';
 import { PutObjectCommand } from '@aws-sdk/client-s3';
 
+/**
+ * @deprecated THIS FUNCTION IS FOR PUBLIC ASSETS ONLY (e.g. Profile Images, Articles).
+ * NEVER use this for sensitive documents (ID cards, licenses, slips, etc.)
+ * Use `uploadToFirebaseSecure` for sensitive data.
+ */
 export async function uploadToR2(formData: FormData, folder: string = 'uploads') {
     const file = formData.get('file') as File;
     if (!file) {

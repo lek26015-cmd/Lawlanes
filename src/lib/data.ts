@@ -31,8 +31,10 @@ export async function getApprovedLawyers(db: Firestore, limitCount: number = 50)
     const querySnapshot = await getDocs(q);
     return querySnapshot.docs.map(doc => {
       const data = doc.data();
+      // Remove sensitive fields
+      const { licenseUrl, idCardUrl, bankAccountNumber, ...safeData } = data;
       return {
-        ...data,
+        ...safeData,
         id: doc.id,
         joinedAt: data.joinedAt?.toDate ? data.joinedAt.toDate().toISOString() : (data.joinedAt || new Date().toISOString()),
         dob: data.dob?.toDate ? data.dob.toDate().toISOString() : (data.dob || null),
@@ -52,8 +54,10 @@ export async function getLawyerById(db: Firestore, id: string): Promise<LawyerPr
   const docSnap = await getDoc(lawyerRef);
   if (docSnap.exists()) {
     const data = docSnap.data();
+    // Remove sensitive fields
+    const { licenseUrl, idCardUrl, bankAccountNumber, ...safeData } = data;
     return {
-      ...data,
+      ...safeData,
       id: docSnap.id,
       joinedAt: data.joinedAt?.toDate ? data.joinedAt.toDate().toISOString() : (data.joinedAt || new Date().toISOString()),
       dob: data.dob?.toDate ? data.dob.toDate().toISOString() : (data.dob || null),

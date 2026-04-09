@@ -11,7 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { initializeFirebase } from '@/firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { Loader2, CheckCircle2, AlertCircle, Upload, FileText, X } from 'lucide-react';
-import { uploadToR2 } from '@/app/actions/upload-r2';
+import { uploadToFirebaseSecure } from '@/app/actions/upload-secure';
 import { useToast } from '@/hooks/use-toast';
 import { useTranslations } from 'next-intl';
 
@@ -75,7 +75,7 @@ export function SmeContactForm() {
             if (file) {
                 const data = new FormData();
                 data.set('file', file);
-                fileUrl = await uploadToR2(data, 'sme-requests');
+                fileUrl = await uploadToFirebaseSecure(data, 'sme-requests');
             }
 
             const { submitSmeRequestAction } = await import('@/app/actions/form-actions');

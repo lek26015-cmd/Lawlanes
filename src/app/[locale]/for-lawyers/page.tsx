@@ -10,6 +10,7 @@ import { createUserWithEmailAndPassword, updateProfile, signOut } from 'firebase
 import { doc, setDoc, serverTimestamp, addDoc, collection } from 'firebase/firestore';
 import { useFirebase } from '@/firebase';
 import { uploadToR2 } from '@/app/actions/upload-r2';
+import { uploadToFirebaseSecure } from '@/app/actions/upload-secure';
 
 import { TurnstileWidget } from '@/components/turnstile-widget';
 import { validateTurnstile } from '@/app/actions/turnstile';
@@ -208,6 +209,12 @@ export default function ForLawyersPage() {
     return await uploadToR2(formData, folder);
   }
 
+  async function uploadFileSecureWrapper(file: File, folder: string): Promise<string> {
+    const formData = new FormData();
+    formData.append('file', file);
+    return await uploadToFirebaseSecure(formData, folder);
+  }
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     if (isSubmittingRef.current) return;
     isSubmittingRef.current = true;
@@ -257,9 +264,9 @@ export default function ForLawyersPage() {
         });
       });
 
-      // 3. Upload Files
-      const idCardUrl = await uploadFileToR2Wrapper(idCardFile, `lawyer-documents/${user.uid}/id-card`);
-      const licenseUrl = await uploadFileToR2Wrapper(licenseFile, `lawyer-documents/${user.uid}/license`);
+      // 3. Upload Files - SENSITIVE DATA GOES TO SECURE STORAGE
+      const idCardUrl = await uploadFileSecureWrapper(idCardFile, `lawyer_documents/${user.uid}`);
+      const licenseUrl = await uploadFileSecureWrapper(licenseFile, `lawyer_documents/${user.uid}`);
 
       // 3.1 Upload Profile Image (optional)
       let profileImageUrl = '';

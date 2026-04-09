@@ -43,3 +43,6 @@ docs/backend.json
 # OpenNext build output
 .open-next
 
+# uploads
+public/uploads/*
+!public/uploads/.gitkeep

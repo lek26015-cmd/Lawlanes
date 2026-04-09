@@ -25,7 +25,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useCart } from '@/context/cart-context';
 import { useFirebase } from '@/firebase';
 import { addDoc, collection, serverTimestamp, getDocs, query, where, limit } from 'firebase/firestore';
-import { uploadToR2 } from '@/app/actions/upload-r2';
+import { uploadToFirebaseSecure } from '@/app/actions/upload-secure';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import QRCode from 'qrcode.react';
@@ -160,7 +160,7 @@ export default function CheckoutPage() {
       if (slipFile) {
         const formData = new FormData();
         formData.append('file', slipFile);
-        slipUrl = await uploadToR2(formData, 'book-payment-slips') as string;
+        slipUrl = await uploadToFirebaseSecure(formData, 'book-payment-slips') as string;
       }
 
       const orderData = {

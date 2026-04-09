@@ -4,8 +4,7 @@ export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
       userAgent: '*',
-      allow: '/',
-      disallow: ['/admin/', '/api/', '/chat/'],
+      disallow: '/',
     },
     sitemap: 'https://lawslane.com/sitemap.xml',
   }

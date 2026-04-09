@@ -1,0 +1,57 @@
+'use server';
+
+import { initAdmin } from '@/lib/firebase-admin';
+import { getStorage } from 'firebase-admin/storage';
+import { v4 as uuidv4 } from 'uuid';
+
+/**
+ * Uploads a file to Firebase Storage securely.
+ * This should be used for sensitive documents like ID cards and licenses.
+ * 
+ * @param formData The form data containing the 'file' field
+ * @param folder The destination folder in the storage bucket
+ * @returns The storage path (not a public URL)
+ */
+export async function uploadToFirebaseSecure(formData: FormData, folder: string = 'uploads') {
+    const file = formData.get('file') as File;
+    if (!file) {
+        throw new Error('No file provided');
+    }
+
+    const app = await initAdmin();
+    if (!app) {
+        throw new Error('Firebase Admin initialization failed');
+    }
+
+    const bucket = getStorage(app).bucket();
+    const buffer = Buffer.from(await file.arrayBuffer());
+    
+    // Generate a unique filename to prevent collisions and guessing
+    const timestamp = Date.now();
+    const extension = file.name.split('.').pop();
+    const filename = `${uuidv4()}_${timestamp}.${extension}`;
+    const destination = `${folder}/${filename}`;
+
+    const fileRef = bucket.file(destination);
+
+    try {
+        console.log(`[Secure Upload] Uploading to Firebase Storage: ${destination}`);
+        
+        await fileRef.save(buffer, {
+            metadata: {
+                contentType: file.type,
+            },
+            public: false, // Ensure the file is NOT public
+        });
+
+        // We return the full path. The application should store this path.
+        // To read it back, the app must use an authenticated download URL or the Admin SDK.
+        console.log(`[Secure Upload] Success: ${destination}`);
+        
+        return destination;
+
+    } catch (error) {
+        console.error("Firebase Secure Upload Error:", error);
+        throw new Error('Failed to upload file securely');
+    }
+}
