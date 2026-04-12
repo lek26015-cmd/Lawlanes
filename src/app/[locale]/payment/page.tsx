@@ -53,6 +53,7 @@ function PaymentPageContent() {
     const [slipPreview, setSlipPreview] = useState<string | null>(null);
     const [isVerifyingSlip, setIsVerifyingSlip] = useState(false);
     const [slipOkData, setSlipOkData] = useState<any | null>(null);
+    const [slipVerificationFailed, setSlipVerificationFailed] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     // Coupon State
@@ -165,6 +166,7 @@ function PaymentPageContent() {
             const result = await response.json();
             if (result.success) {
                 setSlipOkData(result.data);
+                setSlipVerificationFailed(false);
                 
                 const slipAmount = result.data.amount;
                 if (Math.abs(slipAmount - finalFee) > 0.01) {
@@ -180,6 +182,7 @@ function PaymentPageContent() {
                     });
                 }
             } else {
+                setSlipVerificationFailed(true);
                 toast({
                     variant: "destructive",
                     title: "ตรวจสอบสลิปไม่สำเร็จ",
@@ -420,11 +423,14 @@ function PaymentPageContent() {
 
             setSlipFile(file);
             setSlipPreview(URL.createObjectURL(file));
+            setSlipOkData(null);
+            setSlipVerificationFailed(false);
 
             const qrData = await scanSlipQR(file);
             if (qrData) {
                 verifySlipWithSlipOK(qrData);
             } else {
+                setSlipVerificationFailed(true);
                 toast({ title: "ไม่พบคิวอาร์โค้ดในสลิป", description: "คุณยังสามารถแจ้งโอนได้ แต่อาจใช้เวลาตรวจสอบนานขึ้น" });
             }
         }
@@ -587,16 +593,29 @@ function PaymentPageContent() {
                                        </div>
                                    </div>
                                )}
+
+                               {slipVerificationFailed && !isVerifyingSlip && (
+                                   <div className="flex bg-amber-50 rounded-2xl p-4 border border-amber-200 text-amber-800 gap-3 shadow-sm">
+                                       <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+                                       <div className="text-sm">
+                                           <p className="font-bold mb-1">ไม่สามารถตรวจสอบสลิปอัตโนมัติได้</p>
+                                           <p>แต่คุณยังสามารถกดส่งสลิปนี้ได้ โดยแอดมินจะทำการตรวจสอบความถูกต้องให้คุณอีกครั้ง</p>
+                                       </div>
+                                   </div>
+                               )}
                             </div>
                         </div>
                     </CardContent>
-                    <CardFooter className="p-10 bg-slate-50 border-t border-slate-100">
+                    <CardFooter className="p-10 bg-slate-50 border-t border-slate-100 flex flex-col gap-4">
                         <Button
                             onClick={processPayment}
-                            className="w-full h-16 rounded-[1.5rem] text-xl font-black bg-[#0B3979] hover:bg-[#082a5a] shadow-2xl shadow-blue-500/30 active:scale-[0.98] transition-all disabled:grayscale disabled:opacity-50"
+                            className={cn(
+                                "w-full h-16 rounded-[1.5rem] text-xl font-black shadow-2xl active:scale-[0.98] transition-all disabled:grayscale disabled:opacity-50",
+                                slipVerificationFailed ? "bg-amber-600 hover:bg-amber-700 shadow-amber-500/30" : "bg-[#0B3979] hover:bg-[#082a5a] shadow-blue-500/30"
+                            )}
                             disabled={isProcessing || !slipFile}
                         >
-                            {isProcessing ? <><Loader2 className="mr-3 animate-spin w-6 h-6" />กำลังบันทึกข้อมูล...</> : 'ยืนยันแจ้งชำระเงิน'}
+                            {isProcessing ? <><Loader2 className="mr-3 animate-spin w-6 h-6" />กำลังบันทึกข้อมูล...</> : (slipVerificationFailed ? 'ส่งให้เจ้าหน้าที่ตรวจสอบสลิปนี้' : 'ยืนยันแจ้งชำระเงิน')}
                         </Button>
                     </CardFooter>
                 </Card>
