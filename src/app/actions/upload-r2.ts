@@ -1,44 +1,23 @@
 'use server';
 
-import { r2 } from '@/lib/r2';
-import { PutObjectCommand } from '@aws-sdk/client-s3';
+import { uploadToCloudflareImages } from '@/app/actions/upload-cloudflare-images';
 
 /**
- * @deprecated THIS FUNCTION IS FOR PUBLIC ASSETS ONLY (e.g. Profile Images, Articles).
- * NEVER use this for sensitive documents (ID cards, licenses, slips, etc.)
- * Use `uploadToFirebaseSecure` for sensitive data.
+ * @deprecated DO NOT USE — R2 public storage is permanently disabled for security.
+ * All uploads now route through Cloudflare Images (private, CDN-backed).
+ * 
+ * This function is kept only for backward compatibility and will redirect 
+ * all calls to uploadToCloudflareImages.
  */
 export async function uploadToR2(formData: FormData, folder: string = 'uploads') {
+    // SECURITY: Block all uploads — redirect to Cloudflare Images
+    console.warn(`[SECURITY] uploadToR2 called with folder="${folder}" — redirecting to Cloudflare Images`);
+    
     const file = formData.get('file') as File;
     if (!file) {
         throw new Error('No file provided');
     }
 
-    const buffer = Buffer.from(await file.arrayBuffer());
-    const timestamp = Date.now();
-    const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_');
-    const key = `${folder}/${timestamp}_${safeName}`;
-
-    try {
-        console.log(`[Server Action] Uploading to R2: ${key}`);
-
-        await r2.send(new PutObjectCommand({
-            Bucket: process.env.R2_BUCKET_NAME,
-            Key: key,
-            Body: buffer,
-            ContentType: file.type,
-        }));
-
-        // Construct Public URL
-        const baseUrl = process.env.R2_PUBLIC_URL || '';
-        const publicUrl = `${baseUrl}/${key}`;
-
-        console.log(`[Server Action] Upload success: ${publicUrl}`);
-
-        return publicUrl;
-
-    } catch (error) {
-        console.error("R2 Upload Error:", error);
-        throw new Error('Failed to upload to R2');
-    }
+    // Route everything through Cloudflare Images
+    return await uploadToCloudflareImages(formData);
 }

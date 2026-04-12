@@ -12,6 +12,7 @@ import { submitReviewAction } from '@/app/actions/review-actions';
 import { getCaseMilestones } from '@/app/actions/lawyer-case-actions';
 import type { Milestone } from '@/lib/types/billing-types';
 import { useTranslations } from 'next-intl';
+import { getSecureDownloadUrl } from '@/app/actions/secure-view';
 import { CaseRoadmap } from '@/components/case/case-roadmap';
 import { LegalResearchTool } from '@/components/case/legal-research-tool';
 import { cn } from '@/lib/utils';
@@ -297,6 +298,26 @@ function ChatPageContent() {
             toast({ variant: "destructive", title: "อัปโหลดไม่สำเร็จ", description: error.message });
         }
         if (event.target) event.target.value = '';
+    };
+
+    const handleViewFile = async (path: string) => {
+        if (!path) return;
+        if (path.startsWith('http')) {
+            window.open(path, '_blank');
+            return;
+        }
+
+        try {
+            const url = await getSecureDownloadUrl(path);
+            if (url) {
+                window.open(url, '_blank');
+            } else {
+                toast({ variant: "destructive", title: "ไม่สามารถเข้าถึงไฟล์ได้", description: "กรุณาลองใหม่อีกครั้ง" });
+            }
+        } catch (error) {
+            console.error(error);
+            toast({ variant: "destructive", title: "เกิดข้อผิดพลาดในการดึงข้อมูล" });
+        }
     };
 
     const handleConfirmRelease = async () => {
@@ -722,7 +743,10 @@ function ChatPageContent() {
                                         ) : (
                                             files.map((file, idx) => (
                                                 <div key={idx} className="flex justify-between items-center p-2 rounded-xl bg-white border border-slate-100 group hover:shadow-md transition-all">
-                                                    <a href={file.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2.5 overflow-hidden flex-1">
+                                                    <button 
+                                                        onClick={() => handleViewFile(file.url)} 
+                                                        className="flex items-center gap-2.5 overflow-hidden flex-1 text-left"
+                                                    >
                                                         <div className="w-8 h-8 rounded-lg bg-red-50 text-red-600 flex items-center justify-center flex-shrink-0 group-hover:bg-red-600 group-hover:text-white transition-colors">
                                                             <FileText className="h-4 w-4" />
                                                         </div>
@@ -730,7 +754,7 @@ function ChatPageContent() {
                                                             <p className="text-xs font-bold truncate text-slate-800" title={file.name}>{file.name}</p>
                                                             <p className="text-[9px] text-slate-400">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
                                                         </div>
-                                                    </a>
+                                                    </button>
                                                 </div>
                                             ))
                                         )}

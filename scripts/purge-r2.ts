@@ -31,6 +31,8 @@ const FOLDERS_TO_PURGE = [
     'uploads/',
     'payment-slips/',
     'sme-requests/',
+    'profile-images/',
+    'lawyer-profile-images/',
 ];
 
 async function purgeFolder(prefix: string) {

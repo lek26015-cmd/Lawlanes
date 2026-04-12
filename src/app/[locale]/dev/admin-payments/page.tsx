@@ -8,7 +8,8 @@ import { Button } from '@/components/ui/button';
 import { notifyPaymentCompletedAction } from '@/app/actions/chat-actions';
 import { approvePaymentSlipAction } from '@/app/actions/admin-actions';
 import { useToast } from '@/hooks/use-toast';
-import { CheckCircle, AlertCircle, Eye, ExternalLink } from 'lucide-react';
+import { CheckCircle, AlertCircle, Eye, ExternalLink, Loader2 } from 'lucide-react';
+import { getSecureDownloadUrl } from '@/app/actions/secure-view';
 
 export default function AdminPaymentsPage() {
     const { firestore } = useFirebase();
@@ -62,6 +63,26 @@ export default function AdminPaymentsPage() {
         }
     };
 
+    const handleViewSlip = async (path: string) => {
+        if (!path) return;
+        if (path.startsWith('http')) {
+            window.open(path, '_blank');
+            return;
+        }
+
+        try {
+            const url = await getSecureDownloadUrl(path);
+            if (url) {
+                window.open(url, '_blank');
+            } else {
+                toast({ variant: 'destructive', title: 'ไม่สามารถสร้างลิงก์ได้', description: 'กรุณาลองใหม่อีกครั้ง' });
+            }
+        } catch (error) {
+            console.error(error);
+            toast({ variant: 'destructive', title: 'เกิดข้อผิดพลาดในการดึงข้อมูล' });
+        }
+    };
+
     if (isLoading) return <div className="p-10 text-center">กำลังโหลดข้อมูล...</div>;
 
     return (
@@ -83,9 +104,12 @@ export default function AdminPaymentsPage() {
                                         <p><strong>ผู้ชำระ:</strong> ลูกความ ID: {chat.userId || chat.clientId}</p>
                                         <p><strong>ยอดเงิน:</strong> ฿{(chat.amount || chat.pendingPaymentDetails?.amount || 0).toLocaleString()}</p>
                                         {chat.slipUrl && (
-                                            <a href={chat.slipUrl} target="_blank" rel="noreferrer" className="text-blue-500 flex items-center gap-1 mt-2 hover:underline">
+                                            <button 
+                                                onClick={() => handleViewSlip(chat.slipUrl)} 
+                                                className="text-blue-500 flex items-center gap-1 mt-2 hover:underline"
+                                            >
                                                 <ExternalLink className="w-4 h-4" /> ดูสลิปโอนเงิน
-                                            </a>
+                                            </button>
                                         )}
                                     </div>
                                     <Button onClick={() => handleApprove('chat', chat)} className="w-full bg-green-600 hover:bg-green-700">
@@ -111,9 +135,12 @@ export default function AdminPaymentsPage() {
                                         <p><strong>ยอดเงิน:</strong> ฿{(apt.amount || 0).toLocaleString()}</p>
                                         <p><strong>วันที่:</strong> {apt.appointmentDate?.toDate ? apt.appointmentDate.toDate().toLocaleDateString() : 'N/A'}</p>
                                         {apt.slipUrl && (
-                                            <a href={apt.slipUrl} target="_blank" rel="noreferrer" className="text-blue-500 flex items-center gap-1 mt-2 hover:underline">
+                                            <button 
+                                                onClick={() => handleViewSlip(apt.slipUrl)} 
+                                                className="text-blue-500 flex items-center gap-1 mt-2 hover:underline"
+                                            >
                                                 <ExternalLink className="w-4 h-4" /> ดูสลิปโอนเงิน
-                                            </a>
+                                            </button>
                                         )}
                                     </div>
                                     <Button onClick={() => handleApprove('appointment', apt)} className="w-full bg-green-600 hover:bg-green-700">

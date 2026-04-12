@@ -20,7 +20,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { useFirebase } from '@/firebase';
 import { addDoc, collection, doc, serverTimestamp, setDoc, getDoc, query, where, getDocs, updateDoc, limit } from 'firebase/firestore';
 import { errorEmitter, FirestorePermissionError } from '@/firebase';
-import { uploadToR2 } from '@/app/actions/upload-r2';
+import { uploadToFirebaseSecure } from '@/app/actions/upload-secure';
 import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '@/lib/constants';
 import { compressImageToBase64 } from '@/lib/image-utils';
 import { cn } from '@/lib/utils';
@@ -125,7 +125,7 @@ function PaymentPageContent() {
     const uploadSlip = async (file: File) => {
         const formData = new FormData();
         formData.append('file', file);
-        return await uploadToR2(formData, 'payment-slips');
+        return await uploadToFirebaseSecure(formData, 'payment-slips');
     };
 
     const scanSlipQR = (file: File): Promise<string | null> => {

@@ -32,12 +32,7 @@ const nextConfig: NextConfig = {
         port: '',
         pathname: '/**',
       },
-      {
-        protocol: 'https',
-        hostname: '*.r2.dev',
-        port: '',
-        pathname: '/**',
-      },
+      // R2 removed for security — all images served via Cloudflare Images (imagedelivery.net)
       {
         protocol: 'https',
         hostname: 'i.pravatar.cc',
@@ -84,7 +79,7 @@ const nextConfig: NextConfig = {
               default-src 'self';
               script-src 'self' 'unsafe-eval' 'unsafe-inline' https://challenges.cloudflare.com https://apis.google.com https://static.line-scdn.net https://*.line-scdn.net https://www.gstatic.com;
               style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-              img-src 'self' blob: data: https://*.lawslane.com https://imagedelivery.net https://*.googleapis.com https://*.firebaseapp.com https://firebasestorage.googleapis.com https://placehold.co https://images.unsplash.com https://picsum.photos https://*.r2.dev https://i.pravatar.cc https://*.googleusercontent.com https://profile.line-scdn.net https://upload.wikimedia.org;
+              img-src 'self' blob: data: https://*.lawslane.com https://imagedelivery.net https://*.googleapis.com https://*.firebaseapp.com https://firebasestorage.googleapis.com https://placehold.co https://images.unsplash.com https://picsum.photos https://i.pravatar.cc https://*.googleusercontent.com https://profile.line-scdn.net https://upload.wikimedia.org;
               font-src 'self' https://fonts.gstatic.com;
               connect-src 'self' ws://localhost:* http://localhost:* ws://127.0.0.1:* http://127.0.0.1:* wss://* blob: https://*.lawslane.com https://*.workers.dev https://challenges.cloudflare.com https://*.googleapis.com https://*.firebaseapp.com https://*.firebaseio.com https://api.line.me https://*.line.me https://*.line-scdn.net https://*.cloudflaretokens.com;
               frame-src 'self' https://challenges.cloudflare.com https://*.firebaseapp.com https://*.googleapis.com https://auth.lawslane.com https://access.line.me;

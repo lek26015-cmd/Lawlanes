@@ -9,7 +9,7 @@ import * as z from 'zod';
 import { createUserWithEmailAndPassword, updateProfile, signOut } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp, addDoc, collection } from 'firebase/firestore';
 import { useFirebase } from '@/firebase';
-import { uploadToR2 } from '@/app/actions/upload-r2';
+import { uploadToCloudflareImages } from '@/app/actions/upload-cloudflare-images';
 import { uploadToFirebaseSecure } from '@/app/actions/upload-secure';
 
 import { TurnstileWidget } from '@/components/turnstile-widget';
@@ -203,10 +203,10 @@ export default function ForLawyersPage() {
     }
   };
 
-  async function uploadFileToR2Wrapper(file: File, folder: string): Promise<string> {
+  async function uploadFileToCFImagesWrapper(file: File): Promise<string> {
     const formData = new FormData();
     formData.append('file', file);
-    return await uploadToR2(formData, folder);
+    return await uploadToCloudflareImages(formData);
   }
 
   async function uploadFileSecureWrapper(file: File, folder: string): Promise<string> {
@@ -271,7 +271,7 @@ export default function ForLawyersPage() {
       // 3.1 Upload Profile Image (optional)
       let profileImageUrl = '';
       if (profileImageFile) {
-        profileImageUrl = await uploadFileToR2Wrapper(profileImageFile, `lawyer-profile-images/${user.uid}`);
+        profileImageUrl = await uploadFileToCFImagesWrapper(profileImageFile);
       }
 
       // 4. Create user profile document in Firestore (users collection)

@@ -28,7 +28,7 @@ import {
 import { useFirebase, useUser } from '@/firebase';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { updatePassword, updateProfile, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
-import { uploadToR2 } from '@/app/actions/upload-r2';
+// uploadToR2 removed for security — all images go through Cloudflare Images
 import { uploadToCloudflareImages } from '@/app/actions/upload-cloudflare-images';
 import { useToast } from '@/hooks/use-toast';
 import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '@/lib/constants';
@@ -214,13 +214,9 @@ export default function AccountPage() {
           formData.append('file', imageFile);
 
 
-          // Upload to R2 or Cloudflare Images via Server Action
-          if (isLawyer) {
-            console.log("Lawyer detected, uploading to Cloudflare Images...");
-            newPhotoURL = await uploadToCloudflareImages(formData);
-          } else {
-            newPhotoURL = await uploadToR2(formData, 'profile-images');
-          }
+          // All profile images go through Cloudflare Images (private, CDN-backed)
+          console.log("Uploading profile image to Cloudflare Images...");
+          newPhotoURL = await uploadToCloudflareImages(formData);
 
         } catch (uploadError) {
           console.error("Error uploading image:", uploadError);
