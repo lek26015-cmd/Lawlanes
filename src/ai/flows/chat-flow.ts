@@ -142,12 +142,18 @@ export async function chat(
       model: "gemini-flash-latest",
       tools: [{ functionDeclarations: [searchArticlesDeclaration] }],
       systemInstruction: `You are LAlin (ละลิน), the expert female legal AI assistant for Lawslane Thailand.
-    - **TITLE**: "สรุปเข้าใจง่ายโดย LAlin".
-    - **CONTENT STARTER**: Must start exactly with "LAlin สรุปให้ได้ว่า...".
-    - **TONE**: Use plain, simple language that a non-lawyer can easily understand. Summarize the key takeaway or action item.
+
+CONVERSATION STYLE:
+- Respond naturally and conversationally, like chatting with a knowledgeable legal friend.
+- Do NOT start every response with a fixed phrase like "LAlin สรุปให้ได้ว่า" or "สรุปเข้าใจง่ายโดย LAlin".
+- Use a warm, polite female tone ("ค่ะ/นะคะ") and plain language accessible to non-lawyers.
+- Vary your opening naturally based on context — sometimes summarize, sometimes explain, sometimes ask a clarifying question.
+- When providing legal information from sources, naturally weave in the references rather than listing them rigidly.
+- Feel free to use markdown formatting (bold, bullet points, etc.) to make the response easy to read.
 
 Output format: Return ONLY a JSON object with a "sections" array. Do not include markdown formatting outside the JSON.
-Each section can have: "title", "content", "link" (optional), "linkText" (optional).
+Each section can have: "title" (can be empty string for a natural flow), "content", "link" (optional), "linkText" (optional).
+For simple conversational answers, use a single section with an empty title.
 `,
       generationConfig: {
         responseMimeType: "application/json"
@@ -395,11 +401,12 @@ async function fallbackChat(prompt: string, history: any[], locale: string = 'th
         let typhoonSummary = await callTyphoonAI(
           `User Question: ${prompt}\n\nRelated Legal Context with Sources:\n${contextWithSources}\n\nInstructions:
 1. You are LAlin (ละลิน), a professional female legal assistant. Use a polite female tone ("ค่ะ/นะคะ").
-2. Summarize the legal information from the context accurately. DO NOT add information not found in the context.
-3. Put all citations at the end of the summary in a "รายการอ้างอิง" section.
+2. Answer naturally and conversationally based on the provided context. DO NOT add information not found in the context.
+3. Put all citations at the end in a "รายการอ้างอิง" section.
 4. **NO LINKS**: Use plain text for citations: "อ้างอิง: [ชื่อกฎหมายฉบับเต็ม] มาตรา XXX". DO NOT use markdown links or URLs.
-5. **PLAIN LANGUAGE SUMMARY**: Include a final paragraph titled "สรุปเข้าใจง่ายโดย LAlin" that starts with "LAlin สรุปให้ได้ว่า..." and explains the situation in simple terms for a non-lawyer. 
-   **IMPORTANT**: Precede this summary paragraph with the exact delimiter: [LALIN_SUMMARY].
+5. **PLAIN LANGUAGE SUMMARY**: At the end, include a short, easy-to-understand summary section for non-lawyers.
+   Do NOT start with "LAlin สรุปให้ได้ว่า" — just explain clearly and naturally.
+   **IMPORTANT**: Precede this summary section with the exact delimiter: [LALIN_SUMMARY].
 6. Use full names for laws (e.g. ประมวลกฎหมายแพ่งและพาณิชย์, ประมวลกฎหมายอาญา).
 6. CLEAN UP formatting: Remove raw JSON sequences, literal \\n strings, or table markdown characters (| or ---) from the sources in your summary.
 7. ${languageInstruction}.`,
@@ -430,8 +437,8 @@ async function fallbackChat(prompt: string, history: any[], locale: string = 'th
             
             if (lalinSummary.trim()) {
               sections.push({
-                title: "สรุปเข้าใจง่ายโดย LAlin",
-                content: lalinSummary.trim().replace(/^สรุปเข้าใจง่ายโดย LAlin[\s:]*/, '')
+                title: "",
+                content: lalinSummary.trim().replace(/^สรุปเข้าใจง่ายโดย LAlin[\s:]*/, '').replace(/^LAlin สรุปให้ได้ว่า[\s.]*/, '')
               });
             }
           } else {

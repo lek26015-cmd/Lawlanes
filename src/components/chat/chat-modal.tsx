@@ -289,27 +289,25 @@ export default function ChatModal() {
         hideCloseButton={true}
         className="fixed inset-0 w-full h-full max-w-none translate-x-0 translate-y-0 rounded-none bg-white z-[100] p-0 flex flex-col overflow-hidden transition-all duration-500 ease-in-out data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 lg:inset-auto lg:bottom-6 lg:right-6 lg:w-[480px] lg:h-[85vh] lg:rounded-[2.5rem] lg:border lg:shadow-2xl"
       >
-        <DialogHeader className="relative flex flex-row items-center justify-center lg:justify-between p-4 lg:p-6 border-b bg-white text-foreground">
-          <div className="flex items-center lg:space-x-3">
-            <div className="absolute left-4 lg:static w-10 h-10 rounded-xl overflow-hidden border border-primary/20 flex items-center justify-center shadow-sm">
-              <img src="/images/lawslane-LAlin.jpg" alt="LAlin" className="w-full h-full object-cover" />
-            </div>
-            <div className="text-center lg:text-left">
+        <DialogHeader className="relative flex flex-row items-center justify-between p-4 lg:py-4 lg:px-6 border-b border-gray-100 bg-white/95 backdrop-blur-md sticky top-0 z-10 text-foreground">
+          <div className="flex items-center space-x-3">
+            <div className="text-left">
               <DialogTitle asChild>
-                <h3 className="text-xl lg:text-2xl font-bold tracking-tight">
-                  {renderStyledText('LAlin')}
+                <h3 className="text-lg font-semibold flex items-center gap-2 text-gray-900">
+                  <Sparkles className="w-4 h-4 text-purple-600" />
+                  LAlin
                 </h3>
               </DialogTitle>
-              <DialogDescription className="text-muted-foreground text-[10px] lg:text-xs">
-                Legal Intelligence Professional
+              <DialogDescription className="text-muted-foreground text-[11px] font-medium uppercase tracking-wider">
+                AI Legal Assistant
               </DialogDescription>
             </div>
           </div>
           <button 
             onClick={() => setAiChatOpen(false)} 
-            className="absolute right-4 lg:static p-2 rounded-full hover:bg-gray-100 transition-colors"
+            className="p-2 rounded-full hover:bg-gray-100 transition-colors"
           >
-            <X className="w-8 h-8 text-gray-500" />
+            <X className="w-5 h-5 text-gray-500" />
           </button>
         </DialogHeader>
 
@@ -324,10 +322,15 @@ export default function ChatModal() {
                   className="py-6 lg:py-12 text-center space-y-4 lg:space-y-8"
                 >
                   <div className="space-y-4">
-                    <h1 className="text-2xl lg:text-4xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent px-4 lg:px-0 leading-tight pb-1">
+                    <div className="flex justify-center mb-6">
+                      <div className="w-16 h-16 rounded-3xl shadow-sm overflow-hidden border border-gray-200">
+                        <img src="/images/lawslane-LAlin.jpg" alt="LAlin" className="w-full h-full object-cover" />
+                      </div>
+                    </div>
+                    <h1 className="text-2xl lg:text-3xl font-semibold text-gray-800 px-4 lg:px-0 leading-tight pb-1">
                       {t('welcome')}
                     </h1>
-                    <p className="text-muted-foreground text-sm lg:text-lg max-w-2xl mx-auto px-6 lg:px-0">
+                    <p className="text-muted-foreground text-sm lg:text-base max-w-2xl mx-auto px-6 lg:px-0">
                       {locale.startsWith('th') 
                         ? 'พร้อมช่วยเหลือในทุกประเด็นกฎหมาย ด้วยข้อมูลเชิงลึกที่แม่นยำ'
                         : 'Ready to assist with deep legal insights and precision.'}
@@ -336,33 +339,30 @@ export default function ChatModal() {
 
                   <div className="flex flex-wrap justify-center gap-3 lg:flex lg:flex-wrap lg:justify-center">
                     {/* Desktop Style (Pills) */}
-                    <div className="hidden lg:flex flex-wrap justify-center gap-3">
+                    <div className="hidden lg:flex flex-wrap justify-center gap-2 mt-4">
                       {quickQuestions.map(q => (
                         <button
                           key={q.key}
                           onClick={() => handleQuickQuestion(q.label)}
                           disabled={isLoading}
-                          className="text-base px-6 py-3 bg-gray-50 border border-gray-200 rounded-2xl hover:bg-blue-50 hover:border-[#0B3979]/30 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm font-medium hover:text-[#0B3979] text-gray-700">
+                          className="text-sm px-5 py-2.5 bg-white border border-gray-200 rounded-full hover:bg-gray-50 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed text-gray-600 hover:text-gray-900">
                           {q.label}
                         </button>
                       ))}
                     </div>
 
                     {/* Mobile Style (List Items) */}
-                    <div className="flex lg:hidden flex-col w-full px-4 space-y-3">
+                    <div className="flex lg:hidden flex-col w-full px-4 space-y-2 mt-4">
                       {quickQuestions.map(q => (
                         <button
                           key={q.key}
                           onClick={() => handleQuickQuestion(q.label)}
                           disabled={isLoading}
-                          className="flex items-center justify-between w-full p-4 bg-white border border-gray-100 rounded-2xl shadow-sm active:bg-gray-50 transition-colors group">
+                          className="flex items-center justify-between w-full p-4 bg-white border border-gray-100 rounded-2xl active:bg-gray-50 transition-colors group">
                           <div className="flex items-center space-x-4">
-                            <div className="p-2 bg-blue-50 rounded-xl text-blue-600 group-active:scale-95 transition-transform">
-                              <Lightbulb className="w-5 h-5" />
-                            </div>
-                            <span className="text-sm font-medium text-gray-800 text-left">{q.label}</span>
+                            <span className="text-sm text-gray-700 text-left">{q.label}</span>
                           </div>
-                          <ChevronRight className="w-5 h-5 text-gray-400" />
+                          <ChevronRight className="w-4 h-4 text-gray-300" />
                         </button>
                       ))}
                     </div>
@@ -372,66 +372,72 @@ export default function ChatModal() {
             </AnimatePresence>
 
             {messages.slice(messages.length > 1 ? 1 : messages.length).map((msg) => (
-              <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : ''}`}>
-                {msg.role === 'assistant' && (
-                  <div className="flex-shrink-0 mr-3">
-                    <div className="w-8 h-8 rounded-full overflow-hidden shadow-md flex items-center justify-center border border-gray-100">
-                      <img src="/images/lawslane-LAlin.jpg" alt="LAlin" className="w-full h-full object-cover" />
+              <div key={msg.id} className={`flex w-full ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                <div className={`flex gap-3 lg:gap-4 max-w-full ${msg.role === 'user' ? 'flex-row-reverse' : 'w-full'}`}>
+                  
+                  {msg.role === 'assistant' && (
+                    <div className="flex-shrink-0 mt-1">
+                      <div className="w-8 h-8 rounded-full overflow-hidden shadow-sm border border-gray-200 bg-white">
+                        <img src="/images/lawslane-LAlin.jpg" alt="LAlin" className="w-full h-full object-cover" />
+                      </div>
                     </div>
-                  </div>
-                )}
-                <div className={`${msg.role === 'user' ? 'w-full flex justify-end' : 'w-full'}`}>
-                  <div className={`p-4 lg:px-6 lg:py-4 rounded-[2rem] shadow-sm ${msg.role === 'user'
-                    ? 'bg-[#0B3979] text-white ml-auto max-w-[85%] lg:max-w-[80%]'
-                    : 'bg-white border-none mr-auto max-w-[95%] lg:max-w-full'
+                  )}
+
+                  <div className={`${msg.role === 'user'
+                    ? 'bg-gray-100 text-gray-900 rounded-[24px] px-5 py-3 max-w-[85%] lg:max-w-[75%]'
+                    : 'w-full pr-4 pb-2'
                     }`}
-                    style={msg.role === 'user' 
-                      ? { borderTopRightRadius: '4px' } 
-                      : (msg.role === 'assistant' ? { borderTopLeftRadius: '4px' } : {})
-                    }
                   >
                     {typeof msg.content === 'string' ? (
-                      <div className="text-sm lg:text-base prose prose-sm lg:prose-base max-w-none prose-a:text-blue-600 prose-a:font-semibold prose-a:no-underline hover:prose-a:underline">
+                      <div className="text-[15px] lg:text-[16px] prose prose-slate max-w-none prose-p:leading-[1.7] prose-a:text-blue-600 prose-a:font-medium prose-pre:bg-gray-50 prose-pre:text-gray-800 prose-pre:border prose-pre:border-gray-200">
                         <ReactMarkdown
                           components={{
                             a: ({ node, ...props }) => {
                               const isInternal = props.href?.startsWith('/');
                               if (isInternal) {
-                                return <Link href={props.href || '#'} className="text-blue-600 font-semibold hover:underline" onClick={() => setAiChatOpen(false)}>{props.children}</Link>;
+                                return <Link href={props.href || '#'} className="text-blue-600 font-medium hover:underline" onClick={() => setAiChatOpen(false)}>{props.children}</Link>;
                               }
-                              return <a {...props} target="_blank" rel="noopener noreferrer" className="text-blue-600 font-semibold hover:underline" />;
+                              return <a {...props} target="_blank" rel="noopener noreferrer" className="text-blue-600 font-medium hover:underline" />;
                             },
-                            p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>
+                            p: ({ children }) => <p className="mb-4 last:mb-0 leading-relaxed">{children}</p>,
+                            ul: ({ children }) => <ul className="list-disc pl-5 mb-4 my-2">{children}</ul>,
+                            ol: ({ children }) => <ol className="list-decimal pl-5 mb-4 my-2">{children}</ol>,
+                            li: ({ children }) => <li className="mb-1">{children}</li>,
+                            strong: ({ children }) => <strong className="font-semibold text-gray-900">{children}</strong>,
                           }}
                         >
                           {msg.content}
                         </ReactMarkdown>
                       </div>
                     ) : isChatResponse(msg.content) ? (
-                      <div className="space-y-3">
+                      <div className="space-y-5">
                         {msg.content.sections.map((section, index) => (
-                          <div key={index} className="pb-2 last:pb-0">
-                            {section.title && <h4 className="font-bold text-sm lg:text-base mb-1 text-slate-900 border-l-4 border-primary pl-2">{section.title}</h4>}
-                            <div className="text-sm lg:text-base prose prose-sm lg:prose-base max-w-none prose-slate">
+                          <div key={index} className="pb-1">
+                            {section.title && <h4 className="font-semibold text-base lg:text-lg mb-2 text-gray-900">{section.title}</h4>}
+                            <div className="text-[15px] lg:text-[16px] prose prose-slate max-w-none prose-p:leading-[1.7] prose-a:text-blue-600 prose-a:font-medium">
                               <ReactMarkdown
                                 components={{
                                   a: ({ node, ...props }) => {
                                     const isInternal = props.href?.startsWith('/');
                                     if (isInternal) {
-                                      return <Link href={props.href || '#'} className="text-blue-600 font-semibold hover:underline" onClick={() => setAiChatOpen(false)}>{props.children}</Link>;
+                                      return <Link href={props.href || '#'} className="text-blue-600 font-medium hover:underline" onClick={() => setAiChatOpen(false)}>{props.children}</Link>;
                                     }
-                                    return <a {...props} target="_blank" rel="noopener noreferrer" className="text-blue-600 font-semibold hover:underline" />;
+                                    return <a {...props} target="_blank" rel="noopener noreferrer" className="text-blue-600 font-medium hover:underline" />;
                                   },
-                                  p: ({ children }) => <p className="mb-2 last:mb-0 leading-relaxed">{children}</p>
+                                  p: ({ children }) => <p className="mb-4 last:mb-0 leading-relaxed">{children}</p>,
+                                  ul: ({ children }) => <ul className="list-disc pl-5 mb-4 my-2">{children}</ul>,
+                                  ol: ({ children }) => <ol className="list-decimal pl-5 mb-4 my-2">{children}</ol>,
+                                  li: ({ children }) => <li className="mb-1">{children}</li>,
+                                  strong: ({ children }) => <strong className="font-semibold text-gray-900">{children}</strong>,
                                 }}
                               >
                                 {section.content}
                               </ReactMarkdown>
                             </div>
                             {section.link && section.linkText && (
-                              <div className="mt-3">
+                              <div className="mt-4">
                                 <Link href={section.link} onClick={() => setAiChatOpen(false)}>
-                                  <Button variant="default" className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg transition-all rounded-xl py-5">
+                                  <Button variant="outline" className="rounded-full shadow-sm">
                                     {section.linkText}
                                   </Button>
                                 </Link>
@@ -446,17 +452,18 @@ export default function ChatModal() {
               </div>
             ))}
             {isLoading && (
-              <div className="flex">
-                <div className="flex-shrink-0 mr-3">
-                  <div className="w-8 h-8 rounded-full overflow-hidden shadow-md flex items-center justify-center border border-gray-100">
-                    <img src="/images/lawslane-LAlin.jpg" alt="LAlin" className="w-full h-full object-cover" />
+              <div className="flex w-full justify-start">
+                <div className="flex gap-3 lg:gap-4 w-full">
+                  <div className="flex-shrink-0 mt-1">
+                    <div className="w-8 h-8 rounded-full overflow-hidden shadow-sm border border-gray-200 bg-white">
+                      <img src="/images/lawslane-LAlin.jpg" alt="LAlin" className="w-full h-full object-cover" />
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <div className="bg-white border p-3 rounded-2xl shadow-sm" style={{ borderTopLeftRadius: 0 }}>
-                    <div className="flex items-center space-x-2">
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      <span className="text-sm text-muted-foreground">{t('thinking')}</span>
+                  <div className="flex items-center space-x-2 h-10 px-2 lg:px-0">
+                    <div className="flex gap-1.5">
+                      <span className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{animationDelay: '0ms'}}></span>
+                      <span className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></span>
+                      <span className="w-2 h-2 bg-gray-300 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></span>
                     </div>
                   </div>
                 </div>
@@ -480,7 +487,7 @@ export default function ChatModal() {
                 </button>
               </div>
             )}
-            <form onSubmit={handleSubmit} className="flex items-end space-x-2 bg-white p-1 lg:p-3 rounded-[2rem] lg:rounded-[2.5rem] border-2 border-[#0B3979]/40 focus-within:border-[#0B3979] focus-within:bg-white transition-all duration-300 shadow-md">
+            <form onSubmit={handleSubmit} className="flex items-end space-x-2 bg-gray-50 p-2 lg:p-3 rounded-2xl lg:rounded-3xl border border-gray-200 focus-within:border-gray-300 focus-within:bg-white focus-within:shadow-sm transition-all duration-300">
               <input
                 type="file"
                 ref={fileInputRef}
@@ -493,9 +500,9 @@ export default function ChatModal() {
                 size="icon"
                 variant="ghost"
                 onClick={() => fileInputRef.current?.click()}
-                className="p-2 rounded-full lg:rounded-2xl border-none lg:border-2 lg:border-gray-100 hover:border-[#0B3979] hover:bg-blue-50 transition-all w-10 h-10 lg:w-12 lg:h-12 flex-shrink-0"
+                className="rounded-full hover:bg-gray-200 transition-all w-10 h-10 flex-shrink-0 text-gray-500 hover:text-gray-900"
               >
-                <Plus className="w-5 h-5 lg:w-6 lg:h-6 text-[#0B3979]" />
+                <Plus className="w-5 h-5" />
               </Button>
               <div className="flex-grow">
                 <textarea
@@ -515,16 +522,16 @@ export default function ChatModal() {
                   }}
                   placeholder={selectedImage ? "ถามเพิ่มเติม..." : "คุยกับ LAlin..."}
                   disabled={isLoading}
-                  className="w-full px-1 py-2 lg:py-3 bg-transparent border-none focus:ring-0 resize-none max-h-[150px] text-sm lg:text-lg outline-none placeholder:text-gray-500"
+                  className="w-full px-2 py-2 lg:py-2 bg-transparent border-none focus:ring-0 resize-none max-h-[150px] text-base outline-none placeholder:text-gray-400"
                 />
               </div>
               <Button 
                 type="submit" 
                 size="icon" 
-                disabled={isLoading} 
-                className="p-2 rounded-full lg:rounded-2xl bg-[#0B3979] text-white hover:bg-[#082a5a] transition-all shadow-md w-10 h-10 lg:w-12 lg:h-12 flex-shrink-0 group flex items-center justify-center border-none"
+                disabled={isLoading || (!input.trim() && !selectedImage)} 
+                className="rounded-full bg-black text-white hover:bg-gray-800 disabled:bg-gray-200 disabled:text-gray-400 transition-colors w-9 h-9 lg:w-10 lg:h-10 flex-shrink-0 flex items-center justify-center border-none"
               >
-                <Send className="w-4 h-4 lg:w-5 lg:h-5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                <Send className="w-4 h-4 ml-0.5" />
               </Button>
             </form>
             <p className="mt-3 text-center text-xs text-muted-foreground">

@@ -22,8 +22,13 @@ export default function HeroSearchBar() {
     setIsAnalyzing(true);
     try {
       const result = await findLawyerSpecialties({ problem: query });
-      const specialties = result.specialties.join(',');
-      router.push(`/lawyers?specialties=${encodeURIComponent(specialties)}`);
+      if (result.matchedLawyerIds && result.matchedLawyerIds.length > 0) {
+        const matchIds = result.matchedLawyerIds.join(',');
+        router.push(`/lawyers?matchIds=${encodeURIComponent(matchIds)}`);
+      } else {
+        // Fallback: no matches found, show all lawyers
+        router.push(`/lawyers`);
+      }
     } catch (error) {
       console.error('Failed to analyze search query:', error);
       router.push(`/lawyers`);

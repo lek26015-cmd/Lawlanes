@@ -6,7 +6,7 @@ import { useSearchParams } from 'next/navigation';
 import { getApprovedLawyers, getAdsByPlacement } from '@/lib/data';
 import LawyerCard from '@/components/lawyer-card';
 import type { LawyerProfile, Ad } from '@/lib/types';
-import { Loader2, Award } from 'lucide-react';
+import { Loader2, Award, Sparkles } from 'lucide-react';
 import React from 'react';
 import { Progress } from '@/components/ui/progress';
 import LawyerFilterSidebar from '@/components/lawyer-filter';
@@ -22,6 +22,7 @@ import { useTranslations } from 'next-intl';
 function LawyersPageContent() {
   const searchParams = useSearchParams();
   const specialties = searchParams.get('specialties');
+  const matchIds = searchParams.get('matchIds');
   const { firestore } = useFirebase();
   const t = useTranslations('Lawyers');
 
@@ -58,17 +59,66 @@ function LawyersPageContent() {
     fetchData();
   }, [firestore]);
 
+  // Parse matchIds from URL
+  const matchIdArray = useMemo(() => matchIds ? matchIds.split(',').filter(Boolean) : [], [matchIds]);
   const specialtyArray = useMemo(() => specialties ? specialties.split(',') : [], [specialties]);
 
+  // Vector AI Matchmaking: sort by matchIds
   useEffect(() => {
-    if (isLoading || !specialties) return;
+    if (isLoading || !matchIds || matchIdArray.length === 0) return;
 
     let isMounted = true;
     setIsSorting(true);
     setProgress(30);
 
     const runSorting = async () => {
-      // Simulate delay for analysis
+      await new Promise(resolve => setTimeout(resolve, 800));
+      if (!isMounted) return;
+
+      // Split lawyers into matched (in order) and the rest
+      const matched: LawyerProfile[] = [];
+      const rest: LawyerProfile[] = [];
+
+      // Preserve the vector relevance order from matchIdArray
+      for (const id of matchIdArray) {
+        const lawyer = allLawyers.find(l => l.id === id);
+        if (lawyer) matched.push(lawyer);
+      }
+
+      for (const lawyer of allLawyers) {
+        if (!matchIdArray.includes(lawyer.id)) {
+          rest.push(lawyer);
+        }
+      }
+
+      setRecommendedLawyerIds(matched.map(l => l.id));
+      setProgress(70);
+
+      await new Promise(resolve => setTimeout(resolve, 400));
+      if (!isMounted) return;
+
+      setFilteredLawyers([...matched, ...rest]);
+      setProgress(100);
+
+      await new Promise(resolve => setTimeout(resolve, 400));
+      if (!isMounted) return;
+      setIsSorting(false);
+    };
+
+    runSorting();
+
+    return () => { isMounted = false; };
+  }, [matchIds, matchIdArray, allLawyers, isLoading]);
+
+  // Legacy specialty-based sorting (backward compat)
+  useEffect(() => {
+    if (isLoading || !specialties || matchIds) return;
+
+    let isMounted = true;
+    setIsSorting(true);
+    setProgress(30);
+
+    const runSorting = async () => {
       await new Promise(resolve => setTimeout(resolve, 1000));
       if (!isMounted) return;
 
@@ -82,14 +132,12 @@ function LawyersPageContent() {
       setRecommendedLawyerIds(recommended.map(l => l.id));
       setProgress(70);
 
-      // Simulate delay for sorting
       await new Promise(resolve => setTimeout(resolve, 500));
       if (!isMounted) return;
 
       setFilteredLawyers([...recommended, ...remaining]);
       setProgress(100);
 
-      // Final delay before hiding progress
       await new Promise(resolve => setTimeout(resolve, 500));
       if (!isMounted) return;
       setIsSorting(false);
@@ -97,11 +145,8 @@ function LawyersPageContent() {
 
     runSorting();
 
-    return () => {
-      isMounted = false;
-    };
-
-  }, [specialties, allLawyers, isLoading, specialtyArray]);
+    return () => { isMounted = false; };
+  }, [specialties, allLawyers, isLoading, specialtyArray, matchIds]);
 
   useEffect(() => {
     if (isSorting) {
@@ -112,14 +157,22 @@ function LawyersPageContent() {
     }
   }, [isSorting]);
 
+  const isAiSearch = !!(matchIds || specialties);
 
   return (
     <div className="container mx-auto px-4 md:px-6 py-12">
       <div className="text-center mb-8">
-        {specialties ? (
-          <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl font-headline">
-            {t('recommendedTitle')}
-          </h1>
+        {isAiSearch ? (
+          <div>
+            <div className="flex justify-center mb-3">
+              <div className="bg-gradient-to-r from-purple-500 to-indigo-500 p-3 rounded-full">
+                <Sparkles className="h-6 w-6 text-white" />
+              </div>
+            </div>
+            <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl font-headline">
+              {t('recommendedTitle')}
+            </h1>
+          </div>
         ) : (
           <div className="flex justify-center mb-4 flex-col">
             {/* Desktop Image */}
@@ -139,7 +192,7 @@ function LawyersPageContent() {
             </div>
           </div>
         )}
-        {specialties && (
+        {isAiSearch && (
           <p className="max-w-2xl mx-auto mt-4 text-muted-foreground md:text-xl">
             {t('recommendedDescription')}
           </p>
@@ -170,11 +223,35 @@ function LawyersPageContent() {
             </div>
           ) : (
             <div className="flex flex-col gap-4">
+              {/* Show match count when AI search is active */}
+              {matchIds && recommendedLawyerIds.length > 0 && !isSorting && (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                  <Award className="h-4 w-4 text-primary" />
+                  <span>
+                    {t('foundLawyers', { count: recommendedLawyerIds.length })} (AI Matchmaking)
+                  </span>
+                </div>
+              )}
+
               <p className="text-muted-foreground mb-4">
                 {t('foundLawyers', { count: filteredLawyers.length })}
               </p>
+
               {filteredLawyers.map((lawyer) => (
-                <div key={lawyer.id} className={`transition-all duration-500 rounded-xl ${recommendedLawyerIds.includes(lawyer.id) ? 'border-2 border-primary shadow-lg' : ''}`}>
+                <div
+                  key={lawyer.id}
+                  className={`transition-all duration-500 rounded-xl ${
+                    recommendedLawyerIds.includes(lawyer.id)
+                      ? 'border-2 border-primary shadow-lg ring-2 ring-primary/20'
+                      : ''
+                  }`}
+                >
+                  {recommendedLawyerIds.includes(lawyer.id) && matchIds && (
+                    <div className="flex items-center gap-1.5 px-4 pt-3 pb-0">
+                      <Sparkles className="h-3.5 w-3.5 text-primary" />
+                      <span className="text-xs font-medium text-primary">Best Match</span>
+                    </div>
+                  )}
                   <LawyerCard lawyer={lawyer} />
                 </div>
               ))}
