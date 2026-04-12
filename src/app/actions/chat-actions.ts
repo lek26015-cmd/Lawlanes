@@ -356,7 +356,37 @@ export async function requestFeeAction(params: {
             lastMessageAt: admin.firestore.FieldValue.serverTimestamp()
         });
 
-        // 2. Trigger Notification
+        // 2. Add System Message to Chat
+        const messagesRef = chatRef.collection('messages');
+        const newMessageRef = messagesRef.doc();
+        await newMessageRef.set({
+            chatId: chatId,
+            text: `📋 **แจ้งชำระค่าบริการ:** ฿${amount.toLocaleString()}\nรายละเอียด: ${reason}\nกรุณาตรวจสอบและชำระเงิน`,
+            senderId: lawyerId,
+            senderName: lawyerName,
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            type: 'case_proposal',
+            metadata: {
+                caseTitle: reason,
+                amount: amount,
+                isManualCase: false 
+            }
+        });
+
+        // 3. Create In-App Notification
+        const notificationRef = db.collection('notifications').doc();
+        await notificationRef.set({
+            type: 'payment',
+            title: `แจ้งชำระค่าบริการ`,
+            message: `ทนายความแจ้งชำระค่าบริการ จำนวน ฿${amount.toLocaleString()} - ${reason}`,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            read: false,
+            recipient: clientId,
+            link: `/payment?chatId=${chatId}&type=consultation`,
+            relatedId: chatId
+        });
+
+        // 4. Trigger Email Notification
         try {
             const clientDoc = await db.collection('users').doc(clientId).get();
             if (clientDoc.exists) {

@@ -43,7 +43,7 @@ import {
     TabsTrigger,
 } from "@/components/ui/tabs";
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, FileText, Check, Upload, Scale, Ticket, Briefcase, User as UserIcon, DollarSign, ArrowLeft, Plus, Sparkles, BrainCircuit, Globe, ArrowRight, CheckCircle2, Loader2 } from 'lucide-react';
+import { AlertTriangle, FileText, Check, Upload, Scale, Ticket, Briefcase, User as UserIcon, DollarSign, ArrowLeft, Plus, Sparkles, BrainCircuit, Globe, ArrowRight, CheckCircle2, Loader2, Image as ImageIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -67,6 +67,7 @@ function ChatPageContent() {
     const [lawyer, setLawyer] = useState<LawyerProfile | null>(null);
     const [client, setClient] = useState<{ id: string, name: string, imageUrl: string } | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isUploading, setIsUploading] = useState(false);
     const [files, setFiles] = useState<{ name: string, url: string, size: number }[]>([]);
     const [chatStatus, setChatStatus] = useState<string>(searchParams.get('status') || 'active');
     const [chatAmount, setChatAmount] = useState<number>(0);
@@ -260,6 +261,7 @@ function ChatPageContent() {
         }
 
         try {
+            setIsUploading(true);
             toast({ title: "กำลังอัปโหลด...", description: "กรุณารอสักครู่" });
             const idToken = await user.getIdToken();
             const formData = new FormData();
@@ -296,6 +298,8 @@ function ChatPageContent() {
             toast({ title: "อัปโหลดไฟล์สำเร็จ", description: `ไฟล์ "${file.name}" ถูกเพิ่มแล้ว` });
         } catch (error: any) {
             toast({ variant: "destructive", title: "อัปโหลดไม่สำเร็จ", description: error.message });
+        } finally {
+            setIsUploading(false);
         }
         if (event.target) event.target.value = '';
     };
@@ -423,6 +427,7 @@ function ChatPageContent() {
                         isDisabled={isChatDisabled}
                         isLawyerView={effectiveIsLawyerView}
                         firestore={firestore}
+                        isUploading={isUploading}
                     />
                 </div>
 
@@ -741,22 +746,32 @@ function ChatPageContent() {
                                         {files.length === 0 ? (
                                             <p className="text-center text-slate-400 text-[10px] py-12 uppercase tracking-widest font-medium">No documents</p>
                                         ) : (
-                                            files.map((file, idx) => (
+                                            files.map((file, idx) => {
+                                                const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name);
+                                                return (
                                                 <div key={idx} className="flex justify-between items-center p-2 rounded-xl bg-white border border-slate-100 group hover:shadow-md transition-all">
                                                     <button 
                                                         onClick={() => handleViewFile(file.url)} 
                                                         className="flex items-center gap-2.5 overflow-hidden flex-1 text-left"
                                                     >
-                                                        <div className="w-8 h-8 rounded-lg bg-red-50 text-red-600 flex items-center justify-center flex-shrink-0 group-hover:bg-red-600 group-hover:text-white transition-colors">
-                                                            <FileText className="h-4 w-4" />
+                                                        <div className={cn(
+                                                            "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors",
+                                                            isImage 
+                                                                ? "bg-purple-50 text-purple-600 group-hover:bg-purple-600 group-hover:text-white" 
+                                                                : "bg-red-50 text-red-600 group-hover:bg-red-600 group-hover:text-white"
+                                                        )}>
+                                                            {isImage ? <ImageIcon className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
                                                         </div>
                                                         <div className="min-w-0">
-                                                            <p className="text-xs font-bold truncate text-slate-800" title={file.name}>{file.name}</p>
+                                                            <p className={cn(
+                                                                "text-xs font-bold truncate transition-colors",
+                                                                isImage ? "text-slate-800 group-hover:text-purple-700" : "text-slate-800 group-hover:text-red-700"
+                                                            )} title={file.name}>{file.name}</p>
                                                             <p className="text-[9px] text-slate-400">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
                                                         </div>
                                                     </button>
                                                 </div>
-                                            ))
+                                            )})
                                         )}
                                     </div>
                                     <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" />

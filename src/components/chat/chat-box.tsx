@@ -15,7 +15,7 @@ import type { HumanChatMessage } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, Loader2, Sparkles, Languages, AlertTriangle, RefreshCcw, Check, CheckCheck } from 'lucide-react';
+import { Send, Loader2, Sparkles, Languages, AlertTriangle, RefreshCcw, Check, CheckCheck, CreditCard } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useChat } from '@/context/chat-context';
@@ -33,6 +33,7 @@ interface ChatBoxProps {
   chatId: string;
   isDisabled?: boolean;
   isLawyerView?: boolean;
+  isUploading?: boolean;
 }
 
 interface MessageWithStatus extends HumanChatMessage {
@@ -48,6 +49,7 @@ function ChatBoxContent({
   chatId,
   isDisabled = false,
   isLawyerView = false,
+  isUploading = false,
 }: ChatBoxProps) {
   const { 
     messages: socketMessages, 
@@ -182,9 +184,16 @@ function ChatBoxContent({
   useEffect(() => {
     if (scrollAreaRef.current) {
       const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
-      if (viewport) viewport.scrollTop = viewport.scrollHeight;
+      if (viewport) {
+        const diff = viewport.scrollHeight - (viewport.scrollTop + viewport.clientHeight);
+        if (diff > 500) {
+           viewport.scrollTop = viewport.scrollHeight;
+        } else {
+           viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' });
+        }
+      }
     }
-  }, [messages, optimisticMessages]);
+  }, [messages, optimisticMessages, isUploading, isPartnerTyping]);
 
   const allMessages = [...messages, ...optimisticMessages];
   const firstUserMessage = allMessages.find(m => m.senderId !== (isLawyerView ? currentUser.uid : otherUser.userId));
@@ -264,14 +273,49 @@ function ChatBoxContent({
                       </div>
                     )}
                     <div className="flex flex-col gap-1">
-                      <div className={cn(
-                        "rounded-2xl px-4 py-2.5 text-sm shadow-sm",
-                        isOwn ? "bg-primary text-white rounded-tr-none" : "bg-white border border-gray-100 text-gray-800 rounded-tl-none",
-                        msg.status === 'sending' && "opacity-70 animate-pulse",
-                        msg.status === 'error' && "border-red-500 bg-red-50 text-red-800"
-                      )}>
-                        <p className="whitespace-pre-wrap break-words">{msg.text}</p>
-                      </div>
+                      {(() => {
+                        const isPaymentProposal = msg.text.includes('ใบเสนอราคาใหม่:') || msg.text.includes('แจ้งชำระค่าบริการ:');
+                        let paymentAmount = '0';
+                        if (isPaymentProposal) {
+                            const match = msg.text.match(/฿([\d,]+\.?\d*)/);
+                            if (match) paymentAmount = match[1];
+                        }
+
+                        return (
+                          <div className={cn(
+                            "rounded-2xl text-sm shadow-sm overflow-hidden",
+                            isPaymentProposal 
+                                ? "w-[260px] md:w-[300px] bg-white border border-blue-100 dark:bg-slate-800 dark:border-slate-700" 
+                                : (isOwn ? "px-4 py-2.5 bg-primary text-white rounded-tr-none" : "px-4 py-2.5 bg-white border border-gray-100 text-gray-800 rounded-tl-none"),
+                            !isPaymentProposal && msg.status === 'sending' && "opacity-70 animate-pulse",
+                            msg.status === 'error' && "border-red-500 bg-red-50 text-red-800"
+                          )}>
+                            {isPaymentProposal ? (
+                               <div className="flex flex-col">
+                                   <div className="bg-blue-600 p-3 text-white">
+                                       <div className="flex justify-between items-center">
+                                          <p className="font-bold text-sm flex items-center gap-1"><CreditCard className="w-4 h-4"/> แจ้งชำระเงิน</p>
+                                          <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full font-mono">{paymentAmount} ฿</span>
+                                       </div>
+                                   </div>
+                                   <div className="p-4 bg-white space-y-3">
+                                       <p className="text-xs text-slate-600 whitespace-pre-wrap break-words line-clamp-4">{msg.text}</p>
+                                       <Button 
+                                          className="w-full h-9 bg-blue-600 hover:bg-blue-700 font-bold rounded-xl shadow-md text-xs" 
+                                          asChild
+                                       >
+                                          <a href={`/payment?chatId=${chatId}&type=${msg.text.includes('ค่าบริการ') ? 'consultation' : 'case'}`} target="_blank" rel="noopener noreferrer">
+                                            💳 ดำเนินการชำระเงิน
+                                          </a>
+                                       </Button>
+                                   </div>
+                               </div>
+                            ) : (
+                               <p className="whitespace-pre-wrap break-words">{msg.text}</p>
+                            )}
+                          </div>
+                        );
+                      })()}
                       
                       {msg.status === 'error' && (
                         <button onClick={() => retryMessage(msg)} className="text-[10px] text-red-500 flex items-center gap-1 mt-1 hover:underline">
@@ -321,6 +365,13 @@ function ChatBoxContent({
                   <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '300ms'}}/>
                 </div>
                 <span>{otherUser.name} กำลังพิมพ์...</span>
+              </div>
+            )}
+
+            {isUploading && (
+              <div className="flex items-center gap-2 text-xs text-blue-600 animate-pulse ml-10">
+                <Loader2 className="w-3 h-3 animate-spin" />
+                <span className="font-medium">กำลังส่งไฟล์...</span>
               </div>
             )}
           </div>

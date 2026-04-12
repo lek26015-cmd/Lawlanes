@@ -238,9 +238,23 @@ export async function createManualCaseAction(lawyerId: string, data: {
         };
         await newMessageRef.set(proposalMessage);
 
-        // NOTIFICATION: Trigger Email/Push to the client
+        // NOTIFICATION: Trigger Email/Push and In-App notification to the client
         if (resolvedClientId) {
             try {
+                // 1. Create In-App Notification with Payment Link
+                const notificationRef = db.collection('notifications').doc();
+                await notificationRef.set({
+                    type: 'payment',
+                    title: `ใบเสนอราคาเปิดคดีใหม่`,
+                    message: `คุณได้รับข้อเสนอคดี: ${data.title} จำนวน ฿${data.amount.toLocaleString()} กรุณากดเพื่อตรวจสอบและชำระเงิน`,
+                    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                    read: false,
+                    recipient: resolvedClientId,
+                    link: `/payment?chatId=${chatId}&type=case`,
+                    relatedId: chatId
+                });
+
+                // 2. Trigger Email Notification
                 const { NotificationService } = await import('@/services/notification-service');
                 const clientDoc = await db.collection('users').doc(resolvedClientId).get();
                 const lawyerDoc = await db.collection('lawyerProfiles').doc(lawyerId).get();
