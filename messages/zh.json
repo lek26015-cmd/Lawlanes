@@ -605,7 +605,7 @@
             "help": "帮助中心",
             "guide": "用户指南"
         },
-        "copyright": "© {year} Lawslane. 版权所有。"
+        "copyright": "© {year} Lawslane. 版权所有。 · v{version}"
     },
     "ContractsService": {
         "title": "文件起草与审查服务",

@@ -149,7 +149,7 @@ export default function Footer({ userRole, domainType = 'main' }: { userRole: st
       {/* Bottom Bar (Clean Style) */}
       <div className="bg-transparent text-slate-500 py-12 border-t border-gray-800/10 mt-12">
         <div className="container mx-auto px-4 text-center text-[10px] font-bold uppercase tracking-widest opacity-50">
-          <p>© {new Date().getFullYear()} Lawslane. สงวนลิขสิทธิ์</p>
+          <p>{t('copyright', { year: new Date().getFullYear(), version: '4.3.0' })}</p>
         </div>
       </div>
     </footer>

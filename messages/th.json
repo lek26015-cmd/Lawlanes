@@ -666,7 +666,7 @@
             "help": "ศูนย์ช่วยเหลือ",
             "guide": "คู่มือการใช้งาน"
         },
-        "copyright": "© {year} Lawslane. สงวนลิขสิทธิ์"
+        "copyright": "© {year} Lawslane. สงวนลิขสิทธิ์ · v{version}"
     },
     "ContractsService": {
         "title": "บริการร่างและตรวจสอบเอกสาร",

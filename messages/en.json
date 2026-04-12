@@ -642,7 +642,7 @@
             "help": "Help Center",
             "guide": "User Guide"
         },
-        "copyright": "© {year} Lawslane. All rights reserved."
+        "copyright": "© {year} Lawslane. All rights reserved. · v{version}"
     },
     "ContractsService": {
         "title": "Document Drafting and Review Service",
