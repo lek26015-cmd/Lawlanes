@@ -9,7 +9,7 @@ import { ChatBox } from '@/components/chat/chat-box';
 import { uploadFileAction } from '../actions';
 import { requestFeeAction, getChatDetailsAction, ensureChatExistsAction } from '@/app/actions/chat-actions';
 import { submitReviewAction } from '@/app/actions/review-actions';
-import { getCaseMilestones } from '@/app/actions/lawyer-case-actions';
+import { getCaseMilestones, toggleMilestoneStatusAction, addCaseMilestoneAction } from '@/app/actions/lawyer-case-actions';
 import type { Milestone } from '@/lib/types/billing-types';
 import { useTranslations } from 'next-intl';
 import { getSecureDownloadUrl } from '@/app/actions/secure-view';
@@ -42,6 +42,16 @@ import {
     TabsList,
     TabsTrigger,
 } from "@/components/ui/tabs";
+import {
+    Drawer,
+    DrawerClose,
+    DrawerContent,
+    DrawerDescription,
+    DrawerFooter,
+    DrawerHeader,
+    DrawerTitle,
+    DrawerTrigger,
+} from "@/components/ui/drawer";
 import { Button } from '@/components/ui/button';
 import { AlertTriangle, FileText, Check, Upload, Scale, Ticket, Briefcase, User as UserIcon, DollarSign, ArrowLeft, Plus, Sparkles, BrainCircuit, Globe, ArrowRight, CheckCircle2, Loader2, Image as ImageIcon } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -378,6 +388,39 @@ function ChatPageContent() {
         }
     };
 
+    const handleToggleMilestone = async (milestoneId: string) => {
+        if (!effectiveIsLawyerView) return;
+        try {
+            const res = await toggleMilestoneStatusAction(milestoneId, chatId);
+            if (res.success) {
+                setMilestones(prev => prev.map(m => m.id === milestoneId ? { ...m, status: res.newStatus } as Milestone : m));
+                toast({ title: 'อัปเดตสถานะสำเร็จ' });
+            } else {
+                toast({ variant: 'destructive', title: 'เกิดข้อผิดพลาด', description: res.error || 'Unknown error' });
+            }
+        } catch (e: any) {
+            toast({ variant: 'destructive', title: 'เกิดข้อผิดพลาด', description: e.message });
+        }
+    };
+
+    const handleInitializeDefaultMilestones = async () => {
+        if (!effectiveIsLawyerView) return;
+        setIsLoading(true);
+        try {
+            const defaultTitles = ['วิเคราะห์รูปคดี', 'จัดเตรียมเอกสาร', 'ยื่นคำฟ้อง', 'ตรวจพยานหลักฐาน', 'นัดสืบพยาน'];
+            for (const title of defaultTitles) {
+                await addCaseMilestoneAction(chatId, title);
+            }
+            const ms = await getCaseMilestones(chatId);
+            setMilestones(ms || []);
+            toast({ title: 'สร้างแผนคดีมาตรฐานสำเร็จ' });
+        } catch (e: any) {
+            toast({ variant: 'destructive', title: 'เกิดข้อผิดพลาด', description: e.message });
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
 
     if (isLoading) return <div className="flex h-screen items-center justify-center">Loading chat...</div>;
 
@@ -396,63 +439,143 @@ function ChatPageContent() {
     // Fallback lawyer ID for payment routes when missing from URL param
     const resolvedLawyerId = lawyerId || (effectiveIsLawyerView ? user.uid : otherUser.userId) || '';
 
-    return (
-        <div className="container mx-auto px-4 md:px-6 py-8">
-            <div className="mb-8 space-y-6">
-                <div className="flex flex-col gap-1">
-                    <Link href={effectiveIsLawyerView ? "/lawyer-dashboard" : "/dashboard"} className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 transition-colors">
-                        <ArrowLeft className="w-3.5 h-3.5" />
-                        {tCommon('backToHome')}
-                    </Link>
-                    <h1 className="text-3xl font-bold font-headline mt-1 flex items-center gap-3">
-                        {isOfficial ? tCase('titleOfficial') : tCase('titleInitial')}
-                        <Badge variant={isOfficial ? "default" : "secondary"} className={cn("rounded-full uppercase text-[11px] tracking-widest px-2.5 py-0.5", isOfficial && "bg-amber-100 text-amber-700 border-amber-200")}>
-                            {isOfficial ? tCase('officialBadge') : tCase('freeBadge')}
-                        </Badge>
-                    </h1>
+    const renderOperationsPanel = () => (
+        <div className="space-y-6">
+            {isOfficial && (
+                <div className="w-full bg-slate-50 dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 p-2 shadow-sm animate-in fade-in zoom-in-95 duration-500">
+                    <CaseRoadmap currentStep={currentStep} className="pt-4 pb-8" isPremium={isOfficial} steps={milestoneSteps} />
                 </div>
-                {isOfficial && (
-                    <div className="w-full bg-slate-50 dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 p-2 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
-                        <CaseRoadmap currentStep={currentStep} isPremium={isOfficial} steps={milestoneSteps} />
-                    </div>
-                )}
-            </div>
+            )}
+            
+            <Tabs defaultValue="info" className="w-full">
+                <TabsList className="w-full bg-slate-100/80 dark:bg-slate-800/80 backdrop-blur-sm p-1.5 rounded-2xl h-auto flex flex-wrap lg:flex-nowrap gap-1 border border-slate-200/50 dark:border-slate-700/50">
+                    <TabsTrigger value="overview" className="min-w-0 px-2 flex-1 text-[9px] sm:text-[10px] font-black uppercase tracking-widest py-2 rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:shadow-md transition-all duration-300">
+                        <span className="truncate">Overview</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="info" className="min-w-0 px-2 flex-1 text-[9px] sm:text-[10px] font-black uppercase tracking-widest py-2 rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:shadow-md transition-all duration-300">
+                        <span className="truncate">{tCommon('viewDetails')}</span>
+                    </TabsTrigger>
+                    <TabsTrigger value="vault" className="min-w-0 px-2 flex-1 text-[9px] sm:text-[10px] font-black uppercase tracking-widest py-2 rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:shadow-md transition-all duration-300">
+                        <span className="truncate">{tCase('legalVault').split(' ')[0]}</span>
+                    </TabsTrigger>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pb-12 items-start">
-                <div className="lg:col-span-2 h-[calc(100vh-250px)] min-h-[600px] bg-white dark:bg-slate-900 rounded-3xl overflow-hidden shadow-sm border border-slate-200 dark:border-slate-800 flex flex-col">
-                    <ChatBox 
-                        chatId={chatId} 
-                        currentUser={user} 
-                        otherUser={otherUser}
-                        isDisabled={isChatDisabled}
-                        isLawyerView={effectiveIsLawyerView}
-                        firestore={firestore}
-                        isUploading={isUploading}
-                    />
-                </div>
-
-                <div className="lg:col-span-1 space-y-6 sticky top-24 h-max">
-                    <Tabs defaultValue="info" className="w-full">
-                        <TabsList className="w-full bg-slate-100 dark:bg-slate-800 p-1.5 rounded-2xl h-auto flex flex-wrap lg:flex-nowrap gap-1">
-                            <TabsTrigger value="overview" className="flex-1 text-[9px] sm:text-[10px] font-black uppercase tracking-widest py-2 rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm">
-                                Overview
-                            </TabsTrigger>
-                            <TabsTrigger value="info" className="flex-1 text-[9px] sm:text-[10px] font-black uppercase tracking-widest py-2 rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm">
-                                {tCommon('viewDetails')}
-                            </TabsTrigger>
-                            <TabsTrigger value="vault" className="flex-1 text-[9px] sm:text-[10px] font-black uppercase tracking-widest py-2 rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm">
-                                {tCase('legalVault').split(' ')[0]}
-                            </TabsTrigger>
-                            {effectiveIsLawyerView && isOfficial && (
-                                <TabsTrigger value="tools" className="flex-1 text-[8px] sm:text-[9px] font-black uppercase tracking-widest flex items-center justify-center gap-1 py-1.5 rounded-xl data-[state=active]:bg-white data-[state=active]:shadow-sm leading-tight text-center">
-                                    <Sparkles className="w-2.5 h-2.5 text-blue-500 shrink-0" /> 
-                                    <span className="break-words">{tCase('proTools')}</span>
-                                </TabsTrigger>
-                            )}
-                        </TabsList>
-                        
-                        <TabsContent value="info" className="space-y-6">
-                            {effectiveIsLawyerView ? (
+                </TabsList>
+                
+                <TabsContent value="info" className="space-y-6">
+                    {effectiveIsLawyerView ? (
+                        <Card className="border-none shadow-sm bg-slate-50 dark:bg-slate-900/50">
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                                    <Briefcase className="w-4 h-4 text-primary" />
+                                    ขอบเขตเคส
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4 text-sm">
+                                <div className="flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700">
+                                    <Avatar className="h-10 w-10">
+                                        <AvatarImage src={otherUser.imageUrl || undefined} />
+                                        <AvatarFallback>{otherUser.name.charAt(0)}</AvatarFallback>
+                                    </Avatar>
+                                    <div>
+                                        <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">ลูกความ</p>
+                                        <p className="font-bold text-slate-900 dark:text-white leading-tight">{otherUser.name}</p>
+                                    </div>
+                                </div>
+                                <div className="flex justify-between items-center px-1">
+                                    <span className="text-xs text-slate-500 font-medium">Ticket ID:</span>
+                                    <div className="flex items-center gap-1.5 min-w-0">
+                                        <code className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-[10px] font-mono truncate">{chatId}</code>
+                                        <CopyButton value={chatId} className="h-6 w-6" />
+                                    </div>
+                                </div>
+                                <div className="flex justify-between px-1">
+                                    <span className="text-xs text-slate-500 font-medium">สถานะ:</span>
+                                    <Badge variant={isCompleted ? "secondary" : (chatStatus === 'pending_payment' ? "destructive" : "default")} className="text-[10px] px-1.5 py-0">
+                                        {isCompleted ? 'เสร็จสิ้น' : (chatStatus === 'pending_payment' ? "รอชำระเงิน" : 'กำลังดำเนินการ')}
+                                    </Badge>
+                                </div>
+                                <div className="flex justify-between px-1">
+                                    <span className="text-xs text-slate-500 font-medium">ค่าบริการ:</span>
+                                    <span className="font-bold text-slate-900 dark:text-white">฿{chatAmount.toLocaleString()}</span>
+                                </div>
+                                
+                                {(caseTitle || description) && (
+                                    <div className="pt-3 mt-3 border-t border-slate-200 dark:border-slate-700 space-y-3">
+                                        {caseTitle && (
+                                            <div>
+                                                <p className="text-[10px] text-slate-500 font-medium mb-1">หัวข้อคดี/บริการ</p>
+                                                <p className="text-xs font-bold text-slate-900 dark:text-white">{caseTitle}</p>
+                                            </div>
+                                        )}
+                                        {description && (
+                                            <div>
+                                                <p className="text-[10px] text-slate-500 font-medium mb-1">รายละเอียดขอบเขตงาน (Scope of Work)</p>
+                                                <div className="p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700">
+                                                    <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">{description || "-"}</p>
+                                                </div>
+                                            </div>
+                                        )}
+                                        {installments && installments.length > 0 && (
+                                            <div>
+                                                <p className="text-[10px] text-slate-500 font-medium mb-1">แผนการชำระเงิน (Installments)</p>
+                                                <div className="space-y-1.5">
+                                                    {installments.map((inst: any, idx: number) => {
+                                                        const instAmount = inst.amount && !isNaN(parseFloat(inst.amount)) ? parseFloat(String(inst.amount).replace(/,/g, '')) : 0;
+                                                        return (
+                                                            <div key={idx} className="flex justify-between items-center p-2 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-100 dark:border-slate-800 text-xs shadow-sm">
+                                                                <span className="font-medium text-slate-700 dark:text-slate-300">งวดที่ {idx + 1}: {inst.description}</span>
+                                                                <span className="font-black text-blue-600 dark:text-blue-400 whitespace-nowrap ml-2">฿{instAmount.toLocaleString()}</span>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+                            </CardContent>
+                            <CardFooter className="flex-col gap-2 pt-2">
+                                {!isCompleted && (
+                                    <>
+                                        <Button className="w-full bg-blue-600 hover:bg-blue-700 text-xs h-10 font-bold rounded-2xl shadow-lg shadow-blue-500/20" asChild>
+                                            <Link href={`/lawyer-dashboard/pipeline/new?chatId=${chatId}&clientId=${clientId}`}>
+                                                <Plus className="w-4 h-4 mr-2" /> เสนอราคาเปิดคดี
+                                            </Link>
+                                        </Button>
+                                        
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button variant="ghost" className="w-full h-9 text-xs text-slate-500 hover:text-slate-900">
+                                                    ปิดสรุปเคส
+                                                </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent className="rounded-3xl border-none shadow-2xl">
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle className="text-xl font-bold flex items-center gap-2">
+                                                        <FileText className="w-5 h-5 text-slate-400" /> ยืนยันการปิดคดี
+                                                    </AlertDialogTitle>
+                                                    <AlertDialogDescription className="text-base py-2">
+                                                        การปิดสรุปเคสหมายถึงคุณได้ให้คำปรึกษาเสร็จสิ้นแล้ว และจะไม่มีการเปิดเคสเป็นทางการต่อ คุณต้องการดำเนินการต่อใช่หรือไม่?
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter className="gap-2">
+                                                    <AlertDialogCancel className="rounded-full border-slate-200">ยกเลิก</AlertDialogCancel>
+                                                    <AlertDialogAction 
+                                                        onClick={handleConfirmRelease}
+                                                        className="bg-slate-900 hover:bg-black text-white rounded-full font-bold"
+                                                    >
+                                                        ยืนยันปิดคดี
+                                                    </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    </>
+                                )}
+                            </CardFooter>
+                        </Card>
+                    ) : (
+                        <div className="space-y-6">
+                            {(caseTitle || description || chatAmount > 0) && (
                                 <Card className="border-none shadow-sm bg-slate-50 dark:bg-slate-900/50">
                                     <CardHeader className="pb-3">
                                         <CardTitle className="text-sm font-semibold flex items-center gap-2">
@@ -461,16 +584,6 @@ function ChatPageContent() {
                                         </CardTitle>
                                     </CardHeader>
                                     <CardContent className="space-y-4 text-sm">
-                                        <div className="flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700">
-                                            <Avatar className="h-10 w-10">
-                                                <AvatarImage src={otherUser.imageUrl || undefined} />
-                                                <AvatarFallback>{otherUser.name.charAt(0)}</AvatarFallback>
-                                            </Avatar>
-                                            <div>
-                                                <p className="text-[10px] uppercase tracking-wider text-slate-400 font-bold">ลูกความ</p>
-                                                <p className="font-bold text-slate-900 dark:text-white leading-tight">{otherUser.name}</p>
-                                            </div>
-                                        </div>
                                         <div className="flex justify-between items-center px-1">
                                             <span className="text-xs text-slate-500 font-medium">Ticket ID:</span>
                                             <div className="flex items-center gap-1.5 min-w-0">
@@ -488,300 +601,403 @@ function ChatPageContent() {
                                             <span className="text-xs text-slate-500 font-medium">ค่าบริการ:</span>
                                             <span className="font-bold text-slate-900 dark:text-white">฿{chatAmount.toLocaleString()}</span>
                                         </div>
-                                    </CardContent>
-                                    <CardFooter className="flex-col gap-2 pt-2">
-                                        {!isCompleted && (
-                                            <>
-                                                <Button className="w-full bg-blue-600 hover:bg-blue-700 text-xs h-10 font-bold rounded-2xl shadow-lg shadow-blue-500/20" asChild>
-                                                    <Link href={`/lawyer-dashboard/pipeline/new?chatId=${chatId}&clientId=${clientId}`}>
-                                                        <Plus className="w-4 h-4 mr-2" /> เสนอราคาเปิดคดี
-                                                    </Link>
-                                                </Button>
-                                                
-                                                <AlertDialog>
-                                                    <AlertDialogTrigger asChild>
-                                                        <Button variant="ghost" className="w-full h-9 text-xs text-slate-500 hover:text-slate-900">
-                                                            ปิดสรุปเคส
-                                                        </Button>
-                                                    </AlertDialogTrigger>
-                                                    <AlertDialogContent className="rounded-3xl border-none shadow-2xl">
-                                                        <AlertDialogHeader>
-                                                            <AlertDialogTitle className="text-xl font-bold flex items-center gap-2">
-                                                                <FileText className="w-5 h-5 text-slate-400" /> ยืนยันการปิดคดี
-                                                            </AlertDialogTitle>
-                                                            <AlertDialogDescription className="text-base py-2">
-                                                                การปิดสรุปเคสหมายถึงคุณได้ให้คำปรึกษาเสร็จสิ้นแล้ว และจะไม่มีการเปิดเคสเป็นทางการต่อ คุณต้องการดำเนินการต่อใช่หรือไม่?
-                                                            </AlertDialogDescription>
-                                                        </AlertDialogHeader>
-                                                        <AlertDialogFooter className="gap-2">
-                                                            <AlertDialogCancel className="rounded-full border-slate-200">ยกเลิก</AlertDialogCancel>
-                                                            <AlertDialogAction 
-                                                                onClick={handleConfirmRelease}
-                                                                className="bg-slate-900 hover:bg-black text-white rounded-full font-bold"
-                                                            >
-                                                                ยืนยันปิดคดี
-                                                            </AlertDialogAction>
-                                                        </AlertDialogFooter>
-                                                    </AlertDialogContent>
-                                                </AlertDialog>
-                                            </>
-                                        )}
-                                    </CardFooter>
-                                </Card>
-                            ) : (
-                                <Card className="border-none shadow-sm bg-slate-50 dark:bg-slate-900/50">
-                                    <CardHeader className="pb-3">
-                                        <CardTitle className="text-sm font-semibold flex items-center gap-2 text-slate-800 dark:text-white">
-                                            <UserIcon className="w-4 h-4 text-blue-500" />
-                                            โปรไฟล์ทนาย
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="space-y-4">
-                                        <div className="flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700">
-                                            <Avatar className="h-10 w-10">
-                                                <AvatarImage src={lawyer?.imageUrl || undefined} />
-                                                <AvatarFallback>{lawyer?.name?.charAt(0) || 'L'}</AvatarFallback>
-                                            </Avatar>
-                                            <div>
-                                                <p className="font-bold text-slate-900 dark:text-white leading-tight">{lawyer?.name || 'Lawyer'}</p>
-                                                <p className="text-[10px] text-slate-500 mt-0.5">{lawyer?.specialty?.join(', ')}</p>
-                                            </div>
-                                        </div>
-                                        <Button variant="outline" className="w-full text-xs h-9 rounded-xl border-slate-200" asChild disabled={!lawyer || !lawyerId}>
-                                            <Link href={`/lawyer/${lawyerId || ''}`}>
-                                                ดูโปรไฟล์ฉบับเต็ม
-                                            </Link>
-                                        </Button>
-                                    </CardContent>
-                                </Card>
-                            )}
-                        </TabsContent>
 
-                        <TabsContent value="overview" className="mt-0 space-y-6">
-                            {isCompleted ? (
-                                <Card className="border-green-100 shadow-xl shadow-green-500/5 bg-white">
-                                    <CardHeader className="pb-3 text-center text-sm font-bold">ให้คะแนนบริการ</CardHeader>
-                                    <CardContent className="space-y-4">
-                                        <div className="flex items-center justify-center gap-1.5 py-2">
-                                            {[1, 2, 3, 4, 5].map((star) => (
-                                                <button key={star} onClick={() => setRating(star)} className="focus:outline-none">
-                                                    <Scale className={cn("w-6 h-6 transition-all", rating >= star ? "text-amber-500 fill-amber-500" : "text-slate-300")} />
-                                                </button>
-                                            ))}
-                                        </div>
-                                        <Textarea placeholder="แชร์ความประทับใจ..." value={reviewText} onChange={(e) => setReviewText(e.target.value)} className="text-sm min-h-[80px]" />
-                                    </CardContent>
-                                    <CardFooter>
-                                        <Button onClick={handleSubmitReview} className="w-full font-bold h-9 text-xs" disabled={rating === 0}>ส่งรีวิว</Button>
-                                    </CardFooter>
-                                </Card>
-                            ) : (isManualCase && chatStatus === 'pending_payment') ? (
-                                <Card className="border-blue-500 shadow-2xl ring-4 ring-blue-500/10 bg-white overflow-hidden animate-in fade-in zoom-in-95 duration-500">
-                                    <div className="bg-blue-600 py-1.5 px-3 text-white text-center">
-                                        <p className="text-[9px] font-black uppercase tracking-[0.2em] italic">Official Case Proposal</p>
-                                    </div>
-                                    <CardHeader className="pb-2 pt-4">
-                                        <CardTitle className="text-sm font-bold flex items-center gap-2 text-slate-800">
-                                            <Briefcase className="w-5 h-5 text-blue-600" /> {caseTitle || "ข้อเสนอเริ่มดำเนินคดี"}
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="space-y-4 text-sm">
-                                        <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl text-slate-600 text-[11px] leading-relaxed">
-                                            <p className="font-bold mb-1 uppercase tracking-wider text-[9px] text-blue-600">ขอบเขตงาน (Scope of Work):</p>
-                                            <p className="line-clamp-3">{description || "ตามที่ระบุในสัญญาจ้างงาน"}</p>
-                                        </div>
-                                        
-                                        {installments && installments.length > 0 ? (
-                                            <div className="space-y-2">
-                                                <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest pl-1">แผนการชำระเงิน ({installments.filter((i: any) => i.status === 'paid').length}/{installments.length} งวด)</p>
-                                                <div className="space-y-2">
-                                                    {installments.map((inst: any, idx: number) => {
-                                                        const isPaid = inst.status === 'paid';
-                                                        const previousAllPaid = installments.slice(0, idx).every((prev: any) => prev.status === 'paid');
-                                                        const isNextToPay = !isPaid && previousAllPaid;
-                                                        const instAmount = inst.amount && !isNaN(parseFloat(inst.amount)) ? parseFloat(String(inst.amount).replace(/,/g, '')) : 0;
-
-                                                        return (
-                                                            <div key={idx} className={cn(
-                                                                "p-3 rounded-xl border transition-all",
-                                                                isPaid 
-                                                                    ? "bg-green-50 border-green-200" 
-                                                                    : isNextToPay 
-                                                                        ? "bg-blue-50 border-blue-300 ring-2 ring-blue-200/50 shadow-sm" 
-                                                                        : "bg-slate-50/50 border-slate-100/50 opacity-60"
-                                                            )}>
-                                                                <div className="flex justify-between items-center mb-1.5">
-                                                                    <span className={cn("text-[10px] font-bold", isPaid ? "text-green-700" : isNextToPay ? "text-blue-700" : "text-slate-400")}>
-                                                                        งวดที่ {idx + 1}
-                                                                    </span>
-                                                                    {isPaid ? (
-                                                                        <span className="text-[9px] font-black uppercase bg-green-100 text-green-700 px-2 py-0.5 rounded-full flex items-center gap-1">
-                                                                            <CheckCircle2 className="w-3 h-3" /> ชำระแล้ว
-                                                                        </span>
-                                                                    ) : isNextToPay ? (
-                                                                        <span className="text-[9px] font-black uppercase bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full animate-pulse">
-                                                                            รอชำระ
-                                                                        </span>
-                                                                    ) : (
-                                                                        <span className="text-[9px] font-bold text-slate-300 uppercase">รอคิว</span>
-                                                                    )}
-                                                                </div>
-                                                                <p className="text-[10px] text-slate-500 font-medium truncate">{inst.description}</p>
-                                                                <div className="flex justify-between items-center mt-2">
-                                                                    <span className="font-bold text-slate-700 text-sm">฿{instAmount.toLocaleString()}</span>
-                                                                    {isNextToPay && (
-                                                                        <Button size="sm" className="h-7 rounded-lg bg-[#0B3979] hover:bg-[#082a5a] text-[10px] font-bold px-3 shadow-md shadow-blue-500/20" asChild>
-                                                                            <Link href={`/payment?chatId=${chatId}&lawyerId=${resolvedLawyerId}&amount=${instAmount}&type=installment&installmentIndex=${idx}`}>
-                                                                                ชำระงวดนี้ <ArrowRight className="ml-1 w-3 h-3" />
-                                                                            </Link>
-                                                                        </Button>
-                                                                    )}
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div className="p-4 rounded-2xl border-2 border-blue-100 bg-blue-50/30 text-center shadow-inner">
-                                                <p className="text-[10px] uppercase font-bold text-blue-600 mb-0.5 tracking-tighter">ค่าบริการรวมทั้งสิ้น</p>
-                                                <p className="text-3xl font-black text-slate-900 tracking-tight">฿{chatAmount.toLocaleString()}</p>
+                                        {(caseTitle || description || installments?.length > 0) && (
+                                            <div className="pt-3 mt-3 border-t border-slate-200 dark:border-slate-700 space-y-3">
+                                                {caseTitle && (
+                                                    <div>
+                                                        <p className="text-[10px] text-slate-500 font-medium mb-1">หัวข้อคดี/บริการ</p>
+                                                        <p className="text-xs font-bold text-slate-900 dark:text-white">{caseTitle}</p>
+                                                    </div>
+                                                )}
+                                                {description && (
+                                                    <div>
+                                                        <p className="text-[10px] text-slate-500 font-medium mb-1">รายละเอียดขอบเขตงาน (Scope of Work)</p>
+                                                        <div className="p-3 bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700">
+                                                            <p className="text-xs text-slate-700 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">{description}</p>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                {installments && installments.length > 0 && (
+                                                    <div>
+                                                        <p className="text-[10px] text-slate-500 font-medium mb-1">แผนการชำระเงิน (Installments)</p>
+                                                        <div className="space-y-1.5">
+                                                            {installments.map((inst: any, idx: number) => {
+                                                                const instAmount = inst.amount && !isNaN(parseFloat(inst.amount)) ? parseFloat(String(inst.amount).replace(/,/g, '')) : 0;
+                                                                return (
+                                                                    <div key={idx} className="flex justify-between items-center p-2 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-100 dark:border-slate-800 text-xs shadow-sm">
+                                                                        <span className="font-medium text-slate-700 dark:text-slate-300">งวดที่ {idx + 1}: {inst.description}</span>
+                                                                        <span className="font-black text-blue-600 dark:text-blue-400 whitespace-nowrap ml-2">฿{instAmount.toLocaleString()}</span>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
-
-                                        {/* Total summary */}
-                                        <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 flex justify-between items-center">
-                                            <span className="text-[10px] font-bold text-slate-400 uppercase">ยอดรวมทั้งหมด</span>
-                                            <span className="text-lg font-black text-slate-900">฿{chatAmount.toLocaleString()}</span>
-                                        </div>
                                     </CardContent>
-                                    <CardFooter className="flex flex-col gap-2 bg-slate-50/50 border-t border-slate-100 p-5">
-                                        {(!installments || installments.length === 0) && (
-                                            <Button className="w-full bg-[#0B3979] hover:bg-[#082a5a] font-black h-12 shadow-xl shadow-blue-500/20 text-white rounded-2xl text-sm" asChild>
-                                                <Link href={`/payment?chatId=${chatId}&lawyerId=${resolvedLawyerId}&amount=${chatAmount}&type=case`}>
-                                                    ชำระเงินเพื่อเริ่มงาน <ArrowRight className="ml-2 w-4 h-4" />
+                                    {!isCompleted && !effectiveIsLawyerView && installments?.length > 0 && (
+                                        <CardFooter className="pt-2">
+                                            <Button className="w-full bg-blue-600 hover:bg-blue-700 text-xs h-9 font-bold" asChild>
+                                                <Link href={`/payment?chatId=${chatId}&type=installment&installmentIndex=${installments.findIndex((i:any) => i.status !== 'paid') !== -1 ? installments.findIndex((i:any) => i.status !== 'paid') : 0}`}>
+                                                    ชำระเงินงวดถัดไป
                                                 </Link>
                                             </Button>
-                                        )}
-                                        <p className="text-[9px] text-center text-slate-400 font-medium flex items-center justify-center gap-1">
-                                            <CheckCircle2 className="w-3 h-3 text-green-500" /> เงินถูกคุ้มครองโดยระบบ Lawlane Guarantee
-                                        </p>
-                                    </CardFooter>
-                                </Card>
-                            ) : pendingFeeRequest ? (
-                                <Card className="border-amber-400 shadow-xl ring-4 ring-amber-400/10 bg-white">
-                                    <CardHeader className="pb-2">
-                                        <CardTitle className="text-sm font-bold flex items-center gap-2 text-amber-700">
-                                            <DollarSign className="w-5 h-5" />ข้อเสนอเปิดคดี
-                                        </CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="space-y-4 text-sm">
-                                        <div className="p-3 bg-amber-50 border border-amber-100 rounded-xl text-amber-800 text-xs">
-                                            <p className="font-bold underline mb-1">รายละเอียด:</p>
-                                            <p>{pendingFeeRequest.reason || "ตามที่ตกลงในแชท"}</p>
-                                        </div>
-                                        <div className="p-3 rounded-xl border border-amber-200 bg-amber-50/50 text-center">
-                                            <p className="text-[10px] uppercase font-bold text-amber-600 mb-0.5">ยอดชำระ</p>
-                                            <p className="text-2xl font-black text-slate-900">฿{pendingFeeRequest.amount.toLocaleString()}</p>
-                                        </div>
-                                    </CardContent>
-                                    <CardFooter>
-                                        <Button className="w-full bg-amber-500 hover:bg-amber-600 font-bold h-10 shadow-lg text-white" asChild>
-                                            <Link href={`/payment?chatId=${chatId}&lawyerId=${resolvedLawyerId}&amount=${pendingFeeRequest.amount}&type=additional`}>
-                                                ชำระเงินเปิดห้องคดี
-                                            </Link>
-                                        </Button>
-                                    </CardFooter>
-                                </Card>
-                            ) : (
-                                <Card className="border-none shadow-sm bg-slate-50">
-                                    <CardHeader className="pb-3 text-center">
-                                        <CardTitle className="text-xs font-semibold uppercase text-slate-400 tracking-widest">{chatAmount === 0 ? "Initial Chat" : "Official Case"}</CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="text-center pb-6">
-                                        {chatAmount === 0 ? (
-                                            <div className="py-2">
-                                                <p className="text-[10px] uppercase tracking-widest font-black text-green-600 mb-1">FREE CONSULT</p>
-                                                <p className="text-xs text-slate-500 leading-relaxed">คุยเบื้องต้นฟรี ทนายจะส่งข้อเสนอราคาหากต้องดำเนินคดีต่อ</p>
-                                            </div>
-                                        ) : (
-                                            <div className="py-2">
-                                                <p className="text-3xl font-black text-slate-900 mb-2">฿{chatAmount.toLocaleString()}</p>
-                                                <p className="text-[10px] text-slate-500">เงินถูกคุ้มครองโดยระบบ Lawlane</p>
-                                                {effectiveIsLawyerView && <Button className="w-full mt-4 bg-green-600 hover:bg-green-700 font-bold h-9 text-xs" onClick={handleConfirmRelease}>ยืนยันปิดเคส</Button>}
-                                            </div>
-                                        )}
-                                    </CardContent>
+                                        </CardFooter>
+                                    )}
                                 </Card>
                             )}
-                        </TabsContent>
-                        
-                        <TabsContent value="tools" className="space-y-4">
-                            {effectiveIsLawyerView && isOfficial && (
-                                <>
-                                    <Card className="border-blue-100 bg-blue-50/20 overflow-hidden shadow-sm">
-                                        <div className="p-4 bg-white/60 border-b border-blue-100">
-                                            <h4 className="text-[10px] font-black uppercase text-blue-600 tracking-widest flex items-center gap-2 italic">
-                                                <BrainCircuit className="w-4 h-4" /> Legal Research (RAG)
-                                            </h4>
-                                        </div>
-                                        <LegalResearchTool 
-                                            onCite={(text) => toast({ title: "Cite successful", description: "Selected text cited to chat." })} 
-                                            className="h-[350px] border-none" 
-                                        />
-                                    </Card>
-                                </>
-                            )}
-                        </TabsContent>
-                        
-                        <TabsContent value="vault">
-                            <Card className={cn("border-none shadow-sm", isOfficial ? "bg-slate-50" : "opacity-60 grayscale bg-slate-100")}>
-                                <CardHeader className="pb-2">
-                                    <CardTitle className="text-xs font-bold uppercase tracking-widest flex items-center gap-2">
-                                        <Upload className="w-3.5 h-3.5" /> {tCase('legalVault')}
+                            
+                            <Card className="border-none shadow-sm bg-slate-50 dark:bg-slate-900/50">
+                                <CardHeader className="pb-3">
+                                    <CardTitle className="text-sm font-semibold flex items-center gap-2 text-slate-800 dark:text-white">
+                                        <UserIcon className="w-4 h-4 text-blue-500" />
+                                        โปรไฟล์ทนาย
                                     </CardTitle>
                                 </CardHeader>
-                                <CardContent className="space-y-4">
-                                    <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
-                                        {files.length === 0 ? (
-                                            <p className="text-center text-slate-400 text-[10px] py-12 uppercase tracking-widest font-medium">No documents</p>
-                                        ) : (
-                                            files.map((file, idx) => {
-                                                const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name);
-                                                return (
-                                                <div key={idx} className="flex justify-between items-center p-2 rounded-xl bg-white border border-slate-100 group hover:shadow-md transition-all">
-                                                    <button 
-                                                        onClick={() => handleViewFile(file.url)} 
-                                                        className="flex items-center gap-2.5 overflow-hidden flex-1 text-left"
-                                                    >
-                                                        <div className={cn(
-                                                            "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors",
-                                                            isImage 
-                                                                ? "bg-purple-50 text-purple-600 group-hover:bg-purple-600 group-hover:text-white" 
-                                                                : "bg-red-50 text-red-600 group-hover:bg-red-600 group-hover:text-white"
-                                                        )}>
-                                                            {isImage ? <ImageIcon className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
-                                                        </div>
-                                                        <div className="min-w-0">
-                                                            <p className={cn(
-                                                                "text-xs font-bold truncate transition-colors",
-                                                                isImage ? "text-slate-800 group-hover:text-purple-700" : "text-slate-800 group-hover:text-red-700"
-                                                            )} title={file.name}>{file.name}</p>
-                                                            <p className="text-[9px] text-slate-400">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
-                                                        </div>
-                                                    </button>
-                                                </div>
-                                            )})
-                                        )}
+                            <CardContent className="space-y-4">
+                                <div className="flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700">
+                                    <Avatar className="h-10 w-10">
+                                        <AvatarImage src={lawyer?.imageUrl || undefined} />
+                                        <AvatarFallback>{lawyer?.name?.charAt(0) || 'L'}</AvatarFallback>
+                                    </Avatar>
+                                    <div>
+                                        <p className="font-bold text-slate-900 dark:text-white leading-tight">{lawyer?.name || 'Lawyer'}</p>
+                                        <p className="text-[10px] text-slate-500 mt-0.5">{lawyer?.specialty?.join(', ')}</p>
                                     </div>
-                                    <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
-                                    <Button onClick={handleUploadClick} variant="outline" className="w-full text-xs h-9 border-dashed" disabled={isChatDisabled}>
-                                        <Plus className="mr-1.5 h-3.5 w-3.5" /> อัปโหลดใหม่
+                                </div>
+                                <Button variant="outline" className="w-full text-xs h-9 rounded-xl border-slate-200" asChild disabled={!lawyer || !lawyerId}>
+                                    <Link href={`/lawyer/${lawyerId || ''}`}>
+                                        ดูโปรไฟล์ฉบับเต็ม
+                                    </Link>
+                                </Button>
+                            </CardContent>
+                        </Card>
+                        </div>
+                    )}
+                </TabsContent>
+
+                <TabsContent value="overview" className="mt-0 space-y-6">
+                    {effectiveIsLawyerView && isOfficial && (
+                        <Card className="border border-blue-200 shadow-sm bg-blue-50/10">
+                            <CardHeader className="pb-3 border-b border-slate-100">
+                                <CardTitle className="text-xs font-black uppercase text-blue-800 tracking-wider flex items-center gap-2">
+                                    <CheckCircle2 className="w-4 h-4 text-blue-600" />
+                                    Lawyer Dashboard: จัดการความคืบหน้า (Milestones)
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="pt-4 space-y-2">
+                                {milestones.length > 0 ? milestones.map((m) => {
+                                    const isCompleted = m.status === 'completed';
+                                    return (
+                                        <div key={m.id} className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-colors shadow-sm">
+                                            <div className="flex items-center gap-3">
+                                                <button 
+                                                    onClick={() => handleToggleMilestone(m.id)}
+                                                    className={cn("w-6 h-6 rounded-md flex items-center justify-center border-2 transition-all cursor-pointer", 
+                                                        isCompleted ? "bg-blue-600 border-blue-600 text-white" : "border-slate-300 text-transparent hover:border-blue-400"
+                                                    )}
+                                                >
+                                                    <Check className="w-3.5 h-3.5" strokeWidth={3} />
+                                                </button>
+                                                <span className={cn("text-xs font-bold", isCompleted ? "text-slate-500 line-through" : "text-slate-800")}>{m.title}</span>
+                                            </div>
+                                        </div>
+                                    );
+                                }) : (
+                                    <div className="text-center py-5 space-y-3">
+                                        <p className="text-[11px] text-slate-500">คดีนี้ยังไม่ได้สร้างรายการความคืบหน้าในระบบ</p>
+                                        <Button onClick={handleInitializeDefaultMilestones} className="bg-blue-600 hover:bg-blue-700 h-8 text-[11px] font-bold" size="sm">
+                                            <Sparkles className="w-3 h-3 mr-1.5" />
+                                            สร้างแผนดำเนินคดีมาตรฐาน 5 ขั้นตอน
+                                        </Button>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    )}
+
+                    {isCompleted ? (
+                        <Card className="border-green-100 shadow-xl shadow-green-500/5 bg-white">
+                            <CardHeader className="pb-3 text-center text-sm font-bold">ให้คะแนนบริการ</CardHeader>
+                            <CardContent className="space-y-4">
+                                <div className="flex items-center justify-center gap-1.5 py-2">
+                                    {[1, 2, 3, 4, 5].map((star) => (
+                                        <button key={star} onClick={() => setRating(star)} className="focus:outline-none">
+                                            <Scale className={cn("w-6 h-6 transition-all", rating >= star ? "text-amber-500 fill-amber-500" : "text-slate-300")} />
+                                        </button>
+                                    ))}
+                                </div>
+                                <Textarea placeholder="แชร์ความประทับใจ..." value={reviewText} onChange={(e) => setReviewText(e.target.value)} className="text-sm min-h-[80px]" />
+                            </CardContent>
+                            <CardFooter>
+                                <Button onClick={handleSubmitReview} className="w-full font-bold h-9 text-xs" disabled={rating === 0}>ส่งรีวิว</Button>
+                            </CardFooter>
+                        </Card>
+                    ) : (isManualCase && chatStatus === 'pending_payment') ? (
+                        <Card className="border-blue-500 shadow-2xl ring-4 ring-blue-500/10 bg-white overflow-hidden animate-in fade-in zoom-in-95 duration-500">
+                            <div className="bg-blue-600 py-1.5 px-3 text-white text-center">
+                                <p className="text-[9px] font-black uppercase tracking-[0.2em] italic">Official Case Proposal</p>
+                            </div>
+                            <CardHeader className="pb-2 pt-4">
+                                <CardTitle className="text-sm font-bold flex items-center gap-2 text-slate-800">
+                                    <Briefcase className="w-5 h-5 text-blue-600" /> {caseTitle || "ข้อเสนอเริ่มดำเนินคดี"}
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4 text-sm">
+                                <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100/50 dark:from-slate-800 dark:to-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-600 dark:text-slate-300 text-[11px] leading-relaxed shadow-sm">
+                                    <p className="font-bold mb-1.5 uppercase tracking-wider text-[9px] text-blue-600 dark:text-blue-400 flex items-center gap-1.5"><FileText className="w-3 h-3" /> ขอบเขตงาน (Scope of Work)</p>
+                                    <p className="line-clamp-3 text-slate-700 dark:text-slate-200">{description || "ตามที่ระบุในสัญญาจ้างงาน"}</p>
+                                </div>
+                                
+                                {installments && installments.length > 0 ? (
+                                    <div className="space-y-2">
+                                        <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest pl-1">แผนการชำระเงิน ({installments.filter((i: any) => i.status === 'paid').length}/{installments.length} งวด)</p>
+                                        <div className="space-y-2">
+                                            {installments.map((inst: any, idx: number) => {
+                                                const isPaid = inst.status === 'paid';
+                                                const previousAllPaid = installments.slice(0, idx).every((prev: any) => prev.status === 'paid');
+                                                const isNextToPay = !isPaid && previousAllPaid;
+                                                const instAmount = inst.amount && !isNaN(parseFloat(inst.amount)) ? parseFloat(String(inst.amount).replace(/,/g, '')) : 0;
+
+                                                return (
+                                                    <div key={idx} className={cn(
+                                                        "p-3 rounded-xl border transition-all",
+                                                        isPaid 
+                                                            ? "bg-green-50 border-green-200" 
+                                                            : isNextToPay 
+                                                                ? "bg-blue-50 border-blue-300 ring-2 ring-blue-200/50 shadow-sm" 
+                                                                : "bg-slate-50/50 border-slate-100/50 opacity-60"
+                                                    )}>
+                                                        <div className="flex justify-between items-center mb-1.5">
+                                                            <span className={cn("text-[10px] font-bold", isPaid ? "text-green-700" : isNextToPay ? "text-blue-700" : "text-slate-400")}>
+                                                                งวดที่ {idx + 1}
+                                                            </span>
+                                                            {isPaid ? (
+                                                                <span className="text-[9px] font-black uppercase bg-green-100 text-green-700 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                                                    <CheckCircle2 className="w-3 h-3" /> ชำระแล้ว
+                                                                </span>
+                                                            ) : isNextToPay ? (
+                                                                <span className="text-[9px] font-black uppercase bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full animate-pulse">
+                                                                    รอชำระ
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-[9px] font-bold text-slate-300 uppercase">รอคิว</span>
+                                                            )}
+                                                        </div>
+                                                        <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium line-clamp-2 leading-tight">{inst.description}</p>
+                                                        <div className="flex justify-between items-center mt-3 pt-2 border-t border-slate-100 dark:border-slate-700/50">
+                                                            <span className="font-black text-slate-800 dark:text-slate-100 text-sm">฿{instAmount.toLocaleString()}</span>
+                                                            {isNextToPay && (
+                                                                <Button size="sm" className="h-7 rounded-lg bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-[10px] font-bold px-3 transition-colors shadow-md shadow-blue-500/20 whitespace-nowrap overflow-hidden text-ellipsis flex-shrink-0 text-white" asChild>
+                                                                    <Link href={`/payment?chatId=${chatId}&lawyerId=${resolvedLawyerId}&amount=${instAmount}&type=installment&installmentIndex=${idx}`}>
+                                                                        ชำระงวดนี้ <ArrowRight className="ml-1 w-3 h-3" />
+                                                                    </Link>
+                                                                </Button>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="p-4 rounded-2xl border-2 border-blue-100 bg-blue-50/30 text-center shadow-inner">
+                                        <p className="text-[10px] uppercase font-bold text-blue-600 mb-0.5 tracking-tighter">ค่าบริการรวมทั้งสิ้น</p>
+                                        <p className="text-3xl font-black text-slate-900 tracking-tight">฿{chatAmount.toLocaleString()}</p>
+                                    </div>
+                                )}
+
+                                {/* Total summary */}
+                                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 flex justify-between items-center">
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase">ยอดรวมทั้งหมด</span>
+                                    <span className="text-lg font-black text-slate-900">฿{chatAmount.toLocaleString()}</span>
+                                </div>
+                            </CardContent>
+                            <CardFooter className="flex flex-col gap-2 bg-slate-50/50 border-t border-slate-100 p-5">
+                                {(!installments || installments.length === 0) && (
+                                    <Button className="w-full bg-[#0B3979] hover:bg-[#082a5a] font-black h-12 shadow-xl shadow-blue-500/20 text-white rounded-2xl text-sm" asChild>
+                                        <Link href={`/payment?chatId=${chatId}&lawyerId=${resolvedLawyerId}&amount=${chatAmount}&type=case`}>
+                                            ชำระเงินเพื่อเริ่มงาน <ArrowRight className="ml-2 w-4 h-4" />
+                                        </Link>
                                     </Button>
-                                </CardContent>
-                            </Card>
-                        </TabsContent>
-                    </Tabs>
+                                )}
+                                <p className="text-[9px] text-center text-slate-400 font-medium flex items-center justify-center gap-1">
+                                    <CheckCircle2 className="w-3 h-3 text-green-500" /> เงินถูกคุ้มครองโดยระบบ Lawlane Guarantee
+                                </p>
+                            </CardFooter>
+                        </Card>
+                    ) : pendingFeeRequest ? (
+                        <Card className="border-amber-400 shadow-xl ring-4 ring-amber-400/10 bg-white">
+                            <CardHeader className="pb-2">
+                                <CardTitle className="text-sm font-bold flex items-center gap-2 text-amber-700">
+                                    <DollarSign className="w-5 h-5" />ข้อเสนอเปิดคดี
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-4 text-sm">
+                                <div className="p-3 bg-amber-50 border border-amber-100 rounded-xl text-amber-800 text-xs">
+                                    <p className="font-bold underline mb-1">รายละเอียด:</p>
+                                    <p>{pendingFeeRequest.reason || "ตามที่ตกลงในแชท"}</p>
+                                </div>
+                                <div className="p-3 rounded-xl border border-amber-200 bg-amber-50/50 text-center">
+                                    <p className="text-[10px] uppercase font-bold text-amber-600 mb-0.5">ยอดชำระ</p>
+                                    <p className="text-2xl font-black text-slate-900">฿{pendingFeeRequest.amount.toLocaleString()}</p>
+                                </div>
+                            </CardContent>
+                            <CardFooter>
+                                <Button className="w-full bg-amber-500 hover:bg-amber-600 font-bold h-10 shadow-lg text-white" asChild>
+                                    <Link href={`/payment?chatId=${chatId}&lawyerId=${resolvedLawyerId}&amount=${pendingFeeRequest.amount}&type=additional`}>
+                                        ชำระเงินเปิดห้องคดี
+                                    </Link>
+                                </Button>
+                            </CardFooter>
+                        </Card>
+                    ) : (
+                        <Card className="border-none shadow-sm bg-slate-50">
+                            <CardHeader className="pb-3 text-center">
+                                <CardTitle className="text-xs font-semibold uppercase text-slate-400 tracking-widest">{chatAmount === 0 ? "Initial Chat" : "Official Case"}</CardTitle>
+                            </CardHeader>
+                            <CardContent className="text-center pb-6">
+                                {chatAmount === 0 ? (
+                                    <div className="py-2">
+                                        <p className="text-[10px] uppercase tracking-widest font-black text-green-600 mb-1">FREE CONSULT</p>
+                                        <p className="text-xs text-slate-500 leading-relaxed">คุยเบื้องต้นฟรี ทนายจะส่งข้อเสนอราคาหากต้องดำเนินคดีต่อ</p>
+                                    </div>
+                                ) : (
+                                    <div className="py-2">
+                                        <p className="text-3xl font-black text-slate-900 mb-2">฿{chatAmount.toLocaleString()}</p>
+                                        <p className="text-[10px] text-slate-500">เงินถูกคุ้มครองโดยระบบ Lawlane</p>
+                                        {effectiveIsLawyerView && <Button className="w-full mt-4 bg-green-600 hover:bg-green-700 font-bold h-9 text-xs" onClick={handleConfirmRelease}>ยืนยันปิดเคส</Button>}
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+                    )}
+                </TabsContent>
+                
+
+                
+                <TabsContent value="vault">
+                    <Card className={cn("border-none shadow-sm", isOfficial ? "bg-slate-50" : "opacity-60 grayscale bg-slate-100")}>
+                        <CardHeader className="pb-2">
+                            <CardTitle className="text-xs font-bold uppercase tracking-widest flex items-center gap-2">
+                                <Upload className="w-3.5 h-3.5" /> {tCase('legalVault')}
+                            </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                            <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
+                                {files.length === 0 ? (
+                                    <p className="text-center text-slate-400 text-[10px] py-12 uppercase tracking-widest font-medium">No documents</p>
+                                ) : (
+                                    files.map((file, idx) => {
+                                        const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name);
+                                        return (
+                                        <div key={idx} className="flex justify-between items-center p-2 rounded-xl bg-white border border-slate-100 group hover:shadow-md transition-all">
+                                            <button 
+                                                onClick={() => handleViewFile(file.url)} 
+                                                className="flex items-center gap-2.5 overflow-hidden flex-1 text-left"
+                                            >
+                                                <div className={cn(
+                                                    "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition-colors",
+                                                    isImage 
+                                                        ? "bg-purple-50 text-purple-600 group-hover:bg-purple-600 group-hover:text-white" 
+                                                        : "bg-red-50 text-red-600 group-hover:bg-red-600 group-hover:text-white"
+                                                )}>
+                                                    {isImage ? <ImageIcon className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <p className={cn(
+                                                        "text-xs font-bold truncate transition-colors",
+                                                        isImage ? "text-slate-800 group-hover:text-purple-700" : "text-slate-800 group-hover:text-red-700"
+                                                    )} title={file.name}>{file.name}</p>
+                                                    <p className="text-[9px] text-slate-400">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                                                </div>
+                                            </button>
+                                        </div>
+                                    )})
+                                )}
+                            </div>
+                            <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
+                            <Button onClick={handleUploadClick} variant="outline" className="w-full text-xs h-9 border-dashed" disabled={isChatDisabled}>
+                                <Plus className="mr-1.5 h-3.5 w-3.5" /> อัปโหลดใหม่
+                            </Button>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
+        </div>
+    );
+
+    return (
+        <div className="relative h-[calc(100dvh-60px)] lg:h-[calc(100vh-64px)] bg-slate-50 dark:bg-slate-950 z-[40] lg:z-0 overflow-hidden flex flex-col lg:flex-row border-t border-slate-100 dark:border-slate-800">
+            {/* Main Area: Header + Operations */}
+            <div className="flex-none lg:flex-1 flex flex-col overflow-y-auto px-4 md:px-8 xl:px-12 py-2 md:py-8 lg:py-10 custom-scrollbar">
+                <div className="max-w-5xl mx-auto w-full">
+                    <div className="mb-2 lg:mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 lg:gap-4 flex-shrink-0">
+                        <div className="space-y-1">
+                            <Link href={effectiveIsLawyerView ? "/lawyer-dashboard" : "/dashboard"} className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 transition-colors">
+                                <ArrowLeft className="w-3.5 h-3.5" />
+                                {tCommon('backToHome')}
+                            </Link>
+                            <h1 className="text-xl md:text-3xl font-bold font-headline flex flex-wrap items-center gap-2 md:gap-3">
+                                <span>{isOfficial ? tCase('titleOfficial') : tCase('titleInitial')}</span>
+                                <Badge variant={isOfficial ? "default" : "secondary"} className={cn("rounded-lg uppercase text-[10px] md:text-[11px] tracking-widest px-2.5 py-0.5 whitespace-nowrap flex-shrink-0", isOfficial && "bg-amber-100 text-amber-700 border-amber-200")}>
+                                    {isOfficial ? tCase('officialBadge') : tCase('freeBadge')}
+                                </Badge>
+                            </h1>
+                        </div>
+
+                        {/* Mobile Drawer Trigger */}
+                        <div className="lg:hidden w-full mt-1">
+                            <Drawer>
+                                <DrawerTrigger asChild>
+                                    <Button className="w-full bg-slate-900 hover:bg-black text-white rounded-xl h-10 font-bold flex items-center justify-center gap-2 shadow-sm text-sm">
+                                        <Briefcase className="w-4 h-4" />
+                                        จัดการคดี (Case Operations)
+                                    </Button>
+                                </DrawerTrigger>
+                                <DrawerContent className="max-h-[85vh]">
+                                    <DrawerHeader className="border-b pb-3">
+                                        <DrawerTitle className="flex items-center gap-2">
+                                            <Briefcase className="w-5 h-5 text-blue-600" />
+                                            จัดการคดี
+                                        </DrawerTitle>
+                                        <DrawerDescription className="text-xs">
+                                            ตรวจสอบความคืบหน้า เอกสาร และการชำระเงิน
+                                        </DrawerDescription>
+                                    </DrawerHeader>
+                                    <div className="p-4 overflow-y-auto">
+                                        {renderOperationsPanel()}
+                                    </div>
+                                    <DrawerFooter className="pt-2 border-t mt-2">
+                                        <DrawerClose asChild>
+                                            <Button variant="outline" className="rounded-xl h-10">ปิด</Button>
+                                        </DrawerClose>
+                                    </DrawerFooter>
+                                </DrawerContent>
+                            </Drawer>
+                        </div>
+                    </div>
+
+                    <div className="hidden lg:block w-full pb-10">
+                        {renderOperationsPanel()}
+                    </div>
+                </div>
+            </div>
+
+            {/* Sidebar Area: Chat Column */}
+            <div className="flex-1 lg:flex-none lg:w-[380px] xl:w-[450px] flex flex-col h-full relative z-10 transition-all overflow-hidden bg-white dark:bg-slate-950 border-t lg:border-t-0 lg:border-l border-slate-200 dark:border-slate-800 shadow-[-10px_0_30px_-15px_rgba(0,0,0,0.05)]">
+                <div className="flex-1 overflow-hidden relative">
+                    <ChatBox 
+                        chatId={chatId} 
+                        currentUser={user} 
+                        otherUser={otherUser}
+                        isDisabled={isChatDisabled}
+                        isLawyerView={effectiveIsLawyerView}
+                        firestore={firestore}
+                        isUploading={isUploading}
+                    />
                 </div>
             </div>
         </div>

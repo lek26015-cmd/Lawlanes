@@ -393,7 +393,7 @@ function LoginPageContent() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6 }}
-                className="w-full max-w-[1100px] grid grid-cols-1 lg:grid-cols-2 bg-white rounded-[2.5rem] overflow-hidden shadow-[0_40px_80px_rgba(0,0,0,0.08)] border border-slate-100"
+                className="w-full max-w-[1100px] grid grid-cols-1 lg:grid-cols-2 bg-white rounded-2xl overflow-hidden shadow-[0_40px_80px_rgba(0,0,0,0.08)] border border-slate-100"
             >
                 {/* Left Column: Visual Branding */}
                 <div className="relative hidden lg:flex flex-col bg-[#0B3979] text-white p-12 overflow-hidden">
@@ -487,7 +487,7 @@ function LoginPageContent() {
                         </Tabs>
 
                         <div className="grid grid-cols-2 gap-3">
-                            <Button variant="outline" className="h-12 rounded-2xl border-slate-200 text-slate-700 hover:bg-slate-50 font-bold transition-all shadow-sm" onClick={handleGoogleSignIn} disabled={isGoogleLoading || isLoading}>
+                            <Button variant="outline" className="h-12 rounded-xl border-slate-200 text-slate-700 hover:bg-slate-50 font-bold transition-all shadow-sm" onClick={handleGoogleSignIn} disabled={isGoogleLoading || isLoading}>
                                 {isGoogleLoading ? (
                                     <Loader2 className="h-4 w-4 animate-spin text-[#0B3979]" />
                                 ) : (
@@ -500,7 +500,7 @@ function LoginPageContent() {
                                 )}
                             </Button>
 
-                            <Button variant="outline" className="h-12 rounded-2xl border-[#06C755]/20 text-[#06C755] hover:bg-[#06C755]/10 font-bold transition-all shadow-sm" onClick={handleLineSignIn} disabled={isLineLoading || isLoading || isGoogleLoading}>
+                            <Button variant="outline" className="h-12 rounded-xl border-[#06C755]/20 text-[#06C755] hover:bg-[#06C755]/10 font-bold transition-all shadow-sm" onClick={handleLineSignIn} disabled={isLineLoading || isLoading || isGoogleLoading}>
                                 {isLineLoading ? (
                                     <Loader2 className="h-4 w-4 animate-spin" />
                                 ) : (
@@ -551,7 +551,7 @@ function LoginPageContent() {
                                                             ลืมรหัสผ่าน?
                                                         </Button>
                                                     </DialogTrigger>
-                                                    <DialogContent className="rounded-3xl border-none shadow-2xl">
+                                                    <DialogContent className="rounded-2xl border-none shadow-2xl">
                                                         <DialogHeader>
                                                             <DialogTitle className="text-2xl font-black font-headline text-[#0B3979]">ลืมรหัสผ่าน?</DialogTitle>
                                                             <DialogDescription className="text-slate-500">
@@ -592,7 +592,7 @@ function LoginPageContent() {
                                     <TurnstileWidget onVerify={setTurnstileToken} />
                                 </div>
 
-                                <Button type="submit" className="w-full h-14 rounded-2xl text-lg font-black bg-[#0B3979] hover:bg-slate-900 shadow-xl shadow-blue-900/10 transition-all active:scale-[0.98] border-none text-white" disabled={isLoading || isGoogleLoading}>
+                                <Button type="submit" className="w-full h-14 rounded-xl text-lg font-black bg-[#0B3979] hover:bg-slate-900 shadow-xl shadow-blue-900/10 transition-all active:scale-[0.98] border-none text-white" disabled={isLoading || isGoogleLoading}>
                                     {isLoading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
                                     เข้าสู่ระบบ
                                 </Button>

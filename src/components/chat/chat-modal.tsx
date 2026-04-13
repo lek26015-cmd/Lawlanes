@@ -287,7 +287,7 @@ export default function ChatModal() {
     <Dialog open={isAiChatOpen} onOpenChange={setAiChatOpen}>
       <DialogContent
         hideCloseButton={true}
-        className="fixed inset-0 w-full h-full max-w-none translate-x-0 translate-y-0 rounded-none bg-white z-[100] p-0 flex flex-col overflow-hidden transition-all duration-500 ease-in-out data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 lg:inset-auto lg:bottom-6 lg:right-6 lg:w-[480px] lg:h-[85vh] lg:rounded-[2.5rem] lg:border lg:shadow-2xl"
+        className="fixed inset-0 w-full h-full max-w-none translate-x-0 translate-y-0 rounded-none bg-white z-[100] p-0 flex flex-col overflow-hidden transition-all duration-500 ease-in-out data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 lg:inset-auto lg:bottom-6 lg:right-6 lg:w-[480px] lg:h-[85vh] lg:rounded-2xl lg:border lg:shadow-2xl"
       >
         <DialogHeader className="relative flex flex-row items-center justify-between p-4 lg:py-4 lg:px-6 border-b border-gray-100 bg-white/95 backdrop-blur-md sticky top-0 z-10 text-foreground">
           <div className="flex items-center space-x-3">
@@ -323,7 +323,7 @@ export default function ChatModal() {
                 >
                   <div className="space-y-4">
                     <div className="flex justify-center mb-6">
-                      <div className="w-16 h-16 rounded-3xl shadow-sm overflow-hidden border border-gray-200">
+                      <div className="w-16 h-16 rounded-xl shadow-sm overflow-hidden border border-gray-200">
                         <img src="/images/lawslane-LAlin.jpg" alt="LAlin" className="w-full h-full object-cover" />
                       </div>
                     </div>
@@ -358,7 +358,7 @@ export default function ChatModal() {
                           key={q.key}
                           onClick={() => handleQuickQuestion(q.label)}
                           disabled={isLoading}
-                          className="flex items-center justify-between w-full p-4 bg-white border border-gray-100 rounded-2xl active:bg-gray-50 transition-colors group">
+                          className="flex items-center justify-between w-full p-4 bg-white border border-gray-100 rounded-xl active:bg-gray-50 transition-colors group">
                           <div className="flex items-center space-x-4">
                             <span className="text-sm text-gray-700 text-left">{q.label}</span>
                           </div>
@@ -487,7 +487,7 @@ export default function ChatModal() {
                 </button>
               </div>
             )}
-            <form onSubmit={handleSubmit} className="flex items-end space-x-2 bg-gray-50 p-2 lg:p-3 rounded-2xl lg:rounded-3xl border border-gray-200 focus-within:border-gray-300 focus-within:bg-white focus-within:shadow-sm transition-all duration-300">
+            <form onSubmit={handleSubmit} className="flex items-end space-x-2 bg-gray-50 p-2 lg:p-3 rounded-xl lg:rounded-2xl border border-gray-200 focus-within:border-gray-300 focus-within:bg-white focus-within:shadow-sm transition-all duration-300">
               <input
                 type="file"
                 ref={fileInputRef}

@@ -40,8 +40,8 @@ export default function AiAnalysisCard() {
 
   return (
     <div className="relative group">
-      <div className="absolute -inset-0.5 bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 rounded-3xl md:rounded-[2.5rem] blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-rainbow-border-spin"></div>
-      <Card className="relative p-6 md:p-8 shadow-xl bg-card text-card-foreground rounded-3xl md:rounded-[2.5rem]">
+      <div className="absolute -inset-0.5 bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 rounded-xl md:rounded-2xl blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-rainbow-border-spin"></div>
+      <Card className="relative p-6 md:p-8 shadow-xl bg-card text-card-foreground rounded-xl md:rounded-2xl">
         <div className="absolute top-4 right-4 bg-foreground/10 text-foreground p-3 rounded-full shadow-lg">
           <Sparkles className="h-6 w-6" />
         </div>

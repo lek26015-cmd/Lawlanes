@@ -52,7 +52,7 @@ export default function LawyerCard({ lawyer }: LawyerCardProps) {
 
   return (
     <div
-      className="group relative flex flex-col md:flex-row items-center md:items-start p-6 gap-6 w-full bg-white text-card-foreground rounded-2xl border shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-l-4 border-l-primary overflow-hidden cursor-pointer"
+      className="group relative flex flex-col md:flex-row items-center md:items-start p-6 gap-6 w-full bg-white text-card-foreground rounded-xl border shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-1 border-l-4 border-l-primary overflow-hidden cursor-pointer"
       onClick={handleViewProfile}
     >
       {/* Decorative background blob */}
@@ -98,7 +98,7 @@ export default function LawyerCard({ lawyer }: LawyerCardProps) {
           {/* Lawyer name is NOT translated */}
           <h3 className="font-bold text-xl text-slate-800">{lawyer.name}</h3>
           {lawyer.status === 'approved' && (
-            <span className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-blue-50 text-blue-700 hover:bg-blue-100">
+            <span className="inline-flex items-center rounded-lg border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-blue-50 text-blue-700 hover:bg-blue-100">
               {t('card.verified')}
             </span>
           )}

@@ -207,7 +207,7 @@ function SignupPageContent() {
     return (
         <div className="min-h-screen flex items-center justify-center bg-[#F4F6F9]">
             <div className="container mx-auto flex justify-center p-4">
-                <Card className="w-full max-w-[480px] shadow-2xl rounded-3xl border-none">
+                <Card className="w-full max-w-[480px] shadow-2xl rounded-xl border-none">
                     <CardHeader className="text-center space-y-6 pt-10 pb-0">
                         <div className="flex justify-center mb-2">
                             <Logo href="/" variant="color" />
@@ -222,7 +222,7 @@ function SignupPageContent() {
                         </div>
                     </CardHeader>
                     <CardContent className="p-8 pt-8 space-y-8">
-                        <Button variant="outline" className="w-full h-12 rounded-full border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium text-base shadow-sm" onClick={handleGoogleSignIn} disabled={isGoogleLoading || isLoading}>
+                        <Button variant="outline" className="w-full h-12 rounded-xl border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-slate-900 font-medium text-base shadow-sm" onClick={handleGoogleSignIn} disabled={isGoogleLoading || isLoading}>
                             {isGoogleLoading ? (
                                 <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                             ) : (
@@ -306,7 +306,7 @@ function SignupPageContent() {
                                     )}
                                 />
                                 <TurnstileWidget onVerify={setTurnstileToken} />
-                                <Button type="submit" className="w-full h-12 rounded-full text-lg font-semibold bg-[#0B3979] hover:bg-[#082a5a] shadow-lg shadow-blue-900/20" disabled={isLoading || isGoogleLoading}>
+                                <Button type="submit" className="w-full h-12 rounded-xl text-lg font-semibold bg-[#0B3979] hover:bg-[#082a5a] shadow-lg shadow-blue-900/20" disabled={isLoading || isGoogleLoading}>
                                     {isLoading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
                                     สมัครสมาชิก
                                 </Button>

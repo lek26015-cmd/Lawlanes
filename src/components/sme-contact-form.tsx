@@ -108,7 +108,7 @@ export function SmeContactForm() {
 
     if (isSuccess) {
         return (
-            <Card className="shadow-xl border-none h-full flex items-center justify-center bg-green-50 rounded-3xl">
+            <Card className="shadow-xl border-none h-full flex items-center justify-center bg-green-50 rounded-xl">
                 <CardContent className="text-center py-12 space-y-4">
                     <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto">
                         <CheckCircle2 className="w-8 h-8 text-green-600" />
@@ -130,7 +130,7 @@ export function SmeContactForm() {
     }
 
     return (
-        <Card className="shadow-xl border-none rounded-3xl">
+        <Card className="shadow-xl border-none rounded-xl">
             <CardHeader className="pb-2">
                 <CardTitle className="text-2xl flex items-center gap-2 text-[#0B3979]">
                     <FileText className="w-6 h-6" />
@@ -236,7 +236,7 @@ export function SmeContactForm() {
                         </div>
                     </div>
 
-                    <Button type="submit" className="w-full text-lg h-12 rounded-xl" disabled={isLoading}>
+                    <Button type="submit" className="w-full text-lg h-12 rounded-lg" disabled={isLoading}>
                         {isLoading ? (
                             <>
                                 <Loader2 className="mr-2 h-5 w-5 animate-spin" /> {t('submitting')}

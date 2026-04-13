@@ -30,18 +30,18 @@ export const ShowcaseCard: React.FC<ShowcaseCardProps> = ({
   };
 
   return (
-    <div className="group relative bg-white/40 backdrop-blur-xl border border-white/20 rounded-3xl p-6 shadow-xl shadow-slate-200/50 hover:shadow-2xl hover:shadow-slate-300/60 transition-all duration-500 hover:-translate-y-2 overflow-hidden">
+    <div className="group relative bg-white/40 backdrop-blur-xl border border-white/20 rounded-xl p-6 shadow-xl shadow-slate-200/50 hover:shadow-2xl hover:shadow-slate-300/60 transition-all duration-500 hover:-translate-y-2 overflow-hidden">
       {/* Background Decor */}
       <div className={`absolute -right-8 -top-8 w-24 h-24 rounded-full opacity-10 blur-2xl transition-all duration-700 group-hover:scale-150 ${color}`} />
       
       <div className="relative z-10">
-        <div className={`inline-flex p-3 rounded-2xl ${color} bg-opacity-10 mb-4 transition-transform duration-500 group-hover:rotate-12`}>
+        <div className={`inline-flex p-3 rounded-lg ${color} bg-opacity-10 mb-4 transition-transform duration-500 group-hover:rotate-12`}>
           <Icon className={`w-6 h-6 ${color.replace('bg-', 'text-')}`} />
         </div>
 
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-lg font-bold text-slate-800">{title}</h3>
-          <span className={`text-[10px] uppercase font-black px-2 py-0.5 rounded-full border ${statusColors[status]}`}>
+          <span className={`text-[10px] uppercase font-black px-2 py-0.5 rounded-lg border ${statusColors[status]}`}>
             {status}
           </span>
         </div>

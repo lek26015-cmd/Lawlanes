@@ -55,7 +55,7 @@ export function HomeServicesSection() {
                     {services.map((service, index) => (
                         <FadeIn key={index} delay={index * 100} direction="up">
                             <Link href={service.link} className="block h-full">
-                                <Card className="border-none shadow-lg hover:shadow-xl transition-all duration-300 h-full group rounded-3xl">
+                                <Card className="border-none shadow-lg hover:shadow-xl transition-all duration-300 h-full group rounded-xl">
                                     <CardHeader>
                                         <div className="mb-4 p-4 bg-slate-100 w-fit rounded-xl group-hover:bg-blue-50 transition-colors">
                                             {service.icon}

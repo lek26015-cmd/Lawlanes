@@ -199,51 +199,51 @@ function ChatBoxContent({
   const firstUserMessage = allMessages.find(m => m.senderId !== (isLawyerView ? currentUser.uid : otherUser.userId));
 
   return (
-    <Card className="flex flex-col h-full w-full shadow-none md:shadow-xl border-none md:rounded-3xl overflow-hidden bg-transparent md:bg-white">
-      <CardHeader className="border-b bg-gray-50/50 py-4">
-        <div className="flex justify-between items-center">
-          <div className="flex items-center gap-3">
-            <Avatar className="h-10 w-10 border-2 border-primary/10">
+    <Card className="flex flex-col h-full w-full shadow-none md:shadow-xl border-none md:rounded-none md:rounded-2xl overflow-hidden bg-transparent md:bg-white">
+      <CardHeader className="border-b bg-gray-50/50 py-2.5 md:py-4 px-3 md:px-6">
+        <div className="flex flex-row justify-between items-center gap-2 md:gap-4">
+          <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
+            <Avatar className="h-8 w-8 md:h-10 md:w-10 border-2 border-primary/10 flex-shrink-0">
                <AvatarImage src={otherUser.imageUrl} />
                <AvatarFallback className="bg-primary/5 text-primary font-bold">{otherUser.name.charAt(0)}</AvatarFallback>
             </Avatar>
-            <div>
-              <div className="flex items-center gap-2">
-                <CardTitle className="text-lg font-bold">
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5 md:gap-2">
+                <CardTitle className="text-base md:text-lg font-bold truncate">
                   {chatMetadata?.caseTitle || chatMetadata?.title || 'กำลังโหลด...'}
                 </CardTitle>
                 {isConnected ? (
-                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" title="Connected" />
+                  <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-green-500 animate-pulse flex-shrink-0" title="Connected" />
                 ) : (
-                  <div className="w-2 h-2 rounded-full bg-gray-300" title="Offline" />
+                  <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-gray-300 flex-shrink-0" title="Offline" />
                 )}
               </div>
-              <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <p className="text-[10px] md:text-xs text-muted-foreground flex items-center gap-1 truncate">
                 {isLawyerView ? `ลูกความ: ${otherUser.name}` : `ทนายความ: ${otherUser.name}`}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
              {isLawyerView && <QuickReplies onSelect={(text) => { setInput(text); localStorage.setItem(`chat_draft_${chatId}`, text); }} />}
-             <CopyButton value={chatId} className="h-8 w-8 rounded-full" />
+             <CopyButton value={chatId} className="h-7 w-7 md:h-8 md:w-8 rounded-lg md:rounded-xl" />
           </div>
         </div>
       </CardHeader>
 
       <CardContent className="flex-grow p-0 flex flex-col min-h-0 bg-slate-50/30">
-        <ScrollArea className="flex-grow p-4 md:p-6" ref={scrollAreaRef}>
-          <div className="space-y-6">
-            <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 flex items-start gap-3 text-amber-900 text-xs md:text-sm">
+        <ScrollArea className="flex-grow" ref={scrollAreaRef}>
+          <div className="space-y-6 px-4 py-4 md:px-6 md:py-6">
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start gap-3 text-amber-900 text-xs md:text-sm">
               <AlertTriangle className="w-5 h-5 flex-shrink-0 text-amber-600" />
               <p>คำเตือน: ห้ามโอนเงินนอกระบบ Lawlanes เพื่อความปลอดภัยของข้อมูลและเงินของคุณ</p>
             </div>
 
             <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center">
+              <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
                 <Sparkles className="w-4 h-4" />
               </div>
               <div className="flex-1 max-w-[85%]">
-                <div className="p-4 rounded-2xl bg-white border border-gray-100 shadow-sm">
+                <div className="p-4 rounded-lg bg-white border border-gray-100 shadow-sm">
                   <p className="font-bold text-xs text-primary uppercase tracking-wider mb-1">
                     {isLawyerView ? "AI: สรุปข้อความเบื้องต้น" : "ข้อมูลที่คุณส่งให้ทนาย"}
                   </p>
@@ -286,7 +286,7 @@ function ChatBoxContent({
                             "rounded-2xl text-sm shadow-sm overflow-hidden",
                             isPaymentProposal 
                                 ? "w-[260px] md:w-[300px] bg-white border border-blue-100 dark:bg-slate-800 dark:border-slate-700" 
-                                : (isOwn ? "px-4 py-2.5 bg-primary text-white rounded-tr-none" : "px-4 py-2.5 bg-white border border-gray-100 text-gray-800 rounded-tl-none"),
+                                : (isOwn ? "px-4 py-2.5 bg-primary text-white rounded-tr-md" : "px-4 py-2.5 bg-white border border-gray-100 text-gray-800 rounded-tl-md"),
                             !isPaymentProposal && msg.status === 'sending' && "opacity-70 animate-pulse",
                             msg.status === 'error' && "border-red-500 bg-red-50 text-red-800"
                           )}>
@@ -295,13 +295,13 @@ function ChatBoxContent({
                                    <div className="bg-blue-600 p-3 text-white">
                                        <div className="flex justify-between items-center">
                                           <p className="font-bold text-sm flex items-center gap-1"><CreditCard className="w-4 h-4"/> แจ้งชำระเงิน</p>
-                                          <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full font-mono">{paymentAmount} ฿</span>
+                                          <span className="text-xs bg-white/20 px-2 py-0.5 rounded-2xl font-mono">{paymentAmount} ฿</span>
                                        </div>
                                    </div>
                                    <div className="p-4 bg-white space-y-3">
                                        <p className="text-xs text-slate-600 whitespace-pre-wrap break-words line-clamp-4">{msg.text}</p>
                                        <Button 
-                                          className="w-full h-9 bg-blue-600 hover:bg-blue-700 font-bold rounded-xl shadow-md text-xs" 
+                                          className="w-full h-9 bg-blue-600 hover:bg-blue-700 font-bold rounded-2xl shadow-md text-xs" 
                                           asChild
                                        >
                                           <a href={`/payment?chatId=${chatId}&type=${msg.text.includes('ค่าบริการ') ? 'consultation' : 'case'}`} target="_blank" rel="noopener noreferrer">
@@ -334,7 +334,7 @@ function ChatBoxContent({
                       )}
                       
                       {msg.translation && !isOwn && (
-                        <div className="mt-1 p-2 rounded-xl bg-primary/5 border border-primary/10 text-[11px] text-primary/80 italic">
+                        <div className="mt-1 p-2 rounded-lg bg-primary/5 border border-primary/10 text-[11px] text-primary/80 italic">
                            {msg.translation}
                         </div>
                       )}
@@ -378,7 +378,7 @@ function ChatBoxContent({
         </ScrollArea>
       </CardContent>
 
-      <CardFooter className="p-4 border-t bg-white">
+      <CardFooter className="px-4 py-3 md:px-6 md:py-4 border-t bg-white">
         <form 
           onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }} 
           className="flex items-center w-full gap-2"
@@ -389,14 +389,14 @@ function ChatBoxContent({
               onChange={handleInputChange}
               placeholder={isDisabled ? "การสนทนานี้สิ้นสุดแล้ว" : "พิมพ์ข้อความที่นี่..."}
               disabled={isSocketLoading || isDisabled}
-              className="pr-12 rounded-2xl bg-gray-50 border-none h-11 focus-visible:ring-primary shadow-inner"
+              className="pr-12 rounded-xl bg-gray-50 border-none h-11 focus-visible:ring-primary shadow-inner"
             />
           </div>
           <Button
             type="submit"
             size="icon"
             disabled={isSocketLoading || !input.trim() || isDisabled}
-            className="rounded-xl w-11 h-11 bg-primary hover:bg-primary/90 shadow-md transition-all active:scale-95"
+            className="rounded-lg w-11 h-11 bg-primary hover:bg-primary/90 shadow-md transition-all active:scale-95"
           >
             <Send className="w-5 h-5" />
           </Button>

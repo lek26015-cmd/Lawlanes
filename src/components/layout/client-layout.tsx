@@ -65,6 +65,8 @@ export default function ClientLayout({
     return <>{children}</>;
   }
 
+  const isChatPage = pathname.includes('/chat');
+
   return (
     <>
       <div className="flex min-h-screen flex-col">
@@ -72,8 +74,8 @@ export default function ClientLayout({
         <main className="flex-grow">{children}</main>
         {(activeDomainType === 'lawyer' || !isDashboardPage) && <Footer userRole={userRole} domainType={activeDomainType} />}
       </div>
-      {isMounted && !isDashboardPage && <FloatingChatButton />}
-      {isMounted && !isDashboardPage && <ChatModal />}
+      {isMounted && !isDashboardPage && !isChatPage && <FloatingChatButton />}
+      {isMounted && !isDashboardPage && !isChatPage && <ChatModal />}
       {isMounted && !isDashboardPage && <CartDrawer />}
       {isMounted && <CookieBanner />}
     </>

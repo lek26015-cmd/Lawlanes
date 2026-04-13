@@ -64,7 +64,7 @@ export default function LawyerFilterSidebar() {
   };
 
   return (
-    <Card className="rounded-3xl shadow-lg border-2 border-slate-100 overflow-hidden bg-white">
+    <Card className="rounded-xl shadow-lg border-2 border-slate-100 overflow-hidden bg-white">
       <CardHeader className="bg-slate-50/50 pb-4">
         <CardTitle className="text-xl text-[#0B3979] font-headline">{t('filter.title')}</CardTitle>
       </CardHeader>
@@ -72,10 +72,10 @@ export default function LawyerFilterSidebar() {
         <div className="space-y-3">
           <Label htmlFor="specialty" className="text-sm font-semibold text-slate-700">{t('filter.expertise')}</Label>
           <Select value={specialty} onValueChange={setSpecialty}>
-            <SelectTrigger id="specialty" className="rounded-full border-slate-200 bg-white shadow-sm hover:border-[#0B3979]/50 transition-colors h-11">
+            <SelectTrigger id="specialty" className="rounded-xl border-slate-200 bg-white shadow-sm hover:border-[#0B3979]/50 transition-colors h-11">
               <SelectValue placeholder={t('filter.all')} />
             </SelectTrigger>
-            <SelectContent className="rounded-2xl">
+            <SelectContent className="rounded-xl">
               <SelectItem value="all" className="rounded-lg">{t('filter.all')}</SelectItem>
               {specialtyKeys.map((key) => (
                 <SelectItem key={key} value={key} className="rounded-lg">
@@ -110,10 +110,10 @@ export default function LawyerFilterSidebar() {
         <div className="space-y-3">
           <Label htmlFor="province" className="text-sm font-semibold text-slate-700">{t('filter.province')}</Label>
           <Select value={province} onValueChange={setProvince}>
-            <SelectTrigger id="province" className="rounded-full border-slate-200 bg-white shadow-sm hover:border-[#0B3979]/50 transition-colors h-11">
+            <SelectTrigger id="province" className="rounded-xl border-slate-200 bg-white shadow-sm hover:border-[#0B3979]/50 transition-colors h-11">
               <SelectValue placeholder={t('filter.allProvinces')} />
             </SelectTrigger>
-            <SelectContent className="rounded-2xl max-h-[300px]">
+            <SelectContent className="rounded-xl max-h-[300px]">
               <SelectItem value="all" className="rounded-lg">{t('filter.allProvinces')}</SelectItem>
               {thaiProvinces.map((region) => (
                 <SelectGroup key={region.region}>
@@ -132,7 +132,7 @@ export default function LawyerFilterSidebar() {
       <CardFooter className="pb-8 pt-4">
         <Button 
           onClick={handleSearch}
-          className="w-full rounded-full h-12 text-base font-bold shadow-lg hover:shadow-xl transition-all duration-300 bg-[#0B3979] hover:bg-[#082a5a] text-white"
+          className="w-full rounded-xl h-12 text-base font-bold shadow-lg hover:shadow-xl transition-all duration-300 bg-[#0B3979] hover:bg-[#082a5a] text-white"
         >
           {t('filter.searchButton')}
         </Button>
