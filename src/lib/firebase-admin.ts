@@ -11,20 +11,24 @@ export async function initAdmin() {
         return admin.app();
     }
 
-    const clean = (val: string | undefined) => (val || '').replace(/"/g, '').trim();
+    const clean = (val: string | undefined) => {
+        if (!val) return '';
+        // Remove surrounding quotes and handle common escaping issues
+        let cleaned = val.trim();
+        if (cleaned.startsWith('"') && cleaned.endsWith('"')) {
+            cleaned = cleaned.substring(1, cleaned.length - 1);
+        }
+        return cleaned.replace(/\\n/g, '\n');
+    };
 
     const projectId = clean(process.env.FIREBASE_PROJECT_ID || process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID);
     const clientEmail = clean(process.env.FIREBASE_CLIENT_EMAIL);
-    let privateKey = clean(process.env.FIREBASE_PRIVATE_KEY);
+    const privateKey = clean(process.env.FIREBASE_PRIVATE_KEY);
     const storageBucket = clean(process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET);
-
-    if (privateKey) {
-        privateKey = privateKey.replace(/\\n/g, '\n');
-    }
 
     try {
         if (projectId && clientEmail && privateKey) {
-            console.log(`[Firebase Admin] Initializing for project: ${projectId}`);
+            console.log(`[Firebase Admin] Initializing for project: ${projectId} (Email: ${clientEmail.substring(0, 10)}...)`);
             return admin.initializeApp({
                 credential: admin.credential.cert({
                     projectId,
@@ -34,7 +38,7 @@ export async function initAdmin() {
                 storageBucket,
             });
         } else {
-            console.warn('[Firebase Admin] Missing service account. Using default credentials.');
+            console.warn('[Firebase Admin] Incomplete service account. Using default credentials or environment-based auth.');
             return admin.initializeApp({
                 projectId: projectId || undefined,
                 storageBucket,

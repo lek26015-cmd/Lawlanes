@@ -30,35 +30,34 @@ export async function uploadToFirebaseSecure(formData: FormData, folder: string 
     }
 
     const bucket = getStorage(app).bucket(bucketName);
-    console.log(`[Secure Upload] Using bucket: ${bucket.name}`);
-    const buffer = Buffer.from(await file.arrayBuffer());
     
-    // Generate a unique filename to prevent collisions and guessing
-    const timestamp = Date.now();
-    const extension = file.name.split('.').pop();
-    const filename = `${uuidv4()}_${timestamp}.${extension}`;
-    const destination = `${folder}/${filename}`;
-
-    const fileRef = bucket.file(destination);
-
     try {
+        const arrayBuffer = await file.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        
+        console.log(`[Secure Upload] Buffer prepared: ${buffer.length} bytes. Type: ${file.type}`);
+        
+        const timestamp = Date.now();
+        const extension = file.name.split('.').pop() || 'bin';
+        const filename = `${uuidv4()}_${timestamp}.${extension}`;
+        const destination = `${folder}/${filename}`;
+
+        const fileRef = bucket.file(destination);
+        
         console.log(`[Secure Upload] Uploading to Firebase Storage: ${destination}`);
         
         await fileRef.save(buffer, {
             metadata: {
-                contentType: file.type,
+                contentType: file.type || 'application/octet-stream',
             },
-            public: false, // Ensure the file is NOT public
+            public: false,
         });
 
-        // We return the full path. The application should store this path.
-        // To read it back, the app must use an authenticated download URL or the Admin SDK.
         console.log(`[Secure Upload] Success: ${destination}`);
-        
         return destination;
 
-    } catch (error) {
+    } catch (error: any) {
         console.error("Firebase Secure Upload Error:", error);
-        throw new Error('Failed to upload file securely');
+        throw new Error(`Failed to upload file securely: ${error.message}`);
     }
 }
