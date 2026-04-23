@@ -949,35 +949,29 @@ function ChatPageContent() {
 
     return (
         <div className="relative h-[calc(100dvh-64px)] bg-slate-50 dark:bg-slate-950 z-[40] lg:z-0 overflow-hidden flex flex-col lg:flex-row">
-            {/* Main Area: Header + Operations */}
-            <div className="flex-1 flex flex-col min-w-0 h-full overflow-y-auto custom-scrollbar bg-slate-50/50">
-                <div className="w-full max-w-4xl mx-auto px-4 md:px-6 lg:px-8 py-4 md:py-8">
-                    <div className="mb-4 lg:mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
-                        <div className="space-y-1.5">
-                            <Link href={effectiveIsLawyerView ? "/lawyer-dashboard" : "/dashboard"} className="text-xs md:text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 transition-colors font-medium">
-                                <ArrowLeft className="w-3.5 h-3.5" />
+            {/* Main Area: Header + Operations (Flexible on mobile, scrollable) */}
+            <div className="flex-none lg:flex-1 flex flex-col min-w-0 lg:h-full overflow-y-auto custom-scrollbar bg-slate-50/50">
+                <div className="w-full max-w-4xl mx-auto px-4 lg:px-8 py-3 lg:py-8">
+                    <div className="mb-2 lg:mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
+                        <div className="space-y-0.5">
+                            <Link href={effectiveIsLawyerView ? "/lawyer-dashboard" : "/dashboard"} className="text-[10px] md:text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 transition-colors font-medium">
+                                <ArrowLeft className="w-3 h-3" />
                                 {tCommon('backToHome')}
                             </Link>
                             
-                            {/* DEBUG INFO: Helps identify UID mismatches */}
-                            {process.env.NODE_ENV !== 'production' || true && (
-                                <div className="text-[11px] text-red-600 font-mono mt-1 bg-red-50 border border-red-200 px-2 py-1 rounded inline-block">
-                                    UID: {user?.uid || 'Not Logged In'}
-                                </div>
-                            )}
-                            <h1 className="text-xl md:text-2xl lg:text-3xl font-bold font-headline flex flex-wrap items-center gap-2">
+                            <h1 className="text-lg md:text-2xl lg:text-3xl font-bold font-headline flex flex-wrap items-center gap-2">
                                 <span>{isOfficial ? tCase('titleOfficial') : tCase('titleInitial')}</span>
-                                <Badge variant={isOfficial ? "default" : "secondary"} className={cn("rounded-lg uppercase text-[10px] tracking-widest px-2 py-0.5 whitespace-nowrap", isOfficial && "bg-amber-100 text-amber-700 border-amber-200")}>
+                                <Badge variant={isOfficial ? "default" : "secondary"} className={cn("rounded-lg uppercase text-[9px] tracking-widest px-1.5 py-0 whitespace-nowrap", isOfficial && "bg-amber-100 text-amber-700 border-amber-200")}>
                                     {isOfficial ? tCase('officialBadge') : tCase('freeBadge')}
                                 </Badge>
                             </h1>
                         </div>
 
-                        {/* Mobile Drawer Trigger - Only visible on small screens */}
+                        {/* Mobile Drawer Trigger */}
                         <div className="lg:hidden w-full">
                             <Drawer>
                                 <DrawerTrigger asChild>
-                                    <Button className="w-full bg-slate-900 hover:bg-black text-white rounded-xl h-11 font-bold flex items-center justify-center gap-2 shadow-md">
+                                    <Button className="w-full bg-slate-900 hover:bg-black text-white rounded-xl h-10 text-xs font-bold flex items-center justify-center gap-2 shadow-sm">
                                         <Briefcase className="w-4 h-4" />
                                         จัดการคดี (Case Operations)
                                     </Button>
@@ -1011,8 +1005,8 @@ function ChatPageContent() {
                 </div>
             </div>
 
-            {/* Sidebar Area: Chat Column */}
-            <div className="flex-none w-full lg:w-[400px] xl:w-[480px] h-[500px] lg:h-full flex flex-col relative z-10 bg-white dark:bg-slate-950 border-t lg:border-t-0 lg:border-l border-slate-200 dark:border-slate-800 shadow-xl lg:shadow-[-10px_0_30px_-15px_rgba(0,0,0,0.05)]">
+            {/* Sidebar Area: Chat Column (Takes remaining height on mobile) */}
+            <div className="flex-1 lg:flex-none w-full lg:w-[400px] xl:w-[480px] min-h-0 flex flex-col relative z-10 bg-white dark:bg-slate-950 border-t lg:border-t-0 lg:border-l border-slate-200 dark:border-slate-800 shadow-2xl lg:shadow-[-10px_0_30px_-15px_rgba(0,0,0,0.05)]">
                 <div className="flex-1 overflow-hidden relative">
                     <ChatBox 
                         chatId={chatId} 

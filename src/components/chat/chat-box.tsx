@@ -212,9 +212,6 @@ function ChatBoxContent({
                 <CardTitle className="text-base md:text-lg font-bold truncate">
                   {chatMetadata?.caseTitle || chatMetadata?.title || 'กำลังโหลด...'}
                 </CardTitle>
-                <div className="text-[10px] bg-red-100 text-red-700 px-1.5 py-0.5 rounded border border-red-200 font-mono flex-shrink-0">
-                  UID: {currentUser?.uid?.substring(0, 8)}...
-                </div>
                 {isConnected ? (
                   <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-green-500 animate-pulse flex-shrink-0" title="Connected" />
                 ) : (
