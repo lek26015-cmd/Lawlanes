@@ -948,7 +948,7 @@ function ChatPageContent() {
     );
 
     return (
-        <div className="relative h-[calc(100dvh-64px)] bg-slate-50 dark:bg-slate-950 z-[40] lg:z-0 overflow-hidden flex flex-col lg:flex-row">
+        <div className="relative h-[calc(100dvh-64px)] bg-slate-50 dark:bg-slate-950 z-[40] lg:z-0 overflow-hidden flex flex-col lg:flex-row w-full max-w-full overflow-x-hidden">
             {/* Main Area: Header + Operations (Flexible on mobile, scrollable) */}
             <div className="flex-none lg:flex-1 flex flex-col min-w-0 lg:h-full overflow-y-auto custom-scrollbar bg-slate-50/50">
                 <div className="w-full max-w-4xl mx-auto px-4 lg:px-8 py-3 lg:py-8">
