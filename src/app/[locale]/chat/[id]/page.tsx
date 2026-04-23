@@ -664,29 +664,8 @@ function ChatPageContent() {
                                     </Avatar>
                                     <div>
                                         <p className="font-bold text-slate-900 dark:text-white leading-tight">{lawyer?.name || 'Lawyer'}</p>
-                                        <p className="text-xs text-slate-500 mb-4">สถานะ: {chatStatus === 'active' ? 'กำลังดำเนินการ' : 'รอการชำระเงิน'}</p>
-                            
-                            {/* DEBUG: Email Test Button */}
-                            <div className="mt-6 pt-6 border-t border-dashed border-slate-200">
-                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">ระบบตรวจสอบการแจ้งเตือน</p>
-                                <Button 
-                                    variant="outline" 
-                                    size="sm" 
-                                    className="w-full text-[10px] h-8 gap-2"
-                                    onClick={async () => {
-                                        const { sendEmailAction } = await import('@/app/actions/chat-actions');
-                                        const res = await sendEmailAction(chatId, user?.email || '', "ทดสอบระบบแจ้งเตือน Lawslane");
-                                        if (res.success) {
-                                            alert("ส่งเมลทดสอบแล้ว! กรุณาเช็คใน Inbox หรือ Junk Mail");
-                                        } else {
-                                            alert("ส่งเมลไม่สำเร็จ: " + res.error);
-                                        }
-                                    }}
-                                >
-                                    <Globe className="w-3 h-3" /> ส่งอีเมลทดสอบเข้าเครื่องฉัน ({user?.email?.substring(0, 5)}...)
-                                </Button>
-                            </div>
-                        </div>
+                                        <p className="text-xs text-slate-500">สถานะ: {chatStatus === 'active' ? 'กำลังดำเนินการ' : 'รอการชำระเงิน'}</p>
+                                    </div>
                                 </div>
                                 <Button variant="outline" className="w-full text-xs h-9 rounded-xl border-slate-200" asChild disabled={!lawyer || !lawyerId}>
                                     <Link href={`/lawyer/${lawyerId || ''}`}>
