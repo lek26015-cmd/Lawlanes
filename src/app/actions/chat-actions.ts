@@ -16,9 +16,29 @@ export async function getChatDetailsAction(chatId: string) {
         const data = chatSnap.id ? chatSnap.data() : null;
         if (!data) return { success: false, error: 'Chat data empty.' };
 
-        // RECOVERY: If participant names are missing or generic, look them up in Auth
+        // REPAIR: Ensure lawyerId and clientId are in participants for real-time access
         const participants: string[] = data.participants || [];
-        const clientId = data.clientId || data.userId || participants.find(p => p !== data.lawyerId);
+        const lawyerId = data.lawyerId;
+        const clientIdFromData = data.clientId || data.userId;
+        
+        let needsRepair = false;
+        if (lawyerId && !participants.includes(lawyerId)) {
+            needsRepair = true;
+            participants.push(lawyerId);
+        }
+        if (clientIdFromData && !participants.includes(clientIdFromData)) {
+            needsRepair = true;
+            participants.push(clientIdFromData);
+        }
+
+        if (needsRepair) {
+            console.log(`[getChatDetailsAction] Repairing participants for chat ${chatId}`);
+            await db.collection('chats').doc(chatId).update({
+                participants: admin.firestore.FieldValue.arrayUnion(...participants)
+            });
+        }
+
+        const clientId = clientIdFromData || participants.find(p => p !== lawyerId);
         
         let clientName = data.clientName || 'ลูกความ';
         
