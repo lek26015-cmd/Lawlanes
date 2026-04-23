@@ -11,7 +11,7 @@ import { ThemeProvider } from 'next-themes';
 
 export function ClientProviders({ children, domainType = 'main' }: { children: React.ReactNode; domainType?: string }) {
   React.useEffect(() => {
-    console.log('Lawslane Build Version: 2025-12-16 23:15 (Debug)');
+    console.log('Lawslane Build Version: 2026-04-23 21:28 (R2 Migration)');
   }, []);
 
   return (

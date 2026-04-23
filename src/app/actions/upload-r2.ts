@@ -1,23 +1,46 @@
 'use server';
 
-import { uploadToCloudflareImages } from '@/app/actions/upload-cloudflare-images';
+import { r2 } from '@/lib/r2';
+import { PutObjectCommand } from '@aws-sdk/client-s3';
+import { v4 as uuidv4 } from 'uuid';
 
 /**
- * @deprecated DO NOT USE — R2 public storage is permanently disabled for security.
- * All uploads now route through Cloudflare Images (private, CDN-backed).
- * 
- * This function is kept only for backward compatibility and will redirect 
- * all calls to uploadToCloudflareImages.
+ * Uploads a file to Cloudflare R2 Storage.
+ * This is the preferred method for documents and non-image files.
  */
 export async function uploadToR2(formData: FormData, folder: string = 'uploads') {
-    // SECURITY: Block all uploads — redirect to Cloudflare Images
-    console.warn(`[SECURITY] uploadToR2 called with folder="${folder}" — redirecting to Cloudflare Images`);
-    
     const file = formData.get('file') as File;
     if (!file) {
         throw new Error('No file provided');
     }
 
-    // Route everything through Cloudflare Images
-    return await uploadToCloudflareImages(formData);
+    try {
+        const arrayBuffer = await file.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+        
+        const timestamp = Date.now();
+        const extension = file.name.split('.').pop() || 'bin';
+        const filename = `${uuidv4()}_${timestamp}.${extension}`;
+        const key = `${folder}/${filename}`;
+
+        console.log(`[R2 Upload] Preparing upload: ${key} (${buffer.length} bytes)`);
+
+        const command = new PutObjectCommand({
+            Bucket: process.env.R2_BUCKET_NAME,
+            Key: key,
+            Body: buffer,
+            ContentType: file.type || 'application/octet-stream',
+        });
+
+        await r2.send(command);
+
+        const publicUrl = `${process.env.R2_PUBLIC_URL}/${key}`;
+        console.log(`[R2 Upload] Success: ${publicUrl}`);
+        
+        return publicUrl;
+
+    } catch (error: any) {
+        console.error("R2 Upload Error:", error);
+        throw new Error(`Failed to upload to R2: ${error.message}`);
+    }
 }
