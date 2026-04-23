@@ -720,3 +720,25 @@ export async function deleteFileAction(chatId: string, fileUrl: string) {
         return { success: false, error: 'เกิดข้อผิดพลาดในการลบไฟล์' };
     }
 }
+
+/**
+ * Sends a test email via NotificationService.
+ */
+export async function sendEmailAction(chatId: string, to: string, subject: string) {
+    try {
+        const { NotificationService } = await import('@/services/notification-service');
+        const res = await NotificationService.sendEmail(to, subject, `
+            <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+                <h2 style="color: #2563eb;">Lawslane Notification Test</h2>
+                <p>อีเมลฉบับนี้เป็นการทดสอบระบบแจ้งเตือนจากห้องแชท ID: <b>\${chatId}</b></p>
+                <p>หากท่านได้รับข้อความนี้ แสดงว่าระบบการส่งอีเมลของ Lawslane ทำงานได้ปกติครับ</p>
+                <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+                <p style="font-size: 12px; color: #666;">ส่งเมื่อ: \${new Date().toLocaleString('th-TH')}</p>
+            </div>
+        `);
+        return res;
+    } catch (error: any) {
+        console.error("Error in sendEmailAction:", error);
+        return { success: false, error: error.message };
+    }
+}
