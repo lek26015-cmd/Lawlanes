@@ -23,7 +23,14 @@ export async function uploadToFirebaseSecure(formData: FormData, folder: string 
         throw new Error('Firebase Admin initialization failed');
     }
 
-    const bucket = getStorage(app).bucket();
+    const bucketName = (process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || '').replace(/"/g, '').trim();
+    if (!bucketName) {
+        console.error("Missing storage bucket configuration");
+        throw new Error('Storage bucket not configured. Please check environment variables.');
+    }
+
+    const bucket = getStorage(app).bucket(bucketName);
+    console.log(`[Secure Upload] Using bucket: ${bucket.name}`);
     const buffer = Buffer.from(await file.arrayBuffer());
     
     // Generate a unique filename to prevent collisions and guessing
