@@ -930,40 +930,40 @@ function ChatPageContent() {
     );
 
     return (
-        <div className="relative h-[calc(100dvh-60px)] lg:h-[calc(100vh-64px)] bg-slate-50 dark:bg-slate-950 z-[40] lg:z-0 overflow-hidden flex flex-col lg:flex-row border-t border-slate-100 dark:border-slate-800">
+        <div className="relative h-[calc(100dvh-64px)] bg-slate-50 dark:bg-slate-950 z-[40] lg:z-0 overflow-hidden flex flex-col lg:flex-row">
             {/* Main Area: Header + Operations */}
-            <div className="flex-none lg:flex-1 flex flex-col overflow-y-auto px-4 md:px-8 xl:px-12 py-2 md:py-8 lg:py-10 custom-scrollbar">
-                <div className="max-w-5xl mx-auto w-full">
-                    <div className="mb-2 lg:mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 lg:gap-4 flex-shrink-0">
-                        <div className="space-y-1">
-                            <Link href={effectiveIsLawyerView ? "/lawyer-dashboard" : "/dashboard"} className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 transition-colors">
+            <div className="flex-1 flex flex-col min-w-0 h-full overflow-y-auto custom-scrollbar bg-slate-50/50">
+                <div className="w-full max-w-4xl mx-auto px-4 md:px-6 lg:px-8 py-4 md:py-8">
+                    <div className="mb-4 lg:mb-8 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                        <div className="space-y-1.5">
+                            <Link href={effectiveIsLawyerView ? "/lawyer-dashboard" : "/dashboard"} className="text-xs md:text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-1.5 transition-colors font-medium">
                                 <ArrowLeft className="w-3.5 h-3.5" />
                                 {tCommon('backToHome')}
                             </Link>
-                            <h1 className="text-xl md:text-3xl font-bold font-headline flex flex-wrap items-center gap-2 md:gap-3">
+                            <h1 className="text-xl md:text-2xl lg:text-3xl font-bold font-headline flex flex-wrap items-center gap-2">
                                 <span>{isOfficial ? tCase('titleOfficial') : tCase('titleInitial')}</span>
-                                <Badge variant={isOfficial ? "default" : "secondary"} className={cn("rounded-lg uppercase text-[10px] md:text-[11px] tracking-widest px-2.5 py-0.5 whitespace-nowrap flex-shrink-0", isOfficial && "bg-amber-100 text-amber-700 border-amber-200")}>
+                                <Badge variant={isOfficial ? "default" : "secondary"} className={cn("rounded-lg uppercase text-[10px] tracking-widest px-2 py-0.5 whitespace-nowrap", isOfficial && "bg-amber-100 text-amber-700 border-amber-200")}>
                                     {isOfficial ? tCase('officialBadge') : tCase('freeBadge')}
                                 </Badge>
                             </h1>
                         </div>
 
-                        {/* Mobile Drawer Trigger */}
-                        <div className="lg:hidden w-full mt-1">
+                        {/* Mobile Drawer Trigger - Only visible on small screens */}
+                        <div className="lg:hidden w-full">
                             <Drawer>
                                 <DrawerTrigger asChild>
-                                    <Button className="w-full bg-slate-900 hover:bg-black text-white rounded-xl h-10 font-bold flex items-center justify-center gap-2 shadow-sm text-sm">
+                                    <Button className="w-full bg-slate-900 hover:bg-black text-white rounded-xl h-11 font-bold flex items-center justify-center gap-2 shadow-md">
                                         <Briefcase className="w-4 h-4" />
                                         จัดการคดี (Case Operations)
                                     </Button>
                                 </DrawerTrigger>
-                                <DrawerContent className="max-h-[85vh]">
-                                    <DrawerHeader className="border-b pb-3">
-                                        <DrawerTitle className="flex items-center gap-2">
+                                <DrawerContent className="max-h-[90vh]">
+                                    <DrawerHeader className="border-b pb-4">
+                                        <DrawerTitle className="flex items-center gap-2 text-lg">
                                             <Briefcase className="w-5 h-5 text-blue-600" />
                                             จัดการคดี
                                         </DrawerTitle>
-                                        <DrawerDescription className="text-xs">
+                                        <DrawerDescription>
                                             ตรวจสอบความคืบหน้า เอกสาร และการชำระเงิน
                                         </DrawerDescription>
                                     </DrawerHeader>
@@ -972,7 +972,7 @@ function ChatPageContent() {
                                     </div>
                                     <DrawerFooter className="pt-2 border-t mt-2">
                                         <DrawerClose asChild>
-                                            <Button variant="outline" className="rounded-xl h-10">ปิด</Button>
+                                            <Button variant="outline" className="rounded-xl h-11">ปิด</Button>
                                         </DrawerClose>
                                     </DrawerFooter>
                                 </DrawerContent>
@@ -980,14 +980,14 @@ function ChatPageContent() {
                         </div>
                     </div>
 
-                    <div className="hidden lg:block w-full pb-10">
+                    <div className="hidden lg:block w-full">
                         {renderOperationsPanel()}
                     </div>
                 </div>
             </div>
 
             {/* Sidebar Area: Chat Column */}
-            <div className="flex-1 lg:flex-none lg:w-[380px] xl:w-[450px] flex flex-col h-full relative z-10 transition-all overflow-hidden bg-white dark:bg-slate-950 border-t lg:border-t-0 lg:border-l border-slate-200 dark:border-slate-800 shadow-[-10px_0_30px_-15px_rgba(0,0,0,0.05)]">
+            <div className="flex-none w-full lg:w-[400px] xl:w-[480px] h-[500px] lg:h-full flex flex-col relative z-10 bg-white dark:bg-slate-950 border-t lg:border-t-0 lg:border-l border-slate-200 dark:border-slate-800 shadow-xl lg:shadow-[-10px_0_30px_-15px_rgba(0,0,0,0.05)]">
                 <div className="flex-1 overflow-hidden relative">
                     <ChatBox 
                         chatId={chatId} 
