@@ -958,6 +958,13 @@ function ChatPageContent() {
                                 <ArrowLeft className="w-3.5 h-3.5" />
                                 {tCommon('backToHome')}
                             </Link>
+                            
+                            {/* DEBUG INFO: Helps identify UID mismatches */}
+                            {process.env.NODE_ENV !== 'production' || true && (
+                                <div className="text-[10px] text-slate-400 font-mono mt-1 opacity-50">
+                                    UID: {user?.uid || 'Not Logged In'} | Role: {effectiveIsLawyerView ? 'Lawyer' : 'Client'}
+                                </div>
+                            )}
                             <h1 className="text-xl md:text-2xl lg:text-3xl font-bold font-headline flex flex-wrap items-center gap-2">
                                 <span>{isOfficial ? tCase('titleOfficial') : tCase('titleInitial')}</span>
                                 <Badge variant={isOfficial ? "default" : "secondary"} className={cn("rounded-lg uppercase text-[10px] tracking-widest px-2 py-0.5 whitespace-nowrap", isOfficial && "bg-amber-100 text-amber-700 border-amber-200")}>
