@@ -961,8 +961,8 @@ function ChatPageContent() {
                             
                             {/* DEBUG INFO: Helps identify UID mismatches */}
                             {process.env.NODE_ENV !== 'production' || true && (
-                                <div className="text-[10px] text-slate-400 font-mono mt-1 opacity-50">
-                                    UID: {user?.uid || 'Not Logged In'} | Role: {effectiveIsLawyerView ? 'Lawyer' : 'Client'}
+                                <div className="text-[11px] text-red-600 font-mono mt-1 bg-red-50 border border-red-200 px-2 py-1 rounded inline-block">
+                                    UID: {user?.uid || 'Not Logged In'}
                                 </div>
                             )}
                             <h1 className="text-xl md:text-2xl lg:text-3xl font-bold font-headline flex flex-wrap items-center gap-2">
