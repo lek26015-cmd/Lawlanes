@@ -61,6 +61,7 @@ const nextConfig: NextConfig = {
   },
   serverExternalPackages: [
     'isomorphic-dompurify',
+    'firebase-admin',
   ],
   experimental: {
     serverActions: {

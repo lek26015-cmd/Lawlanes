@@ -1,7 +1,6 @@
 'use server';
 
 import { initAdmin } from '@/lib/firebase-admin';
-import { getStorage } from 'firebase-admin/storage';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
@@ -29,7 +28,7 @@ export async function uploadToFirebaseSecure(formData: FormData, folder: string 
         throw new Error('Storage bucket not configured. Please check environment variables.');
     }
 
-    const bucket = getStorage(app).bucket(bucketName);
+    const bucket = app.storage().bucket(bucketName);
     
     try {
         const arrayBuffer = await file.arrayBuffer();
