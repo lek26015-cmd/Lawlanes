@@ -229,50 +229,86 @@ export async function sendChatMessageAction(params: {
 
         // 5. Trigger Real-time Notification (Email/Push)
         // Background process: we want to start this but not let it block the core success if it's slow
-        // However, we still await it here for serverless execution stability, but in a safe wrapper
         try {
             const now = Date.now();
-            const ACTIVE_THRESHOLD_MS = 90 * 1000;
+            const ACTIVE_THRESHOLD_MS = 120 * 1000; // Increased to 2 minutes for better UX
 
             if (!isLawyerView) {
                 // Client sending to Lawyer
+                let lawyerEmail = '';
+                let lawyerName = '';
+                
+                // 1. Try lawyerProfiles first
                 const lawyerDoc = await db.collection('lawyerProfiles').doc(recipientId).get();
                 if (lawyerDoc.exists) {
-                    const lawyerData = lawyerDoc.data() || {};
-                    // Use a more direct check or rely on the previous fetch if possible
+                    const data = lawyerDoc.data() || {};
+                    lawyerEmail = data.email;
+                    lawyerName = data.name || 'ทนายความ';
+                }
+                
+                // 2. Fallback to users collection if email is missing (sometimes profile is incomplete)
+                if (!lawyerEmail) {
+                    const userDoc = await db.collection('users').doc(recipientId).get();
+                    if (userDoc.exists) {
+                        const data = userDoc.data() || {};
+                        lawyerEmail = data.email;
+                        if (!lawyerName) lawyerName = data.name || 'ทนายความ';
+                    }
+                }
+
+                if (lawyerEmail) {
                     const chatDoc = await db.collection('chats').doc(chatId).get();
                     const chatData = chatDoc.data();
                     
+                    // Presence check: check both LastSeenAt and lawyerReadAt
                     const lawyerSeenAt = chatData?.lawyerLastSeenAt?.toDate()?.getTime() || 0;
-                    const isActive = (now - lawyerSeenAt) < ACTIVE_THRESHOLD_MS;
-                    if (!isActive && lawyerData.email) {
+                    const lawyerReadAt = chatData?.lawyerReadAt?.toDate()?.getTime() || 0;
+                    const lastActive = Math.max(lawyerSeenAt, lawyerReadAt);
+                    
+                    const isActive = (now - lastActive) < ACTIVE_THRESHOLD_MS;
+                    
+                    // Only notify if they haven't been active recently
+                    if (!isActive) {
                         const { NotificationService } = await import('@/services/notification-service');
                         await NotificationService.notifyLawyerNewChat({
                             lawyerId: recipientId,
-                            lawyerName: lawyerData.name || 'ทนายความ',
-                            lawyerEmail: lawyerData.email,
+                            lawyerName: lawyerName,
+                            lawyerEmail: lawyerEmail,
                             clientName: senderName,
                             messageSnippet: text.substring(0, 100),
                             chatId
                         });
                     }
+                } else {
+                    console.warn(`[Notification] Skipping email to lawyer ${recipientId}: No email found in profiles or users.`);
                 }
             } else {
                 // Lawyer sending to Client
+                let clientEmail = '';
+                let clientName = '';
+                
                 const clientDoc = await db.collection('users').doc(recipientId).get();
                 if (clientDoc.exists) {
                     const clientData = clientDoc.data() || {};
+                    clientEmail = clientData.email;
+                    clientName = clientData.name || 'ลูกความ';
+                }
+                
+                if (clientEmail) {
                     const chatDoc = await db.collection('chats').doc(chatId).get();
                     const chatData = chatDoc.data();
                     
                     const clientSeenAt = chatData?.clientLastSeenAt?.toDate()?.getTime() || 0;
-                    const isActive = (now - clientSeenAt) < ACTIVE_THRESHOLD_MS;
-                    if (!isActive && clientData.email) {
+                    const clientReadAt = chatData?.clientReadAt?.toDate()?.getTime() || 0;
+                    const lastActive = Math.max(clientSeenAt, clientReadAt);
+                    
+                    const isActive = (now - lastActive) < ACTIVE_THRESHOLD_MS;
+                    if (!isActive) {
                         const { NotificationService } = await import('@/services/notification-service');
                         await NotificationService.notifyClientNewChat({
                             clientId: recipientId,
-                            clientName: clientData.name || 'ลูกความ',
-                            clientEmail: clientData.email,
+                            clientName: clientName,
+                            clientEmail: clientEmail,
                             lawyerName: senderName,
                             messageSnippet: text.substring(0, 100),
                             chatId
@@ -282,7 +318,6 @@ export async function sendChatMessageAction(params: {
             }
         } catch (notifyErr) {
             console.error("Non-blocking notification error:", notifyErr);
-            // We DO NOT fail the action for notification errors after batch commit
         }
 
         return { success: true };
@@ -304,10 +339,12 @@ export async function markChatAsReadAction(chatId: string, isLawyerView: boolean
         const updateData: any = {};
         if (isLawyerView) {
             updateData.lawyerReadAt = admin.firestore.FieldValue.serverTimestamp();
+            updateData.lawyerLastSeenAt = admin.firestore.FieldValue.serverTimestamp(); // Track presence
             updateData.lawyerReadStatus = 'read';
             updateData.hasNewMessage = false;
         } else {
             updateData.clientReadAt = admin.firestore.FieldValue.serverTimestamp();
+            updateData.clientLastSeenAt = admin.firestore.FieldValue.serverTimestamp(); // Track presence
             updateData.clientReadStatus = 'read';
         }
 
