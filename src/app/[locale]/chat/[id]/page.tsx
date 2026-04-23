@@ -53,7 +53,7 @@ import {
     DrawerTrigger,
 } from "@/components/ui/drawer";
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, FileText, Check, Upload, Scale, Ticket, Briefcase, User as UserIcon, DollarSign, ArrowLeft, Plus, Sparkles, BrainCircuit, Globe, ArrowRight, CheckCircle2, Loader2, Image as ImageIcon } from 'lucide-react';
+import { AlertTriangle, FileText, Check, Upload, Scale, Ticket, Briefcase, User as UserIcon, DollarSign, ArrowLeft, Plus, Sparkles, BrainCircuit, Globe, ArrowRight, CheckCircle2, Loader2, Image as ImageIcon, Trash2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -914,6 +914,24 @@ function ChatPageContent() {
                                                     <p className="text-[9px] text-slate-400">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
                                                 </div>
                                             </button>
+
+                                            <Button
+                                                variant="ghost"
+                                                size="icon"
+                                                className="h-8 w-8 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50"
+                                                onClick={async (e) => {
+                                                    e.stopPropagation();
+                                                    if (confirm("ยืนยันการลบไฟล์นี้?")) {
+                                                        const { deleteFileAction } = await import('@/app/actions/chat-actions');
+                                                        const res = await deleteFileAction(chatId, file.url);
+                                                        if (!res.success) {
+                                                            toast({ variant: "destructive", title: "ลบไฟล์ไม่สำเร็จ", description: res.error });
+                                                        }
+                                                    }
+                                                }}
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </Button>
                                         </div>
                                     )})
                                 )}

@@ -688,3 +688,35 @@ export async function markInstallmentPaidAction(params: {
         return { success: false, error: 'เกิดข้อผิดพลาดในการบันทึกการชำระเงิน กรุณาลองใหม่อีกครั้ง' };
     }
 }
+
+/**
+ * Removes a file from the chat's files array.
+ */
+export async function deleteFileAction(chatId: string, fileUrl: string) {
+    try {
+        const adminApp = await initAdmin();
+        if (!adminApp) return { success: false, error: 'Firebase Admin not initialized.' };
+        const db = adminApp.firestore();
+
+        const chatRef = db.collection('chats').doc(chatId);
+        const chatSnap = await chatRef.get();
+
+        if (!chatSnap.exists) {
+            return { success: false, error: 'ไม่พบห้องแชท' };
+        }
+
+        const data = chatSnap.data();
+        const files = data?.files || [];
+        const updatedFiles = files.filter((f: any) => f.url !== fileUrl);
+
+        await chatRef.update({
+            files: updatedFiles,
+            updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+
+        return { success: true };
+    } catch (error: any) {
+        console.error("Error in deleteFileAction:", error);
+        return { success: false, error: 'เกิดข้อผิดพลาดในการลบไฟล์' };
+    }
+}
