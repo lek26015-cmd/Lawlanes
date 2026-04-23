@@ -239,7 +239,7 @@ export function useChatSocket(chatId: string, userId: string, userName: string) 
   const sendMessage = useCallback(async (text: string, recipientId: string, isLawyerView: boolean) => {
     let finalMessage = text;
     
-    // 1. Encrypt message
+    // 1. Encrypt message (E2EE)
     try {
       if (!recipientPublicKeyRef.current && WORKER_URL) {
          try {
@@ -267,8 +267,7 @@ export function useChatSocket(chatId: string, userId: string, userName: string) 
       console.error("Encryption failed, sending cleartext as fallback:", err);
     }
 
-    // 2. Try WebSocket send
-    let wsSuccess = false;
+    // 2. WebSocket Send (Fire-and-forget for low latency)
     if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
       socketRef.current.send(JSON.stringify({
         type: 'message',
@@ -277,15 +276,17 @@ export function useChatSocket(chatId: string, userId: string, userName: string) 
         senderName: userName,
         recipientId
       }));
-      wsSuccess = true;
     }
     
-    // 3. Always invoke Server Action to ensure notifications fire & metadata updates.
-    // If WS succeeded, we skip saving the message text duplication.
+    // 3. Persistent Save to Firestore & Notifications
+    // We always save to Firestore to ensure a single source of truth and reliability
     try {
       const authToken = authUser ? await authUser.getIdToken() : undefined;
       const { sendChatMessageAction } = await import('@/app/actions/chat-actions');
-      await sendChatMessageAction({
+      
+      // We await this to ensure reliability and catch errors, but it won't block 
+      // the WebSocket message which was already sent above.
+      const result = await sendChatMessageAction({
         chatId,
         text: finalMessage,
         senderId: userId,
@@ -293,14 +294,19 @@ export function useChatSocket(chatId: string, userId: string, userName: string) 
         recipientId,
         isLawyerView,
         authToken,
-        skipMessageSave: wsSuccess
+        skipMessageSave: false // Ensure it's ALWAYS saved to Firestore
       });
+
+      if (result && !result.success) {
+        console.error("Firestore save failed:", result.error);
+        throw new Error(result.error || "Failed to save message to database");
+      }
+
     } catch (err) {
-      console.error("Action/Notification send failed:", err);
-      // If WS failed and Action failed, we throw so UI shows error state
-      if (!wsSuccess) throw err;
+      console.error("Failed to initiate message save:", err);
+      throw err; // Re-throw to trigger 'failed' status in the UI
     }
-  }, [chatId, userName, userId]);
+  }, [chatId, userName, userId, authUser]);
 
   return { 
     messages, 
