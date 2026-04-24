@@ -126,6 +126,8 @@ function ChatPageContent() {
 
     const [rating, setRating] = useState(0);
     const [reviewText, setReviewText] = useState("");
+    const [showContractModal, setShowContractModal] = useState(false);
+    const [contractText, setContractText] = useState<string | null>(null);
 
     const { firestore, storage } = useFirebase();
     const { user } = useUser();
@@ -146,6 +148,7 @@ function ChatPageContent() {
                 setCaseTitle(data.caseTitle || '');
                 setDescription(data.description || '');
                 setPendingFeeRequest(data.pendingFeeRequest || null);
+                setContractText(data.contractText || null);
             }
         });
 
@@ -701,12 +704,14 @@ function ChatPageContent() {
                                             </div>
                                         )}
                                     </CardContent>
-                                    {!isCompleted && !effectiveIsLawyerView && installments?.length > 0 && (
+                                    {contractText && (
                                         <CardFooter className="pt-2">
-                                            <Button className="w-full bg-blue-600 hover:bg-blue-700 text-xs h-9 font-bold" asChild>
-                                                <Link href={`/payment?chatId=${chatId}&type=installment&installmentIndex=${installments.findIndex((i:any) => i.status !== 'paid') !== -1 ? installments.findIndex((i:any) => i.status !== 'paid') : 0}`}>
-                                                    ชำระเงินงวดถัดไป
-                                                </Link>
+                                            <Button 
+                                                variant="outline" 
+                                                className="w-full border-blue-200 text-blue-600 hover:bg-blue-50 text-xs h-9 font-bold rounded-xl"
+                                                onClick={() => setShowContractModal(true)}
+                                            >
+                                                <ScrollText className="w-4 h-4 mr-2" /> ดูเอกสารสัญญาจ้าง
                                             </Button>
                                         </CardFooter>
                                     )}
@@ -1118,6 +1123,106 @@ function ChatPageContent() {
                                 className="max-w-full max-h-full object-contain shadow-2xl animate-in zoom-in-95 duration-300"
                             />
                         )}
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            {/* Contract Modal */}
+            <Dialog open={showContractModal} onOpenChange={setShowContractModal}>
+                <DialogContent className="max-w-[95vw] md:max-w-4xl max-h-[90vh] overflow-y-auto p-0 border-none bg-slate-900/40 backdrop-blur-md">
+                    <DialogTitle className="sr-only">เอกสารสัญญาจ้าง</DialogTitle>
+                    <div className="flex flex-col items-center gap-12 p-4 md:p-12 pb-24">
+                        {/* PAGE 1 */}
+                        <Card className="bg-white shadow-2xl rounded-sm w-full max-w-[210mm] relative overflow-hidden font-serif leading-[1.8] min-h-[297mm] h-auto flex flex-col">
+                            <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none z-0">
+                                <img src="/images/logo-lawslane-transparent-color.png" alt="Lawslane Watermark" className="w-[80%]" />
+                            </div>
+                            <CardContent className="p-12 md:p-20 space-y-8 text-slate-800 text-[15px] relative z-10 flex-1">
+                                <div className="text-center space-y-2 mb-10">
+                                    <h1 className="text-3xl font-bold text-slate-900 font-headline italic uppercase tracking-wider">สัญญาจ้างทนายความ</h1>
+                                    <p className="text-slate-500 text-xs tracking-widest uppercase font-sans">(ฉบับทางการ - Lawslane Standard)</p>
+                                </div>
+
+                                <div className="space-y-6">
+                                    <p className="indent-12 text-justify">
+                                        สัญญาฉบับนี้ทำขึ้นระหว่าง <strong>{client?.name || '.....................'}</strong>
+                                        {clientInfo?.taxId ? ` เลขประจำตัวผู้เสียภาษี ${clientInfo.taxId}` : ''}
+                                        {clientInfo?.address ? ` ตั้งอยู่เลขที่ ${clientInfo.address}` : ''}
+                                        ซึ่งต่อไปในสัญญานี้เรียกว่า <strong>"ผู้ว่าจ้าง"</strong> ฝ่ายหนึ่ง
+                                    </p>
+
+                                    <p className="indent-12 text-justify">
+                                        กับ <strong>ทนายความในเครือ Lawslane</strong>
+                                        ซึ่งต่อไปในสัญญานี้เรียกว่า <strong>"ผู้รับจ้าง"</strong> อีกฝ่ายหนึ่ง
+                                    </p>
+
+                                    <div className="space-y-6 pt-2 pl-6 border-l-4 border-blue-50">
+                                        <div>
+                                            <p className="font-bold">ข้อ 1. ขอบเขตของงาน</p>
+                                            <p className="pl-6 text-slate-600 italic py-1 leading-relaxed">{description || caseTitle}</p>
+                                        </div>
+
+                                        <div>
+                                            <p className="font-bold">ข้อ 2. ค่าจ้างและเงื่อนไขการชำระเงิน</p>
+                                            <p className="pl-6">
+                                                ผู้ว่าจ้างตกลงชำระค่าจ้างทั้งสิ้น <strong>{chatAmount.toLocaleString()}</strong> บาท
+                                                <br />เงื่อนไขการชำระเงิน: {installments?.length > 0 ? 'แบ่งชำระเป็นงวด' : 'ชำระงวดเดียวเมื่อเริ่มงาน'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </CardContent>
+                            <div className="p-4 bg-slate-50 text-center text-[10px] text-slate-400 font-sans tracking-widest border-t border-slate-100">Page 1 of 2</div>
+                        </Card>
+
+                        {/* PAGE 2 */}
+                        <Card className="bg-white shadow-2xl rounded-sm w-full max-w-[210mm] relative overflow-hidden font-serif leading-[1.8] min-h-[297mm] h-auto flex flex-col">
+                            <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none z-0">
+                                <img src="/images/logo-lawslane-transparent-color.png" alt="Lawslane Watermark" className="w-[80%]" />
+                            </div>
+                            <CardContent className="p-12 md:p-20 space-y-8 text-slate-800 text-[15px] relative z-10 flex-1">
+                                <div className="space-y-6">
+                                    <p className="indent-12 text-justify pt-8 leading-relaxed">
+                                        สัญญานี้เป็นการสรุปข้อตกลงเบื้องต้นจากการเจรจาผ่านทางระบบ Lawslane คู่สัญญาได้อ่านและเข้าใจข้อความโดยตลอดแล้ว จึงได้ลงลายมือชื่อผ่านระบบอิเล็กทรอนิกส์ไว้เป็นสำคัญ
+                                    </p>
+
+                                    {installments?.length > 0 && (
+                                        <div className="mt-12 pt-8 border-t border-slate-100">
+                                            <p className="font-bold mb-4 flex items-center gap-2 text-blue-600">
+                                                <DollarSign className="w-4 h-4" /> แผนการชำระเงินแนบท้าย:
+                                            </p>
+                                            <ul className="space-y-3 pl-6">
+                                                {installments.map((inst: any, idx: number) => (
+                                                    <li key={idx} className="text-sm flex justify-between border-b border-slate-50 pb-2">
+                                                        <span>งวดที่ {idx + 1}: {inst.description}</span>
+                                                        <span className="font-bold">฿{(parseFloat(String(inst.amount).replace(/,/g, ''))).toLocaleString()}</span>
+                                                    </li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    )}
+
+                                    <div className="flex justify-around items-end pt-24 text-sm mt-16 border-t border-slate-100">
+                                        <div className="text-center space-y-4 flex-1">
+                                            <div className="h-20 flex items-center justify-center italic text-slate-300 text-xs">
+                                                (ลงนามผ่านระบบ)
+                                            </div>
+                                            <p className="font-bold text-slate-900 underline underline-offset-8">...........................................................</p>
+                                            <p className="text-xs text-slate-500 font-sans">({client?.name || 'ผู้ว่าจ้าง'})</p>
+                                        </div>
+
+                                        <div className="text-center space-y-4 flex-1">
+                                            <div className="h-20 flex items-center justify-center">
+                                                <img src="/images/lawslane-official-seal.png" alt="Official Seal" className="h-16 opacity-80" onError={(e) => e.currentTarget.style.display = 'none'} />
+                                            </div>
+                                            <p className="font-bold text-slate-900 underline underline-offset-8">...........................................................</p>
+                                            <p className="text-xs text-slate-500 font-sans">({lawyer?.name || 'ทนายความผู้รับผิดชอบคดี'})</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </CardContent>
+                            <div className="p-4 bg-slate-50 text-center text-[10px] text-slate-400 font-sans tracking-widest border-t border-slate-100">Page 2 of 2</div>
+                        </Card>
                     </div>
                 </DialogContent>
             </Dialog>

@@ -154,6 +154,7 @@ export async function createManualCaseAction(lawyerId: string, data: {
     clientInfo?: { name: string, address: string, taxId: string };
     existingChatId?: string;
     clientId?: string;
+    contractText?: string;
 }) {
     const adminApp = await initAdmin();
     if (!adminApp) throw new Error('Firebase Admin not initialized.');
@@ -190,6 +191,7 @@ export async function createManualCaseAction(lawyerId: string, data: {
             paidInstallments: 0,
             totalPaid: 0,
             clientInfo: data.clientInfo || null,
+            contractText: data.contractText || null,
             updatedAt: admin.firestore.FieldValue.serverTimestamp(),
             lastMessageAt: admin.firestore.FieldValue.serverTimestamp(),
             lastMessage: `ข้อเสนอเปิดคดี: ${data.title} จำนวน ฿${data.amount.toLocaleString()}`,
@@ -237,6 +239,31 @@ export async function createManualCaseAction(lawyerId: string, data: {
             }
         };
         await newMessageRef.set(proposalMessage);
+
+        // (B) The Contract/Agreement Message (NEW)
+        if (data.contractText) {
+            const contractMsgRef = messagesRef.doc();
+            await contractMsgRef.set({
+                chatId: chatId,
+                text: `📄 **ร่างสัญญาจ้างทนายความ**\n\n${data.contractText}\n\n*หมายเหตุ: สัญญาฉบับนี้จะมีผลสมบูรณ์เมื่อมีการชำระเงินงวดแรกเข้าระบบ*`,
+                senderId: 'system',
+                senderName: 'System',
+                timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                type: 'contract_draft'
+            });
+        }
+
+        // (C) The Payment Instruction Message (NEW)
+        const paymentMsgRef = messagesRef.doc();
+        const paymentLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://lawslane.com'}/payment?chatId=${chatId}&type=case`;
+        await paymentMsgRef.set({
+            chatId: chatId,
+            text: `💳 **ช่องทางการชำระเงิน**\n\nคุณสามารถชำระเงินผ่านระบบ Thai QR Payment หรือบัตรเครดิตได้โดยตรงที่ลิงก์ด้านล่างนี้:\n\n🔗 [ชำระเงินที่นี่](${paymentLink})\n\n*เงินของคุณจะถูกเก็บไว้ในระบบ Escrow ของ Lawslane และจะโอนให้ทนายความตามงวดงานที่ตกลงกันเท่านั้น*`,
+            senderId: 'system',
+            senderName: 'System',
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            type: 'payment_instruction'
+        });
 
         // NOTIFICATION: Trigger Email/Push and In-App notification to the client
         if (resolvedClientId) {

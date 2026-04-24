@@ -715,7 +715,7 @@ function CaseDetailPageContent() {
              <div className="space-y-8 animate-in slide-in-from-right-10 duration-500">
                 <div className="space-y-2">
                    <h2 className="text-2xl font-black text-slate-900 tracking-tighter uppercase italic">2. ระบุข้อเท็จจริงที่ต้องการนำสืบ</h2>
-                   <p className="text-slate-500 text-sm italic">จัดเตรียมร่างข้อความเพื่อใช้ในการพิจารณาคดี</p>
+                   <p className="text-slate-500 text-sm italic">จัดเตรียมร่างข้อความเพื่อใช้ในการดำเนินการคดี</p>
                 </div>
 
                 <div className="space-y-4">

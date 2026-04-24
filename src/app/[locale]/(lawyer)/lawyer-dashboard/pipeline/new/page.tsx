@@ -234,7 +234,8 @@ ${showInstallments ? `โดยแบ่งชำระเป็นดังน�
           taxId: clientTaxId
         },
         existingChatId: chatIdParam || undefined,
-        clientId: client || searchParams.get('clientId') || undefined
+        clientId: client || searchParams.get('clientId') || undefined,
+        contractText: contractText
       });
 
       if (result.success && result.chatId) {
@@ -731,15 +732,119 @@ ${showInstallments ? `โดยแบ่งชำระเป็นดังน�
               </Button>
             </div>
 
-            <Card className="shadow-lg border-blue-100 rounded-3xl overflow-hidden mb-8">
-              <CardContent className="p-0">
-                <Textarea 
-                  value={contractText}
-                  onChange={(e) => setContractText(e.target.value)}
-                  className="min-h-[600px] border-none focus-visible:ring-0 p-8 font-mono text-sm leading-relaxed bg-white"
-                />
-              </CardContent>
-            </Card>
+            <div className="flex flex-col items-center gap-12 p-4 md:p-12 pb-24 bg-slate-100 rounded-[3rem] border border-slate-200/50 shadow-inner overflow-hidden">
+              {/* PAGE 1 */}
+              <Card className="bg-white shadow-2xl rounded-sm w-full max-w-[210mm] relative overflow-hidden font-serif leading-[1.8] min-h-[297mm] h-auto flex flex-col transform transition-transform hover:scale-[1.01] duration-500">
+                <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none z-0">
+                  <img src="/images/logo-lawslane-transparent-color.png" alt="Lawslane Watermark" className="w-[80%]" />
+                </div>
+                <CardContent className="p-12 md:p-20 space-y-8 text-slate-800 text-[15px] relative z-10 flex-1">
+                  <div className="text-center space-y-2 mb-10">
+                    <h1 className="text-3xl font-bold text-slate-900 font-headline italic uppercase tracking-wider">สัญญาจ้างทนายความ</h1>
+                    <p className="text-slate-500 text-xs tracking-widest uppercase font-sans">(ฉบับทางการ - Lawslane Standard)</p>
+                  </div>
+
+                  <div className="text-right mb-10 font-sans text-sm text-slate-500">
+                    วันที่: {new Date().toLocaleDateString('th-TH', { day: 'numeric', month: 'long', year: 'numeric' })}
+                  </div>
+
+                  <div className="space-y-6">
+                    <p className="indent-12 text-justify">
+                      สัญญาฉบับนี้ทำขึ้นระหว่าง <strong>{clientName || '.....................'}</strong>
+                      {clientTaxId ? ` เลขประจำตัวผู้เสียภาษี ${clientTaxId}` : ''}
+                      {clientAddress ? ` ตั้งอยู่เลขที่ ${clientAddress}` : ''}
+                      ซึ่งต่อไปในสัญญานี้เรียกว่า <strong>"ผู้ว่าจ้าง"</strong> ฝ่ายหนึ่ง
+                    </p>
+
+                    <p className="indent-12 text-justify">
+                      กับ <strong>ทนายความในเครือ Lawslane</strong>
+                      ซึ่งต่อไปในสัญญานี้เรียกว่า <strong>"ผู้รับจ้าง"</strong> อีกฝ่ายหนึ่ง
+                    </p>
+
+                    <p className="indent-12">คู่สัญญาทั้งสองฝ่ายตกลงทำสัญญากันดังมีข้อความต่อไปนี้:</p>
+
+                    <div className="space-y-6 pt-2 pl-6">
+                      <div>
+                        <p className="font-bold">ข้อ 1. ขอบเขตของงาน</p>
+                        <p className="pl-6 border-l-2 border-slate-100 text-slate-600 italic py-1 leading-relaxed">{description || title}</p>
+                      </div>
+
+                      <div>
+                        <p className="font-bold">ข้อ 2. ค่าจ้างและเงื่อนไขการชำระเงิน</p>
+                        <p className="pl-6">
+                          ผู้ว่าจ้างตกลงชำระค่าจ้างทั้งสิ้น <strong>{(parseFloat(totalFee || '0')).toLocaleString()}</strong> บาท
+                          <br />เงื่อนไขการชำระเงิน: {showInstallments ? 'แบ่งชำระเป็นงวด' : 'ชำระงวดเดียวเมื่อเริ่มงาน'}
+                        </p>
+                      </div>
+
+                      <div>
+                        <p className="font-bold">ข้อ 3. กำหนดเวลาและสถานที่ส่งมอบงาน</p>
+                        <p className="pl-6">ตามที่ตกลงกันในรายละเอียดแผนการดำเนินคดี (Roadmap)</p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+                <div className="p-4 bg-slate-50 text-center text-[10px] text-slate-400 font-sans tracking-widest border-t border-slate-100 uppercase">Page 1 of 2</div>
+              </Card>
+
+              {/* PAGE 2 */}
+              <Card className="bg-white shadow-2xl rounded-sm w-full max-w-[210mm] relative overflow-hidden font-serif leading-[1.8] min-h-[297mm] h-auto flex flex-col transform transition-transform hover:scale-[1.01] duration-500">
+                <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none z-0">
+                  <img src="/images/logo-lawslane-transparent-color.png" alt="Lawslane Watermark" className="w-[80%]" />
+                </div>
+                <CardContent className="p-12 md:p-20 space-y-8 text-slate-800 text-[15px] relative z-10 flex-1">
+                  <div className="space-y-6">
+                    <div className="space-y-2 pl-6">
+                      <p className="font-bold">ข้อ 4. การบอกเลิกสัญญา</p>
+                      <p className="text-justify leading-relaxed">หากผู้รับจ้างไม่สามารถทำงานให้แล้วเสร็จตามกำหนด หรือเจตนาทิ้งงาน ผู้ว่าจ้างมีสิทธิบอกเลิกสัญญาและเรียกร้องค่าเสียหายได้ทันที</p>
+                    </div>
+
+                    <p className="indent-12 text-justify pt-8 leading-relaxed">
+                      สัญญานี้เป็นการสรุปข้อตกลงเบื้องต้นจากการเจรจาผ่านทางระบบ Lawslane คู่สัญญาได้อ่านและเข้าใจข้อความโดยตลอดแล้ว จึงได้ลงลายมือชื่อผ่านระบบอิเล็กทรอนิกส์ไว้เป็นสำคัญ
+                    </p>
+
+                    {showInstallments && (
+                      <div className="mt-12 pt-8 border-t border-slate-100">
+                        <p className="font-bold mb-4 flex items-center gap-2">
+                           <DollarSign className="w-4 h-4" /> แผนการชำระเงินแนบท้าย:
+                        </p>
+                        <ul className="space-y-3 pl-6">
+                          {installments.map((inst, idx) => (
+                            <li key={idx} className="text-sm flex justify-between border-b border-slate-50 pb-2">
+                              <span>งวดที่ {idx + 1}: {inst.description}</span>
+                              <span className="font-bold">฿{(parseFloat(inst.amount || '0')).toLocaleString()}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+
+                    <div className="flex justify-around items-end pt-24 text-sm mt-16 border-t border-slate-100">
+                      {/* Employer Signature Area */}
+                      <div className="text-center space-y-4 flex-1 px-4">
+                        <div className="h-20 border-b border-slate-200 border-dashed w-full max-w-[200px] mx-auto flex items-center justify-center italic text-slate-300 text-xs">
+                          (ลงนามผ่านระบบแชท)
+                        </div>
+                        <p className="font-bold text-slate-900 underline underline-offset-8">...........................................................</p>
+                        <p className="text-xs text-slate-500 font-sans">({clientName || 'ผู้ว่าจ้าง'})</p>
+                        <p className="text-[10px] text-slate-400 font-sans">ผู้ว่าจ้าง</p>
+                      </div>
+
+                      {/* Contractor Signature Area */}
+                      <div className="text-center space-y-4 flex-1 px-4">
+                        <div className="h-20 border-b border-slate-200 border-dashed w-full max-w-[200px] mx-auto flex items-center justify-center">
+                          <img src="/images/lawslane-official-seal.png" alt="Official Seal" className="h-16 opacity-80" onError={(e) => e.currentTarget.style.display = 'none'} />
+                        </div>
+                        <p className="font-bold text-slate-900 underline underline-offset-8">...........................................................</p>
+                        <p className="text-xs text-slate-500 font-sans">(ทนายความผู้รับผิดชอบคดี)</p>
+                        <p className="text-[10px] text-slate-400 font-sans">ผู้รับจ้าง</p>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+                <div className="p-4 bg-slate-50 text-center text-[10px] text-slate-400 font-sans tracking-widest border-t border-slate-100 uppercase">Page 2 of 2</div>
+              </Card>
+            </div>
 
             <div className="bg-blue-50 p-6 rounded-3xl border border-blue-100 mb-8">
               <div className="flex gap-4 items-start">

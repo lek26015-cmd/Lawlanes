@@ -375,6 +375,44 @@
         "date": "日期",
         "time": "时间"
     },
+    "CaseRoom": {
+        "proTools": "专业工具 (PRO)",
+        "titleInitial": "初步咨询聊天",
+        "titleOfficial": "案件处理室",
+        "freeBadge": "免费咨询",
+        "officialBadge": "正式案件",
+        "nextAction": "下一步操作",
+        "legalVault": "法律档案库 (Legal Vault)",
+        "vaultDescription": "安全、有条理地管理文件。",
+        "legalResearch": "法律研究 (RAG 助手)",
+        "researchPlaceholder": "搜索法律或法律问题...",
+        "viewFullText": "查看全文",
+        "citeLaw": "引用此法条",
+        "noResults": "未找到相关法律",
+        "resultsFound": "找到 {count} 条相关法条",
+        "docClient": "客户文件",
+        "docLawyer": "律师文件",
+        "downloadAll": "全部下载",
+        "interpreterTitle": "寻找专业法律翻译",
+        "interpreterSearchPlaceholder": "搜索语言或专业领域...",
+        "certifiedInterpreter": "法院认证翻译",
+        "legalSpecialty": "法律专业",
+        "interpreterRate": "起步价 {price} / 小时",
+        "bookInterpreter": "为此案件预约翻译",
+        "languages": {
+            "en": "英语",
+            "zh": "中文",
+            "ja": "日语",
+            "ko": "韩语",
+            "fr": "法语"
+        }
+    },
+    "CaseRoadmap": {
+        "step1": "初步咨询",
+        "step2": "开启案件 / 付款",
+        "step3": "执行 / 证据",
+        "step4": "总结 / 结案"
+    },
     "Help": {
         "title": "帮助中心",
         "subtitle": "我们在这里为您提供帮助并回答您的所有问题",

@@ -386,8 +386,8 @@
         "nextAction": "Next Action"
     },
     "CaseRoom": {
-        "titleInitial": "Initial Consultation",
-        "titleOfficial": "Online Legal Case Room",
+        "titleInitial": "Initial Consultation Chat",
+        "titleOfficial": "Case Proceeding Room",
         "freeBadge": "Free Consult",
         "officialBadge": "Official Case",
         "nextAction": "Next Action",
