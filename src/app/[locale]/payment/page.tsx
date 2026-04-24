@@ -20,7 +20,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { useFirebase } from '@/firebase';
 import { addDoc, collection, doc, serverTimestamp, setDoc, getDoc, query, where, getDocs, updateDoc, limit } from 'firebase/firestore';
 import { errorEmitter, FirestorePermissionError } from '@/firebase';
-import { uploadToFirebaseSecure } from '@/app/actions/upload-secure';
+import { saveBase64SlipAction } from '@/app/actions/upload-secure';
 import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '@/lib/constants';
 import { compressImageToBase64 } from '@/lib/image-utils';
 import { cn } from '@/lib/utils';
@@ -124,9 +124,19 @@ function PaymentPageContent() {
     }, [lawyerId, firestore, user, router, toast]);
 
     const uploadSlip = async (file: File) => {
-        const formData = new FormData();
-        formData.append('file', file);
-        return await uploadToFirebaseSecure(formData, 'payment-slips');
+        let base64Data = '';
+        if (file.type.startsWith('image/')) {
+            base64Data = await compressImageToBase64(file);
+        } else {
+            // For PDFs, just convert to Base64
+            base64Data = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result as string);
+                reader.onerror = error => reject(error);
+            });
+        }
+        return await saveBase64SlipAction(base64Data);
     };
 
     const scanSlipQR = (file: File): Promise<string | null> => {
@@ -276,13 +286,9 @@ function PaymentPageContent() {
                     slipUrl = await uploadSlip(slipFile) as string;
                 } catch (uploadError) {
                     console.warn("Upload failed:", uploadError);
-                    if (slipFile.type.startsWith('image/')) {
-                        slipUrl = await compressImageToBase64(slipFile);
-                    } else {
-                        toast({ variant: "destructive", title: "อัปโหลดไฟล์ไม่สำเร็จ", description: "กรุณาลองใหม่อีกครั้ง" });
-                        setIsProcessing(false);
-                        return;
-                    }
+                    toast({ variant: "destructive", title: "บันทึกสลิปไม่สำเร็จ", description: "ไฟล์อาจใหญ่เกินไป กรุณาลองใหม่อีกครั้ง" });
+                    setIsProcessing(false);
+                    return;
                 }
             }
 

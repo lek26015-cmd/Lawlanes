@@ -5,6 +5,7 @@ import { useFirebase } from '@/firebase';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { notifyPaymentCompletedAction } from '@/app/actions/chat-actions';
 import { approvePaymentSlipAction } from '@/app/actions/admin-actions';
 import { useToast } from '@/hooks/use-toast';
@@ -17,6 +18,7 @@ export default function AdminPaymentsPage() {
     const [pendingChats, setPendingChats] = useState<any[]>([]);
     const [pendingAppointments, setPendingAppointments] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [viewSlipImage, setViewSlipImage] = useState<string | null>(null);
 
     const fetchPendingItems = async () => {
         if (!firestore) return;
@@ -73,7 +75,11 @@ export default function AdminPaymentsPage() {
         try {
             const url = await getSecureDownloadUrl(path);
             if (url) {
-                window.open(url, '_blank');
+                if (url.startsWith('data:')) {
+                    setViewSlipImage(url);
+                } else {
+                    window.open(url, '_blank');
+                }
             } else {
                 toast({ variant: 'destructive', title: 'ไม่สามารถสร้างลิงก์ได้', description: 'กรุณาลองใหม่อีกครั้ง' });
             }
@@ -152,6 +158,17 @@ export default function AdminPaymentsPage() {
                     </div>
                 </div>
             </div>
+
+            <Dialog open={!!viewSlipImage} onOpenChange={(open) => !open && setViewSlipImage(null)}>
+                <DialogContent className="max-w-md rounded-3xl">
+                    <DialogHeader>
+                        <DialogTitle>รูปสลิปการโอนเงิน</DialogTitle>
+                    </DialogHeader>
+                    <div className="flex justify-center p-4">
+                        {viewSlipImage && <img src={viewSlipImage} alt="Slip" className="max-w-full max-h-[70vh] object-contain rounded-xl shadow-md" />}
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

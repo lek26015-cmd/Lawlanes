@@ -7,20 +7,20 @@ export async function uploadFileAction(formData: FormData, idToken: string, chat
     }
 
     try {
-        console.log(`[Chat Upload] Securing attachment for chat ${chatId} using R2`);
+        console.log(`[Chat Upload] Securing attachment for chat ${chatId} using Firebase Storage`);
         
-        // Store in a scoped path for the chat using R2 (more stable on Vercel)
-        const { uploadToR2 } = await import('@/app/actions/upload-r2');
-        const publicUrl = await uploadToR2(formData, `chats/${chatId}`);
+        // Store in a scoped path for the chat using Firebase Storage (Secure)
+        const { uploadToFirebaseSecure } = await import('@/app/actions/upload-secure');
+        const filePath = await uploadToFirebaseSecure(formData, `chats/${chatId}`);
 
         return {
             name: file.name,
-            fullPath: publicUrl, 
+            fullPath: filePath, // Store the path, client will use getSecureDownloadUrl
             isLocal: false
         };
 
     } catch (error: any) {
-        console.error("Chat Upload Error (R2):", error);
+        console.error("Chat Upload Error (Firebase):", error);
         throw new Error(`Failed to upload file: ${error.message}`);
     }
 }

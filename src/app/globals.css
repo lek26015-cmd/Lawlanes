@@ -72,6 +72,9 @@
   }
 
   /* overflow-x: hidden removed to allow position: sticky to work properly on the navbar */
+  html, body {
+    overflow-x: clip;
+  }
 
   body {
     @apply bg-background text-foreground font-body;

@@ -9,7 +9,7 @@ import * as z from 'zod';
 import { createUserWithEmailAndPassword, updateProfile, signOut } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp, addDoc, collection } from 'firebase/firestore';
 import { useFirebase } from '@/firebase';
-import { uploadToCloudflareImages } from '@/app/actions/upload-cloudflare-images';
+import { uploadToFirebasePublic } from '@/app/actions/upload-secure';
 import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '@/lib/constants';
 
 import { Button } from '@/components/ui/button';
@@ -165,7 +165,7 @@ export default function LawyerExpressSignupPage() {
             if (profileImageFile) {
                 const formData = new FormData();
                 formData.append('file', profileImageFile);
-                profileImageUrl = await uploadToCloudflareImages(formData);
+                profileImageUrl = await uploadToFirebasePublic(formData, 'profile-images');
             }
 
             // 3. Create user profile document in Firestore (users collection)

@@ -25,7 +25,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { useCart } from '@/context/cart-context';
 import { useFirebase } from '@/firebase';
 import { addDoc, collection, serverTimestamp, getDocs, query, where, limit } from 'firebase/firestore';
-import { uploadToFirebaseSecure } from '@/app/actions/upload-secure';
+import { saveBase64SlipAction } from '@/app/actions/upload-secure';
+import { compressImageToBase64 } from '@/lib/image-utils';
 import { useToast } from '@/hooks/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import QRCode from 'qrcode.react';
@@ -158,9 +159,18 @@ export default function CheckoutPage() {
     try {
       let slipUrl = '';
       if (slipFile) {
-        const formData = new FormData();
-        formData.append('file', slipFile);
-        slipUrl = await uploadToFirebaseSecure(formData, 'book-payment-slips') as string;
+        let base64Data = '';
+        if (slipFile.type.startsWith('image/')) {
+            base64Data = await compressImageToBase64(slipFile);
+        } else {
+            base64Data = await new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(slipFile);
+                reader.onload = () => resolve(reader.result as string);
+                reader.onerror = error => reject(error);
+            });
+        }
+        slipUrl = await saveBase64SlipAction(base64Data);
       }
 
       const orderData = {

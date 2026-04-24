@@ -28,8 +28,8 @@ import {
 import { useFirebase, useUser } from '@/firebase';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { updatePassword, updateProfile, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
-// uploadToR2 removed for security — all images go through Cloudflare Images
-import { uploadToCloudflareImages } from '@/app/actions/upload-cloudflare-images';
+// Using Firebase Storage for public profile images instead of Cloudflare Images
+import { uploadToFirebasePublic } from '@/app/actions/upload-secure';
 import { useToast } from '@/hooks/use-toast';
 import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '@/lib/constants';
 import { formatPhoneNumber, formatBankAccount } from '@/lib/utils';
@@ -214,9 +214,9 @@ export default function AccountPage() {
           formData.append('file', imageFile);
 
 
-          // All profile images go through Cloudflare Images (private, CDN-backed)
-          console.log("Uploading profile image to Cloudflare Images...");
-          newPhotoURL = await uploadToCloudflareImages(formData);
+          // Use Firebase Storage for profile images
+          console.log("Uploading profile image to Firebase Storage...");
+          newPhotoURL = await uploadToFirebasePublic(formData, 'profile-images');
 
         } catch (uploadError) {
           console.error("Error uploading image:", uploadError);

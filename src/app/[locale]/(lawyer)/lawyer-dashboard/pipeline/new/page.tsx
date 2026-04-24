@@ -164,6 +164,16 @@ function NewCaseForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!client) {
+      toast({ variant: "destructive", title: "กรุณาเลือกลูกความ", description: "คุณต้องเลือกลูกความก่อนดำเนินการต่อ" });
+      return;
+    }
+    if (!category) {
+      toast({ variant: "destructive", title: "กรุณาเลือกประเภทคดี", description: "คุณต้องระบุประเภทคดี" });
+      return;
+    }
+
     setIsSubmitting(true);
     
     // Simulate data processing
@@ -382,7 +392,6 @@ ${showInstallments ? `โดยแบ่งชำระเป็นดังน�
                       <div className="space-y-2">
                         <Label htmlFor="category" className="font-bold text-slate-700">ประเภทคดี</Label>
                         <Select 
-                          required 
                           value={category} 
                           onValueChange={setCategory}
                         >
@@ -427,7 +436,6 @@ ${showInstallments ? `โดยแบ่งชำระเป็นดังน�
                     <div className="space-y-2">
                       <Label htmlFor="client" className="font-bold text-slate-700">เลือกลูกความจากรายการ</Label>
                       <Select 
-                        required 
                         value={client}
                         onValueChange={(val) => {
                           setClient(val);

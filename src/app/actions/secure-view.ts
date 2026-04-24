@@ -17,6 +17,27 @@ export async function getSecureDownloadUrl(path: string, expiresAt: number = Dat
     // If it's already a full URL (legacy R2 data), return as is
     if (path.startsWith('http')) return path;
 
+    // Handle Base64 from Firestore SlipImages
+    if (path.startsWith('base64_slip_')) {
+        const id = path.replace('base64_slip_', '');
+        const app = await initAdmin();
+        if (!app) return null;
+        const db = app.firestore();
+        try {
+            const docSnap = await db.collection('slipImages').doc(id).get();
+            if (docSnap.exists) {
+                const data = docSnap.data();
+                if (data && data.base64Data) {
+                    return data.base64Data as string;
+                }
+            }
+        } catch (error) {
+            console.error("Error fetching base64 slip:", error);
+            return null;
+        }
+        return null;
+    }
+
     const app = await initAdmin();
     if (!app) {
         throw new Error('Firebase Admin initialization failed');

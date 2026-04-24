@@ -561,10 +561,12 @@ function ChatPageContent() {
                             <CardFooter className="flex-col gap-2 pt-2">
                                 {!isCompleted && (
                                     <>
-                                        <Button className="w-full bg-blue-600 hover:bg-blue-700 text-xs h-10 font-bold rounded-2xl shadow-lg shadow-blue-500/20" asChild disabled={isUploading}>
-                                            <Link href={`/lawyer-dashboard/pipeline/new?chatId=${chatId}&clientId=${clientId || client?.id}`}>
-                                                <Plus className="w-4 h-4 mr-2" /> เสนอราคาเปิดคดี
-                                            </Link>
+                                        <Button 
+                                            className="w-full bg-blue-600 hover:bg-blue-700 text-xs h-10 font-bold rounded-2xl shadow-lg shadow-blue-500/20" 
+                                            disabled={isUploading}
+                                            onClick={() => router.push(`/lawyer-dashboard/pipeline/new?chatId=${chatId}&clientId=${clientId || client?.id}`)}
+                                        >
+                                            <Plus className="w-4 h-4 mr-2" /> เสนอราคาเปิดคดี
                                         </Button>
                                         
                                         <AlertDialog>
