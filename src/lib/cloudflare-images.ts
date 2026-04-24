@@ -13,7 +13,7 @@ export type CloudflareVariant = 'public' | 'avatar' | 'thumbnail' | 'large' | 'b
  * @returns The transformed URL or the original if not a Cloudflare URL
  */
 export function getCloudflareVariantUrl(url: string | undefined | null, variant: CloudflareVariant = 'public'): string {
-    if (!url) return '';
+    if (!url || url === 'undefined' || url === 'null') return '';
     
     // Check if it's a Cloudflare Image URL
     if (url.includes('imagedelivery.net')) {

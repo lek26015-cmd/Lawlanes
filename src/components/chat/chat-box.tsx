@@ -18,6 +18,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Send, Loader2, Sparkles, Languages, AlertTriangle, RefreshCcw, Check, CheckCheck, CreditCard, ImageIcon, FileIcon, Maximize2, ExternalLink, Plus, Paperclip } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { getCloudflareVariantUrl } from '@/lib/cloudflare-images';
 import { useChat } from '@/context/chat-context';
 import { translateToMultipleLanguages } from '@/app/actions/translate';
 import { QuickReplies } from './quick-replies';
@@ -243,7 +244,7 @@ function ChatBoxContent({
         <div className="flex flex-row justify-between items-center gap-2 md:gap-4">
           <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
             <Avatar className="h-8 w-8 md:h-10 md:w-10 border-2 border-primary/10 flex-shrink-0">
-               <AvatarImage src={otherUser.imageUrl} />
+               <AvatarImage src={getCloudflareVariantUrl(otherUser.imageUrl, 'avatar')} />
                <AvatarFallback className="bg-primary/5 text-primary font-bold">{otherUser.name.charAt(0)}</AvatarFallback>
             </Avatar>
             <div className="flex-1 min-w-0">
@@ -305,7 +306,7 @@ function ChatBoxContent({
                       <div className="w-8 flex-shrink-0">
                         {showAvatar && (
                           <Avatar className="h-8 w-8 shadow-sm">
-                            <AvatarImage src={otherUser.imageUrl} />
+                            <AvatarImage src={getCloudflareVariantUrl(otherUser.imageUrl, 'avatar')} />
                             <AvatarFallback>{otherUser.name.charAt(0)}</AvatarFallback>
                           </Avatar>
                         )}

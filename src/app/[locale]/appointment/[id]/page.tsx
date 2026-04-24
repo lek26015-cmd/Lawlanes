@@ -41,6 +41,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
 import { useFirebase } from '@/firebase';
+import { getCloudflareVariantUrl } from '@/lib/cloudflare-images';
 
 export default function AppointmentDetailPage() {
   const params = useParams();
@@ -168,7 +169,7 @@ export default function AppointmentDetailPage() {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <Avatar className="h-14 w-14">
-                    <AvatarImage src={lawyer.imageUrl} alt={lawyer.name} />
+                    <AvatarImage src={getCloudflareVariantUrl(lawyer.imageUrl, 'avatar')} alt={lawyer.name} />
                     <AvatarFallback>{lawyer.name.charAt(0)}</AvatarFallback>
                   </Avatar>
                   <div>

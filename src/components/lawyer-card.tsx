@@ -60,7 +60,7 @@ export default function LawyerCard({ lawyer }: LawyerCardProps) {
 
       <div className="flex-shrink-0 flex flex-col items-center gap-3 w-full md:w-auto relative z-10">
         <div className="relative h-24 w-24 flex-shrink-0">
-          {lawyer.imageUrl ? (
+          {getCloudflareVariantUrl(lawyer.imageUrl, 'public') ? (
             <img
               src={getCloudflareVariantUrl(lawyer.imageUrl, 'public')}
               alt={lawyer.name}

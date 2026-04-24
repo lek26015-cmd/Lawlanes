@@ -79,6 +79,9 @@ export async function getUserDashboardData(userId: string) {
                 ? data.lastMessageAt.toDate()
                 : (data.createdAt?.toDate ? data.createdAt.toDate() : new Date());
 
+            const amount = data.amount || 0;
+            const isOfficial = amount > 0 || (data.installments && data.installments.length > 0);
+
             cases.push({
                 id: d.id,
                 title: data.caseTitle || '',
@@ -88,6 +91,10 @@ export async function getUserDashboardData(userId: string) {
                 lawyer: lawyer,
                 updatedAt: updatedAt,
                 rejectReason: data.rejectReason || '',
+                amount: amount,
+                isOfficial: isOfficial,
+                hasNewMessage: data.hasNewMessage || false,
+                isWaitingVerification: data.status === 'pending_payment' && !!data.paymentSlipUrl
             });
         }
 
@@ -392,6 +399,9 @@ export async function getLawyerDashboardDataAction(lawyerId: string): Promise<{ 
             const lawyerReadAt = chatData.lawyerReadAt?.toDate() || new Date(0);
             const isUnread = lastMessageAt > lawyerReadAt;
 
+            const amount = chatData.amount || 0;
+            const isOfficial = amount > 0 || (chatData.installments && chatData.installments.length > 0);
+
             return {
                 id: d.id,
                 title: chatData.caseTitle || 'Unknown Case',
@@ -402,6 +412,10 @@ export async function getLawyerDashboardDataAction(lawyerId: string): Promise<{ 
                 updatedAt: lastMessageAt,
                 notifications: isUnread ? 1 : 0,
                 lastMessage: chatData.lastMessage || '',
+                amount: amount,
+                isOfficial: isOfficial,
+                isWaitingVerification: chatData.status === 'pending_payment' && !!chatData.paymentSlipUrl,
+                clientImageUrl: userProfiles[clientParticipantId]?.avatar || userProfiles[clientParticipantId]?.imageUrl || ''
             };
         });
 

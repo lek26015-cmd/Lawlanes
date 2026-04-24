@@ -49,6 +49,7 @@ import { signOut } from 'firebase/auth';
 
 import { getLawyerLegalCases } from '@/app/actions/lawyer-case-actions';
 import { Case as LegalCase } from '@/lib/types/billing-types';
+import { ChatListItem } from '@/components/dashboard/chat-list-item';
 
 export default function LawyerDashboardPage() {
   const router = useRouter();
@@ -348,34 +349,23 @@ export default function LawyerDashboardPage() {
                         <span className="flex h-2 w-2 rounded-full bg-green-500" />
                         กำลังดำเนินการ ({activeCases.length})
                       </p>
-                      {activeCases.map((caseItem) => (
-                        <Link href={`/chat/${caseItem.id}?lawyerId=${user.uid}&clientId=${caseItem.clientId}&view=lawyer`} key={caseItem.id}>
-                          <div className="flex items-center justify-between p-4 rounded-3xl hover:bg-gray-200/50 transition-colors">
-                            <div>
-                              <div className="flex items-center gap-2">
-                                <p className="font-semibold">{caseItem.title}</p>
-                                {caseItem.status === 'pending_payment' && (
-                                  <Badge variant="outline" className={cn(
-                                    "text-xs py-0 h-5 px-2 font-bold",
-                                    caseItem.hasNewPayment 
-                                      ? "text-red-600 border-red-600 bg-red-50 animate-pulse" 
-                                      : "text-amber-600 border-amber-600 bg-amber-50"
-                                  )}>
-                                    {caseItem.hasNewPayment ? 'รอตรวจสอบสลิป' : 'รอชำระเงิน'}
-                                  </Badge>
-                                )}
-                              </div>
-                              <p className="text-sm text-muted-foreground mr-2">ลูกความ: {caseItem.clientName} | อัปเดตล่าสุด: {caseItem.lastUpdate}</p>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              {((typeof caseItem.notifications === 'number' && caseItem.notifications > 0) || caseItem.notifications === 'document') && (
-                                <span className="flex h-3 w-3 rounded-full bg-red-600 animate-pulse" />
-                              )}
-                              <Button size="sm" className="rounded-full">เข้าสู่ห้องแชท</Button>
-                            </div>
-                          </div>
-                        </Link>
-                      ))}
+                      <div className="space-y-3 px-1">
+                        {activeCases.map((caseItem) => (
+                          <ChatListItem
+                            key={caseItem.id}
+                            id={caseItem.id}
+                            name={caseItem.clientName}
+                            imageUrl={caseItem.clientImageUrl}
+                            lastMessage={caseItem.lastMessage}
+                            updatedAt={caseItem.updatedAt}
+                            unreadCount={typeof caseItem.notifications === 'number' ? caseItem.notifications : 0}
+                            status={caseItem.isWaitingVerification ? 'pending_verification' : caseItem.status}
+                            type={caseItem.isOfficial ? 'case' : 'preliminary'}
+                            href={`/chat/${caseItem.id}?lawyerId=${user.uid}&clientId=${caseItem.clientId}&view=lawyer`}
+                            isLawyerView={true}
+                          />
+                        ))}
+                      </div>
                     </div>
 
                     <div className="border-t border-gray-100 my-2" />
@@ -383,17 +373,24 @@ export default function LawyerDashboardPage() {
                     {/* Completed Chats */}
                     <div className="space-y-1">
                       <p className="text-xs font-bold text-muted-foreground px-4 py-2 uppercase tracking-wider">เสร็จสิ้นแล้ว ({completedCases.length})</p>
-                      {(showAllCompleted ? completedCases : completedCases.slice(0, 3)).map((caseItem) => (
-                        <Link href={`/chat/${caseItem.id}?lawyerId=${user.uid}&clientId=${caseItem.clientId}&view=lawyer&status=closed`} key={caseItem.id}>
-                          <div className="flex items-center justify-between p-4 rounded-3xl hover:bg-gray-200/50 transition-colors opacity-70">
-                            <div>
-                              <p className="font-semibold">{caseItem.title}</p>
-                              <p className="text-sm text-muted-foreground">ลูกความ: {caseItem.clientName} | วันที่เสร็จสิ้น: {caseItem.lastUpdate}</p>
-                            </div>
-                            <Badge variant="outline" className="rounded-full">ดูประวัติ</Badge>
-                          </div>
-                        </Link>
-                      ))}
+                      <div className="space-y-3 px-1">
+                        {(showAllCompleted ? completedCases : completedCases.slice(0, 3)).map((caseItem) => (
+                          <ChatListItem
+                            key={caseItem.id}
+                            id={caseItem.id}
+                            name={caseItem.clientName}
+                            imageUrl={caseItem.clientImageUrl}
+                            lastMessage={caseItem.lastMessage}
+                            updatedAt={caseItem.updatedAt}
+                            unreadCount={0}
+                            status={caseItem.status}
+                            type={caseItem.isOfficial ? 'case' : 'preliminary'}
+                            href={`/chat/${caseItem.id}?lawyerId=${user.uid}&clientId=${caseItem.clientId}&view=lawyer&status=closed`}
+                            isLawyerView={true}
+                            className="opacity-70 grayscale-[0.5]"
+                          />
+                        ))}
+                      </div>
                       
                       {!showAllCompleted && completedCases.length > 3 && (
                         <Button 

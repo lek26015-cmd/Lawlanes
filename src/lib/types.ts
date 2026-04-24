@@ -145,6 +145,9 @@ export interface Case {
   color?: 'blue' | 'yellow';
   rejectReason?: string;
   updatedAt: Date;
+  amount?: number;
+  isOfficial?: boolean;
+  isWaitingVerification?: boolean;
 }
 
 export interface UpcomingAppointment {
@@ -196,6 +199,10 @@ export interface LawyerCase {
   notifications?: number | 'document';
   lastMessage?: string;
   hasNewPayment?: boolean;
+  amount?: number;
+  isOfficial?: boolean;
+  isWaitingVerification?: boolean;
+  clientImageUrl?: string;
 }
 
 export interface Ad {

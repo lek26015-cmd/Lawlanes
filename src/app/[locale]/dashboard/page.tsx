@@ -17,6 +17,7 @@ import { getProblemTypeKey } from '@/lib/problem-types';
 import { useTranslations, useLocale } from 'next-intl';
 import { getUserDashboardData } from '@/app/actions/dashboard-actions';
 import { cn } from '@/lib/utils';
+import { ChatListItem } from '@/components/dashboard/chat-list-item';
 
 export default function DashboardPage() {
     const router = useRouter();
@@ -129,46 +130,24 @@ export default function DashboardPage() {
                             </CardHeader>
                             <CardContent>
                                 {activeCases.length > 0 ? (
-                                    <div className="space-y-3">
-                                        {activeCases
-                                            .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-                                            .map((caseItem) => (
-                                                <Link href={caseItem.status === 'rejected' ? '#' : `/${locale}/chat/${caseItem.id}?lawyerId=${caseItem.lawyer.id}`} key={caseItem.id} className={caseItem.status === 'rejected' ? 'cursor-default' : ''}>
-                                                    <div className={`flex items-center justify-between p-4 rounded-3xl bg-card ${caseItem.status === 'rejected' ? caseColors['red'] : caseColors['blue']}`}>
-                                                        <div>
-                                                            <p className="font-semibold flex items-center gap-2 flex-wrap">
-                                                                {caseItem.title || t('defaultCaseTitle')}
-                                                                <span className="font-mono text-xs text-muted-foreground">({caseItem.id})</span>
-                                                                {caseItem.status === 'pending_payment' && (
-                                                                    <Badge variant="outline" className="text-yellow-600 border-yellow-600 bg-yellow-50">
-                                                                        รอตรวจสอบสลิป
-                                                                    </Badge>
-                                                                )}
-                                                                {caseItem.status === 'rejected' && (
-                                                                    <Badge variant="destructive">
-                                                                        คำขอถูกปฏิเสธ
-                                                                    </Badge>
-                                                                )}
-                                                            </p>
-                                                            {caseItem.status === 'rejected' && caseItem.rejectReason && (
-                                                                <p className="text-sm text-red-600 mt-1">
-                                                                    เหตุผล: {caseItem.rejectReason}
-                                                                </p>
-                                                            )}
-                                                            <p className="text-sm text-muted-foreground">{caseItem.lastMessage}</p>
-                                                        </div>
-                                                        <div className="flex items-center gap-3">
-                                                            {caseItem.hasNewMessage && (
-                                                                <span className="flex h-3 w-3 rounded-full bg-red-600 animate-pulse" />
-                                                            )}
-                                                            {caseItem.status !== 'rejected' && (
-                                                                <Button size="sm" className="bg-foreground hover:bg-foreground/90 text-background rounded-full">{t('viewDetails')}</Button>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </Link>
-                                            ))}
-                                    </div>
+                                <div className="space-y-4">
+                                    {activeCases
+                                        .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
+                                        .map((caseItem) => (
+                                            <ChatListItem
+                                                key={caseItem.id}
+                                                id={caseItem.id}
+                                                name={caseItem.lawyer.name}
+                                                imageUrl={caseItem.lawyer.imageUrl}
+                                                lastMessage={caseItem.lastMessage}
+                                                updatedAt={caseItem.updatedAt}
+                                                unreadCount={caseItem.hasNewMessage ? 1 : 0}
+                                                status={caseItem.isWaitingVerification ? 'pending_verification' : caseItem.status}
+                                                type={caseItem.isOfficial ? 'case' : 'preliminary'}
+                                                href={`/${locale}/chat/${caseItem.id}?lawyerId=${caseItem.lawyer.id}`}
+                                            />
+                                        ))}
+                                </div>
                                 ) : (
                                     <div className="text-center py-8 text-muted-foreground">
                                         <Briefcase className="mx-auto h-10 w-10 mb-2" />
@@ -188,17 +167,21 @@ export default function DashboardPage() {
                                     </CardTitle>
                                 </CardHeader>
                                 <CardContent>
-                                    <div className="space-y-3">
+                                    <div className="space-y-4">
                                         {closedCases.map((caseItem) => (
-                                            <Link href={`/${locale}/chat/${caseItem.id}?lawyerId=${caseItem.lawyer.id}&status=closed`} key={caseItem.id}>
-                                                <div className={`flex items-center justify-between p-4 rounded-3xl bg-gray-50 ${caseColors.gray}`}>
-                                                    <div>
-                                                        <p className="font-semibold">{caseItem.title || t('defaultCaseTitle')} <span className="font-mono text-xs text-muted-foreground">({caseItem.id})</span></p>
-                                                        <p className="text-sm text-muted-foreground">{caseItem.lastMessage}</p>
-                                                    </div>
-                                                    <Badge variant="outline">{t('viewHistory')}</Badge>
-                                                </div>
-                                            </Link>
+                                            <ChatListItem
+                                                key={caseItem.id}
+                                                id={caseItem.id}
+                                                name={caseItem.lawyer.name}
+                                                imageUrl={caseItem.lawyer.imageUrl}
+                                                lastMessage={caseItem.lastMessage}
+                                                updatedAt={caseItem.updatedAt}
+                                                unreadCount={0}
+                                                status={caseItem.status}
+                                                type={caseItem.isOfficial ? 'case' : 'preliminary'}
+                                                href={`/${locale}/chat/${caseItem.id}?lawyerId=${caseItem.lawyer.id}&status=closed`}
+                                                className="opacity-70 grayscale-[0.5]"
+                                            />
                                         ))}
                                     </div>
                                 </CardContent>

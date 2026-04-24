@@ -500,7 +500,7 @@ function ChatPageContent() {
     const otherUser = {
         name: effectiveIsLawyerView ? (client?.name || 'ลูกความ') : (lawyer?.name || 'ทนายความ'),
         userId: effectiveIsLawyerView ? (client?.id || '') : (lawyer?.userId || lawyer?.id || ''),
-        imageUrl: effectiveIsLawyerView ? (client?.imageUrl || "") : (lawyer?.imageUrl || ""),
+        imageUrl: getCloudflareVariantUrl(effectiveIsLawyerView ? (client?.imageUrl || "") : (lawyer?.imageUrl || ""), 'avatar'),
     };
     
     // Fallback lawyer ID for payment routes when missing from URL param
@@ -540,7 +540,7 @@ function ChatPageContent() {
                             <CardContent className="space-y-4 text-sm">
                                 <div className="flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700">
                                     <Avatar className="h-10 w-10">
-                                        <AvatarImage src={otherUser.imageUrl || undefined} />
+                                        <AvatarImage src={getCloudflareVariantUrl(otherUser.imageUrl, 'avatar')} />
                                         <AvatarFallback>{otherUser.name.charAt(0)}</AvatarFallback>
                                     </Avatar>
                                     <div>
@@ -730,7 +730,7 @@ function ChatPageContent() {
                             <CardContent className="space-y-4">
                                 <div className="flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700">
                                     <Avatar className="h-10 w-10">
-                                        <AvatarImage src={lawyer?.imageUrl || undefined} />
+                                        <AvatarImage src={getCloudflareVariantUrl(lawyer?.imageUrl, 'avatar')} />
                                         <AvatarFallback>{lawyer?.name?.charAt(0) || 'L'}</AvatarFallback>
                                     </Avatar>
                                     <div>

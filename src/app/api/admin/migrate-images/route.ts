@@ -64,7 +64,7 @@ export async function GET() {
                 const data = doc.data();
                 const imageUrl = data[col.field];
 
-                if (imageUrl && !imageUrl.includes('imagedelivery.net') && (imageUrl.includes('r2.dev') || imageUrl.includes('firebasestorage'))) {
+                if (imageUrl && !imageUrl.includes('imagedelivery.net') && (imageUrl.includes('r2.dev') || imageUrl.includes('firebasestorage') || imageUrl.includes('storage.googleapis.com'))) {
                     try {
                         // Create a temporary FormData for the server action
                         const formData = new FormData();
