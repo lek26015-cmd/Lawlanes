@@ -138,7 +138,24 @@ function ChatPageContent() {
 
     const [rating, setRating] = useState(0);
     const [reviewText, setReviewText] = useState("");
-    const [showContractModal, setShowContractModal] = useState(false);
+    const [showLawyerContract, setShowLawyerContract] = useState(false);
+    const [selectedContract, setSelectedContract] = useState<any>(null);
+
+    // Hide navbar on mobile for this page only
+    useEffect(() => {
+        const isMobile = window.innerWidth < 768;
+        if (isMobile) {
+            const header = document.querySelector('header');
+            if (header) {
+                const originalDisplay = header.style.display;
+                header.style.display = 'none';
+                return () => {
+                    header.style.display = originalDisplay;
+                };
+            }
+        }
+    }, []);
+
     const [contractText, setContractText] = useState<string | null>(null);
 
     const { firestore, storage } = useFirebase();

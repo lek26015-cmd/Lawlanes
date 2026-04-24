@@ -246,11 +246,6 @@ function ChatBoxContent({
 
   return (
     <Card className="flex flex-col h-full w-full max-w-full min-w-0 shadow-none md:shadow-xl border-none md:border md:border-slate-200/50 dark:md:border-slate-800 rounded-none md:rounded-3xl overflow-hidden bg-white dark:bg-slate-900">
-      <style dangerouslySetInnerHTML={{ __html: `
-        @media (max-width: 768px) {
-          header { display: none !important; }
-        }
-      ` }} />
       <CardHeader className="border-b bg-white dark:bg-slate-900 py-4 md:py-6 px-4 md:px-8 min-w-0 w-full overflow-hidden shadow-sm">
         <div className="flex flex-row justify-between items-center gap-1 md:gap-4 min-w-0 w-full">
           <div className="flex items-center gap-2 md:gap-4 flex-1 min-w-0">
