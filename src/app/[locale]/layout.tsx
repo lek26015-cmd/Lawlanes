@@ -1,3 +1,4 @@
+// Deployment Trigger: Build after billing resolved
 import type { Metadata } from 'next';
 import { locales } from '@/navigation';
 import '../globals.css';
