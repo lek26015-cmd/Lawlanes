@@ -249,8 +249,8 @@ function ChatBoxContent({
             </Avatar>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5 md:gap-2">
-                <CardTitle className="text-base md:text-lg font-bold truncate">
-                  {chatMetadata?.caseTitle || chatMetadata?.title || 'กำลังโหลด...'}
+                <CardTitle className="text-sm md:text-base font-medium text-muted-foreground/80 truncate">
+                  {(chatMetadata?.caseTitle || chatMetadata?.title || 'กำลังโหลด...').replace(/^Ticket\s*สนทนา:\s*/, '')}
                 </CardTitle>
                 {isConnected ? (
                   <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-green-500 animate-pulse flex-shrink-0" title="Connected" />
@@ -258,8 +258,11 @@ function ChatBoxContent({
                   <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-gray-300 flex-shrink-0" title="Offline" />
                 )}
               </div>
-              <p className="text-[10px] md:text-xs text-muted-foreground flex items-center gap-1 truncate">
-                {isLawyerView ? `ลูกความ: ${otherUser.name}` : `ทนายความ: ${otherUser.name}`}
+              <h2 className="text-base md:text-xl font-black text-slate-900 truncate leading-none mt-0.5">
+                {otherUser.name}
+              </h2>
+              <p className="text-[10px] md:text-xs font-bold text-blue-600 uppercase tracking-wider mt-1 opacity-80">
+                {isLawyerView ? "ลูกความ" : "ทนายความ"}
               </p>
             </div>
           </div>
