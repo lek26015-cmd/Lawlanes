@@ -184,11 +184,15 @@ function ChatBoxContent({
     }
   };
   
-  const handleFileClick = async (text: string) => {
-    const fileName = text.replace('[อัปโหลดไฟล์] ', '').trim();
+  const handleFileClick = async (message: HumanChatMessage) => {
+    const text = message.text;
+    const fileName = message.metadata?.fileName || text.replace('[อัปโหลดไฟล์]', '').trim();
     const file = chatMetadata?.files?.find((f: any) => f.name === fileName);
     
-    if (!file) return;
+    if (!file) {
+      console.warn("File metadata not found in chat document:", fileName);
+      return;
+    }
     
     try {
       const url = await getSecureDownloadUrl(file.url);
@@ -310,7 +314,7 @@ function ChatBoxContent({
                     <div className="flex flex-col gap-1">
                       {(() => {
                         const isPaymentProposal = msg.text.includes('ใบเสนอราคาใหม่:') || msg.text.includes('แจ้งชำระค่าบริการ:');
-                        const isFileUpload = msg.text.startsWith('[อัปโหลดไฟล์]');
+                        const isFileUpload = msg.text.includes('[อัปโหลดไฟล์]') || msg.metadata?.type === 'file_upload';
                         
                         let paymentAmount = '0';
                         if (isPaymentProposal) {
@@ -329,7 +333,7 @@ function ChatBoxContent({
                             !isPaymentProposal && msg.status === 'sending' && "opacity-70 animate-pulse",
                             msg.status === 'error' && "border-red-500 bg-red-50 text-red-800"
                           )}
-                          onClick={isFileUpload ? () => handleFileClick(msg.text) : undefined}
+                          onClick={isFileUpload ? () => handleFileClick(msg) : undefined}
                           >
                             {isPaymentProposal ? (
                                <div className="flex flex-col">
@@ -359,7 +363,9 @@ function ChatBoxContent({
                                   </div>
                                   <div className="flex-1 min-w-0">
                                     <p className="text-[10px] text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wider mb-0.5">เอกสารใหม่</p>
-                                    <p className="text-xs font-bold text-slate-900 dark:text-white truncate pr-4">{msg.text.replace('[อัปโหลดไฟล์] ', '')}</p>
+                                    <p className="text-xs font-bold text-slate-900 dark:text-white truncate pr-4">
+                                      {msg.metadata?.fileName || msg.text.replace('[อัปโหลดไฟล์]', '').trim()}
+                                    </p>
                                     <div className="flex items-center gap-2 mt-1">
                                       <span className="text-[10px] text-blue-500 flex items-center gap-1">
                                         <Maximize2 className="w-3 h-3" /> คลิกเพื่อดูตัวอย่าง

@@ -148,7 +148,8 @@ export function useChatSocket(chatId: string, userId: string, userName: string) 
           text: text,
           senderId: data.senderId,
           timestamp: data.timestamp?.toMillis() || Date.now(),
-          type: 'message'
+          type: 'message',
+          metadata: data.metadata || null
         } as HumanChatMessage;
       }));
 
@@ -214,7 +215,7 @@ export function useChatSocket(chatId: string, userId: string, userName: string) 
             if (prev.some(m => m.id === data.id)) return prev;
             // Play sound for real-time messages too if tab is hidden
             if (data.senderId !== userId) playNotificationSound();
-            return [...prev, { ...data, text }];
+            return [...prev, { ...data, text, metadata: data.metadata || null }];
           });
         }
       } catch (err) {

@@ -311,14 +311,16 @@ function ChatPageContent() {
 
             // 10. NOTIFY counterpart about the new document
             try {
+                const authToken = await user.getIdToken();
                 const { sendChatMessageAction } = await import('@/app/actions/chat-actions');
-                await sendChatMessageAction({
+                const notifyResult = await sendChatMessageAction({
                     chatId,
                     text: `[อัปโหลดไฟล์] ${file.name}`,
                     senderId: user.uid,
-                    senderName: user.displayName || 'ลูกความ',
+                    senderName: effectiveIsLawyerView ? (user.displayName || 'ทนายความ') : (user.displayName || 'ลูกความ'),
                     recipientId: otherUser.userId,
                     isLawyerView: effectiveIsLawyerView,
+                    authToken,
                     metadata: {
                         type: 'file_upload',
                         fileName: file.name,
@@ -326,8 +328,12 @@ function ChatPageContent() {
                         isImage: /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name)
                     }
                 });
+
+                if (notifyResult && !notifyResult.success) {
+                    console.error("Upload notification failed:", notifyResult.error);
+                }
             } catch (notifyErr) {
-                console.warn("Upload notification failed:", notifyErr);
+                console.warn("Upload notification failed (exception):", notifyErr);
             }
 
             toast({ title: "อัปโหลดไฟล์สำเร็จ", description: `ไฟล์ "${file.name}" ถูกเพิ่มแล้ว` });
