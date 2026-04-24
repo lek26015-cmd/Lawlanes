@@ -23,6 +23,7 @@ export default function ClientLayout({
   const { firestore } = useFirebase();
   const { user } = useAuthUser();
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [isMounted, setIsMounted] = useState(false);
   // Synchronously detect the domain type from the pathname
   const getDetectedType = (path: string, hostName?: string) => {
     if (hostName?.includes('admin.') || path.includes('/admin')) return 'admin';
