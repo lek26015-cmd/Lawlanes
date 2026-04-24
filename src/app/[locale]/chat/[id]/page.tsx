@@ -53,7 +53,7 @@ import {
     DrawerTrigger,
 } from "@/components/ui/drawer";
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, FileText, Check, Upload, Scale, Ticket, Briefcase, User as UserIcon, DollarSign, ArrowLeft, Plus, Sparkles, BrainCircuit, Globe, ArrowRight, CheckCircle2, Loader2, Image as ImageIcon, Trash2 } from 'lucide-react';
+import { AlertTriangle, FileText, Check, Upload, Scale, Ticket, Briefcase, User as UserIcon, DollarSign, ArrowLeft, Plus, Sparkles, BrainCircuit, Globe, ArrowRight, CheckCircle2, Loader2, Image as ImageIcon, Trash2, ShieldAlert } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -88,6 +88,8 @@ function ChatPageContent() {
     const [pendingFeeRequest, setPendingFeeRequest] = useState<{ amount: number, reason: string } | null>(null);
     const [milestones, setMilestones] = useState<Milestone[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [isAdminView, setIsAdminView] = useState(false);
+    const [accessError, setAccessError] = useState<string | null>(null);
     const { toast } = useToast();
 
     const tCase = useTranslations('CaseRoom');
@@ -169,6 +171,7 @@ function ChatPageContent() {
                 
                 if (response && response.success && response.data) {
                     chatData = response.data;
+                    setIsAdminView(response.isRequesterAdmin || false);
                     // Try to find missing IDs in chat document if URL params are missing/broken
                     if (!currentLawyerId) currentLawyerId = chatData.lawyerId;
                     if (!currentClientId) currentClientId = chatData.clientId || chatData.userId;
@@ -194,6 +197,9 @@ function ChatPageContent() {
                     }
                 } else if (response && !response.success) {
                     console.error("Chat details fetch failed:", response.error);
+                    if (response.error === 'Unauthorized access.') {
+                        setAccessError('คุณไม่มีสิทธิ์เข้าถึงห้องแชทนี้');
+                    }
                 }
 
                 // 2. Fetch Profiles
@@ -248,7 +254,7 @@ function ChatPageContent() {
                                    (currentLawyerId === user?.uid) || 
                                    (chatData?.lawyerId === user?.uid);
                 
-                const currentIsLawyerView = isUserLawyer || (view === 'lawyer');
+                const currentIsLawyerView = isUserLawyer || (response?.isRequesterAdmin && view === 'lawyer');
                 setEffectiveIsLawyerView(currentIsLawyerView);
             } catch (err) {
                 console.error("Error in ChatPage fetchData:", err);
@@ -428,6 +434,19 @@ function ChatPageContent() {
 
 
     if (isLoading) return <div className="flex h-screen items-center justify-center">Loading chat...</div>;
+
+    if (accessError) {
+        return (
+            <div className="flex flex-col h-screen items-center justify-center p-4 text-center">
+                <AlertTriangle className="w-12 h-12 text-amber-500 mb-4" />
+                <h2 className="text-xl font-bold mb-2">{accessError}</h2>
+                <p className="text-slate-500 mb-6">ขออภัย คุณไม่ได้รับอนุญาตให้เข้าถึงข้อมูลในส่วนนี้</p>
+                <Button asChild rounded-xl>
+                    <Link href="/dashboard">กลับสู่หน้าหลัก</Link>
+                </Button>
+            </div>
+        );
+    }
 
     const chatPartner = effectiveIsLawyerView ? client : lawyer;
     if (!chatPartner || !user || !firestore) {
@@ -954,6 +973,12 @@ function ChatPageContent() {
 
     return (
         <div className="relative h-[calc(100dvh-64px)] bg-slate-50 dark:bg-slate-950 z-[40] lg:z-0 overflow-hidden flex flex-col lg:flex-row w-full max-w-full overflow-x-hidden">
+            {isAdminView && !isUserLawyer && (user?.uid !== client?.id) && (
+                <div className="absolute top-0 left-0 right-0 z-[60] bg-amber-600 text-white text-[10px] md:text-xs font-bold py-1.5 px-4 flex items-center justify-center gap-2 shadow-md animate-in fade-in slide-in-from-top duration-500">
+                    <ShieldAlert className="w-3 h-3 md:w-4 md:h-4" />
+                    คุณกำลังเข้าชมห้องแชทนี้ในฐานะผู้ดูแลระบบ (Admin View Mode)
+                </div>
+            )}
             {/* Main Area: Header + Operations (Flexible on mobile, scrollable) */}
             <div className="flex-none lg:flex-1 flex flex-col min-w-0 lg:h-full overflow-y-auto custom-scrollbar bg-slate-50/50">
                 <div className="w-full max-w-4xl mx-auto px-4 lg:px-8 py-3 lg:py-8">

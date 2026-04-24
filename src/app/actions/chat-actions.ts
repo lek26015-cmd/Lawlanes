@@ -4,17 +4,35 @@ import { initAdmin } from '@/lib/firebase-admin';
 import * as admin from 'firebase-admin';
 import { checkRateLimit } from '@/lib/security/rate-limiter';
 
+import { cookies } from 'next/headers';
+
 export async function getChatDetailsAction(chatId: string) {
     try {
         const adminApp = await initAdmin();
         if (!adminApp) return { success: false, error: 'Firebase Admin not initialized.' };
         const db = adminApp.firestore();
 
+        // AUTH CHECK: Verify requester is a participant OR an admin
+        const cookieStore = await cookies();
+        const sessionCookie = cookieStore.get('session')?.value;
+        if (!sessionCookie) return { success: false, error: 'Unauthorized: No session found.' };
+
+        const decodedToken = await adminApp.auth().verifySessionCookie(sessionCookie);
+        const requesterId = decodedToken.uid;
+        const isRequesterAdmin = decodedToken.admin === true;
+
         const chatSnap = await db.collection('chats').doc(chatId).get();
         if (!chatSnap.exists) return { success: false, error: 'Chat not found.' };
         
-        const data = chatSnap.id ? chatSnap.data() : null;
+        const data = chatSnap.data();
         if (!data) return { success: false, error: 'Chat data empty.' };
+        
+        const participants = data.participants || [];
+
+        if (!participants.includes(requesterId) && !isRequesterAdmin) {
+            console.warn(`[Security] Unauthorized access attempt to chat ${chatId} by user ${requesterId}`);
+            return { success: false, error: 'Unauthorized access.' };
+        }
 
         // REPAIR: Ensure lawyerId and clientId are in participants for real-time access
         const participants: string[] = data.participants || [];
@@ -75,6 +93,7 @@ export async function getChatDetailsAction(chatId: string) {
 
         return {
             success: true,
+            isRequesterAdmin,
             data: JSON.parse(JSON.stringify({
                 id: chatSnap.id,
                 ...data,
