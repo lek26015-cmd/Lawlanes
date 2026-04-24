@@ -108,7 +108,6 @@ export default function DashboardPage() {
 
     const quickServices = [
         { icon: <Search />, text: t('findLawyer'), href: `/${locale}/lawyers` },
-        { icon: <MessageSquare />, text: t('bookConsultation'), href: `/${locale}/lawyers` },
         { icon: <User />, text: t('managePersonalInfo'), href: `/${locale}/account` },
     ];
 
@@ -119,51 +118,6 @@ export default function DashboardPage() {
 
                     {/* Main Content */}
                     <div className="lg:col-span-2 space-y-6">
-                        {/* Upcoming Appointments */}
-                        <Card className="rounded-3xl shadow-sm border-none">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2 font-bold">
-                                    <Calendar className="w-5 h-5" />
-                                    {t('upcomingAppointments')}
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                {visibleAppointments.length > 0 ? (
-                                    <div className="space-y-4">
-                                        {visibleAppointments.map((appt) => (
-                                            <div key={appt.id} className="flex items-center justify-between p-4 rounded-3xl bg-green-50 border border-green-200">
-                                                <div>
-                                                    <p className="font-semibold text-green-900 flex items-center gap-2">
-                                                        {appt.description || t('defaultAppointmentDescription')}
-                                                        {appt.status === 'pending' && (
-                                                            <Badge variant="outline" className="text-yellow-700 border-yellow-600 bg-yellow-50">
-                                                                รอทนายตอบรับ
-                                                            </Badge>
-                                                        )}
-                                                        {appt.status === 'pending_payment' && (
-                                                            <Badge variant="outline" className="text-red-700 border-red-600 bg-red-50">
-                                                                รอชำระเงิน
-                                                            </Badge>
-                                                        )}
-                                                    </p>
-                                                    <p className="text-sm text-green-700">
-                                                        {t('appointmentWith')}: {appt.lawyer.name} | {t('date')}: {format(appt.date, 'dd MMM yyyy', { locale: dateLocale })} | {t('time')}: {appt.time}
-                                                    </p>
-                                                </div>
-                                                <Button asChild size="sm" className="bg-foreground hover:bg-foreground/90 text-background rounded-full">
-                                                    <Link href={`/${locale}/appointment/${appt.id}`}>{t('viewDetails')}</Link>
-                                                </Button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="text-center py-8 text-muted-foreground">
-                                        <Calendar className="mx-auto h-10 w-10 mb-2" />
-                                        <p>{t('noAppointments')}</p>
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
 
                         {/* Ongoing Cases */}
                         <Card className="rounded-3xl shadow-sm border-none">

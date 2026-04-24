@@ -284,11 +284,6 @@ export default function LawyerProfileClient({ initialLawyer, id }: LawyerProfile
                                         </div>
                                     ) : (
                                         <>
-                                            <Button asChild className="w-full bg-foreground text-background hover:bg-foreground/90">
-                                                <Link href={`/lawyers/${lawyer.id}/schedule`}>
-                                                    <Phone className="mr-2 h-4 w-4" /> {t('bookConsultation')}
-                                                </Link>
-                                            </Button>
                                             <Button onClick={handleStartChat} variant="outline" className="w-full">
                                                 <Mail className="mr-2 h-4 w-4" /> {t('sendMessage')}
                                             </Button>
