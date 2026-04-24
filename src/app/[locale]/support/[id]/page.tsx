@@ -21,7 +21,7 @@ import { th, enUS, zhCN } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { useTranslations, useLocale } from 'next-intl';
 import { useFirebase } from '@/firebase';
-import { doc, onSnapshot } from 'firebase/firestore';
+import { doc, onSnapshot, updateDoc, arrayUnion, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '@/lib/constants';
 
 function SupportPageContent() {
@@ -34,7 +34,8 @@ function SupportPageContent() {
 
     const [ticket, setTicket] = useState<ReportedTicket | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [files, setFiles] = useState<{ name: string, size: number }[]>([]);
+    const [files, setFiles] = useState<{ name: string, url: string, size: number }[]>([]);
+    const [isUploading, setIsUploading] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const { toast } = useToast();
 
@@ -64,8 +65,10 @@ function SupportPageContent() {
                     status: data.status || 'pending',
                     reportedAt: data.reportedAt ? data.reportedAt.toDate() : new Date(),
                     clientName: data.clientName || '',
-                    email: data.email || ''
+                    email: data.email || '',
+                    files: data.files || []
                 } as ReportedTicket);
+                setFiles(data.files || []);
             } else {
                 setTicket(null);
             }
@@ -82,9 +85,8 @@ function SupportPageContent() {
         fileInputRef.current?.click();
     };
 
-    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (!file) return;
+    const handleSupportUpload = async (file: File) => {
+        if (!file || !user || !firestore) return;
 
         if (file.size > MAX_FILE_SIZE_BYTES) {
             toast({
@@ -95,15 +97,52 @@ function SupportPageContent() {
             return;
         }
 
-        setFiles(prevFiles => [...prevFiles, { name: file.name, size: file.size }]);
-        toast({
-            title: t('uploadSuccess'),
-            description: t('uploadSuccessDesc', { name: file.name }),
-        });
+        try {
+            setIsUploading(true);
+            const formData = new FormData();
+            formData.append('file', file);
 
-        if (event.target) {
-            event.target.value = '';
+            const { uploadToFirebaseSecure } = await import('@/app/actions/upload-secure');
+            const filePath = await uploadToFirebaseSecure(formData, `support/${ticketId}`);
+
+            const fileData = {
+                name: file.name,
+                url: filePath,
+                size: file.size,
+                uploadedBy: user.uid,
+                uploadedAt: Date.now()
+            };
+
+            await updateDoc(doc(firestore, 'tickets', ticketId), {
+                files: arrayUnion(fileData)
+            });
+
+            // Add a message with file tag
+            const messagesRef = collection(firestore, 'tickets', ticketId, 'messages');
+            await addDoc(messagesRef, {
+                text: `[อัปโหลดไฟล์] ${file.name}`,
+                senderId: user.uid,
+                senderName: user.displayName || 'ลูกความ',
+                role: 'user',
+                createdAt: serverTimestamp(),
+                fileUrl: filePath
+            });
+
+            toast({
+                title: t('uploadSuccess'),
+                description: t('uploadSuccessDesc', { name: file.name }),
+            });
+        } catch (error: any) {
+            toast({ variant: "destructive", title: "Upload failed", description: error.message });
+        } finally {
+            setIsUploading(false);
         }
+    };
+
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) await handleSupportUpload(file);
+        if (event.target) event.target.value = '';
     };
 
     const statusBadges: { [key: string]: React.ReactNode } = {
@@ -125,7 +164,12 @@ function SupportPageContent() {
         <div className="container mx-auto px-4 md:px-6 py-8">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <div className="lg:col-span-2">
-                    <SupportChatBox ticket={ticket} isDisabled={isResolved} />
+                    <SupportChatBox 
+                        ticket={ticket} 
+                        isDisabled={isResolved} 
+                        onFileUpload={handleSupportUpload}
+                        isUploading={isUploading}
+                    />
                 </div>
                 <div className="lg:col-span-1 space-y-6">
                     <Card>

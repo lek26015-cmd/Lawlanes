@@ -15,7 +15,7 @@ import type { HumanChatMessage } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, Loader2, Sparkles, Languages, AlertTriangle, RefreshCcw, Check, CheckCheck, CreditCard, ImageIcon, FileIcon, Maximize2, ExternalLink } from 'lucide-react';
+import { Send, Loader2, Sparkles, Languages, AlertTriangle, RefreshCcw, Check, CheckCheck, CreditCard, ImageIcon, FileIcon, Maximize2, ExternalLink, Plus, Paperclip } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useChat } from '@/context/chat-context';
@@ -41,6 +41,7 @@ interface ChatBoxProps {
   isDisabled?: boolean;
   isLawyerView?: boolean;
   isUploading?: boolean;
+  onFileUpload?: (file: File) => void;
 }
 
 interface MessageWithStatus extends HumanChatMessage {
@@ -57,7 +58,9 @@ function ChatBoxContent({
   isDisabled = false,
   isLawyerView = false,
   isUploading = false,
+  onFileUpload,
 }: ChatBoxProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const { 
     messages: socketMessages, 
     isConnected, 
@@ -438,13 +441,39 @@ function ChatBoxContent({
           onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }} 
           className="flex items-center w-full gap-2"
         >
-          <div className="relative flex-grow">
+          <div className="relative flex-grow flex items-center gap-2">
+            {!isDisabled && onFileUpload && (
+              <>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      onFileUpload(file);
+                    }
+                    e.target.value = '';
+                  }}
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="rounded-xl hover:bg-slate-100 text-slate-500 h-11 w-11 flex-shrink-0"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={isUploading || isSocketLoading}
+                >
+                  <Paperclip className="w-5 h-5" />
+                </Button>
+              </>
+            )}
             <Input
               value={input}
               onChange={handleInputChange}
               placeholder={isDisabled ? "การสนทนานี้สิ้นสุดแล้ว" : "พิมพ์ข้อความที่นี่..."}
               disabled={isSocketLoading || isDisabled}
-              className="pr-12 rounded-xl bg-gray-50 border-none h-11 focus-visible:ring-primary shadow-inner"
+              className="rounded-xl bg-gray-50 border-none h-11 focus-visible:ring-primary shadow-inner"
             />
           </div>
           <Button

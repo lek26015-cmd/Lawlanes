@@ -276,8 +276,7 @@ function ChatPageContent() {
 
     const handleUploadClick = () => fileInputRef.current?.click();
 
-    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
+    const executeFileUpload = async (file: File) => {
         if (!file || !user || !storage || !firestore) return;
 
         if (file.size > MAX_FILE_SIZE_BYTES) {
@@ -320,6 +319,12 @@ function ChatPageContent() {
                     senderName: user.displayName || 'ลูกความ',
                     recipientId: otherUser.userId,
                     isLawyerView: effectiveIsLawyerView,
+                    metadata: {
+                        type: 'file_upload',
+                        fileName: file.name,
+                        fileUrl: result.fullPath,
+                        isImage: /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name)
+                    }
                 });
             } catch (notifyErr) {
                 console.warn("Upload notification failed:", notifyErr);
@@ -331,6 +336,11 @@ function ChatPageContent() {
         } finally {
             setIsUploading(false);
         }
+    };
+
+    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) await executeFileUpload(file);
         if (event.target) event.target.value = '';
     };
 
@@ -1070,6 +1080,7 @@ function ChatPageContent() {
                         isLawyerView={effectiveIsLawyerView}
                         firestore={firestore}
                         isUploading={isUploading}
+                        onFileUpload={executeFileUpload}
                     />
                 </div>
             </div>

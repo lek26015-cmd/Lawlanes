@@ -165,14 +165,15 @@ export async function sendChatMessageAction(params: {
     recipientId: string,
     isLawyerView: boolean,
     authToken?: string,
-    skipMessageSave?: boolean
+    skipMessageSave?: boolean,
+    metadata?: any
 }) {
     try {
         const adminApp = await initAdmin();
         if (!adminApp) return { success: false, error: 'Firebase Admin not initialized.' };
         const db = adminApp.firestore();
 
-        const { chatId, text, senderId, senderName, recipientId, isLawyerView, authToken, skipMessageSave } = params;
+        const { chatId, text, senderId, senderName, recipientId, isLawyerView, authToken, skipMessageSave, metadata } = params;
 
         // 0. Auth Verification — verify the caller is who they claim to be
         if (authToken) {
@@ -211,7 +212,8 @@ export async function sendChatMessageAction(params: {
             batch.set(messageRef, {
                 text,
                 senderId,
-                timestamp: admin.firestore.FieldValue.serverTimestamp()
+                timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                metadata: metadata || null
             });
         }
 
@@ -253,14 +255,15 @@ export async function sendChatMessageAction(params: {
 
         const notificationRef = db.collection('notifications').doc();
         batch.set(notificationRef, {
-            type: 'chat_message',
-            title: `ข้อความใหม่จาก ${senderName}`,
+            type: metadata?.type === 'file_upload' ? 'file_upload' : 'chat_message',
+            title: metadata?.type === 'file_upload' ? `เอกสารใหม่จาก ${senderName}` : `ข้อความใหม่จาก ${senderName}`,
             message: text.length > 50 ? text.substring(0, 50) + '...' : text,
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
             read: false,
             recipient: recipientId,
             link: notificationLink,
-            relatedId: chatId
+            relatedId: chatId,
+            metadata: metadata || null
         });
 
         await batch.commit();
