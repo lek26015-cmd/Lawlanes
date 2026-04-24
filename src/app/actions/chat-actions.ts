@@ -35,7 +35,6 @@ export async function getChatDetailsAction(chatId: string) {
         }
 
         // REPAIR: Ensure lawyerId and clientId are in participants for real-time access
-        const participants: string[] = data.participants || [];
         const lawyerId = data.lawyerId;
         const clientIdFromData = data.clientId || data.userId;
         
