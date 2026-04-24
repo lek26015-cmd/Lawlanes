@@ -450,7 +450,7 @@ export default function DashboardPage() {
                                 <Link href={`/${locale}/help`} className="flex items-center text-sm text-muted-foreground hover:text-foreground">
                                     <HelpCircle className="mr-2" /> {t('helpCenter')}
                                 </Link>
-                                <Link href="#" className="flex items-center text-sm text-muted-foreground hover:text-foreground">
+                                <Link href={`/${locale}/help`} className="flex items-center text-sm text-muted-foreground hover:text-foreground">
                                     <MessageSquare className="mr-2" /> {t('contactSupport')}
                                 </Link>
                             </CardContent>
