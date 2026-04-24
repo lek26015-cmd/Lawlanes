@@ -27,7 +27,7 @@ export async function getChatDetailsAction(chatId: string) {
         const data = chatSnap.data();
         if (!data) return { success: false, error: 'Chat data empty.' };
         
-        const participants = data.participants || [];
+        const participants: string[] = data.participants || [];
 
         if (!participants.includes(requesterId) && !isRequesterAdmin) {
             console.warn(`[Security] Unauthorized access attempt to chat ${chatId} by user ${requesterId}`);
