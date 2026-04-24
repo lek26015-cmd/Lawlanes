@@ -203,6 +203,7 @@ export interface LawyerCase {
   isOfficial?: boolean;
   isWaitingVerification?: boolean;
   clientImageUrl?: string;
+  updatedAt: Date;
 }
 
 export interface Ad {
