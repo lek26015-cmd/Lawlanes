@@ -369,7 +369,7 @@ function ChatPageContent() {
         }
 
         try {
-            const url = await getSecureDownloadUrl(path);
+            const url = await getSecureDownloadUrl(path, chatId);
             if (url) {
                 if (isImage) {
                     setPreviewFile({ url, name: fileName || 'Image' });
