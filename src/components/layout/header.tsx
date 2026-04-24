@@ -125,6 +125,12 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
     }
 
     const handleScroll = () => {
+      // If the mobile menu is open, Radix UI might lock the scroll and report scrollY as 0.
+      // We also check for pointer-events: none on body which is how Radix UI locks scroll for dropdowns.
+      if (isMobileMenuOpen || (typeof document !== 'undefined' && document.body.style.pointerEvents === 'none')) {
+        return;
+      }
+      
       const scrolled = window.scrollY > 50;
       setIsScrolled(scrolled);
     };
@@ -143,7 +149,8 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
   }, [pathname])
 
   // Ensure stable initial render for hydration
-  const useTransparentHeader = isMounted && isHomePage && !isScrolled;
+  // We also force non-transparent if the mobile menu is open to ensure visibility
+  const useTransparentHeader = isMounted && isHomePage && !isScrolled && !isMobileMenuOpen;
 
   const { toast } = useToast();
   const { totalItems, setIsOpen: setIsCartOpen } = useCart();
