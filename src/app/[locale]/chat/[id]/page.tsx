@@ -254,7 +254,7 @@ function ChatPageContent() {
                                    (currentLawyerId === user?.uid) || 
                                    (chatData?.lawyerId === user?.uid);
                 
-                const currentIsLawyerView = isUserLawyer || (response?.isRequesterAdmin && view === 'lawyer');
+                const currentIsLawyerView = !!(isUserLawyer || (response?.isRequesterAdmin && view === 'lawyer'));
                 setEffectiveIsLawyerView(currentIsLawyerView);
             } catch (err) {
                 console.error("Error in ChatPage fetchData:", err);
