@@ -58,6 +58,12 @@ import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+} from "@/components/ui/dialog";
 import { CopyButton } from '@/components/ui/copy-button';
 import { Link } from '@/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -99,6 +105,8 @@ function ChatPageContent() {
     const [effectiveIsLawyerView, setEffectiveIsLawyerView] = useState(view === 'lawyer');
     const [isUserLawyer, setIsUserLawyer] = useState(false);
     const [isChatDisabled, setIsChatDisabled] = useState(isCompleted);
+    const [previewFile, setPreviewFile] = useState<{ url: string, name: string } | null>(null);
+    const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
     const isOfficial = chatAmount > 0;
 
@@ -326,17 +334,30 @@ function ChatPageContent() {
         if (event.target) event.target.value = '';
     };
 
-    const handleViewFile = async (path: string) => {
+    const handleViewFile = async (path: string, fileName?: string) => {
         if (!path) return;
+        
+        const isImage = fileName ? /\.(jpg|jpeg|png|gif|webp)$/i.test(fileName) : false;
+
         if (path.startsWith('http')) {
-            window.open(path, '_blank');
+            if (isImage) {
+                setPreviewFile({ url: path, name: fileName || 'Image' });
+                setIsPreviewOpen(true);
+            } else {
+                window.open(path, '_blank');
+            }
             return;
         }
 
         try {
             const url = await getSecureDownloadUrl(path);
             if (url) {
-                window.open(url, '_blank');
+                if (isImage) {
+                    setPreviewFile({ url, name: fileName || 'Image' });
+                    setIsPreviewOpen(true);
+                } else {
+                    window.open(url, '_blank');
+                }
             } else {
                 toast({ variant: "destructive", title: "ไม่สามารถเข้าถึงไฟล์ได้", description: "กรุณาลองใหม่อีกครั้ง" });
             }
@@ -922,7 +943,7 @@ function ChatPageContent() {
                                         return (
                                         <div key={idx} className="flex justify-between items-center p-2 rounded-xl bg-white border border-slate-100 group hover:shadow-md transition-all">
                                             <button 
-                                                onClick={() => handleViewFile(file.url)} 
+                                                onClick={() => handleViewFile(file.url, file.name)} 
                                                 className="flex items-center gap-2.5 overflow-hidden flex-1 text-left"
                                             >
                                                 <div className={cn(
@@ -1052,6 +1073,38 @@ function ChatPageContent() {
                     />
                 </div>
             </div>
+            </div>
+
+            {/* Image Preview Modal */}
+            <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+                <DialogContent className="max-w-4xl w-[95vw] h-[80vh] flex flex-col p-0 overflow-hidden border-none rounded-3xl shadow-2xl">
+                    <DialogHeader className="p-4 border-b bg-white flex flex-row items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-purple-50 rounded-lg">
+                                <ImageIcon className="w-5 h-5 text-purple-600" />
+                            </div>
+                            <div>
+                                <DialogTitle className="text-sm font-bold truncate max-w-[200px] md:max-w-md">{previewFile?.name}</DialogTitle>
+                                <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">Document Preview</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2 pr-8">
+                            <Button size="sm" variant="outline" className="rounded-full text-xs h-8" onClick={() => window.open(previewFile?.url, '_blank')}>
+                                <ExternalLink className="w-3.5 h-3.5 mr-1.5" /> Full screen
+                            </Button>
+                        </div>
+                    </DialogHeader>
+                    <div className="flex-1 bg-slate-900 flex items-center justify-center overflow-hidden">
+                        {previewFile?.url && (
+                            <img 
+                                src={previewFile.url} 
+                                alt={previewFile.name} 
+                                className="max-w-full max-h-full object-contain shadow-2xl animate-in zoom-in-95 duration-300"
+                            />
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

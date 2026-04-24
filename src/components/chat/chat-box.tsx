@@ -15,7 +15,7 @@ import type { HumanChatMessage } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, Loader2, Sparkles, Languages, AlertTriangle, RefreshCcw, Check, CheckCheck, CreditCard } from 'lucide-react';
+import { Send, Loader2, Sparkles, Languages, AlertTriangle, RefreshCcw, Check, CheckCheck, CreditCard, ImageIcon, FileIcon, Maximize2, ExternalLink } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useChat } from '@/context/chat-context';
@@ -25,6 +25,13 @@ import { CopyButton } from '@/components/ui/copy-button';
 import { useChatSocket } from '@/hooks/use-chat-socket';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { cn } from '@/lib/utils';
+import { getSecureDownloadUrl } from '@/app/actions/secure-view';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 interface ChatBoxProps {
   firestore: Firestore;
@@ -64,6 +71,8 @@ function ChatBoxContent({
   const [optimisticMessages, setOptimisticMessages] = useState<MessageWithStatus[]>([]);
   const [input, setInput] = useState('');
   const [chatMetadata, setChatMetadata] = useState<any>(null);
+  const [previewFile, setPreviewFile] = useState<{ url: string, name: string, isImage: boolean } | null>(null);
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const { initialChatMessage, setInitialChatMessage } = useChat();
 
@@ -171,6 +180,29 @@ function ChatBoxContent({
       setMessages(prev => prev.map(msg => msg.id === messageId ? { ...msg, isTranslating: false } : msg));
     }
   };
+  
+  const handleFileClick = async (text: string) => {
+    const fileName = text.replace('[อัปโหลดไฟล์] ', '').trim();
+    const file = chatMetadata?.files?.find((f: any) => f.name === fileName);
+    
+    if (!file) return;
+    
+    try {
+      const url = await getSecureDownloadUrl(file.url);
+      if (!url) return;
+      
+      const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(fileName);
+      
+      if (isImage) {
+        setPreviewFile({ url, name: fileName, isImage: true });
+        setIsPreviewOpen(true);
+      } else {
+        window.open(url, '_blank');
+      }
+    } catch (err) {
+      console.error("Failed to view file from notification:", err);
+    }
+  };
 
   useEffect(() => {
     if (initialChatMessage && isConnected) {
@@ -275,6 +307,8 @@ function ChatBoxContent({
                     <div className="flex flex-col gap-1">
                       {(() => {
                         const isPaymentProposal = msg.text.includes('ใบเสนอราคาใหม่:') || msg.text.includes('แจ้งชำระค่าบริการ:');
+                        const isFileUpload = msg.text.startsWith('[อัปโหลดไฟล์]');
+                        
                         let paymentAmount = '0';
                         if (isPaymentProposal) {
                             const match = msg.text.match(/฿([\d,]+\.?\d*)/);
@@ -286,10 +320,14 @@ function ChatBoxContent({
                             "rounded-2xl text-sm shadow-sm overflow-hidden",
                             isPaymentProposal 
                                 ? "w-[260px] md:w-[300px] bg-white border border-blue-100 dark:bg-slate-800 dark:border-slate-700" 
-                                : (isOwn ? "px-4 py-2.5 bg-primary text-white rounded-tr-md" : "px-4 py-2.5 bg-white border border-gray-100 text-gray-800 rounded-tl-md"),
+                                : (isFileUpload
+                                  ? "bg-blue-50 border border-blue-200 dark:bg-blue-900/20 dark:border-blue-800/50 cursor-pointer hover:bg-blue-100 transition-colors"
+                                  : (isOwn ? "px-4 py-2.5 bg-primary text-white rounded-tr-md" : "px-4 py-2.5 bg-white border border-gray-100 text-gray-800 rounded-tl-md")),
                             !isPaymentProposal && msg.status === 'sending' && "opacity-70 animate-pulse",
                             msg.status === 'error' && "border-red-500 bg-red-50 text-red-800"
-                          )}>
+                          )}
+                          onClick={isFileUpload ? () => handleFileClick(msg.text) : undefined}
+                          >
                             {isPaymentProposal ? (
                                <div className="flex flex-col">
                                    <div className="bg-blue-600 p-3 text-white">
@@ -311,7 +349,24 @@ function ChatBoxContent({
                                    </div>
                                </div>
                             ) : (
-                               <p className="whitespace-pre-wrap break-all md:break-words">{msg.text}</p>
+                              isFileUpload ? (
+                                <div className="flex items-center gap-3 p-3">
+                                  <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-md">
+                                    <FileIcon className="w-5 h-5" />
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-[10px] text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wider mb-0.5">เอกสารใหม่</p>
+                                    <p className="text-xs font-bold text-slate-900 dark:text-white truncate pr-4">{msg.text.replace('[อัปโหลดไฟล์] ', '')}</p>
+                                    <div className="flex items-center gap-2 mt-1">
+                                      <span className="text-[10px] text-blue-500 flex items-center gap-1">
+                                        <Maximize2 className="w-3 h-3" /> คลิกเพื่อดูตัวอย่าง
+                                      </span>
+                                    </div>
+                                  </div>
+                                </div>
+                              ) : (
+                                <p className="whitespace-pre-wrap break-all md:break-words">{msg.text}</p>
+                              )
                             )}
                           </div>
                         );
@@ -402,6 +457,37 @@ function ChatBoxContent({
           </Button>
         </form>
       </CardFooter>
+
+      {/* Image Preview Modal */}
+      <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
+        <DialogContent className="max-w-4xl w-[95vw] h-[80vh] flex flex-col p-0 overflow-hidden border-none rounded-3xl">
+          <DialogHeader className="p-4 border-b bg-white flex flex-row items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-50 rounded-lg">
+                <ImageIcon className="w-5 h-5 text-blue-600" />
+              </div>
+              <div>
+                <DialogTitle className="text-sm font-bold truncate max-w-[200px] md:max-w-md">{previewFile?.name}</DialogTitle>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">ตัวอย่างรูปภาพ</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 pr-8">
+              <Button size="sm" variant="outline" className="rounded-full text-xs h-8" onClick={() => window.open(previewFile?.url, '_blank')}>
+                <ExternalLink className="w-3.5 h-3.5 mr-1.5" /> เปิดเต็มจอ
+              </Button>
+            </div>
+          </DialogHeader>
+          <div className="flex-1 bg-slate-900 flex items-center justify-center overflow-hidden">
+            {previewFile?.url && (
+              <img 
+                src={previewFile.url} 
+                alt={previewFile.name} 
+                className="max-w-full max-h-full object-contain shadow-2xl animate-in zoom-in-95 duration-300"
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
