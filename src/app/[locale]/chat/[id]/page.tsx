@@ -138,7 +138,7 @@ function ChatPageContent() {
 
     const [rating, setRating] = useState(0);
     const [reviewText, setReviewText] = useState("");
-    const [showLawyerContract, setShowLawyerContract] = useState(false);
+    const [showContractModal, setShowContractModal] = useState(false);
     const [selectedContract, setSelectedContract] = useState<any>(null);
 
     // Hide navbar on mobile for this page only
