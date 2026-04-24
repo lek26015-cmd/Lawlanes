@@ -16,6 +16,7 @@ import { getSecureDownloadUrl } from '@/app/actions/secure-view';
 import { CaseRoadmap } from '@/components/case/case-roadmap';
 import { LegalResearchTool } from '@/components/case/legal-research-tool';
 import { cn } from '@/lib/utils';
+import { getCloudflareVariantUrl } from '@/lib/cloudflare-images';
 
 import {
     Card,
