@@ -41,11 +41,8 @@ function HelpPageContent() {
   }, [ticketIdParam]);
 
   // Get FAQs from translations
-  const faqKeys = [0, 1, 2, 3, 4, 5, 6];
-  const faqs = faqKeys.map(key => ({
-    question: t(`faqs.${key}.question`),
-    answer: t(`faqs.${key}.answer`)
-  }));
+  const faqsRaw = t.raw('faqs');
+  const faqs = Array.isArray(faqsRaw) ? faqsRaw : [];
 
   const problemTypes = [
     { key: 'communication', label: t('problemTypes.communication') },
