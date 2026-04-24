@@ -306,14 +306,13 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
                     </DropdownMenuItem>
                   )}
 
-                  {(!isAdmin && !isLawyer || isSuperUser) && (
-                    <DropdownMenuItem asChild>
-                      <Link href="/dashboard">
-                        <LayoutDashboard className="mr-2" />
-                        {t('dashboard')} {isSuperUser ? '(ผู้ใช้)' : ''}
-                      </Link>
-                    </DropdownMenuItem>
-                  )}
+                  {/* Show User Dashboard to everyone as their primary 'Client' view */}
+                  <DropdownMenuItem asChild>
+                    <Link href="/dashboard">
+                      <LayoutDashboard className="mr-2" />
+                      {t('dashboard')} {(isAdmin || isLawyer) && isSuperUser ? '(ผู้ใช้)' : ''}
+                    </Link>
+                  </DropdownMenuItem>
 
                   <DropdownMenuItem asChild>
                     <Link href="/account"><User className="mr-2" />{t('manageAccount')}</Link>
@@ -399,7 +398,7 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
             </div>
           )}
           {user ? (
-            <Link href="/account">
+            <Link href="/dashboard">
               <Avatar className="w-8 h-8 border border-border/50">
                 <AvatarImage src={getCloudflareVariantUrl(avatarUrl, 'avatar') || profileLawyerImg.src} />
                 <AvatarFallback>{user.displayName?.charAt(0) || user.email?.charAt(0)}</AvatarFallback>
@@ -478,11 +477,10 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
                             <LayoutDashboard className="w-4 h-4" /> {t('dashboard')} {isSuperUser ? '(ทนาย)' : ''}
                           </Link>
                         )}
-                        {!isAdmin && !isLawyer && (
-                          <Link href="/dashboard" className="flex items-center gap-2 p-2 hover:bg-muted rounded-md">
-                            <LayoutDashboard className="w-4 h-4" /> {t('dashboard')}
-                          </Link>
-                        )}
+                        {/* Always show user dashboard for clients/personal view */}
+                        <Link href="/dashboard" className="flex items-center gap-2 p-2 hover:bg-muted rounded-md">
+                          <LayoutDashboard className="w-4 h-4" /> {t('dashboard')} {(isAdmin || isLawyer) ? ' (ลูกความ)' : ''}
+                        </Link>
                         <Link href="/account" className="flex items-center gap-2 p-2 hover:bg-muted rounded-md">
                           <User className="w-4 h-4" /> {t('manageAccount')}
                         </Link>

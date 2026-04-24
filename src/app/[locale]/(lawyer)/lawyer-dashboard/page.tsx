@@ -101,15 +101,17 @@ export default function LawyerDashboardPage() {
         const userRole = await getUserRoleAction(user!.uid);
         const isAdmin = userRole === 'admin';
 
-        if (isAdmin) {
-          const data = await getAdminLawyerDashboardDataAction();
-          // Mock stats for admin or get real stats if needed
-          const statsData = { incomeThisMonth: 0, totalIncome: 0, completedCases: data.completedCases.length, rating: 5.0, responseRate: 100 };
+        // Always fetch personal cases for the lawyer dashboard to ensure privacy
+        // Admins can see system-wide overview in the dedicated Admin Dashboard
+        const [data, statsData, profile, fetchedLegalCases] = await Promise.all([
+          getLawyerDashboardDataAction(user!.uid),
+          getLawyerStatsAction(user!.uid),
+          getLawyerProfileAction(user!.uid),
+          getLawyerLegalCases(user!.uid)
+        ]);
 
-          setRequests(data.newRequests);
-          setActiveCases(data.activeCases);
-          setCompletedCases(data.completedCases);
-          setStats(statsData);
+        if (isAdmin && !profile) {
+          // If admin doesn't have a lawyer profile, set a default one for display
           setLawyerProfile({
             id: user!.uid,
             userId: user!.uid,
@@ -138,20 +140,14 @@ export default function LawyerDashboardPage() {
             joinedAt: new Date().toISOString(),
           } as LawyerProfile);
         } else {
-          const [data, statsData, profile, fetchedLegalCases] = await Promise.all([
-            getLawyerDashboardDataAction(user!.uid),
-            getLawyerStatsAction(user!.uid),
-            getLawyerProfileAction(user!.uid),
-            getLawyerLegalCases(user!.uid)
-          ]);
-
-          setRequests(data.newRequests);
-          setActiveCases(data.activeCases);
-          setCompletedCases(data.completedCases);
-          setLegalCases(fetchedLegalCases);
-          setStats(statsData);
           setLawyerProfile(profile || null);
         }
+
+        setRequests(data.newRequests);
+        setActiveCases(data.activeCases);
+        setCompletedCases(data.completedCases);
+        setStats(statsData);
+        if (fetchedLegalCases) setLegalCases(fetchedLegalCases);
       } catch (error) {
         console.error("Error fetching lawyer dashboard data:", error);
         toast({
