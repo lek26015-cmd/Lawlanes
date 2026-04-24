@@ -27,11 +27,23 @@ import {
 } from "@/components/ui/dialog";
 import { useToast } from '@/hooks/use-toast';
 
+interface NotificationItem {
+    id: string;
+    read: boolean;
+    type: string;
+    title: string;
+    message: string;
+    link?: string;
+    createdAt?: any;
+    recipient: string;
+    metadata?: any;
+}
+
 export default function NotificationBell({ isAdmin = false }: { isAdmin?: boolean }) {
     const { user } = useUser();
     const { firestore } = useFirebase();
     const { toast } = useToast();
-    const [notifications, setNotifications] = useState<any[]>([]);
+    const [notifications, setNotifications] = useState<NotificationItem[]>([]);
     const [unreadCount, setUnreadCount] = useState(0);
     const [previewFile, setPreviewFile] = useState<{ url: string, name: string, isImage: boolean } | null>(null);
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -53,7 +65,7 @@ export default function NotificationBell({ isAdmin = false }: { isAdmin?: boolea
             const notifs = snapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data()
-            }));
+            })) as NotificationItem[];
             
             // Detection logic for new notifications (toast)
             if (notifs.length > 0) {
@@ -84,7 +96,7 @@ export default function NotificationBell({ isAdmin = false }: { isAdmin?: boolea
             }
 
             setNotifications(notifs);
-            setUnreadCount(notifs.filter((n: any) => !n.read).length);
+            setUnreadCount(notifs.filter(n => !n.read).length);
         });
 
         return () => unsubscribe();
@@ -281,7 +293,7 @@ export default function NotificationBell({ isAdmin = false }: { isAdmin?: boolea
     );
 }
 
-const markAllAsRead = async (firestore: any, notifications: any[]) => {
+const markAllAsRead = async (firestore: any, notifications: NotificationItem[]) => {
     if (!firestore || notifications.length === 0) return;
     try {
         const { writeBatch, doc } = await import('firebase/firestore');
