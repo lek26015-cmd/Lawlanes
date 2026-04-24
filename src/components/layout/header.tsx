@@ -120,7 +120,7 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
 
   useEffect(() => {
     if (!isHomePage) {
-      if (!isScrolled) setIsScrolled(true);
+      setIsScrolled(true);
       return;
     }
 
@@ -129,13 +129,14 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
       setIsScrolled(scrolled);
     };
 
-    window.addEventListener('scroll', handleScroll, { passive: true });
+    // Initialize state
     handleScroll();
 
+    window.addEventListener('scroll', handleScroll, { passive: true });
     return () => {
       window.removeEventListener('scroll', handleScroll);
     };
-  }, [isHomePage, isScrolled]);
+  }, [isHomePage]);
 
   useEffect(() => {
     setIsMobileMenuOpen(false);
@@ -165,10 +166,10 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
   }
 
   const headerClasses = cn(
-    'sticky top-0 z-50 w-full transition-all duration-300',
+    'sticky top-0 z-[100] w-full transition-colors duration-300 transform-gpu',
     useTransparentHeader
       ? 'bg-transparent text-white border-transparent'
-      : 'bg-white/95 backdrop-blur-md text-slate-900 border-slate-200 shadow-sm border-b'
+      : 'bg-white text-slate-900 border-slate-200 shadow-sm border-b backdrop-blur-md'
   );
 
   const navLinkClasses = cn(
@@ -369,7 +370,8 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
           </div>
         </div>
 
-        <div className="flex items-center gap-2 xl:hidden">
+        {/* Mobile Header Icons & Menu */}
+        <div className="flex items-center gap-1 xl:hidden">
           <div className={cn(
             "transition-all duration-300 ease-in-out mr-1",
             useTransparentHeader ? "text-white" : "text-slate-900"
