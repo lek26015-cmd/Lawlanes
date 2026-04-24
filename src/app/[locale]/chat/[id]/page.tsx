@@ -97,6 +97,7 @@ function ChatPageContent() {
 
     const isCompleted = chatStatus === 'closed';
     const [effectiveIsLawyerView, setEffectiveIsLawyerView] = useState(view === 'lawyer');
+    const [isUserLawyer, setIsUserLawyer] = useState(false);
     const [isChatDisabled, setIsChatDisabled] = useState(isCompleted);
 
     const isOfficial = chatAmount > 0;
@@ -249,12 +250,12 @@ function ChatPageContent() {
                     setClient({ id: currentClientId, name: resolvedName, imageUrl: resolvedAvatar });
                 }
 
-                // 3. Automatically determine if current user is the lawyer
-                const isUserLawyer = (fetchedLawyer?.userId === user?.uid) || 
+                const currentUserIsLawyer = !!((fetchedLawyer?.userId === user?.uid) || 
                                    (currentLawyerId === user?.uid) || 
-                                   (chatData?.lawyerId === user?.uid);
+                                   (chatData?.lawyerId === user?.uid));
+                setIsUserLawyer(currentUserIsLawyer);
                 
-                const currentIsLawyerView = !!(isUserLawyer || (response?.isRequesterAdmin && view === 'lawyer'));
+                const currentIsLawyerView = !!(currentUserIsLawyer || (response?.isRequesterAdmin && view === 'lawyer'));
                 setEffectiveIsLawyerView(currentIsLawyerView);
             } catch (err) {
                 console.error("Error in ChatPage fetchData:", err);
