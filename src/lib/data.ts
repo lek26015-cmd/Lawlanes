@@ -465,6 +465,7 @@ export async function getAdminLawyerDashboardData(db: Firestore): Promise<{ newR
         clientId: clientId,
         status: chatData.status,
         lastUpdate: chatData.lastMessageAt?.toDate().toLocaleDateString('th-TH') || 'N/A',
+        updatedAt: chatData.lastMessageAt?.toDate() || chatData.createdAt?.toDate() || new Date(),
       };
     }));
   } catch (error) {
