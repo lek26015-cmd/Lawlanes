@@ -108,6 +108,7 @@ function ChatPageContent() {
     const [previewFile, setPreviewFile] = useState<{ url: string, name: string } | null>(null);
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
+    const [clientInfo, setClientInfo] = useState<{ name: string, address: string, taxId: string } | null>(null);
     const isOfficial = chatAmount > 0;
 
     // Compute milestoneSteps and currentStep from real milestones
@@ -149,6 +150,7 @@ function ChatPageContent() {
                 setDescription(data.description || '');
                 setPendingFeeRequest(data.pendingFeeRequest || null);
                 setContractText(data.contractText || null);
+                setClientInfo(data.clientInfo || null);
             }
         });
 
