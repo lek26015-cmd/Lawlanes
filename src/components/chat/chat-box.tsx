@@ -250,7 +250,7 @@ function ChatBoxContent({
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5 md:gap-2">
                 <CardTitle className="text-sm md:text-base font-medium text-muted-foreground/80 truncate">
-                  {(chatMetadata?.caseTitle || chatMetadata?.title || 'กำลังโหลด...').replace(/^Ticket\s*สนทนา:\s*/, '')}
+                  {(chatMetadata?.caseTitle || chatMetadata?.title || 'กำลังโหลด...').replace(/^Ticket\s+สนทนา:\s*/i, '')}
                 </CardTitle>
                 {isConnected ? (
                   <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-green-500 animate-pulse flex-shrink-0" title="Connected" />
@@ -273,24 +273,24 @@ function ChatBoxContent({
         </div>
       </CardHeader>
 
-      <CardContent className="flex-grow p-0 flex flex-col min-h-0 bg-slate-50/30">
-        <ScrollArea className="flex-grow" ref={scrollAreaRef}>
-          <div className="space-y-6 px-4 py-4 md:px-6 md:py-6">
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start gap-3 text-amber-900 text-xs md:text-sm">
+      <CardContent className="flex-grow p-0 flex flex-col min-h-0 bg-slate-50/30 overflow-x-hidden">
+        <ScrollArea className="flex-grow w-full" ref={scrollAreaRef}>
+          <div className="space-y-6 px-4 py-4 md:px-6 md:py-6 max-w-full overflow-x-hidden">
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start gap-3 text-amber-900 text-xs md:text-sm max-w-full">
               <AlertTriangle className="w-5 h-5 flex-shrink-0 text-amber-600" />
-              <p>คำเตือน: ห้ามโอนเงินนอกระบบ Lawlanes เพื่อความปลอดภัยของข้อมูลและเงินของคุณ</p>
+              <p className="break-words">คำเตือน: ห้ามโอนเงินนอกระบบ Lawlanes เพื่อความปลอดภัยของข้อมูลและเงินของคุณ</p>
             </div>
 
-            <div className="flex items-start gap-3">
+            <div className="flex items-start gap-3 max-w-full">
               <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
                 <Sparkles className="w-4 h-4" />
               </div>
-              <div className="flex-1 max-w-[85%]">
-                <div className="p-4 rounded-lg bg-white border border-gray-100 shadow-sm">
+              <div className="flex-1 min-w-0 max-w-[85%]">
+                <div className="p-4 rounded-lg bg-white border border-gray-100 shadow-sm overflow-hidden">
                   <p className="font-bold text-xs text-primary uppercase tracking-wider mb-1">
                     {isLawyerView ? "AI: สรุปข้อความเบื้องต้น" : "ข้อมูลที่คุณส่งให้ทนาย"}
                   </p>
-                  <p className="text-sm text-gray-700 italic">
+                  <p className="text-sm text-gray-700 italic break-words">
                     {firstUserMessage ? `"${firstUserMessage.text}"` : "กำลังรอข้อมูล..."}
                   </p>
                 </div>
@@ -301,85 +301,79 @@ function ChatBoxContent({
               const isOwn = msg.senderId === currentUser.uid;
               const showAvatar = !isOwn && (idx === 0 || allMessages[idx-1].senderId !== msg.senderId);
               const isLastMsg = idx === allMessages.length - 1;
+              const isFileUpload = msg.text.includes('[อัปโหลดไฟล์]');
 
               return (
-                <div key={msg.id} className={cn("flex flex-col", isOwn ? "items-end" : "items-start")}>
-                  <div className={cn("flex items-end gap-2 max-w-[85%] md:max-w-[70%]", isOwn && "flex-row-reverse")}>
+                <div key={msg.id} className={cn("flex flex-col max-w-full", isOwn ? "items-end" : "items-start")}>
+                  <div className={cn("flex items-end gap-2 max-w-[90%] md:max-w-[80%]", isOwn ? "flex-row-reverse" : "flex-row")}>
                     {!isOwn && (
-                      <div className="w-8 flex-shrink-0">
+                      <div className="w-8 h-8 flex-shrink-0">
                         {showAvatar && (
-                          <Avatar className="h-8 w-8 shadow-sm">
+                          <Avatar className="h-8 w-8 border border-primary/10">
                             <AvatarImage src={getCloudflareVariantUrl(otherUser.imageUrl, 'avatar')} />
                             <AvatarFallback>{otherUser.name.charAt(0)}</AvatarFallback>
                           </Avatar>
                         )}
                       </div>
                     )}
-                    <div className="flex flex-col gap-1">
+                    <div className={cn("flex flex-col min-w-0", isOwn ? "items-end" : "items-start")}>
+                      {showAvatar && !isOwn && <span className="text-[10px] text-muted-foreground ml-1 mb-1">{otherUser.name}</span>}
                       {(() => {
-                        const isPaymentProposal = msg.text.includes('ใบเสนอราคาใหม่:') || msg.text.includes('แจ้งชำระค่าบริการ:');
-                        const isFileUpload = msg.text.includes('[อัปโหลดไฟล์]') || msg.metadata?.type === 'file_upload';
-                        
-                        let paymentAmount = '0';
-                        if (isPaymentProposal) {
-                            const match = msg.text.match(/฿([\d,]+\.?\d*)/);
-                            if (match) paymentAmount = match[1];
-                        }
-
+                        const isPayment = msg.text.includes('💳');
                         return (
-                          <div className={cn(
-                            "rounded-2xl text-sm shadow-sm overflow-hidden",
-                            isPaymentProposal 
-                                ? "w-[260px] md:w-[300px] bg-white border border-blue-100 dark:bg-slate-800 dark:border-slate-700" 
-                                : (isFileUpload
-                                  ? "bg-blue-50 border border-blue-200 dark:bg-blue-900/20 dark:border-blue-800/50 cursor-pointer hover:bg-blue-100 transition-colors"
-                                  : (isOwn ? "px-4 py-2.5 bg-primary text-white rounded-tr-md" : "px-4 py-2.5 bg-white border border-gray-100 text-gray-800 rounded-tl-md")),
-                            !isPaymentProposal && msg.status === 'sending' && "opacity-70 animate-pulse",
-                            msg.status === 'error' && "border-red-500 bg-red-50 text-red-800"
-                          )}
-                          onClick={isFileUpload ? () => handleFileClick(msg) : undefined}
+                          <div 
+                            className={cn(
+                              "relative group transition-all duration-300 min-w-0",
+                              isFileUpload ? "rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm cursor-pointer hover:shadow-md" : 
+                              isPayment ? "rounded-2xl border-2 border-blue-500 bg-blue-50 dark:bg-blue-900/20 overflow-hidden shadow-lg shadow-blue-500/10" :
+                              isOwn 
+                                ? "bg-blue-600 text-white rounded-2xl rounded-tr-sm shadow-sm" 
+                                : "bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-100 dark:border-slate-700 rounded-2xl rounded-tl-sm shadow-sm",
+                              !isFileUpload && "px-4 py-2.5"
+                            )}
+                            onClick={() => isFileUpload && handleViewFile(msg.metadata?.fileUrl || msg.text, msg.metadata?.fileName || 'file')}
                           >
-                            {isPaymentProposal ? (
-                               <div className="flex flex-col">
-                                   <div className="bg-blue-600 p-3 text-white">
-                                       <div className="flex justify-between items-center">
-                                          <p className="font-bold text-sm flex items-center gap-1"><CreditCard className="w-4 h-4"/> แจ้งชำระเงิน</p>
-                                          <span className="text-xs bg-white/20 px-2 py-0.5 rounded-2xl font-mono">{paymentAmount} ฿</span>
-                                       </div>
-                                   </div>
-                                   <div className="p-4 bg-white space-y-3">
-                                       <p className="text-xs text-slate-600 whitespace-pre-wrap break-words line-clamp-4">{msg.text}</p>
-                                       <Button 
-                                          className="w-full h-9 bg-blue-600 hover:bg-blue-700 font-bold rounded-2xl shadow-md text-xs" 
-                                          asChild
-                                       >
-                                          <a href={`/payment?chatId=${chatId}&type=${msg.text.includes('ค่าบริการ') ? 'consultation' : 'case'}`} target="_blank" rel="noopener noreferrer">
-                                            💳 ดำเนินการชำระเงิน
-                                          </a>
-                                       </Button>
-                                   </div>
-                               </div>
-                            ) : (
-                              isFileUpload ? (
-                                <div className="flex items-center gap-3 p-3">
-                                  <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-md">
-                                    <FileIcon className="w-5 h-5" />
-                                  </div>
-                                  <div className="flex-1 min-w-0">
-                                    <p className="text-[10px] text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wider mb-0.5">เอกสารใหม่</p>
-                                    <p className="text-xs font-bold text-slate-900 dark:text-white truncate pr-4">
-                                      {msg.metadata?.fileName || msg.text.replace('[อัปโหลดไฟล์]', '').trim()}
-                                    </p>
-                                    <div className="flex items-center gap-2 mt-1">
-                                      <span className="text-[10px] text-blue-500 flex items-center gap-1">
-                                        <Maximize2 className="w-3 h-3" /> คลิกเพื่อดูตัวอย่าง
-                                      </span>
+                            {isPayment ? (
+                                <div className="flex flex-col min-w-0">
+                                    <div className="p-3 bg-blue-600 text-white flex items-center gap-2">
+                                        <div className="p-1.5 bg-white/20 rounded-lg">
+                                            <CreditCard className="w-4 h-4" />
+                                        </div>
+                                        <span className="text-xs font-black uppercase tracking-widest">Payment Request</span>
                                     </div>
-                                  </div>
+                                    <div className="p-4 bg-white space-y-3 min-w-0">
+                                        <p className="text-xs text-slate-600 whitespace-pre-wrap break-words line-clamp-4">{msg.text}</p>
+                                        <Button 
+                                           className="w-full h-9 bg-blue-600 hover:bg-blue-700 font-bold rounded-2xl shadow-md text-xs" 
+                                           asChild
+                                        >
+                                           <a href={`/payment?chatId=${chatId}&type=${msg.text.includes('ค่าบริการ') ? 'consultation' : 'case'}`} target="_blank" rel="noopener noreferrer">
+                                             💳 ดำเนินการชำระเงิน
+                                           </a>
+                                        </Button>
+                                    </div>
                                 </div>
-                              ) : (
-                                <p className="whitespace-pre-wrap break-all md:break-words">{msg.text}</p>
-                              )
+                            ) : (
+                               isFileUpload ? (
+                                 <div className="flex items-center gap-3 p-3 min-w-0 max-w-full">
+                                   <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-md flex-shrink-0">
+                                     <FileIcon className="w-5 h-5" />
+                                   </div>
+                                   <div className="flex-1 min-w-0">
+                                     <p className="text-[10px] text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wider mb-0.5 truncate">เอกสารใหม่</p>
+                                     <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                                       {msg.metadata?.fileName || msg.text.replace('[อัปโหลดไฟล์]', '').trim()}
+                                     </p>
+                                     <div className="flex items-center gap-2 mt-1">
+                                       <span className="text-[10px] text-blue-500 flex items-center gap-1 whitespace-nowrap">
+                                         <Maximize2 className="w-3 h-3" /> คลิกเพื่อดูตัวอย่าง
+                                       </span>
+                                     </div>
+                                   </div>
+                                 </div>
+                               ) : (
+                                 <p className="text-sm md:text-base whitespace-pre-wrap break-words overflow-hidden">{msg.text}</p>
+                               )
                             )}
                           </div>
                         );

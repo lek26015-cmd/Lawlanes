@@ -1037,17 +1037,17 @@ function ChatPageContent() {
                                 {tCommon('backToHome')}
                             </Link>
                             
-                            <div className="flex flex-col gap-1">
+                            <div className="flex flex-col gap-1 min-w-0 max-w-full">
                                 <div className="flex items-center gap-2">
-                                    <span className="text-[10px] md:text-xs font-black uppercase tracking-widest text-muted-foreground/70">
+                                    <span className="text-[10px] md:text-xs font-black uppercase tracking-widest text-muted-foreground/70 whitespace-nowrap">
                                         {isOfficial ? tCase('titleOfficial') : tCase('titleInitial')}
                                     </span>
                                     <Badge variant={isOfficial ? "default" : "secondary"} className={cn("rounded-lg uppercase text-[8px] tracking-widest px-1.5 py-0 whitespace-nowrap", isOfficial && "bg-amber-100 text-amber-700 border-amber-200")}>
                                         {isOfficial ? tCase('officialBadge') : tCase('freeBadge')}
                                     </Badge>
                                 </div>
-                                <h1 className="text-xl md:text-2xl lg:text-3xl font-black font-headline text-slate-900 leading-tight">
-                                    {(caseTitle || (isOfficial ? tCase('titleOfficial') : tCase('titleInitial'))).replace(/^Ticket\s*สนทนา:\s*/, '')}
+                                <h1 className="text-xl md:text-2xl lg:text-3xl font-black font-headline text-slate-900 leading-tight truncate max-w-full">
+                                    {(caseTitle && caseTitle !== tCase('titleInitial') && caseTitle !== tCase('titleOfficial') ? caseTitle : (isOfficial ? tCase('titleOfficial') : tCase('titleInitial'))).replace(/^Ticket\s*สนทนา:\s*/i, '').replace(/^Ticket\s+สนทนา:\s*/i, '')}
                                 </h1>
                             </div>
                         </div>
@@ -1091,8 +1091,8 @@ function ChatPageContent() {
             </div>
 
             {/* Sidebar Area: Chat Column (Takes remaining height on mobile) */}
-            <div className="flex-1 lg:flex-none w-full lg:w-[450px] xl:w-[500px] min-h-0 flex flex-col relative z-10 bg-white lg:bg-slate-50 dark:bg-slate-950 border-t lg:border-t-0 lg:border-l border-slate-200 dark:border-slate-800 lg:p-4 xl:p-6 lg:justify-center">
-                <div className="flex-1 lg:flex-none lg:h-[92%] xl:h-[90%] overflow-hidden relative lg:rounded-[2.5rem] lg:border-4 lg:border-slate-800 lg:shadow-[0_20px_50px_rgba(0,0,0,0.2)] lg:bg-white dark:lg:bg-slate-900 transition-all duration-500 lg:ring-8 lg:ring-slate-100 dark:lg:ring-slate-800/50">
+            <div className="flex-1 lg:flex-none w-full lg:w-[450px] xl:w-[500px] min-h-0 min-w-0 flex flex-col relative z-10 bg-white lg:bg-slate-50 dark:bg-slate-950 border-t lg:border-t-0 lg:border-l border-slate-200 dark:border-slate-800 lg:p-4 xl:p-6 lg:justify-center">
+                <div className="flex-1 lg:flex-none lg:h-[92%] xl:h-[90%] overflow-hidden relative lg:rounded-[2.5rem] lg:border-4 lg:border-slate-800 lg:shadow-[0_20px_50px_rgba(0,0,0,0.2)] lg:bg-white dark:lg:bg-slate-900 transition-all duration-500 lg:ring-8 lg:ring-slate-100 dark:lg:ring-slate-800/50 min-w-0">
                     {/* Notch/Camera mockup for "mobile" feel */}
                     <div className="hidden lg:block absolute top-0 left-1/2 -translate-x-1/2 w-32 h-6 bg-slate-800 rounded-b-2xl z-50" />
                     <ChatBox 
