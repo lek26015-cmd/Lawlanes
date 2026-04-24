@@ -57,12 +57,27 @@ export async function POST(request: Request) {
         let role = 'customer';
         try {
             const db = admin.firestore();
-            const userDoc = await db.collection('users').doc(decodedToken.uid).get();
-            if (userDoc.exists) {
-                role = userDoc.data()?.role || 'customer';
+            
+            // Priority 1: Check Custom Claims from Token
+            if (decodedToken.admin === true) {
+                role = 'admin';
+            } else if (decodedToken.lawyer === true) {
+                role = 'lawyer';
+            } else {
+                // Priority 2: Check Lawyer Profile (Firestore)
+                const lawyerDoc = await db.collection('lawyerProfiles').doc(decodedToken.uid).get();
+                if (lawyerDoc.exists) {
+                    role = 'lawyer';
+                } else {
+                    // Priority 3: Check Users collection
+                    const userDoc = await db.collection('users').doc(decodedToken.uid).get();
+                    if (userDoc.exists) {
+                        role = userDoc.data()?.role || 'customer';
+                    }
+                }
             }
         } catch (dbErr) {
-            console.error('Error fetching user role from Firestore:', dbErr);
+            console.error('Error fetching user role for session:', dbErr);
         }
 
         // Add a role hint cookie for middleware RBAC

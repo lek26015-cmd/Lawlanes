@@ -82,6 +82,11 @@ export async function middleware(request: NextRequest) {
 
   // Authenticated RBAC Enforcements
   if (isAuthenticated) {
+      // Admins are permitted to access all dashboards for management/support
+      if (roleHint === 'admin') {
+          return intlMiddleware(request);
+      }
+
       if (roleHint === 'lawyer' && isClientProtected) {
           // Lawyer trying to access client dashboard bounces to lawyer dashboard
           return NextResponse.redirect(lawyerDashboardUrl);

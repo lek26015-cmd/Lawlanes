@@ -106,7 +106,8 @@ function NewCaseForm() {
         const lawyerClients = await getLawyerClientsAction(user.uid);
         setClients(lawyerClients);
 
-        const clientIdParam = searchParams.get('clientId');
+        const rawClientId = searchParams.get('clientId');
+        const clientIdParam = (rawClientId === 'null' || rawClientId === 'undefined') ? null : rawClientId;
         const chatIdParam = searchParams.get('chatId');
 
         // Pre-select client if ID exists in URL
@@ -137,9 +138,17 @@ function NewCaseForm() {
 
             // If we have clientInfo in chat, pre-fill it
             if (chatDetails.clientInfo) {
-              setClientName(chatDetails.clientInfo.name || '');
-              setClientAddress(chatDetails.clientInfo.address || '');
               setClientTaxId(chatDetails.clientInfo.taxId || '');
+            }
+
+            // AUTO-SELECT CLIENT: If not in URL, use from chat
+            if (!clientIdParam && (chatDetails.clientId || chatDetails.userId)) {
+              const resId = chatDetails.clientId || chatDetails.userId;
+              setClient(resId);
+              const currentClient = lawyerClients.find((c: any) => c.id === resId);
+              if (currentClient && !clientName) {
+                setClientName(currentClient.name);
+              }
             }
           }
         }

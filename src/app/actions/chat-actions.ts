@@ -707,12 +707,14 @@ export async function deleteFileAction(chatId: string, fileUrl: string) {
 
         const data = chatSnap.data();
         const files = data?.files || [];
-        const updatedFiles = files.filter((f: any) => f.url !== fileUrl);
+        const fileToRemove = files.find((f: any) => f.url === fileUrl);
 
-        await chatRef.update({
-            files: updatedFiles,
-            updatedAt: admin.firestore.FieldValue.serverTimestamp()
-        });
+        if (fileToRemove) {
+            await chatRef.update({
+                files: admin.firestore.FieldValue.arrayRemove(fileToRemove),
+                updatedAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+        }
 
         return { success: true };
     } catch (error: any) {
