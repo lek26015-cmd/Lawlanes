@@ -85,7 +85,7 @@ export default function UserGuidePage() {
 
   return (
     <div className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8 font-sans">
-      <div className="max-w-7xl mx-auto">
+      <div className="max-w-6xl mx-auto">
         {/* Header Section */}
         <div className="text-center mb-16 animate-in fade-in slide-in-from-top duration-700">
           <BookOpen className="h-14 w-14 text-indigo-600 mx-auto mb-4" />

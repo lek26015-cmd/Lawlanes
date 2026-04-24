@@ -69,7 +69,7 @@ export default function ClientLayout({
       <div className="flex min-h-screen flex-col">
         {(isLawyerPage || !isDashboardPage) && <Header setUserRole={setUserRole} domainType={activeDomainType} />}
         <main className="flex-grow">{children}</main>
-        {(isLawyerPage || !isDashboardPage) && <Footer userRole={userRole} domainType={activeDomainType} />}
+        {(isLawyerPage || !isDashboardPage) && !isChatPage && <Footer userRole={userRole} domainType={activeDomainType} />}
       </div>
       {isMounted && !isDashboardPage && !isChatPage && <FloatingChatButton />}
       {isMounted && !isDashboardPage && !isChatPage && <ChatModal />}

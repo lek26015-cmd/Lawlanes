@@ -196,7 +196,7 @@ export default function LawyerDashboardPage() {
 
   return (
     <div className="bg-gray-100/50 min-h-screen">
-      <div className="container mx-auto px-4 md:px-6 py-8">
+      <div className="max-w-6xl mx-auto px-4 md:px-6 py-8">
 
         {/* Status Alerts */}
         {lawyerProfile?.status === 'suspended' && (
@@ -255,68 +255,7 @@ export default function LawyerDashboardPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* New Requests */}
-            <Card className="rounded-3xl shadow-sm border-none">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 font-bold">
-                  <Inbox className="w-5 h-5 text-primary" />
-                  คำขอปรึกษาใหม่ ({requests.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {requests.length > 0 ? (
-                  <div className="space-y-4">
-                    {requests.map((req) => (
-                      <div key={req.id} className="p-4 rounded-3xl bg-primary/5 border border-primary/20">
-                        <div className="flex flex-col sm:flex-row justify-between">
-                          <div>
-                            <p className="font-semibold text-foreground">{req.caseTitle}</p>
-                            <p className="text-sm text-muted-foreground">
-                              ผู้ขอ: {req.clientName} | ขอเมื่อ: {format(req.requestedAt, 'dd MMM yyyy, HH:mm', { locale: th })}
-                            </p>
-                          </div>
-                          <div className="flex gap-2 mt-3 sm:mt-0">
-                            <Button size="sm" variant="outline" asChild className="rounded-full">
-                              <Link href={`/request/${req.id}`}>ดูรายละเอียด</Link>
-                            </Button>
-                            <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button size="sm" className="bg-green-600 hover:bg-green-700 rounded-full">รับเคสนี้</Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>ยืนยันการรับเคส?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    การรับเคสนี้จะสร้างห้องสนทนาส่วนตัวระหว่างคุณและลูกความ และจะถือว่าเป็นการเริ่มต้นการให้คำปรึกษาอย่างเป็นทางการ
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>ยกเลิก</AlertDialogCancel>
-                                  <AlertDialogAction
-                                    onClick={() => handleAcceptCase(req)}
-                                    className="bg-green-600 text-white hover:bg-green-700"
-                                  >
-                                    ยืนยันการรับเคส
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                            </AlertDialog>
-                          </div>
-                        </div>
-                        <Card className="mt-3 bg-background/50 p-3">
-                          <p className="text-sm text-muted-foreground">"{req.description}"</p>
-                        </Card>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <Inbox className="mx-auto h-10 w-10 mb-2" />
-                    <p>ยังไม่มีคำขอใหม่</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+
 
             {/* Chat Consultations (Combined Active and Completed) */}
             <Collapsible
@@ -416,81 +355,7 @@ export default function LawyerDashboardPage() {
             </Collapsible>
 
 
-            {/* Active Cases (Pipeline) Summary */}
-            <Card className="rounded-3xl shadow-sm border-none">
-              <CardHeader className="flex flex-row items-center justify-between pb-2 text-primary">
-                <div className="flex items-center gap-2">
-                  <div className="p-2 bg-blue-100 rounded-xl">
-                    <Briefcase className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <div>
-                    <CardTitle className="font-bold text-lg">คดีที่กำลังดำเนินการ (Pipeline)</CardTitle>
-                    <CardDescription>จัดการความคืบหน้าของคดีต่อหลังจากปิดแชท</CardDescription>
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Link href="/lawyer-dashboard/pipeline/new">
-                    <Button variant="outline" size="sm" className="hidden md:flex items-center gap-2 border-primary/20 text-primary hover:bg-primary/5 rounded-full font-bold h-9">
-                      <Plus className="w-4 h-4" />
-                      เปิดเคสใหม่
-                    </Button>
-                  </Link>
-                  <Link href="/lawyer-dashboard/pipeline">
-                    <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-full">
-                      ดูทั้งหมด
-                    </Button>
-                  </Link>
-                </div>
-              </CardHeader>
-              <CardContent className="pt-4">
-                <div className="space-y-4">
-                  <div className="grid grid-cols-4 gap-2 mb-4">
-                    {[
-                      { label: 'รอดำเนินการ', value: legalCases.filter(c => c.status === 'pending').length.toString(), bg: 'bg-slate-50', text: 'text-slate-600' },
-                      { label: 'กำลังร่างงาน', value: legalCases.filter(c => c.status === 'drafting').length.toString(), bg: 'bg-blue-50', text: 'text-blue-600' },
-                      { label: 'ใช้สิทธิศาล', value: legalCases.filter(c => c.status === 'in-court').length.toString(), bg: 'bg-orange-50', text: 'text-orange-600' },
-                      { label: 'เสร็จสิ้น', value: legalCases.filter(c => c.status === 'closed').length.toString(), bg: 'bg-green-50', text: 'text-green-600' }
-                    ].map(stat => (
-                      <div key={stat.label} className={`${stat.bg} p-3 rounded-2xl border border-transparent hover:border-slate-200 transition-all text-center`}>
-                        <p className={`text-[10px] font-medium uppercase tracking-wider ${stat.text}`}>{stat.label}</p>
-                        <p className="text-xl font-bold mt-1">{stat.value}</p>
-                      </div>
-                    ))}
-                  </div>
 
-                  <div className="space-y-3">
-                    {legalCases.length > 0 ? (
-                      legalCases.slice(0, 3).map(item => (
-                        <Link href={`/lawyer-dashboard/case/${item.id}`} key={item.id} className="block">
-                          <div className="p-4 rounded-2xl border border-slate-100 flex items-center justify-between hover:bg-slate-50 transition-all group cursor-pointer">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center text-slate-500 group-hover:bg-white transition-colors">
-                                <FileText className="w-5 h-5" />
-                              </div>
-                              <div>
-                                <p className="font-semibold text-sm">{item.title}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  อัปเดต {format(item.updatedAt, 'dd MMM (HH:mm)', { locale: th })}
-                                </p>
-                              </div>
-                            </div>
-                            <Badge variant="secondary" className="rounded-lg px-2 py-0.5 text-[10px] font-bold uppercase">
-                              {item.status === 'pending' ? 'รอดำเนินการ' : 
-                               item.status === 'drafting' ? 'กำลังร่างงาน' : 
-                               item.status === 'in-court' ? 'ใช้สิทธิศาล' : 'เสร็จสิ้น'}
-                            </Badge>
-                          </div>
-                        </Link>
-                      ))
-                    ) : (
-                      <div className="text-center py-6 text-muted-foreground text-sm italic">
-                        ยังไม่มีเคสใน Pipeline
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
           </div>
 
           {/* Sidebar */}

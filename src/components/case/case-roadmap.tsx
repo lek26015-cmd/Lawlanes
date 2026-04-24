@@ -57,95 +57,82 @@ export function CaseRoadmap({ currentStep, className, isPremium = true, steps: c
         {steps.map((step, idx) => {
           const isCompleted = currentStep > step.id;
           const isActive = currentStep === step.id;
+          const isFuture = step.id > currentStep;
           const Icon = step.icon;
 
           return (
-            <div key={step.id} className="relative flex flex-col items-center z-10 group">
+            <div key={step.id} className="relative flex flex-col items-center z-10">
               {/* Pulsing Halo for Active Step */}
               <AnimatePresence>
                 {isActive && (
                   <motion.div 
-                    initial={{ scale: 0.8, opacity: 0, y: -2 }}
-                    animate={{ scale: 1.35, opacity: 0.25, y: -2 }}
-                    exit={{ scale: 1.8, opacity: 0, y: -2 }}
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1.5, opacity: 0.15 }}
+                    exit={{ scale: 2, opacity: 0 }}
                     transition={{ duration: 2, repeat: Infinity }}
-                    className="absolute top-0 w-8 h-8 md:w-11 md:h-11 bg-blue-500 rounded-xl md:rounded-[1rem] -z-10"
+                    className="absolute top-0 w-8 h-8 md:w-12 md:h-12 bg-blue-500 rounded-full -z-10"
                   />
                 )}
               </AnimatePresence>
 
-              <motion.div 
-                initial={false}
-                animate={{ 
-                  scale: isActive ? 1.1 : 1,
-                  y: isActive ? -2 : 0,
-                  rotate: isActive ? [0, -3, 3, 0] : 0
-                }}
-                transition={{ 
-                   type: "spring", 
-                   stiffness: 300, 
-                   damping: 15,
-                   rotate: { duration: 0.5, repeat: isActive ? 0 : 0 }
-                }}
-                className={cn(
-                  "w-8 h-8 md:w-11 md:h-11 rounded-xl md:rounded-[1rem] flex items-center justify-center transition-all duration-500 border md:border-2 shadow-md md:shadow-xl relative overflow-hidden",
-                  isCompleted 
-                    ? (isPremium ? "bg-blue-600 border-blue-500 text-white shadow-blue-500/40" : "bg-blue-500 border-blue-500 text-white")
-                    : isActive
-                      ? (isPremium ? "bg-white dark:bg-slate-900 border-blue-600 text-blue-600 shadow-[0_15px_40px_rgba(37,99,235,0.4)]" : "bg-white dark:bg-slate-900 border-blue-500 text-blue-500 shadow-lg")
-                      : "bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-400"
-                )}
-              >
-                {isCompleted ? (
-                   <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.2 }}>
-                     <Check className="w-4 h-4 md:w-5 md:h-5" strokeWidth={3} />
-                   </motion.div>
-                ) : (
-                   <Icon className={cn("w-4 h-4 md:w-5 md:h-5", isActive && "animate-pulse")} />
-                )}
-                
-                {isActive && isPremium && (
-                  <div className="absolute inset-0 bg-gradient-to-tr from-blue-600/10 to-transparent pointer-events-none" />
-                )}
-              </motion.div>
-              
-              <div className="absolute top-10 md:top-14 flex flex-col items-center text-center w-[70px] md:w-[100px] px-0.5 pointer-events-none">
-                <div className="flex items-center justify-center gap-1 md:gap-1 mb-0.5 md:mb-0.5 w-full">
-                  <span 
-                    className={cn(
-                      "text-[6px] md:text-[8px] font-black uppercase tracking-widest md:tracking-[0.1em] transition-colors duration-300",
-                      isActive ? "text-blue-600" : isCompleted ? "text-slate-500" : "text-slate-400"
-                    )}
-                  >
-                    PHASE {step.id}
-                  </span>
-                  {isActive && <motion.div animate={{ scale: [1, 1.2, 1] }} transition={{ repeat: Infinity }} className="w-1 h-1 md:w-1 md:h-1 bg-blue-600 rounded-full flex-shrink-0" />}
+              {isFuture ? (
+                /* Future Step - Simple Dot */
+                <div className="pt-3.5 md:pt-4.5">
+                  <div className="w-2.5 h-2.5 md:w-3.5 md:h-3.5 rounded-full bg-slate-200 dark:bg-slate-800 border-2 border-slate-300 dark:border-slate-700 shadow-sm" />
                 </div>
-                <span 
+              ) : (
+                /* Active or Completed Step - Icon Box */
+                <motion.div 
+                  initial={false}
+                  animate={{ 
+                    scale: isActive ? 1.15 : 1,
+                    y: isActive ? -2 : 0,
+                  }}
                   className={cn(
-                    "text-[8px] md:text-[10px] font-black transition-all duration-300 italic tracking-tight leading-tight line-clamp-2 min-h-[2.2em]",
-                    isActive 
-                      ? "text-slate-900 dark:text-white" 
-                      : isCompleted 
-                        ? "text-slate-600 dark:text-slate-400"
-                        : "text-slate-400"
+                    "w-8 h-8 md:w-12 md:h-12 rounded-xl md:rounded-2xl flex items-center justify-center transition-all duration-500 border md:border-2 shadow-md md:shadow-xl relative overflow-hidden",
+                    isCompleted 
+                      ? (isPremium ? "bg-blue-600 border-blue-500 text-white shadow-blue-500/30" : "bg-blue-500 border-blue-500 text-white")
+                      : "bg-white dark:bg-slate-900 border-blue-600 text-blue-600 shadow-[0_15px_40px_rgba(37,99,235,0.4)]"
                   )}
                 >
-                  {step.label}
+                  {isCompleted ? (
+                    <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}>
+                      <Check className="w-4 h-4 md:w-6 md:h-6" strokeWidth={3} />
+                    </motion.div>
+                  ) : (
+                    <Icon className={cn("w-4 h-4 md:w-6 md:h-6", isActive && "animate-pulse")} />
+                  )}
+                </motion.div>
+              )}
+              
+              {/* Labels Container */}
+              <div className="absolute top-10 md:top-16 flex flex-col items-center text-center w-[80px] md:w-[120px] pointer-events-none">
+                <span 
+                  className={cn(
+                    "text-[6px] md:text-[8px] font-black uppercase tracking-widest transition-all duration-300",
+                    isActive ? "text-blue-600 scale-110" : isCompleted ? "text-slate-500" : "text-slate-400 opacity-50"
+                  )}
+                >
+                  PHASE {step.id}
                 </span>
                 
-                {/* Date/Status Info */}
                 <AnimatePresence>
-                  {(isActive || isCompleted) && step.date && (
+                  {isActive && (
                     <motion.span 
                       initial={{ opacity: 0, y: 5 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="mt-0.5 md:mt-1 text-[6px] md:text-[8px] font-bold text-slate-400 bg-slate-100 dark:bg-white/5 px-1 md:px-2 py-[1px] md:py-0.5 rounded-full uppercase tracking-widest truncate max-w-full"
+                      exit={{ opacity: 0, y: -5 }}
+                      className="mt-1 text-[8px] md:text-[11px] font-black text-slate-900 dark:text-white italic leading-tight break-words px-1"
                     >
-                      {step.date}
+                      {step.label}
                     </motion.span>
                   )}
                 </AnimatePresence>
+
+                {/* Status Dot for Future */}
+                {!isActive && isFuture && (
+                  <div className="w-1 h-1 bg-slate-300 dark:bg-slate-700 rounded-full mt-2 opacity-50" />
+                )}
               </div>
             </div>
           );

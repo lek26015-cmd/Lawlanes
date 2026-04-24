@@ -65,7 +65,7 @@ export default function ArticleClient({ initialArticle, slug }: ArticleClientPro
     return (
         <div className="bg-white">
             <div className="container mx-auto px-4 md:px-6 py-12">
-                <div className="max-w-7xl mx-auto">
+                <div className="max-w-6xl mx-auto">
                     <Link href="/articles" className="text-sm text-foreground/80 hover:text-foreground mb-6 inline-flex items-center gap-2">
                         <ArrowLeft className="w-4 h-4" /> {t('viewAll')}
                     </Link>

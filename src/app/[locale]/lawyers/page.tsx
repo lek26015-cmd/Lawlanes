@@ -160,7 +160,7 @@ function LawyersPageContent() {
   const isAiSearch = !!(matchIds || specialties);
 
   return (
-    <div className="container mx-auto px-4 md:px-6 py-12">
+    <div className="max-w-6xl mx-auto px-4 md:px-6 py-12">
       <div className="text-center mb-8">
         {isAiSearch ? (
           <div>
