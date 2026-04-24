@@ -53,7 +53,7 @@ import {
     DrawerTrigger,
 } from "@/components/ui/drawer";
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, FileText, Check, Upload, Scale, Ticket, Briefcase, User as UserIcon, DollarSign, ArrowLeft, Plus, Sparkles, BrainCircuit, Globe, ArrowRight, CheckCircle2, Loader2, Image as ImageIcon, Trash2, ShieldAlert, ExternalLink } from 'lucide-react';
+import { AlertTriangle, FileText, Check, Upload, Scale, Ticket, Briefcase, User as UserIcon, DollarSign, ArrowLeft, Plus, Sparkles, BrainCircuit, Globe, ArrowRight, CheckCircle2, Loader2, Image as ImageIcon, Trash2, ShieldAlert, ExternalLink, ScrollText } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
