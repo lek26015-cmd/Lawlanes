@@ -23,45 +23,41 @@ export default function ClientLayout({
   const { firestore } = useFirebase();
   const { user } = useAuthUser();
   const [userRole, setUserRole] = useState<string | null>(null);
-  const [isMounted, setIsMounted] = useState(false);
+  // Synchronously detect the domain type from the pathname
+  const getDetectedType = (path: string, hostName?: string) => {
+    if (hostName?.includes('admin.') || path.includes('/admin')) return 'admin';
+    if (hostName?.includes('business.') || path.includes('/b2b')) return 'business';
+    if (hostName?.includes('lawyer.') || path.includes('/lawyer-dashboard')) return 'lawyer';
+    return 'main';
+  };
+
+  const initialType = getDetectedType(pathname, typeof window !== 'undefined' ? window.location.hostname : undefined);
+  const [activeDomainType, setActiveDomainType] = useState<'main' | 'admin' | 'business' | 'lawyer'>(initialType);
 
   // Fix Radix UI hydration mismatch by waiting for client mount
   useEffect(() => {
     setIsMounted(true);
   }, []);
 
-
-  // Check if we are in a dashboard or admin page to hide the public header/footer
-  // Handle localized paths (e.g., /th/dashboard, /en/admin)
-  // Also handle subdomains (admin.*, business.*)
-  const [isLoading, setIsLoading] = useState(true);
-  const [activeDomainType, setActiveDomainType] = useState<'main' | 'admin' | 'business' | 'lawyer'>(domainType as any);
-
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const host = window.location.hostname;
-      let detectedType: any = 'main';
-      if (host.includes('admin.') || pathname.includes('/admin')) detectedType = 'admin';
-      else if (host.includes('business.') || pathname.includes('/b2b')) detectedType = 'business';
-      else if (host.includes('lawyer.') || pathname.includes('/lawyer-dashboard')) detectedType = 'lawyer';
-
-      if (detectedType !== activeDomainType) {
-        setActiveDomainType(detectedType);
-      }
-      setIsLoading(false);
+    const currentType = getDetectedType(pathname, window.location.hostname);
+    if (currentType !== activeDomainType) {
+      setActiveDomainType(currentType);
     }
-  }, [domainType, activeDomainType]);
+  }, [pathname, activeDomainType]);
+
+  const isLawyerPage = activeDomainType === 'lawyer' || pathname.includes('/lawyer-dashboard');
 
   const isDashboardPage =
-    (activeDomainType === 'admin') ||
-    (activeDomainType === 'business') || // Hide global header/footer for all business subdomain pages
-    (activeDomainType === 'lawyer') || // Hide global header/footer for lawyer dashboard
-    pathname.includes('/b2b') || // Hide global header/footer for B2B landing page
-    pathname.includes('/rag-status') || // Hide for RAG status dashboard
-    pathname.match(/^\/(th|en|zh)?\/admin/) ||
-    pathname.match(/^\/(th|en|zh)?\/lawyer-dashboard/);
+    isLawyerPage ||
+    activeDomainType === 'admin' ||
+    activeDomainType === 'business' ||
+    pathname.includes('/admin') ||
+    pathname.includes('/b2b') ||
+    pathname.includes('/rag-status');
 
-  if (isDashboardPage && activeDomainType !== 'lawyer') {
+  // Early return for non-lawyer dashboards (Admin, Business)
+  if (isDashboardPage && !isLawyerPage) {
     return <>{children}</>;
   }
 
@@ -70,9 +66,9 @@ export default function ClientLayout({
   return (
     <>
       <div className="flex min-h-screen flex-col">
-        {(activeDomainType === 'lawyer' || !isDashboardPage) && <Header setUserRole={setUserRole} domainType={activeDomainType} />}
+        {(isLawyerPage || !isDashboardPage) && <Header setUserRole={setUserRole} domainType={activeDomainType} />}
         <main className="flex-grow">{children}</main>
-        {(activeDomainType === 'lawyer' || !isDashboardPage) && <Footer userRole={userRole} domainType={activeDomainType} />}
+        {(isLawyerPage || !isDashboardPage) && <Footer userRole={userRole} domainType={activeDomainType} />}
       </div>
       {isMounted && !isDashboardPage && !isChatPage && <FloatingChatButton />}
       {isMounted && !isDashboardPage && !isChatPage && <ChatModal />}
