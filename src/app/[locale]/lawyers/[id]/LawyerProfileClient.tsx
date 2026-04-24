@@ -401,7 +401,7 @@ export default function LawyerProfileClient({ initialLawyer, id }: LawyerProfile
 
             {/* Free Chat Initial Message Modal */}
             <Dialog open={isMessageModalOpen} onOpenChange={setIsMessageModalOpen}>
-                <DialogContent className="sm:max-w-[550px] p-0 overflow-hidden flex flex-col h-[100dvh] sm:h-auto sm:max-h-[90vh] sm:rounded-[2rem] border-none">
+                <DialogContent className="sm:max-w-[550px] p-0 overflow-hidden flex flex-col h-[100dvh] sm:h-auto sm:max-h-[90vh] sm:rounded-[2rem] border-none z-[150] pt-14 sm:pt-0">
                     <div className="relative">
                         <div className="absolute inset-0 bg-gradient-to-br from-primary/10 via-transparent to-transparent pointer-events-none" />
                         <div className="p-6 pb-4 sm:p-8 sm:pb-6 relative z-10">
