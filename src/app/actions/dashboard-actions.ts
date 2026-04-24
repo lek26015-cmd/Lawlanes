@@ -82,6 +82,15 @@ export async function getUserDashboardData(userId: string) {
             const amount = data.amount || 0;
             const isOfficial = amount > 0 || (data.installments && data.installments.length > 0);
 
+            // Online status calculation
+            const ACTIVE_THRESHOLD_MS = 120 * 1000;
+            const now = Date.now();
+            
+            // Try to find presence info from various fields (lawyerLastSeenAt or global lastActive if we had it)
+            // For now, use lawyerLastSeenAt which is updated by the heartbeat in ChatBox
+            const lawyerLastSeenAt = data.lawyerLastSeenAt?.toDate()?.getTime() || 0;
+            const isOnline = (now - lawyerLastSeenAt) < ACTIVE_THRESHOLD_MS;
+
             cases.push({
                 id: d.id,
                 title: data.caseTitle || '',
@@ -94,7 +103,8 @@ export async function getUserDashboardData(userId: string) {
                 amount: amount,
                 isOfficial: isOfficial,
                 hasNewMessage: data.hasNewMessage || false,
-                isWaitingVerification: data.status === 'pending_payment' && !!data.paymentSlipUrl
+                isWaitingVerification: data.status === 'pending_payment' && !!data.paymentSlipUrl,
+                isOnline: isOnline
             });
         }
 
@@ -402,6 +412,18 @@ export async function getLawyerDashboardDataAction(lawyerId: string): Promise<{ 
             const amount = chatData.amount || 0;
             const isOfficial = amount > 0 || (chatData.installments && chatData.installments.length > 0);
 
+            // Online status calculation
+            const ACTIVE_THRESHOLD_MS = 120 * 1000;
+            const now = Date.now();
+            
+            // Check global presence from users collection first (best for "on website")
+            const globalLastActiveAt = userProfiles[clientParticipantId]?.lastActive?.toDate()?.getTime() || 0;
+            // Fallback to chat-specific presence
+            const chatLastSeenAt = chatData.clientLastSeenAt?.toDate()?.getTime() || 0;
+            
+            const lastSeenAt = Math.max(globalLastActiveAt, chatLastSeenAt);
+            const isOnline = (now - lastSeenAt) < ACTIVE_THRESHOLD_MS;
+
             return {
                 id: d.id,
                 title: chatData.caseTitle || 'Unknown Case',
@@ -415,7 +437,8 @@ export async function getLawyerDashboardDataAction(lawyerId: string): Promise<{ 
                 amount: amount,
                 isOfficial: isOfficial,
                 isWaitingVerification: chatData.status === 'pending_payment' && !!chatData.paymentSlipUrl,
-                clientImageUrl: userProfiles[clientParticipantId]?.avatar || userProfiles[clientParticipantId]?.imageUrl || ''
+                clientImageUrl: userProfiles[clientParticipantId]?.avatar || userProfiles[clientParticipantId]?.imageUrl || '',
+                isOnline: isOnline
             };
         });
 
@@ -492,6 +515,7 @@ export async function getAdminLawyerDashboardDataAction(): Promise<{ newRequests
                 status: chatData.status,
                 lastUpdate: lastUpdateDate.toLocaleDateString('th-TH') || 'N/A',
                 updatedAt: lastUpdateDate,
+                isOnline: (Date.now() - (userProfiles[clientParticipantId]?.lastActive?.toDate()?.getTime() || 0)) < (120 * 1000)
             };
         });
 

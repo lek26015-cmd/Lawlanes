@@ -359,6 +359,7 @@ export default function LawyerDashboardPage() {
                             type={caseItem.isOfficial ? 'case' : 'preliminary'}
                             href={`/chat/${caseItem.id}?lawyerId=${user.uid}&clientId=${caseItem.clientId}&view=lawyer`}
                             isLawyerView={true}
+                            isOnline={caseItem.isOnline}
                           />
                         ))}
                       </div>
@@ -384,6 +385,7 @@ export default function LawyerDashboardPage() {
                             href={`/chat/${caseItem.id}?lawyerId=${user.uid}&clientId=${caseItem.clientId}&view=lawyer&status=closed`}
                             isLawyerView={true}
                             className="opacity-70 grayscale-[0.5]"
+                            isOnline={caseItem.isOnline}
                           />
                         ))}
                       </div>

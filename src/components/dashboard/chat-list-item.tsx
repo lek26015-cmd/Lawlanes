@@ -36,7 +36,8 @@ export function ChatListItem({
   href,
   isLawyerView = false,
   className,
-}: ChatListItemProps) {
+  isOnline = false,
+}: ChatListItemProps & { isOnline?: boolean }) {
   const date = typeof updatedAt === 'string' ? new Date(updatedAt) : updatedAt;
   
   const formatChatTime = (date: Date) => {
@@ -118,7 +119,7 @@ export function ChatListItem({
           {/* Status indicator dot */}
           <div className={cn(
             "absolute bottom-0 right-0 h-5 w-5 rounded-full border-[3px] border-white shadow-sm transition-transform duration-500 group-hover:scale-110",
-            status === 'closed' ? "bg-slate-300" : "bg-green-500"
+            isOnline ? "bg-green-500 animate-pulse" : (status === 'closed' ? "bg-slate-300" : "bg-slate-200")
           )} />
         </div>
 

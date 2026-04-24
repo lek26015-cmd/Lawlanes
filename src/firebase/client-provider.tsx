@@ -90,6 +90,38 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
     return () => unsubscribe(); // Cleanup
   }, [firebaseServices.auth]);
 
+  // Global Presence Heartbeat
+  useEffect(() => {
+    const { user } = userAuthState;
+    const { firestore } = firebaseServices;
+    if (!user || !firestore) return;
+
+    const updatePresence = async () => {
+      // Only update if tab is visible to be efficient
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
+      
+      try {
+        const { doc, updateDoc, serverTimestamp } = await import('firebase/firestore');
+        const userRef = doc(firestore, 'users', user.uid);
+        await updateDoc(userRef, {
+          lastActive: serverTimestamp()
+        }).catch(async (e) => {
+          // If document doesn't exist yet (rare but possible during first login), ignore or handle
+        });
+      } catch (err) {
+        // Silently fail for heartbeat
+      }
+    };
+
+    // Initial update
+    updatePresence();
+    
+    // Periodic update every 60 seconds
+    const interval = setInterval(updatePresence, 60 * 1000);
+    
+    return () => clearInterval(interval);
+  }, [userAuthState.user, firebaseServices.firestore]);
+
   return (
     <FirebaseProvider
       firebaseApp={firebaseServices.firebaseApp}

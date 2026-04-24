@@ -148,6 +148,7 @@ export interface Case {
   amount?: number;
   isOfficial?: boolean;
   isWaitingVerification?: boolean;
+  isOnline?: boolean;
 }
 
 export interface UpcomingAppointment {
@@ -202,6 +203,7 @@ export interface LawyerCase {
   amount?: number;
   isOfficial?: boolean;
   isWaitingVerification?: boolean;
+  isOnline?: boolean;
   clientImageUrl?: string;
   updatedAt: Date;
 }

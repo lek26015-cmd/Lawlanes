@@ -145,6 +145,7 @@ export default function DashboardPage() {
                                                 status={caseItem.isWaitingVerification ? 'pending_verification' : caseItem.status}
                                                 type={caseItem.isOfficial ? 'case' : 'preliminary'}
                                                 href={`/${locale}/chat/${caseItem.id}?lawyerId=${caseItem.lawyer.id}`}
+                                                isOnline={caseItem.isOnline}
                                             />
                                         ))}
                                 </div>
@@ -181,6 +182,7 @@ export default function DashboardPage() {
                                                 type={caseItem.isOfficial ? 'case' : 'preliminary'}
                                                 href={`/${locale}/chat/${caseItem.id}?lawyerId=${caseItem.lawyer.id}&status=closed`}
                                                 className="opacity-70 grayscale-[0.5]"
+                                                isOnline={caseItem.isOnline}
                                             />
                                         ))}
                                     </div>
