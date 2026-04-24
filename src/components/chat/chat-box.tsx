@@ -15,7 +15,7 @@ import type { HumanChatMessage } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, Loader2, Sparkles, Languages, AlertTriangle, RefreshCcw, Check, CheckCheck, CreditCard, ImageIcon, FileIcon, Maximize2, ExternalLink, Plus, Paperclip } from 'lucide-react';
+import { Send, Loader2, Sparkles, Languages, AlertTriangle, RefreshCcw, Check, CheckCheck, CreditCard, ImageIcon, FileIcon, Maximize2, ExternalLink, Plus, Paperclip, ChevronLeft } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getCloudflareVariantUrl } from '@/lib/cloudflare-images';
@@ -43,6 +43,9 @@ interface ChatBoxProps {
   isLawyerView?: boolean;
   isUploading?: boolean;
   onFileUpload?: (file: File) => void;
+  actions?: React.ReactNode;
+  onBack?: () => void;
+  showBackOnMobile?: boolean;
 }
 
 interface MessageWithStatus extends HumanChatMessage {
@@ -60,6 +63,9 @@ function ChatBoxContent({
   isLawyerView = false,
   isUploading = false,
   onFileUpload,
+  actions,
+  onBack,
+  showBackOnMobile = true
 }: ChatBoxProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { 
@@ -196,7 +202,7 @@ function ChatBoxContent({
     }
     
     try {
-      const url = await getSecureDownloadUrl(file.url);
+      const url = await getSecureDownloadUrl(file.url, chatId);
       if (!url) return;
       
       const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(fileName);
@@ -239,58 +245,74 @@ function ChatBoxContent({
   const firstUserMessage = allMessages.find(m => m.senderId !== (isLawyerView ? currentUser.uid : otherUser.userId));
 
   return (
-    <Card className="flex flex-col h-full w-full max-w-full shadow-none border-none rounded-none overflow-hidden bg-white dark:bg-slate-900">
-      <CardHeader className="border-b bg-gray-50/50 py-2.5 md:py-4 px-3 md:px-6">
-        <div className="flex flex-row justify-between items-center gap-2 md:gap-4">
-          <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
-            <Avatar className="h-8 w-8 md:h-10 md:w-10 border-2 border-primary/10 flex-shrink-0">
+    <Card className="flex flex-col h-full w-full max-w-full min-w-0 shadow-none md:shadow-xl border-none md:border md:border-slate-200/50 dark:md:border-slate-800 rounded-none md:rounded-3xl overflow-hidden bg-white dark:bg-slate-900">
+      <style dangerouslySetInnerHTML={{ __html: `
+        @media (max-width: 768px) {
+          header { display: none !important; }
+        }
+      ` }} />
+      <CardHeader className="border-b bg-white dark:bg-slate-900 py-4 md:py-6 px-4 md:px-8 min-w-0 w-full overflow-hidden shadow-sm">
+        <div className="flex flex-row justify-between items-center gap-1 md:gap-4 min-w-0 w-full">
+          <div className="flex items-center gap-2 md:gap-4 flex-1 min-w-0">
+            {showBackOnMobile && onBack && (
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                className="md:hidden h-9 w-9 rounded-full mr-1 text-slate-500 hover:bg-slate-100"
+                onClick={onBack}
+              >
+                <ChevronLeft className="h-6 w-6" />
+              </Button>
+            )}
+            <Avatar className="h-8 w-8 md:h-12 md:w-12 border-2 border-primary/10 flex-shrink-0 shadow-sm">
                <AvatarImage src={getCloudflareVariantUrl(otherUser.imageUrl, 'avatar')} />
                <AvatarFallback className="bg-primary/5 text-primary font-bold">{otherUser.name.charAt(0)}</AvatarFallback>
             </Avatar>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1.5 md:gap-2">
-                <CardTitle className="text-sm md:text-base font-medium text-muted-foreground/80 truncate">
+            <div className="flex-1 min-w-0 overflow-hidden">
+              <div className="flex items-center gap-1 md:gap-2">
+                <CardTitle className="text-[9px] md:text-sm font-semibold text-muted-foreground/60 truncate uppercase tracking-wider block">
                   {(chatMetadata?.caseTitle || chatMetadata?.title || 'กำลังโหลด...').replace(/^Ticket\s+สนทนา:\s*/i, '')}
                 </CardTitle>
                 {isConnected ? (
-                  <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-green-500 animate-pulse flex-shrink-0" title="Connected" />
+                  <div className="w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-green-500 animate-pulse flex-shrink-0" title="Connected" />
                 ) : (
-                  <div className="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-gray-300 flex-shrink-0" title="Offline" />
+                  <div className="w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-gray-300 flex-shrink-0" title="Offline" />
                 )}
               </div>
-              <h2 className="text-base md:text-xl font-black text-slate-900 truncate leading-none mt-0.5">
+              <h2 className="text-sm md:text-xl font-black text-slate-900 dark:text-white truncate leading-tight mt-0.5 md:mt-1 max-w-[150px] md:max-w-none">
                 {otherUser.name}
               </h2>
-              <p className="text-[10px] md:text-xs font-bold text-blue-600 uppercase tracking-wider mt-1 opacity-80">
+              <p className="text-[10px] md:text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest mt-0.5 md:mt-1.5 opacity-80 truncate">
                 {isLawyerView ? "ลูกความ" : "ทนายความ"}
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
+          <div className="flex items-center gap-0.5 md:gap-2 flex-shrink-0">
              {isLawyerView && <QuickReplies onSelect={(text) => { setInput(text); localStorage.setItem(`chat_draft_${chatId}`, text); }} />}
-             <CopyButton value={chatId} className="h-7 w-7 md:h-8 md:w-8 rounded-lg md:rounded-xl" />
+             <CopyButton value={chatId} className="h-7 w-7 md:h-10 md:w-10 rounded-lg md:rounded-2xl" />
+             {actions}
           </div>
         </div>
       </CardHeader>
 
-      <CardContent className="flex-grow p-0 flex flex-col min-h-0 bg-slate-50/30 overflow-x-hidden">
-        <ScrollArea className="flex-grow w-full" ref={scrollAreaRef}>
-          <div className="space-y-6 px-4 py-4 md:px-6 md:py-6 max-w-full overflow-x-hidden">
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 flex items-start gap-3 text-amber-900 text-xs md:text-sm max-w-full">
-              <AlertTriangle className="w-5 h-5 flex-shrink-0 text-amber-600" />
-              <p className="break-words">คำเตือน: ห้ามโอนเงินนอกระบบ Lawlanes เพื่อความปลอดภัยของข้อมูลและเงินของคุณ</p>
+      <CardContent className="flex-grow p-0 flex flex-col min-h-0 min-w-0 bg-slate-50/30 dark:bg-slate-950/30 overflow-hidden">
+        <ScrollArea className="flex-grow w-full min-w-0" viewportClassName="overflow-x-hidden" ref={scrollAreaRef}>
+          <div className="space-y-6 md:space-y-8 pl-3 pr-4 py-4 md:pl-8 md:pr-12 md:py-8 w-full max-w-full overflow-x-hidden flex flex-col min-w-0">
+            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl md:rounded-2xl p-3 md:p-4 flex items-start gap-2 md:gap-3 text-amber-900 dark:text-amber-200 text-[10px] md:text-sm max-w-full min-w-0 shadow-sm">
+              <AlertTriangle className="w-4 h-4 md:w-5 md:h-5 flex-shrink-0 text-amber-600" />
+              <p className="break-words [overflow-wrap:anywhere] [word-break:break-word] min-w-0">ห้ามโอนเงินนอกระบบ Lawlanes เพื่อความปลอดภัยของคุณ</p>
             </div>
 
-            <div className="flex items-start gap-3 max-w-full">
-              <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
-                <Sparkles className="w-4 h-4" />
+            <div className="flex items-start gap-3 md:gap-4 max-w-full min-w-0">
+              <div className="flex-shrink-0 w-8 h-8 md:w-10 md:h-10 rounded-xl md:rounded-2xl bg-primary/10 text-primary flex items-center justify-center shadow-sm">
+                <Sparkles className="w-4 h-4 md:w-5 md:h-5" />
               </div>
               <div className="flex-1 min-w-0 max-w-[85%]">
-                <div className="p-4 rounded-lg bg-white border border-gray-100 shadow-sm overflow-hidden">
-                  <p className="font-bold text-xs text-primary uppercase tracking-wider mb-1">
+                <div className="p-4 md:p-5 rounded-2xl md:rounded-3xl rounded-tl-sm bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 shadow-sm overflow-hidden min-w-0">
+                  <p className="font-bold text-[9px] text-primary uppercase tracking-widest mb-1 md:mb-1.5 opacity-70">
                     {isLawyerView ? "AI: สรุปข้อความเบื้องต้น" : "ข้อมูลที่คุณส่งให้ทนาย"}
                   </p>
-                  <p className="text-sm text-gray-700 italic break-words">
+                  <p className="text-xs md:text-base text-gray-700 dark:text-gray-300 italic leading-relaxed break-words [overflow-wrap:anywhere] [word-break:break-word] min-w-0">
                     {firstUserMessage ? `"${firstUserMessage.text}"` : "กำลังรอข้อมูล..."}
                   </p>
                 </div>
@@ -304,12 +326,12 @@ function ChatBoxContent({
               const isFileUpload = msg.text.includes('[อัปโหลดไฟล์]');
 
               return (
-                <div key={msg.id} className={cn("flex flex-col max-w-full", isOwn ? "items-end" : "items-start")}>
-                  <div className={cn("flex items-end gap-2 max-w-[90%] md:max-w-[80%]", isOwn ? "flex-row-reverse" : "flex-row")}>
+                <div key={msg.id} className={cn("flex flex-col w-full max-w-full min-w-0", isOwn ? "items-end" : "items-start")}>
+                  <div className={cn("flex items-end gap-2 md:gap-3 max-w-[75%] md:max-w-[75%] min-w-0 w-fit", isOwn ? "flex-row-reverse" : "flex-row")}>
                     {!isOwn && (
-                      <div className="w-8 h-8 flex-shrink-0">
+                      <div className="w-9 h-9 flex-shrink-0">
                         {showAvatar && (
-                          <Avatar className="h-8 w-8 border border-primary/10">
+                          <Avatar className="h-9 w-9 border-2 border-primary/5 shadow-sm">
                             <AvatarImage src={getCloudflareVariantUrl(otherUser.imageUrl, 'avatar')} />
                             <AvatarFallback>{otherUser.name.charAt(0)}</AvatarFallback>
                           </Avatar>
@@ -317,34 +339,34 @@ function ChatBoxContent({
                       </div>
                     )}
                     <div className={cn("flex flex-col min-w-0", isOwn ? "items-end" : "items-start")}>
-                      {showAvatar && !isOwn && <span className="text-[10px] text-muted-foreground ml-1 mb-1">{otherUser.name}</span>}
+                      {showAvatar && !isOwn && <span className="text-[10px] font-bold text-muted-foreground/60 ml-2 mb-1.5 truncate max-w-full block uppercase tracking-wider">{otherUser.name}</span>}
                       {(() => {
                         const isPayment = msg.text.includes('💳');
                         return (
                           <div 
                             className={cn(
-                              "relative group transition-all duration-300 min-w-0",
-                              isFileUpload ? "rounded-2xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm cursor-pointer hover:shadow-md" : 
-                              isPayment ? "rounded-2xl border-2 border-blue-500 bg-blue-50 dark:bg-blue-900/20 overflow-hidden shadow-lg shadow-blue-500/10" :
+                              "relative group transition-all duration-300 min-w-0 overflow-hidden",
+                              isFileUpload ? "rounded-3xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm cursor-pointer hover:shadow-md" : 
+                              isPayment ? "rounded-[2rem] border-2 border-blue-500 bg-blue-50 dark:bg-blue-900/20 overflow-hidden shadow-lg shadow-blue-500/10" :
                               isOwn 
-                                ? "bg-blue-600 text-white rounded-2xl rounded-tr-sm shadow-sm" 
-                                : "bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-100 dark:border-slate-700 rounded-2xl rounded-tl-sm shadow-sm",
-                              !isFileUpload && "px-4 py-2.5"
+                                ? "bg-blue-600 text-white rounded-[2rem] rounded-tr-sm shadow-md" 
+                                : "bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-100 dark:border-slate-700 rounded-[2rem] rounded-tl-sm shadow-sm",
+                              !isFileUpload && "px-5 py-3 md:px-6 md:py-3.5"
                             )}
-                            onClick={() => isFileUpload && handleViewFile(msg.metadata?.fileUrl || msg.text, msg.metadata?.fileName || 'file')}
+                            onClick={() => isFileUpload && handleFileClick(msg)}
                           >
                             {isPayment ? (
                                 <div className="flex flex-col min-w-0">
-                                    <div className="p-3 bg-blue-600 text-white flex items-center gap-2">
-                                        <div className="p-1.5 bg-white/20 rounded-lg">
-                                            <CreditCard className="w-4 h-4" />
+                                    <div className="p-4 bg-blue-600 text-white flex items-center gap-3">
+                                        <div className="p-2 bg-white/20 rounded-xl">
+                                            <CreditCard className="w-5 h-5" />
                                         </div>
                                         <span className="text-xs font-black uppercase tracking-widest">Payment Request</span>
                                     </div>
-                                    <div className="p-4 bg-white space-y-3 min-w-0">
-                                        <p className="text-xs text-slate-600 whitespace-pre-wrap break-words line-clamp-4">{msg.text}</p>
+                                    <div className="p-5 bg-white dark:bg-slate-900 space-y-4 min-w-0">
+                                        <p className="text-sm text-slate-600 dark:text-slate-400 whitespace-pre-wrap break-words leading-relaxed">{msg.text}</p>
                                         <Button 
-                                           className="w-full h-9 bg-blue-600 hover:bg-blue-700 font-bold rounded-2xl shadow-md text-xs" 
+                                           className="w-full h-11 bg-blue-600 hover:bg-blue-700 font-bold rounded-2xl shadow-md text-sm" 
                                            asChild
                                         >
                                            <a href={`/payment?chatId=${chatId}&type=${msg.text.includes('ค่าบริการ') ? 'consultation' : 'case'}`} target="_blank" rel="noopener noreferrer">
@@ -355,24 +377,24 @@ function ChatBoxContent({
                                 </div>
                             ) : (
                                isFileUpload ? (
-                                 <div className="flex items-center gap-3 p-3 min-w-0 max-w-full">
-                                   <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-md flex-shrink-0">
-                                     <FileIcon className="w-5 h-5" />
+                                 <div className="flex items-center gap-4 p-4 min-w-0 max-w-full overflow-hidden">
+                                   <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center shadow-lg flex-shrink-0">
+                                     <FileIcon className="w-6 h-6" />
                                    </div>
-                                   <div className="flex-1 min-w-0">
-                                     <p className="text-[10px] text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wider mb-0.5 truncate">เอกสารใหม่</p>
-                                     <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
+                                   <div className="flex-1 min-w-0 overflow-hidden">
+                                     <p className="text-[10px] text-blue-600 dark:text-blue-400 font-black uppercase tracking-widest mb-1">เอกสารใหม่</p>
+                                     <p className="text-sm font-bold text-slate-900 dark:text-white break-words [overflow-wrap:anywhere] [word-break:break-all] leading-snug">
                                        {msg.metadata?.fileName || msg.text.replace('[อัปโหลดไฟล์]', '').trim()}
                                      </p>
-                                     <div className="flex items-center gap-2 mt-1">
-                                       <span className="text-[10px] text-blue-500 flex items-center gap-1 whitespace-nowrap">
-                                         <Maximize2 className="w-3 h-3" /> คลิกเพื่อดูตัวอย่าง
+                                     <div className="flex items-center gap-2 mt-1.5">
+                                       <span className="text-[10px] font-bold text-blue-500 flex items-center gap-1 whitespace-nowrap">
+                                         <Maximize2 className="w-3.5 h-3.5" /> คลิกเพื่อดูตัวอย่าง
                                        </span>
                                      </div>
                                    </div>
                                  </div>
                                ) : (
-                                 <p className="text-sm md:text-base whitespace-pre-wrap break-words overflow-hidden">{msg.text}</p>
+                                 <p className="text-sm md:text-[1.05rem] leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:break-word] overflow-hidden min-w-0">{msg.text}</p>
                                )
                             )}
                           </div>
@@ -380,7 +402,7 @@ function ChatBoxContent({
                       })()}
                       
                       {msg.status === 'error' && (
-                        <button onClick={() => retryMessage(msg)} className="text-[10px] text-red-500 flex items-center gap-1 mt-1 hover:underline">
+                        <button onClick={() => retryMessage(msg)} className="text-[10px] font-bold text-red-500 flex items-center gap-1 mt-1.5 hover:underline">
                           <RefreshCcw className="w-3 h-3" /> ส่งไม่สำเร็จ คลิกเพื่อลองใหม่
                         </button>
                       )}
@@ -388,7 +410,7 @@ function ChatBoxContent({
                       {!isOwn && (
                         <button 
                           onClick={() => handleTranslateMessage(msg.id, msg.text)}
-                          className="text-[10px] text-primary hover:underline flex items-center gap-1 mt-0.5"
+                          className="text-[10px] font-bold text-primary/60 hover:text-primary hover:underline flex items-center gap-1.5 mt-1.5 transition-colors"
                         >
                           {msg.isTranslating ? <Loader2 className="w-3 h-3 animate-spin"/> : <Languages className="w-3 h-3"/>}
                           {msg.translation ? 'แปลซ้ำ' : 'แปลภาษา'}
@@ -396,22 +418,22 @@ function ChatBoxContent({
                       )}
                       
                       {msg.translation && !isOwn && (
-                        <div className="mt-1 p-2 rounded-lg bg-primary/5 border border-primary/10 text-[11px] text-primary/80 italic">
+                        <div className="mt-2 p-3 rounded-2xl bg-primary/5 border border-primary/10 text-[11px] md:text-xs text-primary/80 italic leading-relaxed">
                            {msg.translation}
                         </div>
                       )}
                     </div>
                   </div>
                   {isOwn && isLastMsg && (
-                    <div className="mt-1 mr-2 flex items-center gap-1 text-[10px] text-muted-foreground">
+                    <div className="mt-1.5 mr-3 flex items-center gap-1 text-[10px] font-bold text-muted-foreground/60 uppercase tracking-widest">
                        {isLawyerView ? (
                          chatMetadata?.clientReadAt ? (
-                           <span className="text-green-600 flex items-center gap-0.5"><CheckCheck className="w-3 h-3"/> อ่านแล้ว</span>
-                         ) : <Check className="w-3 h-3"/>
+                           <span className="text-green-600 flex items-center gap-1"><CheckCheck className="w-3.5 h-3.5"/> อ่านแล้ว</span>
+                         ) : <Check className="w-3.5 h-3.5"/>
                        ) : (
                          chatMetadata?.lawyerReadAt ? (
-                           <span className="text-green-600 flex items-center gap-0.5"><CheckCheck className="w-3 h-3"/> ทนายอ่านแล้ว</span>
-                         ) : <Check className="w-3 h-3"/>
+                           <span className="text-green-600 flex items-center gap-1"><CheckCheck className="w-3.5 h-3.5"/> ทนายอ่านแล้ว</span>
+                         ) : <Check className="w-3.5 h-3.5"/>
                        )}
                     </div>
                   )}
@@ -420,32 +442,32 @@ function ChatBoxContent({
             })}
 
             {isPartnerTyping && (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground animate-pulse ml-10">
-                <div className="flex gap-1">
-                  <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0ms'}}/>
-                  <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '150ms'}}/>
-                  <span className="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '300ms'}}/>
+              <div className="flex items-center gap-3 text-xs font-bold text-muted-foreground/60 animate-pulse ml-12 uppercase tracking-widest">
+                <div className="flex gap-1.5">
+                  <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '0ms'}}/>
+                  <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '150ms'}}/>
+                  <span className="w-1.5 h-1.5 bg-blue-400 rounded-full animate-bounce" style={{animationDelay: '300ms'}}/>
                 </div>
-                <span>{otherUser.name} กำลังพิมพ์...</span>
+                <span className="truncate">{otherUser.name} กำลังพิมพ์...</span>
               </div>
             )}
 
             {isUploading && (
-              <div className="flex items-center gap-2 text-xs text-blue-600 animate-pulse ml-10">
-                <Loader2 className="w-3 h-3 animate-spin" />
-                <span className="font-medium">กำลังส่งไฟล์...</span>
+              <div className="flex items-center gap-3 text-xs font-bold text-blue-600 animate-pulse ml-12 uppercase tracking-widest">
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>กำลังส่งไฟล์...</span>
               </div>
             )}
           </div>
         </ScrollArea>
       </CardContent>
 
-      <CardFooter className="px-4 py-3 md:px-6 md:py-4 border-t bg-white">
+      <CardFooter className="px-4 py-4 md:px-8 md:py-6 border-t bg-white dark:bg-slate-900 w-full min-w-0">
         <form 
           onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }} 
-          className="flex items-center w-full gap-2"
+          className="flex items-center w-full gap-3 min-w-0"
         >
-          <div className="relative flex-grow flex items-center gap-2">
+          <div className="relative flex-grow flex items-center gap-3 min-w-0">
             {!isDisabled && onFileUpload && (
               <>
                 <input
@@ -464,11 +486,11 @@ function ChatBoxContent({
                   type="button"
                   variant="ghost"
                   size="icon"
-                  className="rounded-xl hover:bg-slate-100 text-slate-500 h-11 w-11 flex-shrink-0"
+                  className="rounded-2xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-500 h-12 w-12 flex-shrink-0 transition-colors"
                   onClick={() => fileInputRef.current?.click()}
                   disabled={isUploading || isSocketLoading}
                 >
-                  <Paperclip className="w-5 h-5" />
+                  <Paperclip className="w-6 h-6" />
                 </Button>
               </>
             )}
@@ -477,16 +499,16 @@ function ChatBoxContent({
               onChange={handleInputChange}
               placeholder={isDisabled ? "การสนทนานี้สิ้นสุดแล้ว" : "พิมพ์ข้อความที่นี่..."}
               disabled={isSocketLoading || isDisabled}
-              className="rounded-xl bg-gray-50 border-none h-11 focus-visible:ring-primary shadow-inner"
+              className="rounded-2xl bg-gray-50 dark:bg-slate-800 border-none h-12 md:h-14 px-6 focus-visible:ring-2 focus-visible:ring-primary shadow-inner w-full min-w-0 text-base"
             />
           </div>
           <Button
             type="submit"
             size="icon"
             disabled={isSocketLoading || !input.trim() || isDisabled}
-            className="rounded-lg w-11 h-11 bg-primary hover:bg-primary/90 shadow-md transition-all active:scale-95"
+            className="rounded-2xl w-12 h-12 md:w-14 md:h-14 bg-blue-600 hover:bg-blue-700 shadow-lg shadow-blue-600/20 transition-all active:scale-95 flex-shrink-0"
           >
-            <Send className="w-5 h-5" />
+            <Send className="w-6 h-6" />
           </Button>
         </form>
       </CardFooter>
@@ -510,13 +532,14 @@ function ChatBoxContent({
               </Button>
             </div>
           </DialogHeader>
-          <div className="flex-1 bg-slate-900 flex items-center justify-center overflow-hidden">
-            {previewFile?.url && (
-              <img 
-                src={previewFile.url} 
-                alt={previewFile.name} 
-                className="max-w-full max-h-full object-contain shadow-2xl animate-in zoom-in-95 duration-300"
-              />
+          <div className="flex-1 bg-slate-900 flex items-center justify-center overflow-hidden relative min-h-[300px]">
+            {!previewFile?.url ? (
+              <div className="flex flex-col items-center gap-3 text-slate-500">
+                <Loader2 className="w-8 h-8 animate-spin" />
+                <p className="text-xs font-bold uppercase tracking-widest">กำลังดึงข้อมูลไฟล์...</p>
+              </div>
+            ) : (
+              <ImagePreviewContent url={previewFile.url} name={previewFile.name} />
             )}
           </div>
         </DialogContent>
@@ -530,5 +553,55 @@ export function ChatBox(props: ChatBoxProps) {
     <ErrorBoundary>
       <ChatBoxContent {...props} />
     </ErrorBoundary>
+  );
+}
+
+function ImagePreviewContent({ url, name }: { url: string, name: string }) {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  return (
+    <div className="relative w-full h-full flex items-center justify-center">
+      {loading && (
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-slate-500 z-10 bg-slate-900">
+          <Loader2 className="w-8 h-8 animate-spin" />
+          <p className="text-xs font-bold uppercase tracking-widest">กำลังโหลดรูปภาพ...</p>
+        </div>
+      )}
+      
+      {error ? (
+        <div className="flex flex-col items-center gap-4 text-red-400 p-8 text-center animate-in fade-in duration-500">
+          <div className="p-4 bg-red-400/10 rounded-3xl">
+            <AlertTriangle className="w-8 h-8" />
+          </div>
+          <div className="space-y-1">
+            <p className="font-black uppercase tracking-widest text-xs">ไม่สามารถโหลดรูปภาพได้</p>
+            <p className="text-[10px] opacity-60 font-medium max-w-[200px] break-all">{name}</p>
+          </div>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            className="mt-4 border-red-400/20 text-red-400 hover:bg-red-400/10 rounded-xl h-8"
+            onClick={() => window.open(url, '_blank')}
+          >
+            <ExternalLink className="w-3.5 h-3.5 mr-2" /> ลองเปิดในหน้าต่างใหม่
+          </Button>
+        </div>
+      ) : (
+        <img 
+          src={url} 
+          alt={name} 
+          className={cn(
+            "max-w-full max-h-full object-contain shadow-2xl transition-opacity duration-500",
+            loading ? "opacity-0" : "opacity-100"
+          )}
+          onLoad={() => setLoading(false)}
+          onError={() => {
+            setLoading(false);
+            setError(true);
+          }}
+        />
+      )}
+    </div>
   );
 }

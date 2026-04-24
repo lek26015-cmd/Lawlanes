@@ -113,15 +113,15 @@ export default function DashboardPage() {
     ];
 
     return (
-        <div className="bg-gray-100/50">
-            <div className="container mx-auto px-4 md:px-6 py-8">
+        <div className="bg-gray-100/50 min-h-screen">
+            <div className="max-w-6xl mx-auto px-0 md:px-6 py-0 md:py-8">
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
                     {/* Main Content */}
                     <div className="lg:col-span-2 space-y-6">
 
                         {/* Ongoing Cases */}
-                        <Card className="rounded-3xl shadow-sm border-none">
+                        <Card className="rounded-none md:rounded-3xl shadow-none md:shadow-sm border-none">
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2 font-bold">
                                     <Briefcase className="w-5 h-5" />
@@ -160,7 +160,7 @@ export default function DashboardPage() {
 
                         {/* Closed Cases */}
                         {closedCases.length > 0 && (
-                            <Card className="rounded-3xl shadow-sm border-none">
+                            <Card className="rounded-none md:rounded-3xl shadow-none md:shadow-sm border-none">
                                 <CardHeader>
                                     <CardTitle className="flex items-center gap-2 font-bold">
                                         <CheckCircle className="w-5 h-5 text-green-600" />
@@ -192,7 +192,7 @@ export default function DashboardPage() {
 
 
                         {/* Cap Deal - Recent Contracts */}
-                        <Card className="rounded-3xl shadow-sm border-none">
+                        <Card className="rounded-none md:rounded-3xl shadow-none md:shadow-sm border-none">
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2 font-bold">
                                     <FileSignature className="w-5 h-5" />
@@ -249,7 +249,7 @@ export default function DashboardPage() {
                         </Card>
 
                         {/* Book Orders Section */}
-                        <Card className="rounded-3xl shadow-sm border-none">
+                        <Card className="rounded-none md:rounded-3xl shadow-none md:shadow-sm border-none">
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2 font-bold">
                                     <FileText className="w-5 h-5" />
@@ -311,7 +311,7 @@ export default function DashboardPage() {
 
                     {/* Sidebar */}
                     <div className="lg:col-span-1 space-y-6">
-                        <Card className="rounded-3xl shadow-sm border-none">
+                        <Card className="rounded-none md:rounded-3xl shadow-none md:shadow-sm border-none">
                             <CardContent className="pt-6 flex flex-col items-center text-center">
                                 <Avatar className="w-20 h-20 mb-4">
                                     <AvatarImage src={user.photoURL || "https://picsum.photos/seed/user-avatar/100/100"} />
@@ -325,7 +325,7 @@ export default function DashboardPage() {
                             </CardContent>
                         </Card>
 
-                        <Card className="rounded-3xl shadow-sm border-none">
+                        <Card className="rounded-none md:rounded-3xl shadow-none md:shadow-sm border-none">
                             <CardHeader>
                                 <CardTitle className="font-bold">{t('quickServices')}</CardTitle>
                             </CardHeader>
@@ -342,7 +342,7 @@ export default function DashboardPage() {
 
                         {/* Reported Tickets */}
                         {tickets.length > 0 && (
-                            <Card className="rounded-3xl shadow-sm border-none">
+                            <Card className="rounded-none md:rounded-3xl shadow-none md:shadow-sm border-none">
                                 <CardHeader>
                                     <CardTitle className="flex items-center gap-2 font-bold">
                                         <Ticket className="w-5 h-5 text-destructive" />
@@ -381,7 +381,7 @@ export default function DashboardPage() {
                         )}
 
                         {/* Payments & Invoices Section */}
-                        <Card className="rounded-3xl shadow-sm border-none overflow-hidden bg-white">
+                        <Card className="rounded-none md:rounded-3xl shadow-none md:shadow-sm border-none overflow-hidden bg-white">
                             <CardHeader className="pb-2">
                                 <CardTitle className="flex items-center gap-2 font-bold text-lg">
                                     <div className="p-1.5 bg-blue-50 rounded-lg">
@@ -442,7 +442,7 @@ export default function DashboardPage() {
                             </CardContent>
                         </Card>
 
-                        <Card className="rounded-3xl shadow-sm border-none">
+                        <Card className="rounded-none md:rounded-3xl shadow-none md:shadow-sm border-none">
                             <CardHeader>
                                 <CardTitle className="font-bold">{t('help')}</CardTitle>
                             </CardHeader>

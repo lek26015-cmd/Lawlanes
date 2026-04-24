@@ -14,7 +14,7 @@ import { cookies } from 'next/headers';
  * @param expiresAt Optional expiration time (default 1 hour)
  * @returns The signed URL
  */
-export async function getSecureDownloadUrl(path: string, chatId?: string, expiresAt: number = Date.now() + 300000) {
+export async function getSecureDownloadUrl(path: string, chatId?: string, expiresAt: number = Date.now() + 3600000) {
     if (!path) return null;
     
     // If it's already a full URL (legacy R2 data), return as is
@@ -64,33 +64,65 @@ export async function getSecureDownloadUrl(path: string, chatId?: string, expire
         // 2. If chatId is provided, verify participant status
         if (chatId) {
             const chatSnap = await db.collection('chats').doc(chatId).get();
-            if (!chatSnap.exists) return null;
+            if (!chatSnap.exists) {
+                console.error(`[Security] Chat ${chatId} not found`);
+                return null;
+            }
             
             const chatData = chatSnap.data();
             const participants: string[] = chatData?.participants || [];
             
+            // Allow if user is a participant OR an admin
             if (!participants.includes(requesterId) && !isAdmin) {
-                console.error(`[Security] Unauthorized access attempt to file ${path} by user ${requesterId}`);
+                console.error(`[Security] User ${requesterId} is not a participant of chat ${chatId}`);
                 return null;
             }
         } else if (!isAdmin) {
-            // If no chatId is provided, only allow Admins to generate URLs via this generic action
-            // This protects slips or other loose files.
-            console.warn(`[Security] Non-admin attempt to access generic file ${path} without chatId context.`);
+            console.warn(`[Security] Non-admin attempt to access generic file without chatId.`);
             return null;
         }
     } catch (authErr) {
-        console.error("[Security] Auth verification failed during secure download:", authErr);
+        console.error("[Security] Auth verification failed:", authErr);
+        // If we are on localhost, we might want to be more lenient for debugging if needed, 
+        // but let's try to fix the session first.
         return null;
     }
 
-    const bucket = getStorage(app).bucket();
-    const file = bucket.file(path);
-
+    const bucketName = (process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET || '').replace(/"/g, '').trim();
+    const bucket = bucketName ? app.storage().bucket(bucketName) : app.storage().bucket();
+    
     try {
+        let file = bucket.file(path);
+        let [exists] = await file.exists();
+
+        // Fallback search if not found
+        if (!exists && chatId) {
+            const possiblePaths = [
+                `chats/${chatId}/${path}`,
+                path.includes('/') ? path.split('/').pop()! : path, // Just filename
+                `chats/${chatId}/${path.includes('/') ? path.split('/').pop()! : path}`
+            ];
+
+            for (const p of possiblePaths) {
+                if (p === path) continue;
+                const f = bucket.file(p);
+                const [ex] = await f.exists();
+                if (ex) {
+                    file = f;
+                    exists = true;
+                    break;
+                }
+            }
+        }
+
+        if (!exists) {
+            console.error(`[Secure View] File not found after search: ${path}`);
+            return null;
+        }
+
         const [url] = await file.getSignedUrl({
             action: 'read',
-            expires: expiresAt,
+            expires: new Date(expiresAt),
         });
         return url;
     } catch (error) {
