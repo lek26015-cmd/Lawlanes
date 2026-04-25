@@ -33,7 +33,7 @@ export async function discoverFilePathAction(chatId: string, fileName: string, m
             for (const file of files) {
                 const [metadata] = await file.getMetadata();
                 const originalName = metadata.metadata?.originalName;
-                if (originalName === fileName || originalName?.toLowerCase() === fileName.toLowerCase()) {
+                if (originalName === fileName || (typeof originalName === 'string' && originalName.toLowerCase() === fileName.toLowerCase())) {
                     foundFilePath = file.name;
                     break;
                 }
