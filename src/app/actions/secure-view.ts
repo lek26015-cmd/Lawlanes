@@ -14,7 +14,22 @@ import { cookies } from 'next/headers';
  * @param expiresAt Optional expiration time (default 1 hour)
  * @returns The signed URL
  */
-export async function getSecureDownloadUrl(path: string, chatId?: string, expiresAt: number = Date.now() + 3600000) {
+/**
+ * Generates a temporary signed URL for a file in Firebase Storage.
+ * This should be used to display private documents to authorized users (Admins/Lawyers/Clients).
+ * 
+ * @param path The storage path of the file
+ * @param chatId Optional chatId to verify access rights (Participant check)
+ * @param expiresAt Optional expiration time (default 1 hour)
+ * @param disposition 'inline' (view in browser) or 'attachment' (download)
+ * @returns The signed URL
+ */
+export async function getSecureDownloadUrl(
+    path: string, 
+    chatId?: string, 
+    expiresAt: number = Date.now() + 3600000,
+    disposition: 'inline' | 'attachment' = 'inline'
+) {
     if (!path) return null;
     
     // If it's already a full URL (legacy R2 data), return as is
@@ -83,8 +98,6 @@ export async function getSecureDownloadUrl(path: string, chatId?: string, expire
         }
     } catch (authErr) {
         console.error("[Security] Auth verification failed:", authErr);
-        // If we are on localhost, we might want to be more lenient for debugging if needed, 
-        // but let's try to fix the session first.
         return null;
     }
 
@@ -120,9 +133,17 @@ export async function getSecureDownloadUrl(path: string, chatId?: string, expire
             return null;
         }
 
+        const [metadata] = await file.getMetadata();
+        const contentType = metadata.contentType || 'application/octet-stream';
+        const fileName = path.split('/').pop() || 'document';
+
         const [url] = await file.getSignedUrl({
             action: 'read',
             expires: new Date(expiresAt),
+            responseType: contentType,
+            responseDisposition: disposition === 'attachment' 
+                ? `attachment; filename="${fileName}"` 
+                : 'inline',
         });
         return url;
     } catch (error) {
@@ -130,3 +151,4 @@ export async function getSecureDownloadUrl(path: string, chatId?: string, expire
         return null;
     }
 }
+

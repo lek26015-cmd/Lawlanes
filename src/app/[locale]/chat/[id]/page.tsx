@@ -116,7 +116,7 @@ function ChatPageContent() {
     const [effectiveIsLawyerView, setEffectiveIsLawyerView] = useState(view === 'lawyer');
     const [isUserLawyer, setIsUserLawyer] = useState(false);
     const [isChatDisabled, setIsChatDisabled] = useState(isCompleted);
-    const [previewFile, setPreviewFile] = useState<{ url: string, name: string } | null>(null);
+    const [previewFile, setPreviewFile] = useState<{ url: string, name: string, type: 'image' | 'pdf' | 'other' } | null>(null);
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
     const [clientInfo, setClientInfo] = useState<{ name: string, address: string, taxId: string } | null>(null);
@@ -395,10 +395,14 @@ function ChatPageContent() {
         if (!path) return;
         
         const isImage = fileName ? /\.(jpg|jpeg|png|gif|webp)$/i.test(fileName) : false;
+        const isPDF = fileName ? /\.pdf$/i.test(fileName) : false;
 
         if (path.startsWith('http')) {
             if (isImage) {
-                setPreviewFile({ url: path, name: fileName || 'Image' });
+                setPreviewFile({ url: path, name: fileName || 'Image', type: 'image' });
+                setIsPreviewOpen(true);
+            } else if (isPDF) {
+                setPreviewFile({ url: path, name: fileName || 'Document', type: 'pdf' });
                 setIsPreviewOpen(true);
             } else {
                 window.open(path, '_blank');
@@ -407,16 +411,27 @@ function ChatPageContent() {
         }
 
         try {
-            const url = await getSecureDownloadUrl(path, chatId);
-            if (url) {
-                if (isImage) {
-                    setPreviewFile({ url, name: fileName || 'Image' });
+            if (isImage || isPDF) {
+                const url = await getSecureDownloadUrl(path, chatId, undefined, 'inline');
+                if (url) {
+                    setPreviewFile({ url, name: fileName || 'Document', type: isImage ? 'image' : 'pdf' });
                     setIsPreviewOpen(true);
                 } else {
-                    window.open(url, '_blank');
+                    toast({ variant: "destructive", title: "ไม่สามารถเข้าถึงไฟล์ได้", description: "กรุณาลองใหม่อีกครั้ง" });
                 }
             } else {
-                toast({ variant: "destructive", title: "ไม่สามารถเข้าถึงไฟล์ได้", description: "กรุณาลองใหม่อีกครั้ง" });
+                const url = await getSecureDownloadUrl(path, chatId, undefined, 'attachment');
+                if (url) {
+                    // Use hidden link to avoid popup blockers
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.setAttribute('download', fileName || 'download');
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                } else {
+                    toast({ variant: "destructive", title: "ไม่สามารถเข้าถึงไฟล์ได้", description: "กรุณาลองใหม่อีกครั้ง" });
+                }
             }
         } catch (error) {
             console.error(error);
@@ -1127,11 +1142,19 @@ e.stopPropagation();
                     </DialogHeader>
                     <div className="flex-1 bg-slate-900 flex items-center justify-center overflow-hidden">
                         {previewFile?.url && (
-                            <img 
-                                src={previewFile.url} 
-                                alt={previewFile.name} 
-                                className="max-w-full max-h-full object-contain shadow-2xl animate-in zoom-in-95 duration-300"
-                            />
+                            previewFile.type === 'pdf' ? (
+                                <iframe 
+                                    src={previewFile.url} 
+                                    className="w-full h-full border-none" 
+                                    title={previewFile.name}
+                                />
+                            ) : (
+                                <img 
+                                    src={previewFile.url} 
+                                    alt={previewFile.name} 
+                                    className="max-w-full max-h-full object-contain shadow-2xl animate-in zoom-in-95 duration-300"
+                                />
+                            )
                         )}
                     </div>
                 </DialogContent>

@@ -81,7 +81,7 @@ function ChatBoxContent({
   const [optimisticMessages, setOptimisticMessages] = useState<MessageWithStatus[]>([]);
   const [input, setInput] = useState('');
   const [chatMetadata, setChatMetadata] = useState<any>(null);
-  const [previewFile, setPreviewFile] = useState<{ url: string, name: string, isImage: boolean } | null>(null);
+  const [previewFile, setPreviewFile] = useState<{ url: string, name: string, type: 'image' | 'pdf' | 'other' } | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const { initialChatMessage, setInitialChatMessage } = useChat();
@@ -200,21 +200,30 @@ function ChatBoxContent({
       console.warn("File metadata not found in chat document:", fileName);
       return;
     }
+
+    const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(fileName);
+    const isPDF = /\.pdf$/i.test(fileName);
     
     try {
-      const url = await getSecureDownloadUrl(file.url, chatId);
-      if (!url) return;
-      
-      const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(fileName);
-      
-      if (isImage) {
-        setPreviewFile({ url, name: fileName, isImage: true });
+      if (isImage || isPDF) {
+        const url = await getSecureDownloadUrl(file.url, chatId, undefined, 'inline');
+        if (!url) return;
+        setPreviewFile({ url, name: fileName, type: isImage ? 'image' : 'pdf' });
         setIsPreviewOpen(true);
       } else {
-        window.open(url, '_blank');
+        // For other files (xlsx, docx, etc), we force a download using a hidden link to avoid popup blockers
+        const url = await getSecureDownloadUrl(file.url, chatId, undefined, 'attachment');
+        if (!url) return;
+        
+        const link = document.createElement('a');
+        link.href = url;
+        link.setAttribute('download', fileName);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
       }
     } catch (err) {
-      console.error("Failed to view file from notification:", err);
+      console.error("Failed to view file:", err);
     }
   };
 
@@ -535,6 +544,12 @@ function ChatBoxContent({
                 <Loader2 className="w-8 h-8 animate-spin" />
                 <p className="text-xs font-bold uppercase tracking-widest">กำลังดึงข้อมูลไฟล์...</p>
               </div>
+            ) : previewFile.type === 'pdf' ? (
+              <iframe 
+                src={previewFile.url} 
+                className="w-full h-full border-none" 
+                title={previewFile.name}
+              />
             ) : (
               <ImagePreviewContent url={previewFile.url} name={previewFile.name} />
             )}
