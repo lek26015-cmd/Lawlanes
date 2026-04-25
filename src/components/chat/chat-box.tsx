@@ -245,8 +245,8 @@ function ChatBoxContent({
   const firstUserMessage = allMessages.find(m => m.senderId !== (isLawyerView ? currentUser.uid : otherUser.userId));
 
   return (
-    <Card className="flex flex-col h-full w-full max-w-full min-w-0 shadow-none md:shadow-2xl border-none md:border md:border-slate-200/60 dark:md:border-slate-800 rounded-none md:rounded-2xl overflow-hidden bg-white dark:bg-slate-900 transition-all duration-500">
-      <CardHeader className="border-b border-slate-100 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md pt-7 pb-5 md:py-7 px-4 md:px-10 min-w-0 w-full shadow-sm z-20">
+    <Card className="flex flex-col h-full w-full max-w-full min-w-0 shadow-none border-none md:border md:border-slate-200/60 dark:md:border-slate-800 rounded-none md:rounded-2xl overflow-hidden bg-white dark:bg-slate-900 transition-all duration-500">
+      <CardHeader className="border-b border-slate-100 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md pt-7 pb-5 md:py-7 px-4 md:px-10 min-w-0 w-full z-20">
         <div className="flex flex-row justify-between items-center gap-1 md:gap-4 min-w-0 w-full">
           <div className="flex items-center gap-2 md:gap-4 flex-1 min-w-0">
             {onBack && (

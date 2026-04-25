@@ -552,13 +552,13 @@ function ChatPageContent() {
             
             <Tabs defaultValue="info" className="w-full">
                 <TabsList className="w-full bg-slate-100/80 dark:bg-slate-800/80 backdrop-blur-sm p-1.5 rounded-2xl h-auto flex flex-wrap lg:flex-nowrap gap-1 border border-slate-200/50 dark:border-slate-700/50">
-                    <TabsTrigger value="overview" className="min-w-0 px-2 flex-1 text-[10px] font-black uppercase tracking-widest py-2.5 rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:text-blue-600 data-[state=active]:shadow-lg transition-all duration-300">
+                    <TabsTrigger value="overview" className="min-w-0 px-2 flex-1 text-[10px] font-black uppercase tracking-widest py-2.5 rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:text-blue-600 transition-all duration-300">
                         <span className="truncate">Overview</span>
                     </TabsTrigger>
-                    <TabsTrigger value="info" className="min-w-0 px-2 flex-1 text-[10px] font-black uppercase tracking-widest py-2.5 rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:text-blue-600 data-[state=active]:shadow-lg transition-all duration-300">
+                    <TabsTrigger value="info" className="min-w-0 px-2 flex-1 text-[10px] font-black uppercase tracking-widest py-2.5 rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:text-blue-600 transition-all duration-300">
                         <span className="truncate">{tCommon('viewDetails')}</span>
                     </TabsTrigger>
-                    <TabsTrigger value="vault" className="min-w-0 px-2 flex-1 text-[10px] font-black uppercase tracking-widest py-2.5 rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:text-blue-600 data-[state=active]:shadow-lg transition-all duration-300">
+                    <TabsTrigger value="vault" className="min-w-0 px-2 flex-1 text-[10px] font-black uppercase tracking-widest py-2.5 rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:text-blue-600 transition-all duration-300">
                         <span className="truncate">{tCase('legalVault').split(' ')[0]}</span>
                     </TabsTrigger>
 
@@ -566,7 +566,7 @@ function ChatPageContent() {
                 
                 <TabsContent value="info" className="space-y-6">
                     {effectiveIsLawyerView ? (
-                        <Card className="border-none shadow-sm bg-white dark:bg-slate-900/50 rounded-[2rem] overflow-hidden">
+                        <Card className="border-none bg-white dark:bg-slate-900/50 rounded-[2rem] overflow-hidden">
                             <CardHeader className="pb-3">
                                 <CardTitle className="text-sm font-semibold flex items-center gap-2">
                                     <Briefcase className="w-4 h-4 text-primary" />
@@ -574,7 +574,7 @@ function ChatPageContent() {
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4 text-sm">
-                                <div className="flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700">
+                                <div className="flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
                                     <Avatar className="h-10 w-10">
                                         <AvatarImage src={getCloudflareVariantUrl(otherUser.imageUrl, 'avatar')} />
                                         <AvatarFallback>{otherUser.name.charAt(0)}</AvatarFallback>
@@ -625,7 +625,7 @@ function ChatPageContent() {
                                                     {installments.map((inst: any, idx: number) => {
                                                         const instAmount = inst.amount && !isNaN(parseFloat(inst.amount)) ? parseFloat(String(inst.amount).replace(/,/g, '')) : 0;
                                                         return (
-                                                            <div key={idx} className="flex justify-between items-center p-2 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-100 dark:border-slate-800 text-xs shadow-sm">
+                                                            <div key={idx} className="flex justify-between items-center p-2 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-100 dark:border-slate-800 text-xs">
                                                                 <span className="font-medium text-slate-700 dark:text-slate-300">งวดที่ {idx + 1}: {inst.description}</span>
                                                                 <span className="font-black text-blue-600 dark:text-blue-400 whitespace-nowrap ml-2">฿{instAmount.toLocaleString()}</span>
                                                             </div>
@@ -681,7 +681,7 @@ function ChatPageContent() {
                     ) : (
                         <div className="space-y-6">
                             {(caseTitle || description || chatAmount > 0) && (
-                                <Card className="border-none shadow-sm bg-white dark:bg-slate-900/50 rounded-[2rem] overflow-hidden">
+                                <Card className="border-none bg-white dark:bg-slate-900/50 rounded-[2rem] overflow-hidden">
                                     <CardHeader className="pb-3">
                                         <CardTitle className="text-sm font-semibold flex items-center gap-2">
                                             <Briefcase className="w-4 h-4 text-primary" />
@@ -730,7 +730,7 @@ function ChatPageContent() {
                                                             {installments.map((inst: any, idx: number) => {
                                                                 const instAmount = inst.amount && !isNaN(parseFloat(inst.amount)) ? parseFloat(String(inst.amount).replace(/,/g, '')) : 0;
                                                                 return (
-                                                                    <div key={idx} className="flex justify-between items-center p-2 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-100 dark:border-slate-800 text-xs shadow-sm">
+                                                                    <div key={idx} className="flex justify-between items-center p-2 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-100 dark:border-slate-800 text-xs">
                                                                         <span className="font-medium text-slate-700 dark:text-slate-300">งวดที่ {idx + 1}: {inst.description}</span>
                                                                         <span className="font-black text-blue-600 dark:text-blue-400 whitespace-nowrap ml-2">฿{instAmount.toLocaleString()}</span>
                                                                     </div>
@@ -756,7 +756,7 @@ function ChatPageContent() {
                                 </Card>
                             )}
                             
-                            <Card className="border-none shadow-sm bg-white dark:bg-slate-900/50 rounded-[2rem] overflow-hidden">
+                            <Card className="border-none bg-white dark:bg-slate-900/50 rounded-[2rem] overflow-hidden">
                                 <CardHeader className="pb-3">
                                     <CardTitle className="text-sm font-semibold flex items-center gap-2 text-slate-800 dark:text-white">
                                         <UserIcon className="w-4 h-4 text-blue-500" />
@@ -764,7 +764,7 @@ function ChatPageContent() {
                                     </CardTitle>
                                 </CardHeader>
                             <CardContent className="space-y-4">
-                                <div className="flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700">
+                                <div className="flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
                                     <Avatar className="h-10 w-10">
                                         <AvatarImage src={getCloudflareVariantUrl(lawyer?.imageUrl, 'avatar')} />
                                         <AvatarFallback>{lawyer?.name?.charAt(0) || 'L'}</AvatarFallback>
@@ -1101,7 +1101,7 @@ e.stopPropagation();
                 </div>
 
                 {/* Right Sidebar - Case Details (Desktop) */}
-                <div className="hidden lg:flex w-[380px] flex-col bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200/50 dark:border-slate-800 overflow-hidden h-full">
+                <div className="hidden lg:flex w-[380px] flex-col bg-white dark:bg-slate-900 rounded-xl border border-slate-200/50 dark:border-slate-800 overflow-hidden h-full">
                     <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
                         <CaseDetailsContent />
                     </div>
