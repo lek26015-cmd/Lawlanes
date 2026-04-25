@@ -197,10 +197,18 @@ function ChatBoxContent({
   const handleFileClick = async (message: HumanChatMessage) => {
     const text = message.text;
     const fileName = message.metadata?.fileName || text.replace('[อัปโหลดไฟล์]', '').trim();
-    const file = chatMetadata?.files?.find((f: any) => f.name === fileName);
     
-    if (!file) {
-      console.warn("File metadata not found in chat document:", fileName);
+    // Attempt to find file in metadata or chat document
+    let filePath = message.metadata?.fileUrl;
+    
+    if (!filePath && chatMetadata?.files) {
+      const fileEntry = chatMetadata.files.find((f: any) => f.name === fileName);
+      if (fileEntry) filePath = fileEntry.url;
+    }
+    
+    if (!filePath) {
+      console.warn("File path not found for:", fileName);
+      toast({ variant: "destructive", title: "ไม่พบข้อมูลไฟล์", description: `ระบบไม่พบที่อยู่ของไฟล์ "${fileName}" กรุณาลองอัปโหลดใหม่อีกครั้ง` });
       return;
     }
 
@@ -208,20 +216,22 @@ function ChatBoxContent({
     const isPDF = /\.pdf$/i.test(fileName);
     
     try {
+      toast({ title: "กำลังเตรียมไฟล์...", description: `กำลังดึงข้อมูลสำหรับ ${fileName}` });
+      
       // For images and PDFs, we want to view them inline in our modal
       if (isImage || isPDF) {
-        const url = await getSecureDownloadUrl(file.url, chatId, undefined, 'inline');
+        const url = await getSecureDownloadUrl(filePath, chatId, undefined, 'inline');
         if (!url) {
-          toast({ variant: "destructive", title: "ไม่สามารถเปิดไฟล์ได้", description: "คุณอาจไม่มีสิทธิ์เข้าถึงไฟล์นี้ หรือเซสชันหมดอายุ" });
+          toast({ variant: "destructive", title: "ไม่สามารถเปิดไฟล์ได้", description: "ระบบไม่สามารถสร้างลิงก์สำหรับเข้าถึงไฟล์ได้ (ตรวจสอบสิทธิ์หรือเซสชันของคุณ)" });
           return;
         }
         setPreviewFile({ url, name: fileName, type: isImage ? 'image' : 'pdf' });
         setIsPreviewOpen(true);
       } else {
         // For other files (xlsx, docx, etc), we force a download using a hidden link to avoid popup blockers
-        const url = await getSecureDownloadUrl(file.url, chatId, undefined, 'attachment');
+        const url = await getSecureDownloadUrl(filePath, chatId, undefined, 'attachment');
         if (!url) {
-          toast({ variant: "destructive", title: "ไม่สามารถดาวน์โหลดไฟล์ได้", description: "คุณอาจไม่มีสิทธิ์เข้าถึงไฟล์นี้ หรือเซสชันหมดอายุ" });
+          toast({ variant: "destructive", title: "ไม่สามารถดาวน์โหลดไฟล์ได้", description: "ระบบไม่สามารถสร้างลิงก์สำหรับดาวน์โหลดได้" });
           return;
         }
         
@@ -231,10 +241,11 @@ function ChatBoxContent({
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+        toast({ title: "กำลังเริ่มดาวน์โหลด", description: `ดาวน์โหลดไฟล์ ${fileName} แล้ว` });
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to view file:", err);
-      toast({ variant: "destructive", title: "เกิดข้อผิดพลาด", description: "ไม่สามารถดึงข้อมูลไฟล์ได้ในขณะนี้" });
+      toast({ variant: "destructive", title: "เกิดข้อผิดพลาด", description: err.message || "ไม่สามารถดึงข้อมูลไฟล์ได้ในขณะนี้" });
     }
   };
 

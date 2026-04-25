@@ -105,22 +105,34 @@ export async function getSecureDownloadUrl(
     const bucket = bucketName ? app.storage().bucket(bucketName) : app.storage().bucket();
     
     try {
-        let file = bucket.file(path);
+        // Normalize path: remove leading slash and bucket name if it's a full GS path
+        let normalizedPath = path.startsWith('/') ? path.substring(1) : path;
+        if (normalizedPath.startsWith(`gs://${bucket.name}/`)) {
+            normalizedPath = normalizedPath.replace(`gs://${bucket.name}/`, '');
+        } else if (normalizedPath.startsWith(`${bucket.name}/`)) {
+            normalizedPath = normalizedPath.replace(`${bucket.name}/`, '');
+        }
+
+        let file = bucket.file(normalizedPath);
         let [exists] = await file.exists();
 
         // Fallback search if not found
         if (!exists && chatId) {
+            console.log(`[Secure View] File not found at ${normalizedPath}, searching fallbacks...`);
+            const fileName = normalizedPath.split('/').pop()!;
             const possiblePaths = [
-                `chats/${chatId}/${path}`,
-                path.includes('/') ? path.split('/').pop()! : path, // Just filename
-                `chats/${chatId}/${path.includes('/') ? path.split('/').pop()! : path}`
+                `chats/${chatId}/${fileName}`,
+                fileName,
+                `lawyer_documents/${fileName}`,
+                `uploads/${fileName}`
             ];
 
             for (const p of possiblePaths) {
-                if (p === path) continue;
+                if (p === normalizedPath) continue;
                 const f = bucket.file(p);
                 const [ex] = await f.exists();
                 if (ex) {
+                    console.log(`[Secure View] Found file at fallback path: ${p}`);
                     file = f;
                     exists = true;
                     break;
@@ -129,13 +141,13 @@ export async function getSecureDownloadUrl(
         }
 
         if (!exists) {
-            console.error(`[Secure View] File not found after search: ${path}`);
+            console.error(`[Secure View] File not found after all attempts: ${normalizedPath}`);
             return null;
         }
 
         const [metadata] = await file.getMetadata();
         const contentType = metadata.contentType || 'application/octet-stream';
-        const fileName = path.split('/').pop() || 'document';
+        const fileName = normalizedPath.split('/').pop() || 'document';
 
         const [url] = await file.getSignedUrl({
             version: 'v4',
@@ -149,6 +161,7 @@ export async function getSecureDownloadUrl(
             }
         });
         return url;
+
     } catch (error) {
         console.error("Error generating signed URL:", error);
         return null;
