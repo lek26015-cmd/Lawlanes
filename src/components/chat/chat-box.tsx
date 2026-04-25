@@ -196,19 +196,32 @@ function ChatBoxContent({
   
   const handleFileClick = async (message: HumanChatMessage) => {
     const text = message.text;
-    const fileName = message.metadata?.fileName || text.replace('[อัปโหลดไฟล์]', '').trim();
+    const cleanFileName = (message.metadata?.fileName || text.replace('[อัปโหลดไฟล์]', '').trim()).trim().toLowerCase();
     
     // Attempt to find file in metadata or chat document
     let filePath = message.metadata?.fileUrl;
+    let fileName = message.metadata?.fileName || text.replace('[อัปโหลดไฟล์]', '').trim();
     
     if (!filePath && chatMetadata?.files) {
-      const fileEntry = chatMetadata.files.find((f: any) => f.name === fileName);
-      if (fileEntry) filePath = fileEntry.url;
+      const fileEntry = chatMetadata.files.find((f: any) => 
+        f.name.trim().toLowerCase() === cleanFileName || 
+        cleanFileName.includes(f.name.trim().toLowerCase()) ||
+        f.name.trim().toLowerCase().includes(cleanFileName)
+      );
+      if (fileEntry) {
+        filePath = fileEntry.url;
+        fileName = fileEntry.name;
+      }
     }
     
     if (!filePath) {
-      console.warn("File path not found for:", fileName);
-      toast({ variant: "destructive", title: "ไม่พบข้อมูลไฟล์", description: `ระบบไม่พบที่อยู่ของไฟล์ "${fileName}" กรุณาลองอัปโหลดใหม่อีกครั้ง` });
+      console.warn("File path not found for:", fileName, "Files in doc:", chatMetadata?.files);
+      const availableFiles = chatMetadata?.files?.map((f: any) => f.name).join(', ') || 'ไม่มีไฟล์ในรายการ';
+      toast({ 
+        variant: "destructive", 
+        title: "ไม่พบข้อมูลไฟล์", 
+        description: `ไม่พบ "${fileName}" ในระบบแชท\nไฟล์ที่มี: ${availableFiles}` 
+      });
       return;
     }
 
