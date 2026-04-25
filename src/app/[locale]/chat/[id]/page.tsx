@@ -1057,7 +1057,7 @@ e.stopPropagation();
     return (
         <>
         <div className="bg-slate-50 dark:bg-slate-950 min-h-[calc(100dvh-80px)] py-2 md:py-6 lg:py-8 overflow-x-hidden">
-            <div className="max-w-6xl mx-auto mb-3 md:mb-6 px-4 md:px-6 hidden md:block">
+            <div className="max-w-5xl mx-auto mb-3 md:mb-6 px-4 md:px-6 hidden md:block">
                 <Link 
                     href={effectiveIsLawyerView ? "/lawyer-dashboard" : "/dashboard"} 
                     className="inline-flex items-center text-xs md:text-sm font-black text-slate-400 hover:text-blue-600 transition-all group"
@@ -1068,7 +1068,7 @@ e.stopPropagation();
                     {effectiveIsLawyerView ? "กลับหน้าแดชบอร์ดทนาย" : "กลับสู่หน้าหลัก"}
                 </Link>
             </div>
-            <div className="max-w-6xl mx-auto h-[calc(100dvh-2rem)] md:h-[calc(100dvh-80px-8rem)] flex md:gap-6 relative overflow-x-hidden px-4 md:px-6">
+            <div className="max-w-5xl mx-auto h-[calc(100dvh-2rem)] md:h-[calc(100dvh-80px-8rem)] flex md:gap-6 relative overflow-x-hidden px-4 md:px-6">
                 {isAdminView && !isUserLawyer && (user?.uid !== client?.id) && (
                     <div className="absolute top-0 left-0 right-0 z-[60] bg-amber-600 text-white text-[10px] md:text-xs font-bold py-1.5 px-4 flex items-center justify-center gap-2 shadow-md animate-in fade-in slide-in-from-top duration-500">
                         <ShieldAlert className="w-3 h-3 md:w-4 md:h-4" />
@@ -1112,7 +1112,7 @@ e.stopPropagation();
                 </div>
 
                 {/* Right Sidebar - Case Details (Desktop) */}
-                <div className="hidden lg:flex w-[340px] flex-col bg-white dark:bg-slate-900 rounded-[2rem] shadow-xl border border-slate-200/50 dark:border-slate-800 overflow-hidden h-full">
+                <div className="hidden lg:flex w-[300px] flex-col bg-white dark:bg-slate-900 rounded-[2rem] shadow-xl border border-slate-200/50 dark:border-slate-800 overflow-hidden h-full">
                     <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
                         <CaseDetailsContent />
                     </div>
