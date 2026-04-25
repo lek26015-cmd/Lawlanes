@@ -215,12 +215,13 @@ function ChatBoxContent({
     }
     
     if (!filePath) {
-      console.warn("File path not found for:", fileName, "Files in doc:", chatMetadata?.files);
+      console.warn("File path not found for:", fileName, "Message:", message, "Files in vault:", chatMetadata?.files);
       const availableFiles = chatMetadata?.files?.map((f: any) => f.name).join(', ') || 'ไม่มีไฟล์ในรายการ';
+      const metadataInfo = message.metadata ? JSON.stringify(message.metadata) : 'ไม่มี Metadata';
       toast({ 
         variant: "destructive", 
         title: "ไม่พบข้อมูลไฟล์", 
-        description: `ไม่พบ "${fileName}" ในระบบแชท\nไฟล์ที่มี: ${availableFiles}` 
+        description: `ไม่พบ "${fileName}" ในระบบแชท\nไฟล์ที่มี: ${availableFiles}\nMetadata: ${metadataInfo}` 
       });
       return;
     }
