@@ -215,15 +215,26 @@ function ChatBoxContent({
     }
     
     if (!filePath) {
-      console.warn("File path not found for:", fileName, "Message:", message, "Files in vault:", chatMetadata?.files);
-      const availableFiles = chatMetadata?.files?.map((f: any) => f.name).join(', ') || 'ไม่มีไฟล์ในรายการ';
-      const metadataInfo = message.metadata ? JSON.stringify(message.metadata) : 'ไม่มี Metadata';
-      toast({ 
-        variant: "destructive", 
-        title: "ไม่พบข้อมูลไฟล์", 
-        description: `ไม่พบ "${fileName}" ในระบบแชท\nไฟล์ที่มี: ${availableFiles}\nMetadata: ${metadataInfo}` 
-      });
-      return;
+      console.warn("File path not found for:", fileName, "Attempting server discovery...");
+      toast({ title: "กำลังค้นหาไฟล์ในระบบสำรอง...", description: "โปรดรอสักครู่ ระบบกำลังกู้คืนข้อมูลไฟล์" });
+      
+      const { discoverFilePathAction } = await import('@/app/actions/discover-file');
+      const discoveryResult = await discoverFilePathAction(chatId, fileName);
+      
+      if (discoveryResult.success && discoveryResult.filePath) {
+        filePath = discoveryResult.filePath;
+        toast({ title: "กู้คืนไฟล์สำเร็จ", description: "ระบบพบตำแหน่งไฟล์แล้ว กำลังเปิดเอกสาร..." });
+      } else {
+        console.warn("Discovery failed:", discoveryResult.error);
+        const availableFiles = chatMetadata?.files?.map((f: any) => f.name).join(', ') || 'ไม่มีไฟล์ในรายการ';
+        const metadataInfo = message.metadata ? JSON.stringify(message.metadata) : 'ไม่มี Metadata';
+        toast({ 
+          variant: "destructive", 
+          title: "ไม่พบข้อมูลไฟล์", 
+          description: `ไม่พบ "${fileName}" ในระบบแชท\nไฟล์ที่มี: ${availableFiles}\nMetadata: ${metadataInfo}` 
+        });
+        return;
+      }
     }
 
     const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(fileName);
