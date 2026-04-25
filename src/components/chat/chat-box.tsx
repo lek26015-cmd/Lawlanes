@@ -605,7 +605,6 @@ function ImagePreviewContent({ url, name }: { url: string, name: string }) {
           key={url}
           src={url} 
           alt={name} 
-          crossOrigin="anonymous"
           className={cn(
             "max-w-full max-h-full object-contain rounded-lg transition-all duration-700",
             loading ? "opacity-0 scale-95" : "opacity-100 scale-100"
