@@ -76,6 +76,30 @@ export async function discoverFilePathAction(chatId: string, fileName: string, m
                     }
                 }
             }
+            
+            // Step 4: Ultimate Fallback (Most recent file with matching extension)
+            if (!foundFilePath) {
+                console.log(`[Discover] All specific matches failed. Looking for most recent .${extension} file.`);
+                let mostRecentFile = null;
+                let latestTime = 0;
+                
+                for (const { file, metadata } of metadataResults) {
+                    if (!metadata || !metadata.timeCreated) continue;
+                    const fileExtension = file.name.split('.').pop()?.toLowerCase();
+                    if (fileExtension === extension) {
+                        const fileCreated = new Date(metadata.timeCreated).getTime();
+                        if (fileCreated > latestTime) {
+                            latestTime = fileCreated;
+                            mostRecentFile = file;
+                        }
+                    }
+                }
+                
+                if (mostRecentFile) {
+                    console.log(`[Discover] Ultimate fallback match found: ${mostRecentFile.name}`);
+                    foundFilePath = mostRecentFile.name;
+                }
+            }
         }
 
         if (foundFilePath) {
