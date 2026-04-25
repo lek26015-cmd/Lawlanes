@@ -245,8 +245,8 @@ function ChatBoxContent({
   const firstUserMessage = allMessages.find(m => m.senderId !== (isLawyerView ? currentUser.uid : otherUser.userId));
 
   return (
-    <Card className="flex flex-col h-full w-full max-w-full min-w-0 shadow-none md:shadow-xl border-none md:border md:border-slate-200/50 dark:md:border-slate-800 rounded-none md:rounded-3xl overflow-hidden bg-white dark:bg-slate-900">
-      <CardHeader className="border-b bg-white dark:bg-slate-900 py-4 md:py-6 px-4 md:px-8 min-w-0 w-full overflow-hidden shadow-sm">
+    <Card className="flex flex-col h-full w-full max-w-full min-w-0 shadow-none md:shadow-2xl border-none md:border md:border-slate-200/60 dark:md:border-slate-800 rounded-none md:rounded-[2.5rem] overflow-hidden bg-white dark:bg-slate-900 transition-all duration-500">
+      <CardHeader className="border-b border-slate-100 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md py-5 md:py-7 px-4 md:px-10 min-w-0 w-full shadow-sm z-20">
         <div className="flex flex-row justify-between items-center gap-1 md:gap-4 min-w-0 w-full">
           <div className="flex items-center gap-2 md:gap-4 flex-1 min-w-0">
             {showBackOnMobile && onBack && (
@@ -259,27 +259,29 @@ function ChatBoxContent({
                 <ChevronLeft className="h-6 w-6" />
               </Button>
             )}
-            <Avatar className="h-8 w-8 md:h-12 md:w-12 border-2 border-primary/10 flex-shrink-0 shadow-sm">
+            <Avatar className="h-10 w-10 md:h-14 md:w-14 border-2 border-primary/5 flex-shrink-0 shadow-lg shadow-primary/5 transition-transform hover:scale-105 duration-300">
                <AvatarImage src={getCloudflareVariantUrl(otherUser.imageUrl, 'avatar')} />
-               <AvatarFallback className="bg-primary/5 text-primary font-bold">{otherUser.name.charAt(0)}</AvatarFallback>
+               <AvatarFallback className="bg-primary/5 text-primary font-bold text-base md:text-xl">{otherUser.name.charAt(0)}</AvatarFallback>
             </Avatar>
-            <div className="flex-1 min-w-0 overflow-hidden">
+            <div className="flex-1 min-w-0 overflow-hidden ml-1 md:ml-2">
               <div className="flex items-center gap-1 md:gap-2">
-                <CardTitle className="text-[9px] md:text-sm font-semibold text-muted-foreground/60 truncate uppercase tracking-wider block">
+                <CardTitle className="text-[10px] md:text-[11px] font-black text-blue-600/60 truncate uppercase tracking-[0.2em] block mb-0.5">
                   {(chatMetadata?.caseTitle || chatMetadata?.title || 'กำลังโหลด...').replace(/^Ticket\s+สนทนา:\s*/i, '')}
                 </CardTitle>
                 {isConnected ? (
-                  <div className="w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-green-500 animate-pulse flex-shrink-0" title="Connected" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse flex-shrink-0" title="Connected" />
                 ) : (
-                  <div className="w-1 h-1 md:w-1.5 md:h-1.5 rounded-full bg-gray-300 flex-shrink-0" title="Offline" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-slate-300 flex-shrink-0" title="Offline" />
                 )}
               </div>
-              <h2 className="text-sm md:text-xl font-black text-slate-900 dark:text-white truncate leading-tight mt-0.5 md:mt-1 max-w-[150px] md:max-w-none">
+              <h2 className="text-base md:text-2xl font-black text-slate-900 dark:text-white truncate leading-none tracking-tight max-w-[180px] md:max-w-none">
                 {otherUser.name}
               </h2>
-              <p className="text-[10px] md:text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest mt-0.5 md:mt-1.5 opacity-80 truncate">
-                {isLawyerView ? "ลูกความ" : "ทนายความ"}
-              </p>
+              <div className="flex items-center gap-2 mt-1 md:mt-2">
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/30 text-[9px] md:text-[10px] font-black text-blue-600 dark:text-blue-400 uppercase tracking-widest border border-blue-100/50 dark:border-blue-800/50">
+                    {isLawyerView ? "ลูกความ" : "ทนายความ"}
+                </span>
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-0.5 md:gap-2 flex-shrink-0">
