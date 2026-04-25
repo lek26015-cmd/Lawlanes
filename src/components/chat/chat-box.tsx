@@ -246,7 +246,7 @@ function ChatBoxContent({
 
   return (
     <Card className="flex flex-col h-full w-full max-w-full min-w-0 shadow-none border-none md:border md:border-slate-200/60 dark:md:border-slate-800 rounded-none md:rounded-2xl overflow-hidden bg-white dark:bg-slate-900 transition-all duration-500">
-      <CardHeader className="border-b border-slate-100 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md pt-7 pb-5 md:py-7 px-4 md:px-10 min-w-0 w-full z-20">
+      <CardHeader className="border-b border-slate-100 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md pt-4 pb-3 md:py-4 px-4 md:px-10 min-w-0 w-full z-20">
         <div className="flex flex-row justify-between items-center gap-1 md:gap-4 min-w-0 w-full">
           <div className="flex items-center gap-2 md:gap-4 flex-1 min-w-0">
             {onBack && (
@@ -259,7 +259,7 @@ function ChatBoxContent({
                 <ChevronLeft className="h-5 w-5" />
               </Button>
             )}
-            <Avatar className="h-10 w-10 md:h-14 md:w-14 border-2 border-primary/5 flex-shrink-0 shadow-lg shadow-primary/5 transition-transform hover:scale-105 duration-300">
+            <Avatar className="h-9 w-9 md:h-12 md:w-12 border-2 border-primary/5 flex-shrink-0 transition-transform hover:scale-105 duration-300">
                <AvatarImage src={getCloudflareVariantUrl(otherUser.imageUrl, 'avatar')} />
                <AvatarFallback className="bg-primary/5 text-primary font-bold text-base md:text-xl">{otherUser.name.charAt(0)}</AvatarFallback>
             </Avatar>
@@ -274,7 +274,7 @@ function ChatBoxContent({
                   <div className="w-1.5 h-1.5 rounded-full bg-slate-300 flex-shrink-0" title="Offline" />
                 )}
               </div>
-              <h2 className="text-base md:text-2xl font-black text-slate-900 dark:text-white truncate leading-none tracking-tight max-w-[180px] md:max-w-none">
+              <h2 className="text-base md:text-xl font-black text-slate-900 dark:text-white truncate leading-none tracking-tight max-w-[180px] md:max-w-none">
                 {otherUser.name}
               </h2>
               <div className="flex items-center gap-2 mt-1 md:mt-2">
@@ -459,7 +459,7 @@ function ChatBoxContent({
         </ScrollArea>
       </CardContent>
 
-      <CardFooter className="px-4 py-4 md:px-8 md:py-6 border-t bg-white dark:bg-slate-900 w-full min-w-0">
+      <CardFooter className="px-4 py-3 md:px-8 md:py-4 border-t bg-white dark:bg-slate-900 w-full min-w-0">
         <form 
           onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }} 
           className="flex items-center w-full gap-3 min-w-0"
