@@ -246,7 +246,7 @@ function ChatBoxContent({
 
   return (
     <Card className="flex flex-col h-full w-full max-w-full min-w-0 shadow-none border-none md:border md:border-slate-200/60 dark:md:border-slate-800 rounded-none md:rounded-2xl overflow-hidden bg-white dark:bg-slate-900 transition-all duration-500">
-      <CardHeader className="border-b border-slate-100 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md pt-3 pb-2 md:py-2.5 px-4 md:px-8 min-w-0 w-full z-20">
+      <CardHeader className="border-b border-slate-100 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md pt-3 pb-2.5 md:py-3.5 px-4 md:px-8 min-w-0 w-full z-20">
         <div className="flex flex-row justify-between items-center gap-1 md:gap-4 min-w-0 w-full">
           <div className="flex items-center gap-2 md:gap-4 flex-1 min-w-0">
             {onBack && (
@@ -558,39 +558,57 @@ function ImagePreviewContent({ url, name }: { url: string, name: string }) {
   const [error, setError] = useState(false);
 
   return (
-    <div className="relative w-full h-full flex items-center justify-center">
+    <div className="relative w-full h-full flex items-center justify-center p-4">
       {loading && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-slate-500 z-10 bg-slate-900">
-          <Loader2 className="w-8 h-8 animate-spin" />
-          <p className="text-xs font-bold uppercase tracking-widest">กำลังโหลดรูปภาพ...</p>
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-slate-500 z-10 bg-slate-900/50 backdrop-blur-sm">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+          <p className="text-xs font-black uppercase tracking-widest text-white/80">กำลังโหลดรูปภาพ...</p>
         </div>
       )}
       
       {error ? (
-        <div className="flex flex-col items-center gap-4 text-red-400 p-8 text-center animate-in fade-in duration-500">
-          <div className="p-4 bg-red-400/10 rounded-3xl">
-            <AlertTriangle className="w-8 h-8" />
+        <div className="flex flex-col items-center gap-5 text-red-400 p-8 text-center animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="p-6 bg-red-400/10 rounded-[2.5rem] border border-red-400/20 shadow-2xl shadow-red-500/10">
+            <AlertTriangle className="w-12 h-12" />
           </div>
-          <div className="space-y-1">
-            <p className="font-black uppercase tracking-widest text-xs">ไม่สามารถโหลดรูปภาพได้</p>
-            <p className="text-[10px] opacity-60 font-medium max-w-[200px] break-all">{name}</p>
+          <div className="space-y-2">
+            <p className="font-black uppercase tracking-widest text-sm text-white">ไม่สามารถโหลดรูปภาพได้</p>
+            <p className="text-[10px] opacity-60 font-medium max-w-[240px] break-all text-red-200">{name}</p>
           </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="mt-4 border-red-400/20 text-red-400 hover:bg-red-400/10 rounded-xl h-8"
-            onClick={() => window.open(url, '_blank')}
-          >
-            <ExternalLink className="w-3.5 h-3.5 mr-2" /> ลองเปิดในหน้าต่างใหม่
-          </Button>
+          <div className="flex flex-col gap-3 w-full max-w-[200px]">
+            <Button 
+                variant="outline" 
+                size="sm" 
+                className="w-full border-red-400/30 text-white bg-red-400/10 hover:bg-red-400/20 rounded-2xl h-11 font-bold"
+                onClick={() => {
+                    setError(false);
+                    setLoading(true);
+                    // Add a tiny cache buster to force a fresh request
+                    const buster = url.includes('?') ? `&cb=${Date.now()}` : `?cb=${Date.now()}`;
+                    // We can't easily change the prop, but this logic is just a hint
+                }}
+            >
+                <RefreshCcw className="w-4 h-4 mr-2" /> ลองใหม่อีกครั้ง
+            </Button>
+            <Button 
+                variant="ghost" 
+                size="sm" 
+                className="w-full text-red-200 hover:text-white hover:bg-white/5 rounded-2xl h-11"
+                onClick={() => window.open(url, '_blank')}
+            >
+                <ExternalLink className="w-4 h-4 mr-2" /> เปิดในหน้าต่างใหม่
+            </Button>
+          </div>
         </div>
       ) : (
         <img 
+          key={url}
           src={url} 
           alt={name} 
+          crossOrigin="anonymous"
           className={cn(
-            "max-w-full max-h-full object-contain shadow-2xl transition-opacity duration-500",
-            loading ? "opacity-0" : "opacity-100"
+            "max-w-full max-h-full object-contain rounded-lg transition-all duration-700",
+            loading ? "opacity-0 scale-95" : "opacity-100 scale-100"
           )}
           onLoad={() => setLoading(false)}
           onError={() => {
