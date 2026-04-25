@@ -19,44 +19,61 @@ export async function discoverFilePathAction(chatId: string, fileName: string, m
         // 1. Search in the dedicated chat folder
         const [files] = await storage.getFiles({ prefix: `chats/${chatId}/` });
         
+        if (files.length === 0) {
+            console.log(`[Discover] No files found in chats/${chatId}/`);
+            return { success: false, error: 'No files in this chat folder.' };
+        }
+
         let foundFilePath = '';
         const extension = fileName.split('.').pop()?.toLowerCase();
 
-        // Step 1: Exact name match
+        // Step 1: Exact name match (Fast)
         const exactMatch = files.find(f => f.name.split('/').pop() === fileName);
         if (exactMatch) {
             foundFilePath = exactMatch.name;
         } 
         
-        // Step 2: Metadata match
+        // Step 2 & 3: Metadata and Temporal match (Requires fetching metadata)
         if (!foundFilePath) {
-            for (const file of files) {
-                const [metadata] = await file.getMetadata();
+            console.log(`[Discover] Fetching metadata for ${files.length} files...`);
+            
+            // Optimization: Fetch metadata in parallel for efficiency
+            // Limit to most recent 100 files to avoid massive overhead
+            const recentFiles = files.slice(-100); 
+            const metadataResults = await Promise.all(
+                recentFiles.map(async (file) => {
+                    try {
+                        const [metadata] = await file.getMetadata();
+                        return { file, metadata };
+                    } catch (e) {
+                        return { file, metadata: null };
+                    }
+                })
+            );
+
+            // Check metadata matches
+            for (const { file, metadata } of metadataResults) {
+                if (!metadata) continue;
                 const originalName = metadata.metadata?.originalName;
                 if (originalName === fileName || (typeof originalName === 'string' && originalName.toLowerCase() === fileName.toLowerCase())) {
                     foundFilePath = file.name;
                     break;
                 }
             }
-        }
 
-        // Step 3: Temporal match (Fallback for UUID files without metadata)
-        if (!foundFilePath && messageTimestamp) {
-            console.log(`[Discover] Trying temporal match for ${extension} around ${new Date(messageTimestamp).toISOString()}`);
-            
-            for (const file of files) {
-                const [metadata] = await file.getMetadata();
-                if (!metadata.timeCreated) continue;
-                
-                const fileCreated = new Date(metadata.timeCreated).getTime();
-                const diffSeconds = Math.abs(fileCreated - messageTimestamp) / 1000;
-                const fileExtension = file.name.split('.').pop()?.toLowerCase();
+            // Check temporal matches
+            if (!foundFilePath && messageTimestamp) {
+                for (const { file, metadata } of metadataResults) {
+                    if (!metadata || !metadata.timeCreated) continue;
+                    
+                    const fileCreated = new Date(metadata.timeCreated).getTime();
+                    const diffSeconds = Math.abs(fileCreated - messageTimestamp) / 1000;
+                    const fileExtension = file.name.split('.').pop()?.toLowerCase();
 
-                // If created within 60 seconds and same extension, it's a very strong candidate
-                if (diffSeconds < 60 && fileExtension === extension) {
-                    console.log(`[Discover] Temporal match found: ${file.name} (Diff: ${diffSeconds}s)`);
-                    foundFilePath = file.name;
-                    break;
+                    if (diffSeconds < 60 && fileExtension === extension) {
+                        foundFilePath = file.name;
+                        break;
+                    }
                 }
             }
         }
