@@ -1056,7 +1056,7 @@ e.stopPropagation();
 
     return (
         <>
-        <div className="bg-slate-50 dark:bg-slate-950 h-[calc(100dvh-80px)] overflow-hidden">
+        <div className="bg-slate-50 dark:bg-slate-950 h-dvh md:h-[calc(100dvh-80px)] overflow-hidden">
             <div className="max-w-5xl mx-auto h-full flex md:gap-6 relative overflow-x-hidden px-4 md:px-6">
                 {isAdminView && !isUserLawyer && (user?.uid !== client?.id) && (
                     <div className="absolute top-0 left-0 right-0 z-[60] bg-amber-600 text-white text-[10px] md:text-xs font-bold py-1.5 px-4 flex items-center justify-center gap-2 shadow-md animate-in fade-in slide-in-from-top duration-500">
