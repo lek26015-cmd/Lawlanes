@@ -101,12 +101,24 @@ export async function discoverFilePathAction(chatId: string, fileName: string, m
                 }
             }
 
-            return { success: true, filePath: foundFilePath };
+            return { 
+                success: true, 
+                filePath: foundFilePath,
+                debug: {
+                    filesCount: files.length,
+                    filesList: files.slice(0, 5).map(f => f.name.split('/').pop())
+                }
+            };
         }
 
-        // 2. Fallback search (broad search if specific folder failed)
-        // This is expensive but useful for debugging
-        return { success: false, error: 'File not found in storage.' };
+        return { 
+            success: false, 
+            error: 'File not found in storage.',
+            debug: {
+                filesCount: files.length,
+                filesList: files.slice(0, 10).map(f => f.name.split('/').pop())
+            }
+        };
 
     } catch (error: any) {
         console.error("Error discovering file path:", error);

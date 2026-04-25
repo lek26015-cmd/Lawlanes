@@ -228,13 +228,15 @@ function ChatBoxContent({
         filePath = discoveryResult.filePath;
         toast({ title: "กู้คืนไฟล์สำเร็จ", description: "ระบบพบตำแหน่งไฟล์แล้ว กำลังเปิดเอกสาร..." });
       } else {
-        console.warn("Discovery failed:", discoveryResult.error);
+        console.warn("Discovery failed:", discoveryResult.error, "Debug:", discoveryResult.debug);
         const availableFiles = chatMetadata?.files?.map((f: any) => f.name).join(', ') || 'ไม่มีไฟล์ในรายการ';
         const metadataInfo = message.metadata ? JSON.stringify(message.metadata) : 'ไม่มี Metadata';
+        const storageDebug = discoveryResult.debug ? `\nStorage: ${discoveryResult.debug.filesCount} files (${discoveryResult.debug.filesList.join(', ')})` : '';
+        
         toast({ 
           variant: "destructive", 
           title: "ไม่พบข้อมูลไฟล์", 
-          description: `ไม่พบ "${fileName}" ในระบบแชท\nไฟล์ที่มี: ${availableFiles}\nMetadata: ${metadataInfo}` 
+          description: `ไม่พบ "${fileName}" ในระบบแชท\nไฟล์ที่มี: ${availableFiles}\nMetadata: ${metadataInfo}${storageDebug}` 
         });
         return;
       }
