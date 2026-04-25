@@ -1101,7 +1101,7 @@ e.stopPropagation();
                 </div>
 
                 {/* Right Sidebar - Case Details (Desktop) */}
-                <div className="hidden lg:flex w-[300px] flex-col bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200/50 dark:border-slate-800 overflow-hidden h-full">
+                <div className="hidden lg:flex w-[380px] flex-col bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200/50 dark:border-slate-800 overflow-hidden h-full">
                     <div className="flex-1 overflow-y-auto custom-scrollbar p-6">
                         <CaseDetailsContent />
                     </div>
