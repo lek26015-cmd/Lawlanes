@@ -342,6 +342,8 @@ function ChatPageContent() {
 
             const result = await uploadFileAction(formData, idToken, normalizedChatId);
             
+            toast({ title: "Upload Result", description: JSON.stringify(result) });
+
             if (!result || !result.fullPath) {
                 throw new Error("ระบบอัปโหลดไม่คืนค่าตำแหน่งไฟล์ (Full Path is missing)");
             }
