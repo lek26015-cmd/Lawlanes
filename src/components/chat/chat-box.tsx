@@ -219,7 +219,10 @@ function ChatBoxContent({
       toast({ title: "กำลังค้นหาไฟล์ในระบบสำรอง...", description: "โปรดรอสักครู่ ระบบกำลังกู้คืนข้อมูลไฟล์" });
       
       const { discoverFilePathAction } = await import('@/app/actions/discover-file');
-      const discoveryResult = await discoverFilePathAction(chatId, fileName);
+      const msgTimestamp = typeof message.timestamp === 'number' ? message.timestamp : 
+                          (message.timestamp?.toDate ? message.timestamp.toDate().getTime() : Date.now());
+      
+      const discoveryResult = await discoverFilePathAction(chatId, fileName, msgTimestamp);
       
       if (discoveryResult.success && discoveryResult.filePath) {
         filePath = discoveryResult.filePath;

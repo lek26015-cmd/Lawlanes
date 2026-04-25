@@ -43,6 +43,10 @@ export async function uploadToFirebaseSecure(formData: FormData, folder: string 
         await fileRef.save(buffer, {
             metadata: {
                 contentType: file.type || 'application/octet-stream',
+                metadata: {
+                    originalName: file.name,
+                    uploadedBy: folder // Usually 'chats/chatId'
+                }
             },
             public: false,
         });
