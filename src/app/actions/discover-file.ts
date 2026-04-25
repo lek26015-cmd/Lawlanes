@@ -46,6 +46,8 @@ export async function discoverFilePathAction(chatId: string, fileName: string, m
             
             for (const file of files) {
                 const [metadata] = await file.getMetadata();
+                if (!metadata.timeCreated) continue;
+                
                 const fileCreated = new Date(metadata.timeCreated).getTime();
                 const diffSeconds = Math.abs(fileCreated - messageTimestamp) / 1000;
                 const fileExtension = file.name.split('.').pop()?.toLowerCase();
