@@ -331,6 +331,8 @@ function ChatPageContent() {
         }
 
 
+        const normalizedChatId = Array.isArray(chatId) ? chatId[0] : (chatId as string);
+        
         try {
             setIsUploading(true);
             toast({ title: "กำลังอัปโหลด...", description: `กำลังอัปโหลดไฟล์ "${file.name}"` });
@@ -338,7 +340,12 @@ function ChatPageContent() {
             const formData = new FormData();
             formData.append('file', file);
 
-            const result = await uploadFileAction(formData, idToken, chatId);
+            const result = await uploadFileAction(formData, idToken, normalizedChatId);
+            
+            if (!result || !result.fullPath) {
+                throw new Error("ระบบอัปโหลดไม่คืนค่าตำแหน่งไฟล์ (Full Path is missing)");
+            }
+
             const fileData = {
                 name: file.name,
                 url: result.fullPath,
@@ -347,15 +354,17 @@ function ChatPageContent() {
                 uploadedAt: Date.now()
             };
 
-            await updateDoc(doc(firestore, 'chats', chatId), {
+            await updateDoc(doc(firestore, 'chats', normalizedChatId), {
                 files: arrayUnion(fileData)
             });
+
+            toast({ title: "บันทึกข้อมูลไฟล์แล้ว", description: "กำลังส่งข้อความยืนยันลงในแชท..." });
 
             // 10. NOTIFY counterpart about the new document
             try {
                 const authToken = await user.getIdToken();
                 const notifyResult = await sendChatMessageAction({
-                    chatId,
+                    chatId: normalizedChatId,
                     text: `[อัปโหลดไฟล์] ${file.name}`,
                     senderId: user.uid,
                     senderName: effectiveIsLawyerView ? (user.displayName || 'ทนายความ') : (user.displayName || 'ลูกความ'),
