@@ -138,12 +138,15 @@ export async function getSecureDownloadUrl(
         const fileName = path.split('/').pop() || 'document';
 
         const [url] = await file.getSignedUrl({
+            version: 'v4',
             action: 'read',
             expires: new Date(expiresAt),
-            responseType: contentType,
-            responseDisposition: disposition === 'attachment' 
-                ? `attachment; filename="${fileName}"` 
-                : 'inline',
+            queryParams: {
+                'response-content-type': contentType,
+                'response-content-disposition': disposition === 'attachment' 
+                    ? `attachment; filename="${fileName}"` 
+                    : 'inline',
+            }
         });
         return url;
     } catch (error) {
@@ -151,4 +154,5 @@ export async function getSecureDownloadUrl(
         return null;
     }
 }
+
 

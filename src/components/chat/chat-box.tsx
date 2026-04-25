@@ -26,12 +26,14 @@ import { CopyButton } from '@/components/ui/copy-button';
 import { useChatSocket } from '@/hooks/use-chat-socket';
 import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 import { getSecureDownloadUrl } from '@/app/actions/secure-view';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogFooter
 } from "@/components/ui/dialog";
 
 interface ChatBoxProps {
@@ -83,6 +85,7 @@ function ChatBoxContent({
   const [chatMetadata, setChatMetadata] = useState<any>(null);
   const [previewFile, setPreviewFile] = useState<{ url: string, name: string, type: 'image' | 'pdf' | 'other' } | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const { toast } = useToast();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const { initialChatMessage, setInitialChatMessage } = useChat();
 
@@ -205,15 +208,22 @@ function ChatBoxContent({
     const isPDF = /\.pdf$/i.test(fileName);
     
     try {
+      // For images and PDFs, we want to view them inline in our modal
       if (isImage || isPDF) {
         const url = await getSecureDownloadUrl(file.url, chatId, undefined, 'inline');
-        if (!url) return;
+        if (!url) {
+          toast({ variant: "destructive", title: "ไม่สามารถเปิดไฟล์ได้", description: "คุณอาจไม่มีสิทธิ์เข้าถึงไฟล์นี้ หรือเซสชันหมดอายุ" });
+          return;
+        }
         setPreviewFile({ url, name: fileName, type: isImage ? 'image' : 'pdf' });
         setIsPreviewOpen(true);
       } else {
         // For other files (xlsx, docx, etc), we force a download using a hidden link to avoid popup blockers
         const url = await getSecureDownloadUrl(file.url, chatId, undefined, 'attachment');
-        if (!url) return;
+        if (!url) {
+          toast({ variant: "destructive", title: "ไม่สามารถดาวน์โหลดไฟล์ได้", description: "คุณอาจไม่มีสิทธิ์เข้าถึงไฟล์นี้ หรือเซสชันหมดอายุ" });
+          return;
+        }
         
         const link = document.createElement('a');
         link.href = url;
@@ -224,6 +234,7 @@ function ChatBoxContent({
       }
     } catch (err) {
       console.error("Failed to view file:", err);
+      toast({ variant: "destructive", title: "เกิดข้อผิดพลาด", description: "ไม่สามารถดึงข้อมูลไฟล์ได้ในขณะนี้" });
     }
   };
 
@@ -522,19 +533,24 @@ function ChatBoxContent({
       {/* Image Preview Modal */}
       <Dialog open={isPreviewOpen} onOpenChange={setIsPreviewOpen}>
         <DialogContent className="max-w-4xl w-[95vw] h-[80vh] flex flex-col p-0 overflow-hidden border-none rounded-3xl">
-          <DialogHeader className="p-4 border-b bg-white flex flex-row items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-50 rounded-lg">
+          <DialogHeader className="p-4 border-b bg-white flex flex-row items-center justify-between space-y-0">
+            <div className="flex items-center gap-3 overflow-hidden">
+              <div className="p-2 bg-blue-50 rounded-lg flex-shrink-0">
                 <ImageIcon className="w-5 h-5 text-blue-600" />
               </div>
-              <div>
-                <DialogTitle className="text-sm font-bold truncate max-w-[200px] md:max-w-md">{previewFile?.name}</DialogTitle>
-                <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">ตัวอย่างรูปภาพ</p>
+              <div className="min-w-0">
+                <DialogTitle className="text-sm font-bold truncate pr-4">{previewFile?.name}</DialogTitle>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-widest font-bold">ตัวอย่างไฟล์</p>
               </div>
             </div>
             <div className="flex items-center gap-2 pr-8">
-              <Button size="sm" variant="outline" className="rounded-full text-xs h-8" onClick={() => window.open(previewFile?.url, '_blank')}>
-                <ExternalLink className="w-3.5 h-3.5 mr-1.5" /> เปิดเต็มจอ
+              <Button 
+                size="sm" 
+                variant="outline" 
+                className="rounded-full text-xs h-8 flex-shrink-0" 
+                onClick={() => window.open(previewFile?.url, '_blank')}
+              >
+                <ExternalLink className="w-3.5 h-3.5 mr-1.5" /> Full screen
               </Button>
             </div>
           </DialogHeader>
@@ -545,11 +561,32 @@ function ChatBoxContent({
                 <p className="text-xs font-bold uppercase tracking-widest">กำลังดึงข้อมูลไฟล์...</p>
               </div>
             ) : previewFile.type === 'pdf' ? (
-              <iframe 
-                src={previewFile.url} 
-                className="w-full h-full border-none" 
-                title={previewFile.name}
-              />
+              <div className="w-full h-full flex flex-col">
+                <div className="flex-1 relative">
+                  <embed 
+                    src={previewFile.url} 
+                    type="application/pdf"
+                    className="w-full h-full border-none" 
+                  />
+                  {/* Fallback for browsers that don't support embedded PDFs */}
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                     <div className="p-6 bg-slate-800/80 backdrop-blur-md rounded-2xl text-center pointer-events-auto">
+                        <p className="text-white text-sm font-bold mb-4">หากเอกสารไม่แสดงผล</p>
+                        <Button 
+                          onClick={() => {
+                            const link = document.createElement('a');
+                            link.href = previewFile.url;
+                            link.target = '_blank';
+                            link.click();
+                          }}
+                          className="bg-blue-600 hover:bg-blue-700 text-xs"
+                        >
+                          เปิดไฟล์ในแท็บใหม่
+                        </Button>
+                     </div>
+                  </div>
+                </div>
+              </div>
             ) : (
               <ImagePreviewContent url={previewFile.url} name={previewFile.name} />
             )}

@@ -1135,7 +1135,17 @@ e.stopPropagation();
                             </div>
                         </div>
                         <div className="flex items-center gap-2 pr-8">
-                            <Button size="sm" variant="outline" className="rounded-full text-xs h-8" onClick={() => window.open(previewFile?.url, '_blank')}>
+                            <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className="rounded-full text-xs h-8" 
+                                onClick={() => {
+                                    const link = document.createElement('a');
+                                    link.href = previewFile?.url || '';
+                                    link.target = '_blank';
+                                    link.click();
+                                }}
+                            >
                                 <ExternalLink className="w-3.5 h-3.5 mr-1.5" /> Full screen
                             </Button>
                         </div>
@@ -1143,11 +1153,29 @@ e.stopPropagation();
                     <div className="flex-1 bg-slate-900 flex items-center justify-center overflow-hidden">
                         {previewFile?.url && (
                             previewFile.type === 'pdf' ? (
-                                <iframe 
-                                    src={previewFile.url} 
-                                    className="w-full h-full border-none" 
-                                    title={previewFile.name}
-                                />
+                                <div className="w-full h-full relative">
+                                    <embed 
+                                        src={previewFile.url} 
+                                        type="application/pdf"
+                                        className="w-full h-full border-none" 
+                                    />
+                                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                        <div className="p-6 bg-slate-800/80 backdrop-blur-md rounded-2xl text-center pointer-events-auto">
+                                            <p className="text-white text-sm font-bold mb-4">หากเอกสารไม่แสดงผล</p>
+                                            <Button 
+                                                onClick={() => {
+                                                    const link = document.createElement('a');
+                                                    link.href = previewFile.url;
+                                                    link.target = '_blank';
+                                                    link.click();
+                                                }}
+                                                className="bg-blue-600 hover:bg-blue-700 text-xs"
+                                            >
+                                                เปิดไฟล์ในแท็บใหม่
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
                             ) : (
                                 <img 
                                     src={previewFile.url} 
