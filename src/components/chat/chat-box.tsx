@@ -516,10 +516,13 @@ function ChatBoxContent({
                   type="file"
                   ref={fileInputRef}
                   className="hidden"
+                  multiple
                   onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      onFileUpload(file);
+                    const files = e.target.files;
+                    if (files && files.length > 0) {
+                      for (let i = 0; i < files.length; i++) {
+                        onFileUpload(files[i]);
+                      }
                     }
                     e.target.value = '';
                   }}

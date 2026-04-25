@@ -7,7 +7,12 @@ import type { LawyerProfile } from '@/lib/types';
 import { useFirebase, useUser } from '@/firebase';
 import { ChatBox } from '@/components/chat/chat-box';
 import { uploadFileAction } from '../actions';
-import { requestFeeAction, getChatDetailsAction, ensureChatExistsAction } from '@/app/actions/chat-actions';
+import { 
+    requestFeeAction, 
+    getChatDetailsAction, 
+    ensureChatExistsAction,
+    sendChatMessageAction 
+} from '@/app/actions/chat-actions';
 import { submitReviewAction } from '@/app/actions/review-actions';
 import { getCaseMilestones, toggleMilestoneStatusAction, addCaseMilestoneAction } from '@/app/actions/lawyer-case-actions';
 import type { Milestone } from '@/lib/types/billing-types';
@@ -325,14 +330,10 @@ function ChatPageContent() {
             return;
         }
 
-        if (isUploading) {
-            toast({ title: "กรุณารอสักครู่", description: "กำลังมีการอัปโหลดไฟล์อื่นอยู่" });
-            return;
-        }
 
         try {
             setIsUploading(true);
-            toast({ title: "กำลังอัปโหลด...", description: "กรุณารอสักครู่" });
+            toast({ title: "กำลังอัปโหลด...", description: `กำลังอัปโหลดไฟล์ "${file.name}"` });
             const idToken = await user.getIdToken();
             const formData = new FormData();
             formData.append('file', file);
@@ -353,13 +354,12 @@ function ChatPageContent() {
             // 10. NOTIFY counterpart about the new document
             try {
                 const authToken = await user.getIdToken();
-                const { sendChatMessageAction } = await import('@/app/actions/chat-actions');
                 const notifyResult = await sendChatMessageAction({
                     chatId,
                     text: `[อัปโหลดไฟล์] ${file.name}`,
                     senderId: user.uid,
                     senderName: effectiveIsLawyerView ? (user.displayName || 'ทนายความ') : (user.displayName || 'ลูกความ'),
-                    recipientId: otherUser.userId,
+                    recipientId: otherUser.userId || '',
                     isLawyerView: effectiveIsLawyerView,
                     authToken,
                     metadata: {
@@ -386,8 +386,12 @@ function ChatPageContent() {
     };
 
     const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        if (file) await executeFileUpload(file);
+        const files = event.target.files;
+        if (files && files.length > 0) {
+            for (let i = 0; i < files.length; i++) {
+                await executeFileUpload(files[i]);
+            }
+        }
         if (event.target) event.target.value = '';
     };
 
