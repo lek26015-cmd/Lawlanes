@@ -548,7 +548,12 @@ function ChatBoxContent({
                 size="sm" 
                 variant="outline" 
                 className="rounded-full text-xs h-8 flex-shrink-0" 
-                onClick={() => window.open(previewFile?.url, '_blank')}
+                onClick={() => {
+                  const link = document.createElement('a');
+                  link.href = previewFile?.url || '';
+                  link.target = '_blank';
+                  link.click();
+                }}
               >
                 <ExternalLink className="w-3.5 h-3.5 mr-1.5" /> Full screen
               </Button>
