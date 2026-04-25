@@ -246,7 +246,7 @@ function ChatBoxContent({
 
   return (
     <Card className="flex flex-col h-full w-full max-w-full min-w-0 shadow-none border-none md:border md:border-slate-200/60 dark:md:border-slate-800 rounded-none md:rounded-2xl overflow-hidden bg-white dark:bg-slate-900 transition-all duration-500">
-      <CardHeader className="border-b border-slate-100 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md pt-4 pb-3 md:py-4 px-4 md:px-10 min-w-0 w-full z-20">
+      <CardHeader className="border-b border-slate-100 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md pt-3 pb-2 md:py-2.5 px-4 md:px-8 min-w-0 w-full z-20">
         <div className="flex flex-row justify-between items-center gap-1 md:gap-4 min-w-0 w-full">
           <div className="flex items-center gap-2 md:gap-4 flex-1 min-w-0">
             {onBack && (
@@ -259,7 +259,7 @@ function ChatBoxContent({
                 <ChevronLeft className="h-5 w-5" />
               </Button>
             )}
-            <Avatar className="h-9 w-9 md:h-12 md:w-12 border-2 border-primary/5 flex-shrink-0 transition-transform hover:scale-105 duration-300">
+            <Avatar className="h-8 w-8 md:h-10 md:w-10 border-2 border-primary/5 flex-shrink-0 transition-transform hover:scale-105 duration-300">
                <AvatarImage src={getCloudflareVariantUrl(otherUser.imageUrl, 'avatar')} />
                <AvatarFallback className="bg-primary/5 text-primary font-bold text-base md:text-xl">{otherUser.name.charAt(0)}</AvatarFallback>
             </Avatar>
@@ -274,7 +274,7 @@ function ChatBoxContent({
                   <div className="w-1.5 h-1.5 rounded-full bg-slate-300 flex-shrink-0" title="Offline" />
                 )}
               </div>
-              <h2 className="text-base md:text-xl font-black text-slate-900 dark:text-white truncate leading-none tracking-tight max-w-[180px] md:max-w-none">
+              <h2 className="text-sm md:text-lg font-black text-slate-900 dark:text-white truncate leading-none tracking-tight max-w-[180px] md:max-w-none">
                 {otherUser.name}
               </h2>
               <div className="flex items-center gap-2 mt-1 md:mt-2">
@@ -348,7 +348,7 @@ function ChatBoxContent({
                               isOwn 
                                 ? "bg-blue-600 text-white rounded-[2rem] rounded-tr-sm shadow-md" 
                                 : "bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-100 dark:border-slate-700 rounded-[2rem] rounded-tl-sm shadow-sm",
-                              !isFileUpload && "px-5 py-3 md:px-6 md:py-3.5"
+                              !isFileUpload && "px-4 py-2 md:px-5 md:py-2.5"
                             )}
                             onClick={() => isFileUpload && handleFileClick(msg)}
                           >
@@ -361,7 +361,7 @@ function ChatBoxContent({
                                         <span className="text-xs font-black uppercase tracking-widest">Payment Request</span>
                                     </div>
                                     <div className="p-5 bg-white dark:bg-slate-900 space-y-4 min-w-0">
-                                        <p className="text-sm text-slate-600 dark:text-slate-400 whitespace-pre-wrap break-words leading-relaxed">{msg.text}</p>
+                                        <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400 whitespace-pre-wrap break-words leading-relaxed">{msg.text}</p>
                                         <Button 
                                            className="w-full h-11 bg-blue-600 hover:bg-blue-700 font-bold rounded-2xl shadow-md text-sm" 
                                            asChild
@@ -391,7 +391,7 @@ function ChatBoxContent({
                                    </div>
                                  </div>
                                ) : (
-                                 <p className="text-sm md:text-[1.05rem] leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:break-word] overflow-hidden min-w-0">{msg.text}</p>
+                                 <p className="text-xs md:text-sm leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:break-word] overflow-hidden min-w-0">{msg.text}</p>
                                )
                             )}
                           </div>
@@ -459,7 +459,7 @@ function ChatBoxContent({
         </ScrollArea>
       </CardContent>
 
-      <CardFooter className="px-4 py-3 md:px-8 md:py-4 border-t bg-white dark:bg-slate-900 w-full min-w-0">
+      <CardFooter className="px-4 py-2 md:px-8 md:py-3 border-t bg-white dark:bg-slate-900 w-full min-w-0">
         <form 
           onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }} 
           className="flex items-center w-full gap-3 min-w-0"
