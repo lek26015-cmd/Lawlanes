@@ -552,13 +552,13 @@ function ChatPageContent() {
             
             <Tabs defaultValue="info" className="w-full">
                 <TabsList className="w-full bg-slate-100/80 dark:bg-slate-800/80 backdrop-blur-sm p-1.5 rounded-2xl h-auto flex flex-wrap lg:flex-nowrap gap-1 border border-slate-200/50 dark:border-slate-700/50">
-                    <TabsTrigger value="overview" className="min-w-0 px-2 flex-1 text-[9px] sm:text-[10px] font-black uppercase tracking-widest py-2 rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:shadow-md transition-all duration-300">
+                    <TabsTrigger value="overview" className="min-w-0 px-2 flex-1 text-[10px] font-black uppercase tracking-widest py-2.5 rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:text-blue-600 data-[state=active]:shadow-lg transition-all duration-300">
                         <span className="truncate">Overview</span>
                     </TabsTrigger>
-                    <TabsTrigger value="info" className="min-w-0 px-2 flex-1 text-[9px] sm:text-[10px] font-black uppercase tracking-widest py-2 rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:shadow-md transition-all duration-300">
+                    <TabsTrigger value="info" className="min-w-0 px-2 flex-1 text-[10px] font-black uppercase tracking-widest py-2.5 rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:text-blue-600 data-[state=active]:shadow-lg transition-all duration-300">
                         <span className="truncate">{tCommon('viewDetails')}</span>
                     </TabsTrigger>
-                    <TabsTrigger value="vault" className="min-w-0 px-2 flex-1 text-[9px] sm:text-[10px] font-black uppercase tracking-widest py-2 rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:shadow-md transition-all duration-300">
+                    <TabsTrigger value="vault" className="min-w-0 px-2 flex-1 text-[10px] font-black uppercase tracking-widest py-2.5 rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:text-blue-600 data-[state=active]:shadow-lg transition-all duration-300">
                         <span className="truncate">{tCase('legalVault').split(' ')[0]}</span>
                     </TabsTrigger>
 
@@ -566,7 +566,7 @@ function ChatPageContent() {
                 
                 <TabsContent value="info" className="space-y-6">
                     {effectiveIsLawyerView ? (
-                        <Card className="border-none shadow-sm bg-slate-50 dark:bg-slate-900/50">
+                        <Card className="border-none shadow-sm bg-white dark:bg-slate-900/50 rounded-[2rem] overflow-hidden">
                             <CardHeader className="pb-3">
                                 <CardTitle className="text-sm font-semibold flex items-center gap-2">
                                     <Briefcase className="w-4 h-4 text-primary" />
@@ -681,7 +681,7 @@ function ChatPageContent() {
                     ) : (
                         <div className="space-y-6">
                             {(caseTitle || description || chatAmount > 0) && (
-                                <Card className="border-none shadow-sm bg-slate-50 dark:bg-slate-900/50">
+                                <Card className="border-none shadow-sm bg-white dark:bg-slate-900/50 rounded-[2rem] overflow-hidden">
                                     <CardHeader className="pb-3">
                                         <CardTitle className="text-sm font-semibold flex items-center gap-2">
                                             <Briefcase className="w-4 h-4 text-primary" />
@@ -756,7 +756,7 @@ function ChatPageContent() {
                                 </Card>
                             )}
                             
-                            <Card className="border-none shadow-sm bg-slate-50 dark:bg-slate-900/50">
+                            <Card className="border-none shadow-sm bg-white dark:bg-slate-900/50 rounded-[2rem] overflow-hidden">
                                 <CardHeader className="pb-3">
                                     <CardTitle className="text-sm font-semibold flex items-center gap-2 text-slate-800 dark:text-white">
                                         <UserIcon className="w-4 h-4 text-blue-500" />
@@ -1057,7 +1057,7 @@ e.stopPropagation();
     return (
         <>
         <div className="bg-slate-50 dark:bg-slate-950 min-h-[calc(100dvh-80px)] py-2 md:py-6 lg:py-8 overflow-x-hidden">
-            <div className="max-w-6xl mx-auto mb-3 md:mb-6 px-4 md:px-0 hidden md:block">
+            <div className="max-w-6xl mx-auto mb-3 md:mb-6 px-4 md:px-6 hidden md:block">
                 <Link 
                     href={effectiveIsLawyerView ? "/lawyer-dashboard" : "/dashboard"} 
                     className="inline-flex items-center text-xs md:text-sm font-black text-slate-400 hover:text-blue-600 transition-all group"
@@ -1068,7 +1068,7 @@ e.stopPropagation();
                     {effectiveIsLawyerView ? "กลับหน้าแดชบอร์ดทนาย" : "กลับสู่หน้าหลัก"}
                 </Link>
             </div>
-            <div className="max-w-6xl mx-auto h-[calc(100dvh-2rem)] md:h-[calc(100dvh-80px-8rem)] flex md:gap-6 relative max-w-full overflow-x-hidden">
+            <div className="max-w-6xl mx-auto h-[calc(100dvh-2rem)] md:h-[calc(100dvh-80px-8rem)] flex md:gap-6 relative overflow-x-hidden px-4 md:px-6">
                 {isAdminView && !isUserLawyer && (user?.uid !== client?.id) && (
                     <div className="absolute top-0 left-0 right-0 z-[60] bg-amber-600 text-white text-[10px] md:text-xs font-bold py-1.5 px-4 flex items-center justify-center gap-2 shadow-md animate-in fade-in slide-in-from-top duration-500">
                         <ShieldAlert className="w-3 h-3 md:w-4 md:h-4" />

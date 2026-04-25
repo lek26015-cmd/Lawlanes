@@ -326,9 +326,9 @@ function ChatBoxContent({
                     {!isOwn && (
                       <div className="w-9 h-9 flex-shrink-0">
                         {showAvatar && (
-                          <Avatar className="h-9 w-9 border-2 border-primary/5 shadow-sm">
+                          <Avatar className="h-9 w-9 border-2 border-primary/5 shadow-sm flex-shrink-0">
                             <AvatarImage src={getCloudflareVariantUrl(otherUser.imageUrl, 'avatar')} />
-                            <AvatarFallback>{otherUser.name.charAt(0)}</AvatarFallback>
+                            <AvatarFallback className="bg-primary/5 text-primary font-bold">{otherUser.name.charAt(0)}</AvatarFallback>
                           </Avatar>
                         )}
                       </div>
