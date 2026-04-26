@@ -2,6 +2,11 @@
 
 import { Resend } from 'resend';
 import { initAdmin } from '@/lib/firebase-admin';
+import * as admin from 'firebase-admin';
+import { randomBytes } from 'crypto';
+
+/** How many days a verification link stays valid */
+const VERIFICATION_LINK_EXPIRY_DAYS = 7;
 
 // Helper function to generate premium HTML email
 function generateEmailHtml(title: string, content: string, buttonText: string, link: string) {
@@ -59,22 +64,40 @@ function generateEmailHtml(title: string, content: string, buttonText: string, l
 
 export async function sendCustomVerificationEmail(email: string, name: string) {
   try {
-    const auth = await initAdmin();
-    if (!auth) {
+    const app = await initAdmin();
+    if (!app) {
       const errorMsg = 'ระบบไม่สามารถเชื่อมต่อ Server ทางเลือกได้ในขณะนี้'
       console.error(errorMsg);
       return { success: false, error: errorMsg };
     }
 
-    const actionCodeSettings = {
-      url: `https://lawslane.com/login`,
-    };
+    // Look up the user by email to get their UID
+    const userRecord = await admin.auth().getUserByEmail(email);
 
-    const link = await auth.auth().generateEmailVerificationLink(email, actionCodeSettings);
+    // Generate a secure random token
+    const token = randomBytes(32).toString('hex');
+
+    // Calculate expiry date (7 days from now)
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + VERIFICATION_LINK_EXPIRY_DAYS);
+
+    // Store the token in Firestore
+    const db = admin.firestore();
+    await db.collection('email_verification_tokens').doc(token).set({
+      uid: userRecord.uid,
+      email,
+      name,
+      expiresAt: admin.firestore.Timestamp.fromDate(expiresAt),
+      used: false,
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+
+    // Build the verification link pointing to our custom API route
+    const link = `https://lawslane.com/api/auth/verify-email?token=${token}`;
 
     const emailHtml = generateEmailHtml(
       `ยินดีต้อนรับคุณ ${name}`,
-      `ขอบคุณที่ลงทะเบียนกับ Lawslane<br>กรุณายืนยันที่อยู่อีเมลของคุณเพื่อเริ่มต้นใช้งาน`,
+      `ขอบคุณที่ลงทะเบียนกับ Lawslane<br>กรุณายืนยันที่อยู่อีเมลของคุณเพื่อเริ่มต้นใช้งาน<br><br><small style="color:#94a3b8;">ลิงก์นี้จะหมดอายุใน ${VERIFICATION_LINK_EXPIRY_DAYS} วัน</small>`,
       'ยืนยันอีเมล',
       link
     );
