@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense, useRef } from 'react';
+import { useState, useEffect, Suspense, useRef, useCallback } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
 import { getLawyerById } from '@/lib/data';
 import type { LawyerProfile } from '@/lib/types';
@@ -11,7 +11,8 @@ import {
     requestFeeAction, 
     getChatDetailsAction, 
     ensureChatExistsAction,
-    sendChatMessageAction 
+    sendChatMessageAction,
+    approveInstallmentAction
 } from '@/app/actions/chat-actions';
 import { submitReviewAction } from '@/app/actions/review-actions';
 import { getCaseMilestones, toggleMilestoneStatusAction, addCaseMilestoneAction } from '@/app/actions/lawyer-case-actions';
@@ -21,6 +22,10 @@ import { useTranslations } from 'next-intl';
 import { getSecureDownloadUrl } from '@/app/actions/secure-view';
 import { CaseRoadmap } from '@/components/case/case-roadmap';
 import { LegalResearchTool } from '@/components/case/legal-research-tool';
+import { getInvoicesByChatAction, getContractsByChatAction } from '@/app/actions/billing-actions';
+import { repairChatDocumentsAction } from '@/app/actions/lawyer-actions';
+import { Invoice } from '@/lib/types/billing-types';
+import { FileSignature, ReceiptText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getCloudflareVariantUrl } from '@/lib/cloudflare-images';
 import profileLawyerImg from '@/pic/profile-lawyer.jpg';
@@ -61,7 +66,7 @@ import {
     DrawerTrigger,
 } from "@/components/ui/drawer";
 import { Button } from '@/components/ui/button';
-import { AlertTriangle, FileText, Check, Upload, Scale, Ticket, Briefcase, User as UserIcon, DollarSign, ArrowLeft, Plus, Sparkles, BrainCircuit, Globe, ArrowRight, CheckCircle2, Loader2, Image as ImageIcon, Trash2, ShieldAlert, ExternalLink, ScrollText, ChevronLeft, Search, Info } from 'lucide-react';
+import { AlertTriangle, FileText, Check, Upload, Scale, Ticket, Briefcase, User as UserIcon, DollarSign, ArrowLeft, Plus, Sparkles, BrainCircuit, Globe, ArrowRight, CheckCircle2, Loader2, Image as ImageIcon, Trash2, ShieldAlert, ExternalLink, ScrollText, ChevronLeft, Search, Info, Download } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -84,7 +89,7 @@ import { CopyButton } from '@/components/ui/copy-button';
 import { Link } from '@/navigation';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { doc, getDoc, updateDoc, arrayUnion, onSnapshot, serverTimestamp } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, arrayUnion, onSnapshot, serverTimestamp, query, collection, where, orderBy } from 'firebase/firestore';
 import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '@/lib/constants';
 
 function ChatPageContent() {
@@ -103,16 +108,76 @@ function ChatPageContent() {
     const [files, setFiles] = useState<{ name: string, url: string, size: number }[]>([]);
     const [chatStatus, setChatStatus] = useState<string>(searchParams.get('status') || 'active');
     const [chatAmount, setChatAmount] = useState<number>(0);
+    const chatAmountRef = useRef(0);
     const [isManualCase, setIsManualCase] = useState<boolean>(false);
     const [installments, setInstallments] = useState<any[]>([]);
+    const installmentsRef = useRef<any[]>([]);
+
+    useEffect(() => { chatAmountRef.current = chatAmount; }, [chatAmount]);
+    useEffect(() => { installmentsRef.current = installments; }, [installments]);
     const [caseTitle, setCaseTitle] = useState<string>('');
     const [description, setDescription] = useState<string>('');
     const [pendingFeeRequest, setPendingFeeRequest] = useState<{ amount: number, reason: string } | null>(null);
     const [milestones, setMilestones] = useState<Milestone[]>([]);
+    const [invoices, setInvoices] = useState<Invoice[]>([]);
+    const [contracts, setContracts] = useState<any[]>([]);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [isAdminView, setIsAdminView] = useState(false);
     const [accessError, setAccessError] = useState<string | null>(null);
     const { toast } = useToast();
+    const { firestore, storage } = useFirebase();
+    const { user } = useUser();
+
+    // Fetch Invoices, Contracts and Milestones via Server Actions (to avoid permission/index errors)
+    const fetchDocs = useCallback(async (cId?: string, lId?: string) => {
+        if (!chatId) return;
+        console.log("Fetching docs for chatId:", chatId);
+        
+        const targetClientId = cId || clientId;
+        const targetLawyerId = lId || lawyerId;
+        const normalizedChatId = Array.isArray(chatId) ? chatId[0] : (chatId as string);
+
+        const [invRes, conRes, msRes] = await Promise.all([
+            getInvoicesByChatAction(normalizedChatId, targetClientId, targetLawyerId),
+            getContractsByChatAction(normalizedChatId, targetClientId),
+            getCaseMilestones(normalizedChatId)
+        ]);
+        
+        console.log("Docs found:", { invoices: invRes.data?.length, contracts: conRes.data?.length, milestones: msRes?.length });
+        
+        if (invRes.success) {
+            setInvoices(invRes.data || []);
+        }
+        
+        if (conRes.success) {
+            setContracts(conRes.data || []);
+        }
+        
+        // Use local calculation of isOfficial to avoid stale closure issues
+        const currentIsOfficial = chatAmountRef.current > 0 || (installmentsRef.current && installmentsRef.current.length > 0);
+
+        // AUTO-REPAIR: If case is official but no invoices found, trigger repair
+        if (currentIsOfficial && (!invRes.data || invRes.data.length === 0)) {
+            console.log("Triggering auto-repair for missing documents...");
+            const repairRes = await repairChatDocumentsAction(chatId);
+            if (repairRes.success) {
+                // Refresh docs after repair
+                const refreshedInvoices = await getInvoicesByChatAction(chatId, clientId, lawyerId);
+                if (refreshedInvoices.success) setInvoices(refreshedInvoices.data || []);
+            }
+        }
+        
+        // Milestones
+        if (msRes && msRes.length > 0) {
+            const sorted = [...msRes].sort((a: any, b: any) => (a.order || 0) - (b.order || 0));
+            setMilestones(sorted);
+        }
+    }, [chatId, clientId, lawyerId]); // Removed chatAmount, installments to avoid identity changes during data sync
+
+    useEffect(() => {
+        fetchDocs();
+    }, [fetchDocs]);
+
 
     const tCase = useTranslations('CaseRoom');
     const tCommon = useTranslations('Dashboard');
@@ -125,20 +190,30 @@ function ChatPageContent() {
     const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 
     const [clientInfo, setClientInfo] = useState<{ name: string, address: string, taxId: string } | null>(null);
-    const isOfficial = chatAmount > 0;
+    const isOfficial = chatAmount > 0 || (installments && installments.length > 0);
+    const totalPaid = installments.filter(inst => inst.status === 'paid').reduce((sum, inst) => {
+        const amt = inst.amount && !isNaN(parseFloat(String(inst.amount).replace(/,/g, ''))) ? parseFloat(String(inst.amount).replace(/,/g, '')) : 0;
+        return sum + amt;
+    }, 0);
 
     // Compute milestoneSteps and currentStep from real milestones
-    const milestoneSteps = milestones.length > 0 ? milestones.map((m, idx) => ({
+    // Sort milestones by order to ensure consistency
+    const sortedMilestones = [...milestones].sort((a, b) => (a.order || 0) - (b.order || 0));
+
+    const milestoneSteps = sortedMilestones.length > 0 ? sortedMilestones.map((m, idx) => ({
       id: idx + 1,
       label: m.title,
       icon: m.status === 'completed' ? CheckCircle2 : FileText,
       date: m.status === 'completed' ? '✓ เสร็จสิ้น' : undefined,
     })) : undefined;
 
+    // Find the first pending milestone to determine the current phase
+    const firstPendingIndex = sortedMilestones.findIndex(m => m.status !== 'completed');
+    
     const currentStep = isCompleted 
-      ? (milestones.length > 0 ? milestones.length : 5) 
-      : milestones.length > 0 
-        ? milestones.filter(m => m.status === 'completed').length + 1
+      ? (sortedMilestones.length > 0 ? sortedMilestones.length : 5) 
+      : sortedMilestones.length > 0 
+        ? (firstPendingIndex === -1 ? sortedMilestones.length : firstPendingIndex + 1)
         : (isOfficial ? 4 : (pendingFeeRequest ? 2 : 1));
 
     const [rating, setRating] = useState(0);
@@ -163,8 +238,6 @@ function ChatPageContent() {
 
     const [contractText, setContractText] = useState<string | null>(null);
 
-    const { firestore, storage } = useFirebase();
-    const { user } = useUser();
 
     const CaseDetailsContent = () => (
         <div className="space-y-6">
@@ -172,13 +245,17 @@ function ChatPageContent() {
         </div>
     );
 
+    const fetchDocsRef = useRef(fetchDocs);
+    useEffect(() => {
+        fetchDocsRef.current = fetchDocs;
+    }, [fetchDocs]);
+
     useEffect(() => {
         if (!firestore || !chatId || !user) return;
-
         const chatRef = doc(firestore, 'chats', chatId);
-        const unsubscribe = onSnapshot(chatRef, (doc) => {
-            if (doc.exists()) {
-                const data = doc.data();
+        const unsubscribe = onSnapshot(chatRef, (docSnap) => {
+            if (docSnap.exists()) {
+                const data = docSnap.data();
                 setChatStatus(data.status || 'active');
                 setIsChatDisabled(data.status === 'closed');
                 if (data.files) setFiles(data.files);
@@ -190,21 +267,20 @@ function ChatPageContent() {
                 setPendingFeeRequest(data.pendingFeeRequest || null);
                 setContractText(data.contractText || null);
                 setClientInfo(data.clientInfo || null);
+                
+                // Trigger document refetch when chat document changes
+                const chatData = docSnap.data();
+                if (chatData) {
+                    const cId = chatData.clientId || chatData.userId;
+                    const lId = chatData.lawyerId;
+                    fetchDocsRef.current(cId, lId);
+                }
             }
         });
 
-
-
         return () => unsubscribe();
-    }, [firestore, chatId, user]);
+    }, [firestore, chatId, user]); // Stabilized: Only re-run when chatId or user identity changes
 
-    // Fetch milestones when case is official
-    useEffect(() => {
-        if (!isOfficial || !chatId) return;
-        getCaseMilestones(chatId).then(ms => {
-            if (ms && ms.length > 0) setMilestones(ms);
-        }).catch(err => console.error('Milestones fetch error:', err));
-    }, [isOfficial, chatId]);
 
     useEffect(() => {
         if (!firestore) return;
@@ -265,16 +341,21 @@ function ChatPageContent() {
                 }
                 
                 if (currentClientId) {
-                    const clientRef = doc(firestore!, 'users', currentClientId);
-                    const userDocSnap = await getDoc(clientRef);
-                    
                     let resolvedName = 'ลูกความ';
                     let resolvedAvatar = '';
 
-                    if (userDocSnap.exists()) {
-                        const userData = userDocSnap.data();
-                        resolvedName = userData.name || 'ลูกความ';
-                        resolvedAvatar = userData.avatar || '';
+                    try {
+                        const clientRef = doc(firestore!, 'users', currentClientId);
+                        const userDocSnap = await getDoc(clientRef);
+                        
+                        if (userDocSnap.exists()) {
+                            const userData = userDocSnap.data();
+                            resolvedName = userData.name || 'ลูกความ';
+                            resolvedAvatar = userData.avatar || '';
+                        }
+                    } catch (e) {
+                        console.warn("Could not fetch client profile directly (likely permission rules):", e);
+                        // We will fallback to names from chatData or user object below
                     }
 
                     // RECOVERY: If Firestore name is generic or missing, prioritize the name from Server Action (Auth)
@@ -289,6 +370,7 @@ function ChatPageContent() {
                         resolvedName = user.displayName || user.email?.split('@')[0] || 'ลูกความ';
                         
                         // AUTO-REPAIR: Create/Fix the missing profile document
+                        const clientRef = doc(firestore!, 'users', currentClientId);
                         import('firebase/firestore').then(({ setDoc, serverTimestamp }) => {
                             setDoc(clientRef, {
                                 uid: user.uid,
@@ -317,7 +399,13 @@ function ChatPageContent() {
                 setIsLoading(false);
             }
         }
-        fetchData();
+        
+        // Safety timeout in case fetchData hangs on a broken promise
+        const fallbackTimer = setTimeout(() => {
+            setIsLoading(false);
+        }, 3000);
+        
+        fetchData().finally(() => clearTimeout(fallbackTimer));
     }, [lawyerId, clientId, firestore, chatId, user, view]);
 
     const handleUploadClick = () => fileInputRef.current?.click();
@@ -528,8 +616,9 @@ function ChatPageContent() {
         setIsLoading(true);
         try {
             const defaultTitles = ['วิเคราะห์รูปคดี', 'จัดเตรียมเอกสาร', 'ยื่นคำฟ้อง', 'ตรวจพยานหลักฐาน', 'นัดสืบพยาน'];
-            for (const title of defaultTitles) {
-                await addCaseMilestoneAction(chatId, title);
+            // Sequential execution to ensure order
+            for (let i = 0; i < defaultTitles.length; i++) {
+                await addCaseMilestoneAction(chatId, defaultTitles[i], i + 1);
             }
             const ms = await getCaseMilestones(chatId);
             setMilestones(ms || []);
@@ -557,10 +646,9 @@ function ChatPageContent() {
         );
     }
 
-    const chatPartner = effectiveIsLawyerView ? client : lawyer;
-    if (!chatPartner || !user || !firestore) {
+    if (!user || !firestore) {
         if (isLoading) return <div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin" /> กำลังโหลดข้อมูล...</div>;
-        return <div>Unable to load chat. Missing information (Partner: {chatPartner ? 'OK' : 'MISSING'}).</div>;
+        return <div className="flex justify-center items-center h-screen text-slate-500">กรุณาเข้าสู่ระบบเพื่อใช้งานแชท</div>;
     }
 
     const otherUser = {
@@ -574,22 +662,20 @@ function ChatPageContent() {
 
     const renderOperationsPanel = () => (
         <div className="space-y-6">
-            {isOfficial && (
-                <div className="w-full bg-slate-50 dark:bg-slate-900 rounded-[2rem] border border-slate-100 dark:border-slate-800 p-2 shadow-sm animate-in fade-in zoom-in-95 duration-500">
-                    <CaseRoadmap currentStep={currentStep} className="pt-4 pb-8" isPremium={isOfficial} steps={milestoneSteps} />
-                </div>
-            )}
+            {/* Roadmap and Overview removed per user request to simplify UI */}
             
-            <Tabs defaultValue="info" className="w-full">
-                <TabsList className="w-full bg-slate-100/80 dark:bg-slate-800/80 backdrop-blur-sm p-1.5 rounded-2xl h-auto flex flex-wrap lg:flex-nowrap gap-1 border border-slate-200/50 dark:border-slate-700/50">
-                    <TabsTrigger value="overview" className="min-w-0 px-2 flex-1 text-[10px] font-black uppercase tracking-widest py-2.5 rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:text-blue-600 transition-all duration-300">
-                        <span className="truncate">Overview</span>
+            <Tabs defaultValue="info" className="w-full relative z-30 pointer-events-auto">
+                <TabsList className="w-full bg-slate-200 dark:bg-slate-800 p-1 rounded-2xl h-11 flex gap-1 border border-slate-300 dark:border-slate-700 relative z-[100] pointer-events-auto shadow-sm">
+                    <TabsTrigger value="info" className="min-w-0 px-2 flex-1 text-[10px] font-black uppercase tracking-widest py-2.5 rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:text-blue-600 transition-all duration-300 cursor-pointer pointer-events-auto">
+                        <span className="truncate">{tCommon('viewDetails') || 'รายละเอียด'}</span>
                     </TabsTrigger>
-                    <TabsTrigger value="info" className="min-w-0 px-2 flex-1 text-[10px] font-black uppercase tracking-widest py-2.5 rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:text-blue-600 transition-all duration-300">
-                        <span className="truncate">{tCommon('viewDetails')}</span>
-                    </TabsTrigger>
-                    <TabsTrigger value="vault" className="min-w-0 px-2 flex-1 text-[10px] font-black uppercase tracking-widest py-2.5 rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:text-blue-600 transition-all duration-300">
-                        <span className="truncate">{tCase('legalVault').split(' ')[0]}</span>
+                    <TabsTrigger value="vault" className="min-w-0 px-2 flex-1 text-[10px] font-black uppercase tracking-widest py-2.5 rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:text-blue-600 transition-all duration-300 relative cursor-pointer pointer-events-auto">
+                        <span className="truncate">{tCase('legalVault')?.split(' ')[0] || 'คลังเอกสาร'}</span>
+                        {(invoices.length > 0 || contracts.length > 0) && (
+                            <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center border border-white pointer-events-none">
+                                {invoices.length + contracts.length}
+                            </span>
+                        )}
                     </TabsTrigger>
 
                 </TabsList>
@@ -650,35 +736,123 @@ function ChatPageContent() {
                                         )}
                                         {installments && installments.length > 0 && (
                                             <div>
-                                                <p className="text-[10px] text-slate-500 font-medium mb-1">แผนการชำระเงิน (Installments)</p>
-                                                <div className="space-y-1.5">
+                                                <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest mb-2 pl-1">แผนการชำระเงิน (Installments)</p>
+                                                <div className="space-y-2">
                                                     {installments.map((inst: any, idx: number) => {
+                                                        const isPaid = inst.status === 'paid';
+                                                        const isPending = inst.status === 'pending_verification';
                                                         const instAmount = inst.amount && !isNaN(parseFloat(inst.amount)) ? parseFloat(String(inst.amount).replace(/,/g, '')) : 0;
                                                         return (
-                                                            <div key={idx} className="flex justify-between items-center p-2 bg-slate-50 dark:bg-slate-900 rounded-lg border border-slate-100 dark:border-slate-800 text-xs">
-                                                                <span className="font-medium text-slate-700 dark:text-slate-300">งวดที่ {idx + 1}: {inst.description}</span>
-                                                                <span className="font-black text-blue-600 dark:text-blue-400 whitespace-nowrap ml-2">฿{instAmount.toLocaleString()}</span>
+                                                            <div key={idx} className={cn(
+                                                                "p-3 rounded-xl border transition-all flex justify-between items-center",
+                                                                isPaid ? "bg-emerald-50 border-emerald-100" : isPending ? "bg-amber-50 border-amber-200" : "bg-slate-50 dark:bg-slate-900 border-slate-100 dark:border-slate-800"
+                                                            )}>
+                                                                <div className="flex flex-col gap-0.5">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <span className="text-[10px] font-bold text-slate-800 dark:text-slate-200">งวดที่ {idx + 1}</span>
+                                                                        {isPaid ? (
+                                                                            <span className="text-[8px] font-black uppercase text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded-md">ชำระแล้ว</span>
+                                                                        ) : isPending ? (
+                                                                            <span className="text-[8px] font-black uppercase text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded-md animate-pulse">รอตรวจสอบ</span>
+                                                                        ) : null}
+                                                                    </div>
+                                                                    <span className="text-[10px] text-slate-500 dark:text-slate-400 line-clamp-1">{inst.description}</span>
+                                                                </div>
+                                                                <div className="text-right flex flex-col items-end gap-1">
+                                                                    <span className="font-black text-blue-600 dark:text-blue-400 text-sm">฿{instAmount.toLocaleString()}</span>
+                                                                    {isPaid && inst.slipUrl && (
+                                                                        <button onClick={() => handleViewFile(inst.slipUrl, `slip_installment_${idx}.jpg`)} className="text-[8px] font-bold text-emerald-600 hover:underline">ดูสลิป</button>
+                                                                    )}
+                                                                    {isPending && inst.slipUrl && (
+                                                                        <div className="flex flex-col items-end gap-1">
+                                                                            <Button variant="outline" size="sm" className="h-5 text-[8px] border-amber-200 text-amber-600 bg-amber-50 px-1 font-bold" onClick={() => handleViewFile(inst.slipUrl, `slip_installment_${idx}.jpg`)}>
+                                                                                ดูสลิป
+                                                                            </Button>
+                                                                            <Button 
+                                                                                size="sm" 
+                                                                                className="h-5 text-[8px] bg-emerald-600 hover:bg-emerald-700 text-white px-1.5 font-black rounded-md"
+                                                                                onClick={async () => {
+                                                                                    if (confirm('ยืนยันการชำระเงินนี้ว่าถูกต้อง?')) {
+                                                                                        const res = await approveInstallmentAction(chatId, idx);
+                                                                                        if (res.success) toast({ title: 'อนุมัติเรียบร้อย' });
+                                                                                    }
+                                                                                }}
+                                                                            >
+                                                                                อนุมัติ
+                                                                            </Button>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
                                                             </div>
                                                         );
                                                     })}
-                                                </div>
-                                            </div>
-                                        )}
+                                        </div>
                                     </div>
                                 )}
-                            </CardContent>
+                                </div>
+                            )}
+
+                            {/* Integrated Vault Section inside Details tab */}
+                                        <div className="pt-4 mt-4 border-t border-slate-100 dark:border-slate-800 space-y-4">
+                                            
+                                            {/* Official Documents (Rich Cards) */}
+                                            {(contracts.length > 0 || invoices.length > 0) && (
+                                                <div className="space-y-3 px-1">
+                                                    <p className="text-[10px] font-black uppercase tracking-widest text-blue-600 mb-2">เอกสารทางการ (Official Documents)</p>
+                                                    
+                                                    {contracts.map((contract) => (
+                                                        <div key={contract.id} className="flex flex-col gap-2 p-3 rounded-2xl bg-white dark:bg-slate-800 border border-blue-100 shadow-sm">
+                                                            <div className="flex justify-between items-center">
+                                                                <span className="text-[11px] font-bold truncate flex-1 mr-2">{contract.title || 'สัญญาจ้างทนายความ'}</span>
+                                                                <Badge className="text-[9px] bg-blue-100 text-blue-700 border-none">{contract.status === 'signed' ? 'เซ็นแล้ว' : 'รอการลงนาม'}</Badge>
+                                                            </div>
+                                                            <div className="flex gap-2">
+                                                                <Button size="sm" className="h-8 flex-1 text-[10px] bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl" onClick={() => window.open(`https://capdeal.lawslane.com/th/contract/${contract.id}`, '_blank')}>
+                                                                    <FileSignature className="w-3 h-3 mr-1.5" /> ตรวจสอบเอกสาร
+                                                                </Button>
+                                                                <Button variant="outline" size="sm" className="h-8 flex-1 text-[10px] font-bold rounded-xl" onClick={() => window.open(`https://capdeal.lawslane.com/api/contract/pdf/${contract.id}`, '_blank')}>
+                                                                    <Download className="w-3 h-3 mr-1.5" /> ดู PDF
+                                                                </Button>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                    
+                                                    {invoices.map((inv) => (
+                                                        <div key={inv.id} className="flex flex-col gap-2 p-3 rounded-2xl bg-white dark:bg-slate-800 border border-amber-100 shadow-sm">
+                                                            <div className="flex justify-between items-center">
+                                                                <span className="text-[11px] font-bold truncate flex-1 mr-2">
+                                                                    {inv.title?.includes('ชุดย้อนหลัง') ? 'สัญญาจ้างทนายความ (ฉบับลงระบบ)' : (inv.title || 'ใบแจ้งหนี้')}
+                                                                </span>
+                                                                <Badge className="text-[9px] bg-amber-100 text-amber-700 border-none">{inv.status === 'paid' ? 'ชำระแล้ว' : 'รอชำระ'}</Badge>
+                                                            </div>
+                                                            <div className="flex gap-2">
+                                                                <Button size="sm" className="h-8 flex-1 text-[10px] bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl" onClick={() => window.open(`https://capdeal.lawslane.com/th/invoice/${encodeURIComponent(inv.id)}`, '_blank')}>
+                                                                    <FileSignature className="w-3 h-3 mr-1.5" /> ตรวจสอบเอกสาร
+                                                                </Button>
+                                                                <Button variant="outline" size="sm" className="h-8 flex-1 text-[10px] font-bold rounded-xl" onClick={() => window.open(`https://capdeal.lawslane.com/api/invoice/pdf/${encodeURIComponent(inv.id)}`, '_blank')}>
+                                                                    <Download className="w-3 h-3 mr-1.5" /> ดู PDF
+                                                                </Button>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </CardContent>
                             <CardFooter className="flex-col gap-2 pt-2">
+                                {/* Aggressive hide: if installments exist, don't show Propose Price button */}
+                                {!isCompleted && !isOfficial && (!installments || installments.length === 0) && (
+                                    <Button 
+                                        className="w-full bg-blue-600 hover:bg-blue-700 text-xs h-10 font-bold rounded-2xl shadow-lg shadow-blue-500/20" 
+                                        disabled={isUploading}
+                                        onClick={() => router.push(`/lawyer-dashboard/pipeline/new?chatId=${chatId}&clientId=${clientId || client?.id}`)}
+                                    >
+                                        <Plus className="w-4 h-4 mr-2" /> เสนอราคาเปิดคดี
+                                    </Button>
+                                )}
+                                
                                 {!isCompleted && (
-                                    <>
-                                        <Button 
-                                            className="w-full bg-blue-600 hover:bg-blue-700 text-xs h-10 font-bold rounded-2xl shadow-lg shadow-blue-500/20" 
-                                            disabled={isUploading}
-                                            onClick={() => router.push(`/lawyer-dashboard/pipeline/new?chatId=${chatId}&clientId=${clientId || client?.id}`)}
-                                        >
-                                            <Plus className="w-4 h-4 mr-2" /> เสนอราคาเปิดคดี
-                                        </Button>
-                                        
-                                        <AlertDialog>
+                                    <AlertDialog>
                                             <AlertDialogTrigger asChild>
                                                 <Button variant="ghost" className="w-full h-9 text-xs text-slate-500 hover:text-slate-900">
                                                     ปิดสรุปเคส
@@ -704,7 +878,6 @@ function ChatPageContent() {
                                                 </AlertDialogFooter>
                                             </AlertDialogContent>
                                         </AlertDialog>
-                                    </>
                                 )}
                             </CardFooter>
                         </Card>
@@ -772,6 +945,43 @@ function ChatPageContent() {
                                             </div>
                                         )}
                                     </CardContent>
+                                    
+                                    {/* Client Sidebar: Official Documents (Rich Cards) */}
+                                    <div className="px-6 pb-6 pt-2 border-t border-slate-100 space-y-4">
+                                        {(contracts.length > 0 || invoices.length > 0) && (
+                                            <div className="space-y-3">
+                                                <p className="text-[10px] font-black uppercase text-blue-600">เอกสารทางการ (Official)</p>
+                                                
+                                                {contracts.map((c: any) => (
+                                                    <div key={c.id} className="flex flex-col gap-2 p-2 rounded-xl bg-white border border-blue-100 shadow-sm">
+                                                        <div className="flex justify-between items-center">
+                                                            <span className="text-[10px] font-bold truncate flex-1 mr-1">{c.title || 'สัญญาจ้างทนายความ'}</span>
+                                                            <Badge className="text-[8px] bg-blue-100 text-blue-700 h-4 px-1">{c.status === 'signed' ? 'เซ็นแล้ว' : 'รอลงนาม'}</Badge>
+                                                        </div>
+                                                        <div className="flex gap-1">
+                                                            <Button size="sm" className="h-7 flex-1 text-[9px] bg-blue-600 text-white font-bold rounded-lg" onClick={() => window.open(`https://capdeal.lawslane.com/th/contract/${c.id}`, '_blank')}>ตรวจสอบ</Button>
+                                                            <Button variant="outline" size="sm" className="h-7 flex-1 text-[9px] font-bold rounded-lg" onClick={() => window.open(`https://capdeal.lawslane.com/api/contract/pdf/${c.id}`, '_blank')}>PDF</Button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                                
+                                                {invoices.map((i: any) => (
+                                                    <div key={i.id} className="flex flex-col gap-2 p-2 rounded-xl bg-white border border-amber-100 shadow-sm">
+                                                        <div className="flex justify-between items-center">
+                                                            <span className="text-[10px] font-bold truncate flex-1 mr-1">
+                                                                {i.title?.includes('ชุดย้อนหลัง') ? 'สัญญาจ้างทนายความ (ฉบับลงระบบ)' : (i.title || 'ใบแจ้งหนี้')}
+                                                            </span>
+                                                            <Badge className="text-[8px] bg-amber-100 text-amber-700 h-4 px-1">{i.status === 'paid' ? 'ชำระแล้ว' : 'รอชำระ'}</Badge>
+                                                        </div>
+                                                        <div className="flex gap-1">
+                                                            <Button size="sm" className="h-7 flex-1 text-[9px] bg-amber-600 text-white font-bold rounded-lg" onClick={() => window.open(`https://capdeal.lawslane.com/th/invoice/${encodeURIComponent(i.id)}`, '_blank')}>ตรวจสอบ</Button>
+                                                            <Button variant="outline" size="sm" className="h-7 flex-1 text-[9px] font-bold rounded-lg" onClick={() => window.open(`https://capdeal.lawslane.com/api/invoice/pdf/${encodeURIComponent(i.id)}`, '_blank')}>PDF</Button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
                                     {contractText && (
                                         <CardFooter className="pt-2">
                                             <Button 
@@ -786,13 +996,48 @@ function ChatPageContent() {
                                 </Card>
                             )}
                             
-                            <Card className="border-none bg-white dark:bg-slate-900/50 rounded-[2rem] overflow-hidden">
-                                <CardHeader className="pb-3">
-                                    <CardTitle className="text-sm font-semibold flex items-center gap-2 text-slate-800 dark:text-white">
-                                        <UserIcon className="w-4 h-4 text-blue-500" />
-                                        โปรไฟล์ทนาย
-                                    </CardTitle>
-                                </CardHeader>
+                        {/* Financial Summary Card */}
+                        <Card className="border-none bg-gradient-to-br from-slate-800 to-slate-900 text-white rounded-[2rem] overflow-hidden shadow-lg">
+                            <CardHeader className="pb-2 border-b border-white/10">
+                                <CardTitle className="text-xs font-black uppercase tracking-widest flex items-center gap-2 opacity-80">
+                                    <DollarSign className="w-3.5 h-3.5" /> สรุปการชำระเงิน
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="pt-4 space-y-4">
+                                <div className="flex justify-between items-end">
+                                    <div>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">ยอดรวมทั้งหมด</p>
+                                        <p className="text-2xl font-black">฿{chatAmount.toLocaleString()}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">ชำระแล้ว</p>
+                                        <p className="text-xl font-black text-emerald-400">฿{totalPaid.toLocaleString()}</p>
+                                    </div>
+                                </div>
+                                
+                                <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+                                    <div 
+                                        className="h-full bg-gradient-to-r from-blue-400 to-emerald-400 rounded-full transition-all duration-1000" 
+                                        style={{ width: `${Math.min(100, (totalPaid / (chatAmount || 1)) * 100)}%` }}
+                                    />
+                                </div>
+
+                                {chatAmount > totalPaid && (
+                                    <div className="flex justify-between items-center pt-2 border-t border-white/5">
+                                        <span className="text-[10px] font-bold text-slate-400 uppercase">ยอดค้างชำระ</span>
+                                        <span className="text-sm font-black text-amber-400">฿{(chatAmount - totalPaid).toLocaleString()}</span>
+                                    </div>
+                                )}
+                            </CardContent>
+                        </Card>
+
+                        <Card className="border-none bg-white dark:bg-slate-900/50 rounded-[2rem] overflow-hidden shadow-sm">
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-sm font-semibold flex items-center gap-2 text-slate-800 dark:text-white">
+                                    <UserIcon className="w-4 h-4 text-blue-500" />
+                                    โปรไฟล์ทนาย
+                                </CardTitle>
+                            </CardHeader>
                             <CardContent className="space-y-4">
                                 <div className="flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700">
                                     <Avatar className="h-10 w-10">
@@ -813,48 +1058,6 @@ function ChatPageContent() {
                         </Card>
                         </div>
                     )}
-                </TabsContent>
-
-                <TabsContent value="overview" className="mt-0 space-y-6">
-                    {effectiveIsLawyerView && isOfficial && (
-                        <Card className="border border-blue-200 shadow-sm bg-blue-50/10">
-                            <CardHeader className="pb-3 border-b border-slate-100">
-                                <CardTitle className="text-xs font-black uppercase text-blue-800 tracking-wider flex items-center gap-2">
-                                    <CheckCircle2 className="w-4 h-4 text-blue-600" />
-                                    Lawyer Dashboard: จัดการความคืบหน้า (Milestones)
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="pt-4 space-y-2">
-                                {milestones.length > 0 ? milestones.map((m) => {
-                                    const isCompleted = m.status === 'completed';
-                                    return (
-                                        <div key={m.id} className="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-colors shadow-sm">
-                                            <div className="flex items-center gap-3">
-                                                <button 
-                                                    onClick={() => handleToggleMilestone(m.id)}
-                                                    className={cn("w-6 h-6 rounded-md flex items-center justify-center border-2 transition-all cursor-pointer", 
-                                                        isCompleted ? "bg-blue-600 border-blue-600 text-white" : "border-slate-300 text-transparent hover:border-blue-400"
-                                                    )}
-                                                >
-                                                    <Check className="w-3.5 h-3.5" strokeWidth={3} />
-                                                </button>
-                                                <span className={cn("text-xs font-bold", isCompleted ? "text-slate-500 line-through" : "text-slate-800")}>{m.title}</span>
-                                            </div>
-                                        </div>
-                                    );
-                                }) : (
-                                    <div className="text-center py-5 space-y-3">
-                                        <p className="text-[11px] text-slate-500">คดีนี้ยังไม่ได้สร้างรายการความคืบหน้าในระบบ</p>
-                                        <Button onClick={handleInitializeDefaultMilestones} className="bg-blue-600 hover:bg-blue-700 h-8 text-[11px] font-bold" size="sm">
-                                            <Sparkles className="w-3 h-3 mr-1.5" />
-                                            สร้างแผนดำเนินคดีมาตรฐาน 5 ขั้นตอน
-                                        </Button>
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
-                    )}
-
                     {isCompleted ? (
                         <Card className="border-green-100 shadow-xl shadow-green-500/5 bg-white">
                             <CardHeader className="pb-3 text-center text-sm font-bold">ให้คะแนนบริการ</CardHeader>
@@ -926,11 +1129,29 @@ function ChatPageContent() {
                                                         <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium line-clamp-2 leading-tight">{inst.description}</p>
                                                         <div className="flex justify-between items-center mt-3 pt-2 border-t border-slate-100 dark:border-slate-700/50">
                                                             <span className="font-black text-slate-800 dark:text-slate-100 text-sm">฿{instAmount.toLocaleString()}</span>
-                                                            {isNextToPay && (
+                                                            {isNextToPay && !effectiveIsLawyerView && (
                                                                 <Button size="sm" className="h-7 rounded-lg bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-[10px] font-bold px-3 transition-colors shadow-md shadow-blue-500/20 whitespace-nowrap overflow-hidden text-ellipsis flex-shrink-0 text-white" asChild>
                                                                     <Link href={`/payment?chatId=${chatId}&lawyerId=${resolvedLawyerId}&amount=${instAmount}&type=installment&installmentIndex=${idx}`}>
                                                                         ชำระงวดนี้ <ArrowRight className="ml-1 w-3 h-3" />
                                                                     </Link>
+                                                                </Button>
+                                                            )}
+                                                            {isNextToPay && effectiveIsLawyerView && (
+                                                                <Button 
+                                                                    size="sm" 
+                                                                    variant="outline"
+                                                                    className="h-7 rounded-lg border-blue-200 text-blue-600 hover:bg-blue-50 text-[10px] font-bold px-3 transition-colors flex-shrink-0"
+                                                                    onClick={() => requestFeeAction({
+                                                                        chatId,
+                                                                        lawyerId: resolvedLawyerId!,
+                                                                        lawyerName: lawyer?.name || 'ทนายความ',
+                                                                        amount: instAmount,
+                                                                        reason: `ชำระเงินงวดที่ ${idx + 1}: ${inst.description}`
+                                                                    }).then(res => {
+                                                                        if (res.success) toast({ title: "ส่งคำขอชำระเงินแล้ว", description: `ส่งคำขอชำระเงินงวดที่ ${idx + 1} ไปยังลูกความแล้ว` });
+                                                                    })}
+                                                                >
+                                                                    <DollarSign className="mr-1 w-3 h-3" /> ส่งคำขอชำระเงิน
                                                                 </Button>
                                                             )}
                                                         </div>
@@ -955,109 +1176,50 @@ function ChatPageContent() {
                             <CardFooter className="flex flex-col gap-2 bg-slate-50/50 border-t border-slate-100 p-5">
                                 {(!installments || installments.length === 0) && (
                                     <Button className="w-full bg-[#0B3979] hover:bg-[#082a5a] font-black h-12 shadow-xl shadow-blue-500/20 text-white rounded-2xl text-sm" asChild>
-                                        <Link href={`/payment?chatId=${chatId}&lawyerId=${resolvedLawyerId}&amount=${chatAmount}&type=case`}>
-                                            ชำระเงินเพื่อเริ่มงาน <ArrowRight className="ml-2 w-4 h-4" />
-                                        </Link>
-                                    </Button>
-                                )}
-                                <p className="text-[9px] text-center text-slate-400 font-medium flex items-center justify-center gap-1">
-                                    <CheckCircle2 className="w-3 h-3 text-green-500" /> เงินถูกคุ้มครองโดยระบบ Lawlane Guarantee
-                                </p>
-                            </CardFooter>
-                        </Card>
-                    ) : pendingFeeRequest ? (
-                        <Card className="border-amber-400 shadow-xl ring-4 ring-amber-400/10 bg-white">
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-bold flex items-center gap-2 text-amber-700">
-                                    <DollarSign className="w-5 h-5" />ข้อเสนอเปิดคดี
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-4 text-sm">
-                                <div className="p-3 bg-amber-50 border border-amber-100 rounded-xl text-amber-800 text-xs">
-                                    <p className="font-bold underline mb-1">รายละเอียด:</p>
-                                    <p>{pendingFeeRequest.reason || "ตามที่ตกลงในแชท"}</p>
-                                </div>
-                                <div className="p-3 rounded-xl border border-amber-200 bg-amber-50/50 text-center">
-                                    <p className="text-[10px] uppercase font-bold text-amber-600 mb-0.5">ยอดชำระ</p>
-                                    <p className="text-2xl font-black text-slate-900">฿{pendingFeeRequest.amount.toLocaleString()}</p>
-                                </div>
-                            </CardContent>
-                            <CardFooter>
-                                <Button className="w-full bg-amber-500 hover:bg-amber-600 font-bold h-10 shadow-lg text-white" asChild>
-                                    <Link href={`/payment?chatId=${chatId}&lawyerId=${resolvedLawyerId}&amount=${pendingFeeRequest.amount}&type=additional`}>
-                                        ชำระเงินเปิดห้องคดี
-                                    </Link>
-                                </Button>
-                            </CardFooter>
-                        </Card>
-                    ) : (
-                        <Card className="border-none shadow-sm bg-slate-50">
-                            <CardHeader className="pb-3 text-center">
-                                <CardTitle className="text-xs font-semibold uppercase text-slate-400 tracking-widest">{chatAmount === 0 ? "Initial Chat" : "Official Case"}</CardTitle>
-                            </CardHeader>
-                            <CardContent className="text-center pb-6">
-                                {chatAmount === 0 ? (
-                                    <div className="py-2">
-                                        <p className="text-[10px] uppercase tracking-widest font-black text-green-600 mb-1">FREE CONSULT</p>
-                                        <p className="text-xs text-slate-500 leading-relaxed">คุยเบื้องต้นฟรี ทนายจะส่งข้อเสนอราคาหากต้องดำเนินคดีต่อ</p>
-                                    </div>
-                                ) : (
-                                    <div className="py-2">
-                                        <p className="text-3xl font-black text-slate-900 mb-2">฿{chatAmount.toLocaleString()}</p>
-                                        <p className="text-[10px] text-slate-500">เงินถูกคุ้มครองโดยระบบ Lawlane</p>
-                                        {effectiveIsLawyerView && <Button className="w-full mt-4 bg-green-600 hover:bg-green-700 font-bold h-9 text-xs" onClick={handleConfirmRelease}>ยืนยันปิดเคส</Button>}
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
-                    )}
-                </TabsContent>
-                
-
-                
-                <TabsContent value="vault">
-                    <Card className={cn("border-none shadow-sm", isOfficial ? "bg-slate-50" : "opacity-60 grayscale bg-slate-100")}>
-                        <CardHeader className="pb-2">
-                            <CardTitle className="text-xs font-bold uppercase tracking-widest flex items-center gap-2">
-                                <Upload className="w-3.5 h-3.5" /> {tCase('legalVault')}
-                            </CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4">
-                            <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
+                                        <Link href={`/payment?chatId=${chatId}&lawyerId=${res                <TabsContent value="vault" className="mt-0 relative z-10">
+                    <div className="space-y-6">
+                        {/* Standard Files Section */}
+                        <div className="space-y-4">
+                            <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2 px-1">
+                                <FileText className="w-4 h-4" /> ไฟล์ที่อัปโหลด
+                            </h3>
+                            <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
                                 {files.length === 0 ? (
-                                    <p className="text-center text-slate-400 text-[10px] py-12 uppercase tracking-widest font-medium">No documents</p>
+                                    <div className="py-12 text-center bg-slate-50/50 rounded-[2rem] border border-dashed border-slate-200">
+                                        <p className="text-slate-400 text-xs uppercase tracking-widest font-medium">ยังไม่มีไฟล์ที่อัปโหลด</p>
+                                    </div>
                                 ) : (
                                     files.map((file, idx) => {
                                         const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name);
                                         return (
-                                        <div key={idx} className="flex justify-between items-center p-2 rounded-lg bg-white border border-slate-100 group hover:shadow-md transition-all">
+                                        <div key={idx} className="flex justify-between items-center p-4 rounded-2xl bg-white border border-slate-100 shadow-sm group hover:shadow-md transition-all">
                                             <button 
                                                 onClick={() => handleViewFile(file.url, file.name)} 
-                                                className="flex items-center gap-2.5 overflow-hidden flex-1 text-left"
+                                                className="flex items-center gap-3 overflow-hidden flex-1 text-left"
                                             >
                                                 <div className={cn(
-                                                    "w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 transition-colors",
+                                                    "w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors",
                                                     isImage 
                                                         ? "bg-purple-50 text-purple-600 group-hover:bg-purple-600 group-hover:text-white" 
                                                         : "bg-red-50 text-red-600 group-hover:bg-red-600 group-hover:text-white"
                                                 )}>
-                                                    {isImage ? <ImageIcon className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
+                                                    {isImage ? <ImageIcon className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
                                                 </div>
                                                 <div className="min-w-0">
                                                     <p className={cn(
-                                                        "text-xs font-bold truncate transition-colors",
-                                                        isImage ? "text-slate-800 group-hover:text-purple-700" : "text-slate-800 group-hover:text-red-700"
+                                                        "text-sm font-bold truncate transition-colors text-slate-800",
+                                                        isImage ? "group-hover:text-purple-700" : "group-hover:text-red-700"
                                                     )} title={file.name}>{file.name}</p>
-                                                    <p className="text-[9px] text-slate-400">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                                                    <p className="text-[10px] text-slate-400">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
                                                 </div>
                                             </button>
 
                                             <Button
                                                 variant="ghost"
                                                 size="icon"
-                                                className="h-8 w-8 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50"
+                                                className="h-10 w-10 rounded-xl text-slate-300 hover:text-red-600 hover:bg-red-50"
                                                 onClick={async (e) => {
-e.stopPropagation();
+                                                    e.stopPropagation();
                                                     if (confirm("ยืนยันการลบไฟล์นี้?")) {
                                                         const { deleteFileAction } = await import('@/app/actions/chat-actions');
                                                         const res = await deleteFileAction(chatId, file.url);
@@ -1067,18 +1229,90 @@ e.stopPropagation();
                                                     }
                                                 }}
                                             >
-                                                <Trash2 className="w-4 h-4" />
+                                                <Trash2 className="w-5 h-5" />
                                             </Button>
                                         </div>
                                     )})
                                 )}
                             </div>
+                        </div>
+
+                        <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
+                        <Button 
+                            onClick={handleUploadClick} 
+                            variant="outline" 
+                            className="w-full text-sm h-14 border-dashed rounded-[2rem] bg-slate-50/50 hover:bg-slate-100 hover:border-slate-300 transition-all border-slate-200 text-slate-600 font-bold" 
+                            disabled={isChatDisabled}
+                        >
+                            <Plus className="mr-2 h-5 w-5" /> อัปโหลดใหม่
+                        </Button>
+                    </div>
+                </TabsContent>                     )}
+
+                            {/* Standard Files Section */}
+                            <div className="space-y-2">
+                                <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2 px-1">
+                                    <FileText className="w-3.5 h-3.5" /> ไฟล์ที่อัปโหลด
+                                </h3>
+                                <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
+                                    {files.length === 0 ? (
+                                        <p className="text-center text-slate-400 text-[10px] py-12 uppercase tracking-widest font-medium">No uploaded files</p>
+                                    ) : (
+                                        files.map((file, idx) => {
+                                            const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name);
+                                            return (
+                                            <div key={idx} className="flex justify-between items-center p-2 rounded-lg bg-white border border-slate-100 group hover:shadow-md transition-all">
+                                                <button 
+                                                    onClick={() => handleViewFile(file.url, file.name)} 
+                                                    className="flex items-center gap-2.5 overflow-hidden flex-1 text-left"
+                                                >
+                                                    <div className={cn(
+                                                        "w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 transition-colors",
+                                                        isImage 
+                                                            ? "bg-purple-50 text-purple-600 group-hover:bg-purple-600 group-hover:text-white" 
+                                                            : "bg-red-50 text-red-600 group-hover:bg-red-600 group-hover:text-white"
+                                                    )}>
+                                                        {isImage ? <ImageIcon className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
+                                                    </div>
+                                                    <div className="min-w-0">
+                                                        <p className={cn(
+                                                            "text-xs font-bold truncate transition-colors",
+                                                            isImage ? "text-slate-800 group-hover:text-purple-700" : "text-slate-800 group-hover:text-red-700"
+                                                        )} title={file.name}>{file.name}</p>
+                                                        <p className="text-[9px] text-slate-400">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                                                    </div>
+                                                </button>
+
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50"
+                                                    onClick={async (e) => {
+                                                        e.stopPropagation();
+                                                        if (confirm("ยืนยันการลบไฟล์นี้?")) {
+                                                            const { deleteFileAction } = await import('@/app/actions/chat-actions');
+                                                            const res = await deleteFileAction(chatId, file.url);
+                                                            if (!res.success) {
+                                                                toast({ variant: "destructive", title: "ลบไฟล์ไม่สำเร็จ", description: res.error });
+                                                            }
+                                                        }
+                                                    }}
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </Button>
+                                            </div>
+                                        )})
+                                    )}
+                                </div>
+                            </div>
+
                             <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
                             <Button onClick={handleUploadClick} variant="outline" className="w-full text-xs h-9 border-dashed" disabled={isChatDisabled}>
                                 <Plus className="mr-1.5 h-3.5 w-3.5" /> อัปโหลดใหม่
                             </Button>
                         </CardContent>
-                    </Card>
+                        </Card>
+                    </div>
                 </TabsContent>
             </Tabs>
         </div>
