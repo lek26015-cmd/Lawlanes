@@ -1176,141 +1176,95 @@ function ChatPageContent() {
                             <CardFooter className="flex flex-col gap-2 bg-slate-50/50 border-t border-slate-100 p-5">
                                 {(!installments || installments.length === 0) && (
                                     <Button className="w-full bg-[#0B3979] hover:bg-[#082a5a] font-black h-12 shadow-xl shadow-blue-500/20 text-white rounded-2xl text-sm" asChild>
-                                        <Link href={`/payment?chatId=${chatId}&lawyerId=${res                <TabsContent value="vault" className="mt-0 relative z-10">
-                    <div className="space-y-6">
-                        {/* Standard Files Section */}
-                        <div className="space-y-4">
-                            <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2 px-1">
-                                <FileText className="w-4 h-4" /> ไฟล์ที่อัปโหลด
-                            </h3>
-                            <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
-                                {files.length === 0 ? (
-                                    <div className="py-12 text-center bg-slate-50/50 rounded-[2rem] border border-dashed border-slate-200">
-                                        <p className="text-slate-400 text-xs uppercase tracking-widest font-medium">ยังไม่มีไฟล์ที่อัปโหลด</p>
-                                    </div>
-                                ) : (
-                                    files.map((file, idx) => {
-                                        const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name);
-                                        return (
-                                        <div key={idx} className="flex justify-between items-center p-4 rounded-2xl bg-white border border-slate-100 shadow-sm group hover:shadow-md transition-all">
-                                            <button 
-                                                onClick={() => handleViewFile(file.url, file.name)} 
-                                                className="flex items-center gap-3 overflow-hidden flex-1 text-left"
-                                            >
-                                                <div className={cn(
-                                                    "w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors",
-                                                    isImage 
-                                                        ? "bg-purple-50 text-purple-600 group-hover:bg-purple-600 group-hover:text-white" 
-                                                        : "bg-red-50 text-red-600 group-hover:bg-red-600 group-hover:text-white"
-                                                )}>
-                                                    {isImage ? <ImageIcon className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
-                                                </div>
-                                                <div className="min-w-0">
-                                                    <p className={cn(
-                                                        "text-sm font-bold truncate transition-colors text-slate-800",
-                                                        isImage ? "group-hover:text-purple-700" : "group-hover:text-red-700"
-                                                    )} title={file.name}>{file.name}</p>
-                                                    <p className="text-[10px] text-slate-400">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
-                                                </div>
-                                            </button>
-
-                                            <Button
-                                                variant="ghost"
-                                                size="icon"
-                                                className="h-10 w-10 rounded-xl text-slate-300 hover:text-red-600 hover:bg-red-50"
-                                                onClick={async (e) => {
-                                                    e.stopPropagation();
-                                                    if (confirm("ยืนยันการลบไฟล์นี้?")) {
-                                                        const { deleteFileAction } = await import('@/app/actions/chat-actions');
-                                                        const res = await deleteFileAction(chatId, file.url);
-                                                        if (!res.success) {
-                                                            toast({ variant: "destructive", title: "ลบไฟล์ไม่สำเร็จ", description: res.error });
-                                                        }
-                                                    }
-                                                }}
-                                            >
-                                                <Trash2 className="w-5 h-5" />
-                                            </Button>
-                                        </div>
-                                    )})
+                                        <Link href={`/payment?chatId=${chatId}&lawyerId=${lawyerId}&amount=${chatAmount}&type=case`}>
+                                            ชำระเงินเพื่อเปิดคดี ฿{chatAmount.toLocaleString()}
+                                        </Link>
+                                    </Button>
                                 )}
-                            </div>
-                        </div>
+                            </CardFooter>
+                        </Card>
+                    )}
+                </TabsContent>
 
-                        <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
-                        <Button 
-                            onClick={handleUploadClick} 
-                            variant="outline" 
-                            className="w-full text-sm h-14 border-dashed rounded-[2rem] bg-slate-50/50 hover:bg-slate-100 hover:border-slate-300 transition-all border-slate-200 text-slate-600 font-bold" 
-                            disabled={isChatDisabled}
-                        >
-                            <Plus className="mr-2 h-5 w-5" /> อัปโหลดใหม่
-                        </Button>
-                    </div>
-                </TabsContent>                     )}
-
-                            {/* Standard Files Section */}
-                            <div className="space-y-2">
-                                <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2 px-1">
-                                    <FileText className="w-3.5 h-3.5" /> ไฟล์ที่อัปโหลด
-                                </h3>
-                                <div className="space-y-2 max-h-[400px] overflow-y-auto pr-1">
-                                    {files.length === 0 ? (
-                                        <p className="text-center text-slate-400 text-[10px] py-12 uppercase tracking-widest font-medium">No uploaded files</p>
-                                    ) : (
-                                        files.map((file, idx) => {
-                                            const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name);
-                                            return (
-                                            <div key={idx} className="flex justify-between items-center p-2 rounded-lg bg-white border border-slate-100 group hover:shadow-md transition-all">
-                                                <button 
-                                                    onClick={() => handleViewFile(file.url, file.name)} 
-                                                    className="flex items-center gap-2.5 overflow-hidden flex-1 text-left"
-                                                >
-                                                    <div className={cn(
-                                                        "w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 transition-colors",
-                                                        isImage 
-                                                            ? "bg-purple-50 text-purple-600 group-hover:bg-purple-600 group-hover:text-white" 
-                                                            : "bg-red-50 text-red-600 group-hover:bg-red-600 group-hover:text-white"
-                                                    )}>
-                                                        {isImage ? <ImageIcon className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
-                                                    </div>
-                                                    <div className="min-w-0">
-                                                        <p className={cn(
-                                                            "text-xs font-bold truncate transition-colors",
-                                                            isImage ? "text-slate-800 group-hover:text-purple-700" : "text-slate-800 group-hover:text-red-700"
-                                                        )} title={file.name}>{file.name}</p>
-                                                        <p className="text-[9px] text-slate-400">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
-                                                    </div>
-                                                </button>
-
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-8 w-8 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50"
-                                                    onClick={async (e) => {
-                                                        e.stopPropagation();
-                                                        if (confirm("ยืนยันการลบไฟล์นี้?")) {
-                                                            const { deleteFileAction } = await import('@/app/actions/chat-actions');
-                                                            const res = await deleteFileAction(chatId, file.url);
-                                                            if (!res.success) {
-                                                                toast({ variant: "destructive", title: "ลบไฟล์ไม่สำเร็จ", description: res.error });
-                                                            }
-                                                        }
-                                                    }}
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </Button>
+                <TabsContent value="vault" className="mt-0 relative z-10">
+                    <div className="space-y-6">
+                        <Card className="border-none bg-white dark:bg-slate-900/50 rounded-[2rem] overflow-hidden shadow-sm">
+                            <CardHeader className="pb-3">
+                                <CardTitle className="text-sm font-semibold flex items-center gap-2 text-slate-800 dark:text-white">
+                                    <FileText className="w-4 h-4 text-blue-500" />
+                                    คลังเอกสาร
+                                </CardTitle>
+                            </CardHeader>
+                            <CardContent className="space-y-6">
+                                {/* Standard Files Section */}
+                                <div className="space-y-4">
+                                    <h3 className="text-[11px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2 px-1">
+                                        <FileText className="w-4 h-4" /> ไฟล์ที่อัปโหลด
+                                    </h3>
+                                    <div className="space-y-2 max-h-[600px] overflow-y-auto pr-1">
+                                        {files.length === 0 ? (
+                                            <div className="py-12 text-center bg-slate-50/50 rounded-[2rem] border border-dashed border-slate-200">
+                                                <p className="text-slate-400 text-xs uppercase tracking-widest font-medium">ยังไม่มีไฟล์ที่อัปโหลด</p>
                                             </div>
-                                        )})
-                                    )}
-                                </div>
-                            </div>
+                                        ) : (
+                                            files.map((file, idx) => {
+                                                const isImage = /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name);
+                                                return (
+                                                <div key={idx} className="flex justify-between items-center p-4 rounded-2xl bg-white border border-slate-100 shadow-sm group hover:shadow-md transition-all">
+                                                    <button 
+                                                        onClick={() => handleViewFile(file.url, file.name)} 
+                                                        className="flex items-center gap-3 overflow-hidden flex-1 text-left"
+                                                    >
+                                                        <div className={cn(
+                                                            "w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition-colors",
+                                                            isImage 
+                                                                ? "bg-purple-50 text-purple-600 group-hover:bg-purple-600 group-hover:text-white" 
+                                                                : "bg-red-50 text-red-600 group-hover:bg-red-600 group-hover:text-white"
+                                                        )}>
+                                                            {isImage ? <ImageIcon className="w-5 h-5" /> : <FileText className="w-5 h-5" />}
+                                                        </div>
+                                                        <div className="min-w-0">
+                                                            <p className={cn(
+                                                                "text-sm font-bold truncate transition-colors text-slate-800",
+                                                                isImage ? "group-hover:text-purple-700" : "group-hover:text-red-700"
+                                                            )} title={file.name}>{file.name}</p>
+                                                            <p className="text-[10px] text-slate-400">{(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                                                        </div>
+                                                    </button>
 
-                            <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
-                            <Button onClick={handleUploadClick} variant="outline" className="w-full text-xs h-9 border-dashed" disabled={isChatDisabled}>
-                                <Plus className="mr-1.5 h-3.5 w-3.5" /> อัปโหลดใหม่
-                            </Button>
-                        </CardContent>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        className="h-10 w-10 rounded-xl text-slate-300 hover:text-red-600 hover:bg-red-50"
+                                                        onClick={async (e) => {
+                                                            e.stopPropagation();
+                                                            if (confirm("ยืนยันการลบไฟล์นี้?")) {
+                                                                const { deleteFileAction } = await import('@/app/actions/chat-actions');
+                                                                const res = await deleteFileAction(chatId, file.url);
+                                                                if (!res.success) {
+                                                                    toast({ variant: "destructive", title: "ลบไฟล์ไม่สำเร็จ", description: res.error });
+                                                                }
+                                                            }
+                                                        }}
+                                                    >
+                                                        <Trash2 className="w-5 h-5" />
+                                                    </Button>
+                                                </div>
+                                            )})
+                                        )}
+                                    </div>
+                                </div>
+
+                                <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" />
+                                <Button 
+                                    onClick={handleUploadClick} 
+                                    variant="outline" 
+                                    className="w-full text-sm h-14 border-dashed rounded-[2rem] bg-slate-50/50 hover:bg-slate-100 hover:border-slate-300 transition-all border-slate-200 text-slate-600 font-bold" 
+                                    disabled={isChatDisabled}
+                                >
+                                    <Plus className="mr-2 h-5 w-5" /> อัปโหลดใหม่
+                                </Button>
+                            </CardContent>
                         </Card>
                     </div>
                 </TabsContent>
