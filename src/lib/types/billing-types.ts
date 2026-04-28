@@ -43,6 +43,7 @@ export interface Invoice {
   chatId?: string;      // Alternative linking field
   lawyer_id: string;
   client_id: string;
+  title?: string;
   amount: number;
   vat_amount?: number; // 7% VAT if applicable
   tax_id?: string;     // Tax ID for Tax Invoice
