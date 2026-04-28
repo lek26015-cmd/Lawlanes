@@ -30,6 +30,7 @@ export interface Milestone {
   title: string;
   status: MilestoneStatus;
   dueDate?: number;
+  order: number;
   createdAt: number;
 }
 
