@@ -162,7 +162,7 @@ function ChatPageContent() {
             const repairRes = await repairChatDocumentsAction(chatId);
             if (repairRes.success) {
                 // Refresh docs after repair
-                const refreshedInvoices = await getInvoicesByChatAction(chatId, clientId, lawyerId);
+                const refreshedInvoices = await getInvoicesByChatAction(chatId, clientId ?? undefined, lawyerId ?? undefined);
                 if (refreshedInvoices.success) setInvoices(refreshedInvoices.data || []);
             }
         }
