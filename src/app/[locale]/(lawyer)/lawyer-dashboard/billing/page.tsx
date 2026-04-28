@@ -59,7 +59,9 @@ export default function LawyerBillingPage() {
     
     const newInv: Partial<Invoice> = {
       case_id: formData.caseId,
+      chatId: formData.caseId, // In our system, chatId and case_id are often the same
       lawyer_id: user.uid,
+      client_id: (selectedCase as any)?.clientId || '', // Get clientId from dashboard case data
       amount: parseFloat(formData.amount),
       currency: 'THB',
       status: 'pending',

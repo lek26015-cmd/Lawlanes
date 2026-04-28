@@ -39,7 +39,8 @@ export interface Milestone {
 export interface Invoice {
   id: string;
   case_id: string;
-  milestone_id?: string;
+  chatId?: string;      // Alternative linking field
+  lawyer_id: string;
   client_id: string;
   amount: number;
   vat_amount?: number; // 7% VAT if applicable
@@ -51,5 +52,6 @@ export interface Invoice {
   paidAt?: number;
   evidence_url?: string; // URL to payment slip or evidence
   pdf_url?: string;      // URL to the formal PDF invoice
+  description?: string;  // Description of the service
   createdAt: number;
 }
