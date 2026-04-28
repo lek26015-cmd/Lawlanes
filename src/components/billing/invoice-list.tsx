@@ -9,9 +9,10 @@ interface InvoiceListProps {
   invoices: Invoice[];
   role: 'lawyer' | 'client';
   onAction?: (invoiceId: string) => void;
+  onViewEvidence?: (invoice: Invoice) => void;
 }
 
-export const InvoiceList: React.FC<InvoiceListProps> = ({ invoices, role, onAction }) => {
+export const InvoiceList: React.FC<InvoiceListProps> = ({ invoices, role, onAction, onViewEvidence }) => {
   const formatCurrency = (amount: number, currency: string = 'THB') => {
     return new Intl.NumberFormat('th-TH', {
       style: 'currency',
@@ -94,7 +95,10 @@ export const InvoiceList: React.FC<InvoiceListProps> = ({ invoices, role, onActi
                   )}
 
                   {invoice.status === 'paid' && (
-                    <button className="flex items-center space-x-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-bold border border-emerald-100 cursor-default">
+                    <button 
+                      onClick={() => onViewEvidence?.(invoice)}
+                      className="flex items-center space-x-1.5 px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-lg text-xs font-bold border border-emerald-100 hover:bg-emerald-100 transition-colors"
+                    >
                       <ExternalLink className="w-3.5 h-3.5" />
                       <span>ดูหลักฐาน</span>
                     </button>

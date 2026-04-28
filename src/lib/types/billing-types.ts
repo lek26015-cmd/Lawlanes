@@ -49,5 +49,7 @@ export interface Invoice {
   status: InvoiceStatus;
   due_date: number;
   paidAt?: number;
+  evidence_url?: string; // URL to payment slip or evidence
+  pdf_url?: string;      // URL to the formal PDF invoice
   createdAt: number;
 }

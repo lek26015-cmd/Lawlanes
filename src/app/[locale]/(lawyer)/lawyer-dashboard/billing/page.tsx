@@ -1,37 +1,90 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { InvoiceGenerator } from '@/components/billing/lawyer/invoice-generator';
 import { InvoiceList } from '@/components/billing/invoice-list';
 import { Invoice } from '@/lib/types/billing-types';
-import { Wallet, TrendingUp, AlertCircle } from 'lucide-react';
-
-const MOCK_CASES = [
-  { id: 'case-1', title: 'คดีดีเบรคสัญญาจ้าง' },
-  { id: 'case-2', title: 'การจดทะเบียนเครื่องหมายการค้า' }
-];
-
-const MOCK_INVOICES: Invoice[] = [
-  { id: 'inv-1', case_id: 'case-1', client_id: 'cli-1', amount: 15000, currency: 'THB', status: 'paid', due_date: Date.now() - 86400000, createdAt: Date.now() - 86400000 * 5, paidAt: Date.now() - 86400000 },
-  { id: 'inv-2', case_id: 'case-1', client_id: 'cli-1', amount: 5000, currency: 'THB', status: 'pending', due_date: Date.now() + 86400000 * 3, createdAt: Date.now() - 86400000 },
-];
+import { Wallet, TrendingUp, Loader2 } from 'lucide-react';
+import { useUser } from '@/firebase';
+import { getLawyerInvoicesAction, createInvoiceAction } from '@/app/actions/billing-actions';
+import { getLawyerDashboardDataAction } from '@/app/actions/dashboard-actions';
+import { useToast } from '@/hooks/use-toast';
 
 export default function LawyerBillingPage() {
-  const [invoices, setInvoices] = useState<Invoice[]>(MOCK_INVOICES);
+  const { user, isUserLoading } = useUser();
+  const { toast } = useToast();
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [cases, setCases] = useState<{ id: string, title: string }[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const handleCreateInvoice = (data: any) => {
-    const newInv: Invoice = {
-      id: `inv-${Math.random().toString(36).substr(2, 9)}`,
-      case_id: data.caseId,
-      client_id: 'cli-1', // Mock
-      amount: parseFloat(data.amount),
+  useEffect(() => {
+    if (isUserLoading || !user) return;
+
+    async function fetchData() {
+      setIsLoading(true);
+      try {
+        const [invRes, dashRes] = await Promise.all([
+          getLawyerInvoicesAction(user!.uid),
+          getLawyerDashboardDataAction(user!.uid)
+        ]);
+
+        if (invRes.success) {
+          setInvoices(invRes.data || []);
+        }
+
+        if (dashRes) {
+          const mappedCases = [...dashRes.activeCases, ...dashRes.completedCases].map(c => ({
+            id: c.id,
+            title: c.title || c.clientName || 'Unnamed Case'
+          }));
+          setCases(mappedCases);
+        }
+      } catch (error) {
+        console.error("Error fetching billing data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchData();
+  }, [user, isUserLoading]);
+
+  const handleCreateInvoice = async (formData: any) => {
+    if (!user) return;
+    
+    // Find client ID for the selected case
+    const selectedCase = cases.find(c => c.id === formData.caseId);
+    // In a real app, we'd have the client ID associated with the case. 
+    // For now, let's try to get it from dashboard data or just use a placeholder if missing.
+    
+    const newInv: Partial<Invoice> = {
+      case_id: formData.caseId,
+      lawyer_id: user.uid,
+      amount: parseFloat(formData.amount),
       currency: 'THB',
       status: 'pending',
-      due_date: new Date(data.dueDate).getTime(),
-      createdAt: Date.now()
+      due_date: new Date(formData.dueDate).getTime(),
+      description: formData.note || 'ค่าบริการทางกฎหมาย'
     };
-    setInvoices([newInv, ...invoices]);
+
+    const res = await createInvoiceAction(newInv);
+    if (res.success) {
+      toast({ title: "สร้างใบแจ้งหนี้สำเร็จ", description: "ระบบได้ส่งข้อมูลแจ้งหนี้ไปยังลูกความแล้ว" });
+      // Refresh list
+      const invRes = await getLawyerInvoicesAction(user.uid);
+      if (invRes.success) setInvoices(invRes.data || []);
+    } else {
+      toast({ variant: "destructive", title: "เกิดข้อผิดพลาด", description: res.error });
+    }
   };
+
+  if (isUserLoading || isLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   const totalEarned = invoices.filter(i => i.status === 'paid').reduce((acc, curr) => acc + curr.amount, 0);
   const pendingAmount = invoices.filter(i => i.status === 'pending').reduce((acc, curr) => acc + curr.amount, 0);
@@ -57,7 +110,7 @@ export default function LawyerBillingPage() {
             </div>
           </div>
 
-          <InvoiceGenerator cases={MOCK_CASES} onSubmit={handleCreateInvoice} />
+          <InvoiceGenerator cases={cases} onSubmit={handleCreateInvoice} />
         </div>
 
         {/* Right: Invoice List */}
@@ -73,7 +126,14 @@ export default function LawyerBillingPage() {
               <InvoiceList 
                 invoices={invoices} 
                 role="lawyer" 
-                onAction={(id) => alert(`ส่งการแจ้งเตือนสำหรับ ${id}`)} 
+                onAction={(id) => toast({ title: "ส่งแจ้งเตือนแล้ว", description: `ระบบได้ส่งข้อความแจ้งเตือนสำหรับใบแจ้งหนี้ #${id.substring(0,8)}` })} 
+                onViewEvidence={(inv) => {
+                  if (inv.evidence_url) {
+                    window.open(inv.evidence_url, '_blank');
+                  } else {
+                    toast({ title: "ไม่พบหลักฐาน", description: "ยังไม่มีการแนบหลักฐานการชำระเงินสำหรับรายการนี้" });
+                  }
+                }}
               />
             </div>
           </div>

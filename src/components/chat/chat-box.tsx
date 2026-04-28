@@ -400,12 +400,14 @@ function ChatBoxContent({
                       {showAvatar && !isOwn && <span className="text-[10px] font-bold text-muted-foreground/60 ml-2 mb-1.5 truncate max-w-full block uppercase tracking-wider">{otherUser.name}</span>}
                       {(() => {
                         const isPayment = msg.text.includes('💳');
+                        const isCapdeal = msg.type === 'capdeal_contract';
+                        const isProposal = msg.type === 'case_proposal';
                         return (
                           <div 
                             className={cn(
                               "relative group transition-all duration-300 min-w-0 overflow-hidden",
                               isFileUpload ? "rounded-3xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm cursor-pointer hover:shadow-md" : 
-                              isPayment ? "rounded-[2rem] border-2 border-blue-500 bg-blue-50 dark:bg-blue-900/20 overflow-hidden shadow-lg shadow-blue-500/10" :
+                              isPayment || isCapdeal || isProposal ? "rounded-[2rem] border-2 border-blue-500 bg-blue-50 dark:bg-blue-900/20 overflow-hidden shadow-lg shadow-blue-500/10" :
                               isOwn 
                                 ? "bg-blue-600 text-white rounded-[2rem] rounded-tr-sm shadow-md" 
                                 : "bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-100 dark:border-slate-700 rounded-[2rem] rounded-tl-sm shadow-sm",
@@ -413,7 +415,58 @@ function ChatBoxContent({
                             )}
                             onClick={() => isFileUpload && handleFileClick(msg)}
                           >
-                            {isPayment ? (
+                            {isCapdeal ? (
+                                <div className="flex flex-col min-w-0">
+                                    <div className="p-4 bg-emerald-600 text-white flex items-center gap-3">
+                                        <div className="p-2 bg-white/20 rounded-xl">
+                                            <FileSignature className="w-5 h-5" />
+                                        </div>
+                                        <span className="text-xs font-black uppercase tracking-widest">Capdeal Contract</span>
+                                    </div>
+                                    <div className="p-5 bg-white dark:bg-slate-900 space-y-4 min-w-0">
+                                        <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400 whitespace-pre-wrap break-words leading-relaxed">{msg.text}</p>
+                                        <div className="flex flex-col gap-2">
+                                            <Button 
+                                               className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 font-bold rounded-2xl shadow-md text-sm" 
+                                               asChild
+                                            >
+                                               <a href={msg.metadata?.contractLink || `https://capdeal.lawslane.com/th/contract/${msg.metadata?.contractId}`} target="_blank" rel="noopener noreferrer">
+                                                 ✍️ ลงนามสัญญาออนไลน์
+                                               </a>
+                                            </Button>
+                                            <Button 
+                                               variant="outline"
+                                               className="w-full h-11 border-emerald-200 text-emerald-700 hover:bg-emerald-50 font-bold rounded-2xl text-sm" 
+                                               asChild
+                                            >
+                                               <a href={`https://capdeal.lawslane.com/api/contract/pdf/${msg.metadata?.contractId}`} target="_blank" rel="noopener noreferrer">
+                                                 <FileDown className="w-4 h-4 mr-2" /> ดาวน์โหลด PDF
+                                               </a>
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : isProposal ? (
+                                <div className="flex flex-col min-w-0">
+                                    <div className="p-4 bg-blue-700 text-white flex items-center gap-3">
+                                        <div className="p-2 bg-white/20 rounded-xl">
+                                            <FileText className="w-5 h-5" />
+                                        </div>
+                                        <span className="text-xs font-black uppercase tracking-widest">Proposal Document</span>
+                                    </div>
+                                    <div className="p-5 bg-white dark:bg-slate-900 space-y-4 min-w-0">
+                                        <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400 whitespace-pre-wrap break-words leading-relaxed">{msg.text}</p>
+                                        <Button 
+                                           className="w-full h-11 bg-blue-600 hover:bg-blue-700 font-bold rounded-2xl shadow-md text-sm" 
+                                           asChild
+                                        >
+                                            <a href={msg.metadata?.invoiceLink || `https://capdeal.lawslane.com/th/invoice/${msg.metadata?.invoiceId}`} target="_blank" rel="noopener noreferrer">
+                                              📄 เปิดดูใบเสนอราคาแบบ PDF
+                                            </a>
+                                        </Button>
+                                    </div>
+                                </div>
+                            ) : isPayment ? (
                                 <div className="flex flex-col min-w-0">
                                     <div className="p-4 bg-blue-600 text-white flex items-center gap-3">
                                         <div className="p-2 bg-white/20 rounded-xl">
@@ -427,9 +480,9 @@ function ChatBoxContent({
                                            className="w-full h-11 bg-blue-600 hover:bg-blue-700 font-bold rounded-2xl shadow-md text-sm" 
                                            asChild
                                         >
-                                           <a href={`/payment?chatId=${chatId}&type=${msg.text.includes('ค่าบริการ') ? 'consultation' : 'case'}`} target="_blank" rel="noopener noreferrer">
-                                             💳 ดำเนินการชำระเงิน
-                                           </a>
+                                            <a href={`/payment?chatId=${chatId}&type=${msg.text.includes('ค่าบริการ') ? 'consultation' : 'case'}${msg.metadata?.amount ? `&amount=${msg.metadata.amount}` : ''}`} target="_blank" rel="noopener noreferrer">
+                                              💳 ดำเนินการชำระเงิน
+                                            </a>
                                         </Button>
                                     </div>
                                 </div>

@@ -1,17 +1,48 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { InvoiceList } from '@/components/billing/invoice-list';
 import { Invoice } from '@/lib/types/billing-types';
-import { CreditCard, ShieldCheck, Clock } from 'lucide-react';
-
-const MOCK_INVOICES: Invoice[] = [
-  { id: 'inv-1', case_id: 'case-1', client_id: 'cli-1', amount: 15000, currency: 'THB', status: 'paid', due_date: Date.now() - 86400000, createdAt: Date.now() - 86400000 * 5, paidAt: Date.now() - 86400000 },
-  { id: 'inv-2', case_id: 'case-1', client_id: 'cli-1', amount: 5000, currency: 'THB', status: 'pending', due_date: Date.now() + 86400000 * 3, createdAt: Date.now() - 86400000 },
-];
+import { CreditCard, ShieldCheck, Clock, Loader2 } from 'lucide-react';
+import { useUser } from '@/firebase';
+import { getUserInvoicesAction } from '@/app/actions/billing-actions';
+import { useToast } from '@/hooks/use-toast';
+import { useRouter } from 'next/navigation';
 
 export default function ClientBillingPage() {
-  const [invoices, setInvoices] = useState<Invoice[]>(MOCK_INVOICES);
+  const { user, isUserLoading } = useUser();
+  const { toast } = useToast();
+  const router = useRouter();
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (isUserLoading || !user) return;
+
+    async function fetchData() {
+      setIsLoading(true);
+      try {
+        const res = await getUserInvoicesAction(user!.uid);
+        if (res.success) {
+          setInvoices(res.data || []);
+        }
+      } catch (error) {
+        console.error("Error fetching billing data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchData();
+  }, [user, isUserLoading]);
+
+  if (isUserLoading || isLoading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   const pendingCount = invoices.filter(i => i.status === 'pending').length;
 
@@ -55,7 +86,14 @@ export default function ClientBillingPage() {
           <InvoiceList 
             invoices={invoices} 
             role="client" 
-            onAction={(id) => alert(`เข้าสู่ระบบชำระเงินสำหรับ ${id}`)} 
+            onAction={(id) => router.push(`/payment?chatId=${invoices.find(i => i.id === id)?.case_id}&type=case`)} 
+            onViewEvidence={(inv) => {
+              if (inv.evidence_url) {
+                window.open(inv.evidence_url, '_blank');
+              } else {
+                toast({ title: "ไม่พบหลักฐาน", description: "ยังไม่มีการแนบหลักฐานการชำระเงินสำหรับรายการนี้" });
+              }
+            }}
           />
         </div>
       </div>

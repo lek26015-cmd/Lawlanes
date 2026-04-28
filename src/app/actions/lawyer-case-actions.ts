@@ -42,11 +42,9 @@ export async function getCaseMilestones(caseId?: string, lawyerId?: string): Pro
         let query: FirebaseFirestore.Query = db.collection('milestones');
         
         if (caseId) {
-            query = query.where('case_id', '==', caseId);
+            query = query.where('case_id', '==', caseId).orderBy('order', 'asc');
         } else if (lawyerId) {
-            // This requires an index or a different strategy if fetching all milestones for all lawyer's cases
-            // For now, let's assume we fetch per case or we need to pass caseIds.
-            // If we want all milestones for a lawyer, we might need lawyer_id in milestone doc too.
+            // ...
         }
 
         const snap = await query.get();
@@ -85,7 +83,7 @@ export async function updateCaseStatusAction(caseId: string, newStatus: CaseStat
 /**
  * Add a new milestone to a case
  */
-export async function addCaseMilestoneAction(caseId: string, title: string) {
+export async function addCaseMilestoneAction(caseId: string, title: string, order: number = 0) {
     const adminApp = await initAdmin();
     if (!adminApp) throw new Error('Firebase Admin not initialized.');
     const db = adminApp.firestore();
@@ -95,6 +93,7 @@ export async function addCaseMilestoneAction(caseId: string, title: string) {
             case_id: caseId,
             title,
             status: 'pending',
+            order,
             createdAt: Date.now(),
             dueDate: Date.now() + 86400000 * 7 // Default 1 week
         };
@@ -102,7 +101,7 @@ export async function addCaseMilestoneAction(caseId: string, title: string) {
         const docRef = await db.collection('milestones').add(newMilestone);
         
         revalidatePath('/[locale]/lawyer-dashboard/pipeline', 'page');
-        revalidatePath(`/[locale]/lawyer-dashboard/case/${caseId}`, 'page');
+        revalidatePath(`/[locale]/chat/${caseId}`, 'page');
         
         return { success: true, id: docRef.id };
     } catch (error) {

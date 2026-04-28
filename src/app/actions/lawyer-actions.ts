@@ -222,12 +222,34 @@ export async function createManualCaseAction(lawyerId: string, data: {
             pendingPaymentDetails: admin.firestore.FieldValue.delete(),
         });
 
-        // FEED VISIBILITY FIX: Post a system message to the chat feed
+        // (A) Create a formal Invoice/Proposal document
+        const invoiceRef = db.collection('invoices').doc();
+        const invoiceId = invoiceRef.id;
+        const invoicePayload = {
+            chatId: chatId,
+            userId: resolvedClientId || 'unknown',
+            lawyerId: lawyerId,
+            title: `ใบเสนอราคา: ${data.title}`,
+            amount: data.amount,
+            status: 'pending',
+            type: 'proposal',
+            items: (data.installments || []).map(inst => ({
+                description: inst.description,
+                amount: parseFloat(String(inst.amount).replace(/,/g, '')),
+            })),
+            clientInfo: data.clientInfo || null,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        };
+        await invoiceRef.set(invoicePayload);
+
+        // FEED VISIBILITY FIX: Post a formal system message with a document link
+        const invoiceLink = `https://capdeal.lawslane.com/th/invoice/${encodeURIComponent(invoiceId)}`;
         const messagesRef = chatRef.collection('messages');
         const newMessageRef = messagesRef.doc();
         const proposalMessage = {
             chatId: chatId,
-            text: `📋 **ใบเสนอราคาใหม่:** ${data.title}\nจำนวนเงินรวม: ฿${data.amount.toLocaleString()}\nกรุณาตรวจสอบรายละเอียดและชำระเงินในเมนู "ข้อเสนอคดี"`,
+            text: `📄 **เอกสารใบเสนอราคาใหม่**\n\n**หัวข้อ:** ${data.title}\n**ยอดรวมทั้งสิ้น:** ฿${data.amount.toLocaleString()}\n\nคุณสามารถตรวจสอบรายละเอียดใบเสนอราคาอย่างเป็นทางการและดาวน์โหลดเอกสาร PDF ได้ที่ลิงก์ด้านล่างนี้:\n\n🔗 [ดูใบเสนอราคาที่นี่](${invoiceLink})\n\nกรุณาตรวจสอบและดำเนินการชำระเงินตามงวดงานในเมนู "ข้อเสนอคดี" เพื่อเริ่มดำเนินคดีครับ`,
             senderId: 'system',
             senderName: 'System',
             timestamp: admin.firestore.FieldValue.serverTimestamp(),
@@ -235,6 +257,8 @@ export async function createManualCaseAction(lawyerId: string, data: {
             metadata: {
                 caseTitle: data.title,
                 amount: data.amount,
+                invoiceId: invoiceId,
+                invoiceLink: invoiceLink,
                 isManualCase: true
             }
         };
@@ -390,5 +414,120 @@ export async function getLawyerClientsAction(lawyerId: string) {
     } catch (error) {
         console.error("Error fetching lawyer clients:", error);
         return [];
+    }
+}
+
+/**
+ * Repairs documents for an existing chat. 
+ * Creates missing invoices/proposals and posts the link to the chat.
+ */
+export async function repairChatDocumentsAction(chatId: string) {
+    const adminApp = await initAdmin();
+    if (!adminApp) throw new Error('Firebase Admin not initialized.');
+    const db = adminApp.firestore();
+
+    try {
+        const chatRef = db.collection('chats').doc(chatId);
+        const chatSnap = await chatRef.get();
+        if (!chatSnap.exists) return { success: false, error: 'Chat not found' };
+
+        const chatData = chatSnap.data() || {};
+        const isOfficial = (chatData.amount || 0) > 0 || (chatData.installments && chatData.installments.length > 0);
+        
+        if (!isOfficial) return { success: false, error: 'Case is not official' };
+
+        // Broad search for existing invoice
+        const invQueries = [
+            db.collection('invoices').where('chatId', '==', chatId).get(),
+            db.collection('invoices').where('caseId', '==', chatId).get(),
+            db.collection('invoices').where('case_id', '==', chatId).get(),
+            db.collection('invoices').where('chat_id', '==', chatId).get()
+        ];
+        const invSnaps = await Promise.all(invQueries);
+        let existingInv = null;
+        for (const snap of invSnaps) {
+            if (!snap.empty) {
+                existingInv = snap.docs[0];
+                break;
+            }
+        }
+
+        let invoiceId = '';
+        
+        if (!existingInv) {
+            // Create missing invoice
+            const invoiceRef = db.collection('invoices').doc();
+            invoiceId = invoiceRef.id;
+            await invoiceRef.set({
+                chatId: chatId,
+                userId: chatData.userId || chatData.clientId || 'unknown',
+                lawyerId: chatData.lawyerId || 'unknown',
+                title: `สัญญาจ้างทนายความ: ${chatData.caseTitle || 'เคส'}`,
+                amount: chatData.amount || 0,
+                status: chatData.status === 'active' || chatData.status === 'paid' ? 'paid' : 'pending',
+                type: 'proposal',
+                items: (chatData.installments || []).map((inst: any) => ({
+                    description: inst.description,
+                    amount: parseFloat(String(inst.amount).replace(/,/g, '')),
+                })),
+                clientInfo: chatData.clientInfo || null,
+                createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            });
+
+            // AUTO-REPAIR: If we just created a 'paid' invoice for a manual case, 
+            // we should also mark the installments in the chat document as paid.
+            if (chatData.status === 'active' || chatData.status === 'paid') {
+                const updatedInstallments = (chatData.installments || []).map((inst: any) => ({
+                    ...inst,
+                    status: 'paid',
+                    paidAt: new Date().toISOString()
+                }));
+                await chatRef.update({ installments: updatedInstallments });
+            }
+        } else {
+            invoiceId = existingInv.id.trim();
+        }
+
+        // Post the professional link to the chat if not already present
+        // IMPORTANT: Invoices are served via the Capdeal subdomain
+        const invoiceLink = `https://capdeal.lawslane.com/th/invoice/${encodeURIComponent(invoiceId)}`;
+        const messagesRef = chatRef.collection('messages');
+        
+        // Check for existing proposal message
+        const msgSnap = await messagesRef.where('type', '==', 'case_proposal').get();
+        if (msgSnap.empty) {
+            await messagesRef.add({
+                chatId: chatId,
+                text: `📄 **เอกสารใบเสนอราคาและใบแจ้งหนี้ (ฉบับสมบูรณ์)**\n\n**หัวข้อ:** ${chatData.caseTitle}\n**ยอดเงินรวม:** ฿${(chatData.amount || 0).toLocaleString()}\n\nคุณสามารถตรวจสอบรายละเอียดเอกสารและดาวน์โหลด PDF ได้ที่ลิงก์ด้านล่างนี้:\n\n🔗 [ดูเอกสารที่นี่](${invoiceLink})`,
+                senderId: 'system',
+                senderName: 'System',
+                timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                type: 'case_proposal',
+                metadata: {
+                    caseTitle: chatData.caseTitle,
+                    amount: chatData.amount,
+                    invoiceId: invoiceId,
+                    invoiceLink: invoiceLink,
+                    isManualCase: true
+                }
+            });
+        } else {
+            // Update the existing message with the professional link
+            const oldMsgDoc = msgSnap.docs[0];
+            const oldMetadata = oldMsgDoc.data().metadata || {};
+            await oldMsgDoc.ref.update({
+                metadata: {
+                    ...oldMetadata,
+                    invoiceId: invoiceId,
+                    invoiceLink: invoiceLink
+                }
+            });
+        }
+
+        return { success: true, invoiceId, invoiceLink };
+    } catch (error: any) {
+        console.error("Error repairing documents:", error);
+        return { success: false, error: error.message };
     }
 }
