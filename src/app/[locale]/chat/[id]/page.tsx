@@ -1183,7 +1183,7 @@ function ChatPageContent() {
                                 )}
                             </CardFooter>
                         </Card>
-                    )}
+                    ) : null}
                 </TabsContent>
 
                 <TabsContent value="vault" className="mt-0 relative z-10">
