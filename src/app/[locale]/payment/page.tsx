@@ -25,7 +25,7 @@ import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '@/lib/constants';
 import { compressImageToBase64 } from '@/lib/image-utils';
 import { cn } from '@/lib/utils';
 import jsQR from 'jsqr';
-import { notifyPaymentCompletedAction, markInstallmentPaidAction } from '@/app/actions/chat-actions';
+import { notifyPaymentCompletedAction, markInstallmentPaidAction, markCasePaidAction } from '@/app/actions/chat-actions';
 
 
 function PaymentPageContent() {
@@ -378,34 +378,29 @@ function PaymentPageContent() {
                 }).catch(e => console.error('Installment payment notification failed:', e));
 
             } else if ((paymentType === 'additional' || paymentType === 'case') && chatId) {
-                // ======= FULL CASE PAYMENT =======
-                const chatRef = doc(firestore, 'chats', chatId);
-                const updatePayload: any = {
-                    pendingPaymentDetails: {
-                        amount: finalFee,
-                        slipUrl,
-                        slipOkData: slipOkData || null,
-                        type: paymentType,
-                        submittedAt: new Date()
-                    },
-                    status: slipOkData ? 'active' : 'pending_payment',
-                    paidAt: serverTimestamp(),
-                    paidAmount: finalFee,
+                // ======= FULL CASE / ADDITIONAL PAYMENT =======
+                const result = await markCasePaidAction({
+                    chatId,
                     amount: finalFee,
-                    hasNewPayment,
-                };
-                if (slipOkData) {
-                    updatePayload.lastMessage = `✅ ลูกความชำระเงินเรียบร้อยแล้ว (฿${finalFee.toLocaleString()})`;
-                    updatePayload.lastMessageAt = serverTimestamp();
+                    slipUrl,
+                    slipOkData: slipOkData || null,
+                    payerName: user?.displayName || 'ลูกความ',
+                    type: paymentType as 'case' | 'additional',
+                });
+
+                if (!result.success) {
+                    toast({ variant: 'destructive', title: 'เกิดข้อผิดพลาด', description: result.error });
+                    setIsProcessing(false);
+                    return;
                 }
-                await updateDoc(chatRef, updatePayload);
+
                 setPaymentSuccess(true);
 
                 notifyPaymentCompletedAction({
                     chatId: chatId || '',
                     lawyerId: lawyerId || '',
                     amount: finalFee,
-                    caseTitle: '',
+                    caseTitle: paymentType === 'case' ? 'ค่าเปิดคดี' : 'ค่าบริการเพิ่มเติม',
                     payerName: user?.displayName || 'ลูกความ',
                     isAutoApproved: !!slipOkData,
                 }).catch(e => console.error('Payment notification failed:', e));
@@ -524,8 +519,16 @@ function PaymentPageContent() {
                                             <img src="/images/logo-bank/กสิกร.png" alt="Kasikornbank" className="w-full h-full object-contain rounded-lg" />
                                         </div>
                                         <div>
-                                            <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest leading-none mb-1">ธนาคารกสิกรไทย</p>
-                                            <p className="font-bold text-slate-700">KASIKORNBANK</p>
+                                           {!isCompleted && !isOfficial && (
+                                            <Button 
+                                                className="w-full bg-blue-600 hover:bg-blue-700 text-xs h-10 font-bold rounded-2xl shadow-lg shadow-blue-500/20" 
+                                                disabled={isUploading}
+                                                onClick={() => router.push(`/lawyer-dashboard/pipeline/new?chatId=${chatId}&clientId=${clientId || client?.id}`)}
+                                            >
+                                                <Plus className="w-4 h-4 mr-2" /> เสนอราคาเปิดคดี
+                                            </Button>
+                                        )}
+                                          <p className="font-bold text-slate-700">KASIKORNBANK</p>
                                         </div>
                                     </div>
                                 </div>

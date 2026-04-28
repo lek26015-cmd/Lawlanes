@@ -635,16 +635,19 @@ export async function markInstallmentPaidAction(params: {
             }
         }
 
+        const isAutoApproved = !!params.slipOkData;
+
         // Update the specific installment
         installments[params.installmentIndex] = {
             ...targetInstallment,
-            status: 'paid',
-            paidAt: new Date().toISOString(),
+            status: isAutoApproved ? 'paid' : 'pending_verification',
+            paidAt: isAutoApproved ? new Date().toISOString() : null,
+            submittedAt: new Date().toISOString(),
             slipUrl: params.slipUrl,
             slipOkData: params.slipOkData || null,
         };
 
-        // Recalculate totals
+        // Recalculate totals (only those actually paid)
         const paidInstallments = installments.filter((inst: any) => inst.status === 'paid').length;
         const totalPaid = installments
             .filter((inst: any) => inst.status === 'paid')
@@ -652,8 +655,13 @@ export async function markInstallmentPaidAction(params: {
                 const amt = parseFloat(String(inst.amount).replace(/,/g, ''));
                 return sum + (isNaN(amt) ? 0 : amt);
             }, 0);
-        const allPaid = paidInstallments === installments.length;
+        
+        // Create contract on first payment regardless of auto-approval status.
+        // - Auto-approved (SlipOK pass): case goes 'active' immediately.
+        // - Pending-verification (no QR): contract is still pre-created so
+        //   both lawyer and client see the Capdeal link while admin reviews the slip.
         const isFirstPayment = paidInstallments === 1;
+        const hasNewPayment = !isAutoApproved;
 
         // Build the update payload
         const updatePayload: any = {
@@ -661,22 +669,86 @@ export async function markInstallmentPaidAction(params: {
             paidInstallments,
             totalPaid,
             updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            lastMessageAt: admin.firestore.FieldValue.serverTimestamp(),
         };
 
-        // First installment paid → activate the case
+        if (hasNewPayment) {
+            updatePayload.hasNewPayment = true;
+            updatePayload[`pendingPaymentDetails_installment_${params.installmentIndex}`] = {
+                amount: params.amount,
+                slipUrl: params.slipUrl,
+                submittedAt: new Date().toISOString(),
+                payerName: params.payerName || 'ลูกความ',
+            };
+            updatePayload.lastMessage = `⏳ ลูกความแจ้งชำระเงินงวดที่ ${params.installmentIndex + 1} (฿${params.amount.toLocaleString()}) รอตรวจสอบสลิป`;
+        } else {
+            updatePayload.lastMessage = `✅ ลูกความชำระเงินงวดที่ ${params.installmentIndex + 1} เรียบร้อยแล้ว (฿${params.amount.toLocaleString()})`;
+        }
+
+        const allPaid = paidInstallments === installments.length;
+
+        // First installment paid → activate the case & Create Capdeal Contract
         if (isFirstPayment) {
             updatePayload.status = 'active';
             updatePayload.paidAt = admin.firestore.FieldValue.serverTimestamp();
-            updatePayload.lastMessage = `✅ ลูกความชำระเงินงวดที่ 1 เรียบร้อยแล้ว (฿${params.amount.toLocaleString()})`;
-            updatePayload.lastMessageAt = admin.firestore.FieldValue.serverTimestamp();
-        } else {
-            updatePayload.lastMessage = `✅ ลูกความชำระเงินงวดที่ ${params.installmentIndex + 1} เรียบร้อยแล้ว (฿${params.amount.toLocaleString()})`;
-            updatePayload.lastMessageAt = admin.firestore.FieldValue.serverTimestamp();
+
+            // CAPDEAL INTEGRATION: Create a contract document
+            try {
+                const lawyerId = chatData.participants?.find((p: string) => p !== chatData.clientId && p !== chatData.userId);
+                const clientId = chatData.clientId || chatData.userId;
+                
+                const contractRef = db.collection('contracts').doc();
+                const contractId = contractRef.id;
+                
+                await contractRef.set({
+                    userId: clientId,
+                    lawyerId: lawyerId || '',
+                    chatId: params.chatId,
+                    title: chatData.caseTitle || chatData.title || 'สัญญาจ้างทำของ',
+                    task: chatData.caseTitle || chatData.title || 'การดำเนินคดีทางกฎหมาย',
+                    price: chatData.amount || params.amount,
+                    status: 'pending', // 'pending' means ready for signature
+                    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                });
+
+                // Post a system message with the Capdeal link
+                const messagesRef = chatRef.collection('messages');
+                const contractMsgRef = messagesRef.doc();
+                const contractLink = `https://capdeal.lawslane.com/th/contract/${contractId}`;
+                
+                await contractMsgRef.set({
+                    chatId: params.chatId,
+                    text: `📄 **เอกสารจากแคปดีล**\n\nระบบได้ออกสัญญาจ้างทนายความอิเล็กทรอนิกส์ให้คุณแล้ว กรุณากดลิงก์ด้านล่างเพื่อตรวจสอบและลงนามแบบดิจิทัล:\n\n🔗 [กดเพื่อเซ็นสัญญาที่นี่](${contractLink})\n\n*หมายเหตุ: สัญญานี้มีผลผูกพันตามกฎหมายหลังจากทั้งสองฝ่ายลงนามแล้ว*`,
+                    senderId: 'system',
+                    senderName: 'System',
+                    timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                    type: 'capdeal_contract',
+                    metadata: {
+                        contractId,
+                        contractLink
+                    }
+                });
+            } catch (contractErr) {
+                console.error("Failed to create Capdeal contract:", contractErr);
+            }
         }
 
-        if (allPaid) {
+        if (allPaid && isAutoApproved) {
             updatePayload.lastMessage = `🎉 ลูกความชำระเงินครบทุกงวดแล้ว (฿${totalPaid.toLocaleString()})`;
         }
+
+        // Also post a system message to the chat messages collection
+        const messagesRef = chatRef.collection('messages');
+        const systemMsgRef = messagesRef.doc();
+        await systemMsgRef.set({
+            chatId: params.chatId,
+            text: updatePayload.lastMessage,
+            senderId: 'system',
+            senderName: 'ระบบแจ้งเตือน',
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            type: 'system_payment'
+        });
 
         // If SlipOK auto-verified, add flag
         if (params.slipOkData) {
@@ -762,6 +834,235 @@ export async function sendEmailAction(chatId: string, to: string, subject: strin
         return res;
     } catch (error: any) {
         console.error("Error in sendEmailAction:", error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Marks a full case or additional fee as paid
+ */
+export async function markCasePaidAction(params: {
+    chatId: string;
+    amount: number;
+    slipUrl: string;
+    slipOkData: any;
+    payerName: string;
+    type: 'case' | 'additional';
+}) {
+    try {
+        const adminApp = await initAdmin();
+        if (!adminApp) return { success: false, error: 'Firebase Admin not initialized.' };
+        const db = adminApp.firestore();
+
+        const chatRef = db.collection('chats').doc(params.chatId);
+        const chatSnap = await chatRef.get();
+
+        if (!chatSnap.exists) return { success: false, error: 'ไม่พบห้องแชทนี้ในระบบ' };
+        const chatData = chatSnap.data()!;
+        
+        const isAutoApproved = !!params.slipOkData;
+        const updatePayload: any = {
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            lastMessageAt: admin.firestore.FieldValue.serverTimestamp(),
+            status: isAutoApproved ? 'active' : (chatData.status === 'active' ? 'active' : 'pending_payment'),
+            paidAt: isAutoApproved ? admin.firestore.FieldValue.serverTimestamp() : (chatData.paidAt || null),
+            paidAmount: isAutoApproved ? params.amount : (chatData.paidAmount || 0),
+            hasNewPayment: !isAutoApproved,
+        };
+
+        if (params.type === 'case') {
+            // Mark all installments as paid if it's a full case payment
+            const installments = chatData.installments || [];
+            const updatedInstallments = installments.map((inst: any) => ({
+                ...inst,
+                status: isAutoApproved ? 'paid' : (inst.status || 'pending'),
+                paidAt: (isAutoApproved && !inst.paidAt) ? new Date().toISOString() : (inst.paidAt || null),
+                slipUrl: (isAutoApproved && !inst.slipUrl) ? params.slipUrl : (inst.slipUrl || null),
+            }));
+            updatePayload.installments = updatedInstallments;
+            updatePayload.paidInstallments = updatedInstallments.filter((i: any) => i.status === 'paid').length;
+            updatePayload.totalPaid = updatedInstallments
+                .filter((i: any) => i.status === 'paid')
+                .reduce((sum: number, i: any) => {
+                    const amt = parseFloat(String(i.amount).replace(/,/g, ''));
+                    return sum + (isNaN(amt) ? 0 : amt);
+                }, 0);
+        }
+
+        if (!isAutoApproved) {
+            updatePayload.pendingPaymentDetails = {
+                amount: params.amount,
+                slipUrl: params.slipUrl,
+                type: params.type,
+                submittedAt: new Date().toISOString(),
+                payerName: params.payerName,
+            };
+            updatePayload.lastMessage = `⏳ ลูกความแจ้งชำระเงิน${params.type === 'case' ? 'ค่าเปิดคดี' : 'ค่าบริการเพิ่มเติม'} (฿${params.amount.toLocaleString()}) รอตรวจสอบสลิป`;
+        } else {
+            updatePayload.lastMessage = `✅ ลูกความชำระเงิน${params.type === 'case' ? 'ค่าเปิดคดี' : 'ค่าบริการเพิ่มเติม'} เรียบร้อยแล้ว (฿${params.amount.toLocaleString()})`;
+        }
+
+        await chatRef.update(updatePayload);
+
+        // Post system message
+        const messagesRef = chatRef.collection('messages');
+        await messagesRef.add({
+            chatId: params.chatId,
+            text: updatePayload.lastMessage,
+            senderId: 'system',
+            senderName: 'ระบบแจ้งเตือน',
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            type: 'system_payment'
+        });
+
+        // CAPDEAL INTEGRATION: Create contract for full case payment (no installments)
+        // Fires for both auto-approved and pending-verification so lawyer & client
+        // always receive the Capdeal link regardless of slip scan outcome.
+        if (params.type === 'case') {
+            try {
+                const lawyerId = chatData.lawyerId ||
+                    chatData.participants?.find((p: string) => p !== (chatData.clientId || chatData.userId));
+                const clientId = chatData.clientId || chatData.userId;
+
+                const contractRef = db.collection('contracts').doc();
+                const contractId = contractRef.id;
+
+                await contractRef.set({
+                    userId: clientId || '',
+                    lawyerId: lawyerId || '',
+                    chatId: params.chatId,
+                    title: chatData.caseTitle || chatData.title || 'สัญญาจ้างทำของ',
+                    task: chatData.caseTitle || chatData.title || 'การดำเนินคดีทางกฎหมาย',
+                    price: chatData.amount || params.amount,
+                    status: 'pending',
+                    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                });
+
+                const contractLink = `https://capdeal.lawslane.com/th/contract/${contractId}`;
+                await messagesRef.add({
+                    chatId: params.chatId,
+                    text: `📄 **เอกสารจากแคปดีล**\n\nระบบได้ออกสัญญาจ้างทนายความอิเล็กทรอนิกส์ให้คุณแล้ว กรุณากดลิงก์ด้านล่างเพื่อตรวจสอบและลงนามแบบดิจิทัล:\n\n🔗 [กดเพื่อเซ็นสัญญาที่นี่](${contractLink})\n\n*หมายเหตุ: สัญญานี้มีผลผูกพันตามกฎหมายหลังจากทั้งสองฝ่ายลงนามแล้ว*`,
+                    senderId: 'system',
+                    senderName: 'System',
+                    timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                    type: 'capdeal_contract',
+                    metadata: { contractId, contractLink }
+                });
+            } catch (contractErr) {
+                console.error("Failed to create Capdeal contract in markCasePaidAction:", contractErr);
+            }
+        }
+
+        return { success: true };
+    } catch (error: any) {
+        console.error("Error in markCasePaidAction:", error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Lawyer or Admin approves a pending installment payment
+ */
+export async function approveInstallmentAction(chatId: string, installmentIndex: number) {
+    try {
+        const adminApp = await initAdmin();
+        if (!adminApp) return { success: false, error: 'Firebase Admin not initialized.' };
+        const db = adminApp.firestore();
+
+        const chatRef = db.collection('chats').doc(chatId);
+        const chatDoc = await chatRef.get();
+        if (!chatDoc.exists) return { success: false, error: 'Chat not found' };
+        
+        const chatData = chatDoc.data()!;
+        const installments = chatData.installments || [];
+        
+        if (installmentIndex < 0 || installmentIndex >= installments.length) {
+            return { success: false, error: 'Invalid installment index' };
+        }
+
+        const inst = installments[installmentIndex];
+        if (inst.status !== 'pending_verification') {
+            return { success: false, error: 'Payment is not pending verification' };
+        }
+
+        // Update status to paid
+        installments[installmentIndex].status = 'paid';
+        installments[installmentIndex].paidAt = new Date().toISOString();
+
+        const paidCount = installments.filter((i: any) => i.status === 'paid').length;
+        const totalPaid = installments
+            .filter((i: any) => i.status === 'paid')
+            .reduce((sum: number, i: any) => {
+                const amt = parseFloat(String(i.amount).replace(/,/g, ''));
+                return sum + (isNaN(amt) ? 0 : amt);
+            }, 0);
+
+        const updatePayload: any = {
+            installments,
+            paidInstallments: paidCount,
+            totalPaid,
+            hasNewPayment: installments.some((i: any) => i.status === 'pending_verification'),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            lastMessage: `✅ การชำระเงินงวดที่ ${installmentIndex + 1} ได้รับการอนุมัติแล้ว`,
+            lastMessageAt: admin.firestore.FieldValue.serverTimestamp(),
+        };
+
+        // If it's the first installment, activate the case and create contract
+        if (paidCount === 1) {
+            updatePayload.status = 'active';
+            updatePayload.paidAt = admin.firestore.FieldValue.serverTimestamp();
+            
+            // Create Contract
+            try {
+                const contractRef = db.collection('contracts').doc();
+                const contractId = contractRef.id;
+                
+                await contractRef.set({
+                    userId: chatData.userId || chatData.clientId,
+                    lawyerId: chatData.lawyerId || '',
+                    chatId: chatId,
+                    title: chatData.caseTitle || 'สัญญาจ้างทนายความ',
+                    price: chatData.amount || inst.amount,
+                    status: 'pending',
+                    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                });
+
+                // Post contract message
+                const contractLink = `https://capdeal.lawslane.com/th/contract/${contractId}`;
+                await chatRef.collection('messages').add({
+                    chatId,
+                    text: `📄 **เอกสารจากแคปดีล**\n\nระบบได้ออกสัญญาจ้างทนายความอิเล็กทรอนิกส์ให้คุณแล้ว กรุณากดลิงก์ด้านล่างเพื่อตรวจสอบและลงนามแบบดิจิทัล:\n\n🔗 [กดเพื่อเซ็นสัญญาที่นี่](${contractLink})\n\n*หมายเหตุ: สัญญานี้มีผลผูกพันตามกฎหมายหลังจากทั้งสองฝ่ายลงนามแล้ว*`,
+                    senderId: 'system',
+                    senderName: 'System',
+                    timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                    type: 'capdeal_contract',
+                    metadata: {
+                        contractId,
+                        contractLink
+                    }
+                });
+            } catch (e) {
+                console.error("Contract creation failed during approval:", e);
+            }
+        }
+
+        await chatRef.update(updatePayload);
+
+        // System message for payment approval
+        await chatRef.collection('messages').add({
+            chatId,
+            text: updatePayload.lastMessage,
+            senderId: 'system',
+            senderName: 'ระบบแจ้งเตือน',
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            type: 'system_payment'
+        });
+
+        return { success: true };
+    } catch (error: any) {
+        console.error("Error approving installment:", error);
         return { success: false, error: error.message };
     }
 }
