@@ -133,8 +133,8 @@ function ChatPageContent() {
         if (!chatId) return;
         console.log("Fetching docs for chatId:", chatId);
         
-        const targetClientId = cId || clientId;
-        const targetLawyerId = lId || lawyerId;
+        const targetClientId = cId || clientId || undefined;
+        const targetLawyerId = lId || lawyerId || undefined;
         const normalizedChatId = Array.isArray(chatId) ? chatId[0] : (chatId as string);
 
         const [invRes, conRes, msRes] = await Promise.all([
