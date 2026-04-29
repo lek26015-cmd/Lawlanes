@@ -671,9 +671,9 @@ function ChatPageContent() {
                     </TabsTrigger>
                     <TabsTrigger value="vault" className="min-w-0 px-2 flex-1 text-[10px] font-black uppercase tracking-widest py-2.5 rounded-xl data-[state=active]:bg-white dark:data-[state=active]:bg-slate-700 data-[state=active]:text-blue-600 transition-all duration-300 relative cursor-pointer pointer-events-auto">
                         <span className="truncate">{tCase('legalVault')?.split(' ')[0] || 'คลังเอกสาร'}</span>
-                        {(invoices.length > 0 || contracts.length > 0) && (
+                        {files.length > 0 && (
                             <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[8px] font-bold rounded-full flex items-center justify-center border border-white pointer-events-none">
-                                {invoices.length + contracts.length}
+                                {files.length}
                             </span>
                         )}
                     </TabsTrigger>
