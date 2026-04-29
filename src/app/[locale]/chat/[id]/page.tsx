@@ -807,11 +807,8 @@ function ChatPageContent() {
                                                                 <Badge className="text-[9px] bg-blue-100 text-blue-700 border-none">{contract.status === 'signed' ? 'เซ็นแล้ว' : 'รอการลงนาม'}</Badge>
                                                             </div>
                                                             <div className="flex gap-2">
-                                                                <Button size="sm" className="h-8 flex-1 text-[10px] bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl" onClick={() => window.open(`https://capdeal.lawslane.com/th/contract/${contract.id}`, '_blank')}>
-                                                                    <FileSignature className="w-3 h-3 mr-1.5" /> ตรวจสอบเอกสาร
-                                                                </Button>
-                                                                <Button variant="outline" size="sm" className="h-8 flex-1 text-[10px] font-bold rounded-xl" onClick={() => window.open(`https://capdeal.lawslane.com/api/contract/pdf/${contract.id}`, '_blank')}>
-                                                                    <Download className="w-3 h-3 mr-1.5" /> ดู PDF
+                                                                <Button size="sm" className="h-8 flex-1 text-[10px] bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl" onClick={() => window.open(`https://capdeal.lawslane.com/api/contract/pdf/${contract.id}`, '_blank')}>
+                                                                    <Download className="w-3 h-3 mr-1.5" /> ดู PDF สัญญา
                                                                 </Button>
                                                             </div>
                                                         </div>
@@ -826,11 +823,8 @@ function ChatPageContent() {
                                                                 <Badge className="text-[9px] bg-amber-100 text-amber-700 border-none">{inv.status === 'paid' ? 'ชำระแล้ว' : 'รอชำระ'}</Badge>
                                                             </div>
                                                             <div className="flex gap-2">
-                                                                <Button size="sm" className="h-8 flex-1 text-[10px] bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl" onClick={() => window.open(`https://capdeal.lawslane.com/th/invoice/${encodeURIComponent(inv.id)}`, '_blank')}>
-                                                                    <FileSignature className="w-3 h-3 mr-1.5" /> ตรวจสอบเอกสาร
-                                                                </Button>
-                                                                <Button variant="outline" size="sm" className="h-8 flex-1 text-[10px] font-bold rounded-xl" onClick={() => window.open(`https://capdeal.lawslane.com/api/invoice/pdf/${encodeURIComponent(inv.id)}`, '_blank')}>
-                                                                    <Download className="w-3 h-3 mr-1.5" /> ดู PDF
+                                                                <Button size="sm" className="h-8 flex-1 text-[10px] bg-amber-600 hover:bg-amber-700 text-white font-bold rounded-xl" onClick={() => window.open(`https://capdeal.lawslane.com/api/invoice/pdf/${encodeURIComponent(inv.id)}`, '_blank')}>
+                                                                    <Download className="w-3 h-3 mr-1.5" /> ดู PDF ใบเสนอราคา
                                                                 </Button>
                                                             </div>
                                                         </div>
@@ -959,8 +953,7 @@ function ChatPageContent() {
                                                             <Badge className="text-[8px] bg-blue-100 text-blue-700 h-4 px-1">{c.status === 'signed' ? 'เซ็นแล้ว' : 'รอลงนาม'}</Badge>
                                                         </div>
                                                         <div className="flex gap-1">
-                                                            <Button size="sm" className="h-7 flex-1 text-[9px] bg-blue-600 text-white font-bold rounded-lg" onClick={() => window.open(`https://capdeal.lawslane.com/th/contract/${c.id}`, '_blank')}>ตรวจสอบ</Button>
-                                                            <Button variant="outline" size="sm" className="h-7 flex-1 text-[9px] font-bold rounded-lg" onClick={() => window.open(`https://capdeal.lawslane.com/api/contract/pdf/${c.id}`, '_blank')}>PDF</Button>
+                                                            <Button size="sm" className="h-7 flex-1 text-[9px] bg-blue-600 text-white font-bold rounded-lg" onClick={() => window.open(`https://capdeal.lawslane.com/api/contract/pdf/${c.id}`, '_blank')}>ดู PDF สัญญา</Button>
                                                         </div>
                                                     </div>
                                                 ))}
@@ -974,8 +967,7 @@ function ChatPageContent() {
                                                             <Badge className="text-[8px] bg-amber-100 text-amber-700 h-4 px-1">{i.status === 'paid' ? 'ชำระแล้ว' : 'รอชำระ'}</Badge>
                                                         </div>
                                                         <div className="flex gap-1">
-                                                            <Button size="sm" className="h-7 flex-1 text-[9px] bg-amber-600 text-white font-bold rounded-lg" onClick={() => window.open(`https://capdeal.lawslane.com/th/invoice/${encodeURIComponent(i.id)}`, '_blank')}>ตรวจสอบ</Button>
-                                                            <Button variant="outline" size="sm" className="h-7 flex-1 text-[9px] font-bold rounded-lg" onClick={() => window.open(`https://capdeal.lawslane.com/api/invoice/pdf/${encodeURIComponent(i.id)}`, '_blank')}>PDF</Button>
+                                                            <Button size="sm" className="h-7 flex-1 text-[9px] bg-amber-600 text-white font-bold rounded-lg" onClick={() => window.open(`https://capdeal.lawslane.com/api/invoice/pdf/${encodeURIComponent(i.id)}`, '_blank')}>ดู PDF ใบเสนอราคา</Button>
                                                         </div>
                                                     </div>
                                                 ))}
