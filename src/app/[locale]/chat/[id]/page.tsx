@@ -337,17 +337,18 @@ function ChatPageContent() {
                 let fetchedLawyer: LawyerProfile | null = null;
                 if (currentLawyerId) {
                     fetchedLawyer = await getLawyerById(firestore!, currentLawyerId) || null;
-                    if (fetchedLawyer) {
-                        try {
-                            const lUserSnap = await getDoc(doc(firestore!, 'users', currentLawyerId));
-                            if (lUserSnap.exists()) {
-                                const lUserData = lUserSnap.data();
-                                fetchedLawyer.email = fetchedLawyer.email || lUserData.email || '';
-                                fetchedLawyer.name = fetchedLawyer.name || lUserData.name || '';
-                            }
-                        } catch (e) {
-                            console.warn("Could not fetch fallback lawyer info", e);
+                    if (!fetchedLawyer) {
+                        fetchedLawyer = { id: currentLawyerId, name: '', imageUrl: '', email: '' } as unknown as LawyerProfile;
+                    }
+                    try {
+                        const lUserSnap = await getDoc(doc(firestore!, 'users', currentLawyerId));
+                        if (lUserSnap.exists()) {
+                            const lUserData = lUserSnap.data();
+                            fetchedLawyer.email = fetchedLawyer.email || lUserData.email || '';
+                            fetchedLawyer.name = fetchedLawyer.name || lUserData.name || '';
                         }
+                    } catch (e) {
+                        console.warn("Could not fetch fallback lawyer info", e);
                     }
                     setLawyer(fetchedLawyer);
                 }
