@@ -518,16 +518,7 @@ function PaymentPageContent() {
                                         <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-md overflow-hidden bg-white shrink-0 p-0.5 border border-slate-100">
                                             <img src="/images/logo-bank/กสิกร.png" alt="Kasikornbank" className="w-full h-full object-contain rounded-lg" />
                                         </div>
-                                        <div>
-                                           {!isCompleted && !isOfficial && (
-                                            <Button 
-                                                className="w-full bg-blue-600 hover:bg-blue-700 text-xs h-10 font-bold rounded-2xl shadow-lg shadow-blue-500/20" 
-                                                disabled={isUploading}
-                                                onClick={() => router.push(`/lawyer-dashboard/pipeline/new?chatId=${chatId}&clientId=${clientId || client?.id}`)}
-                                            >
-                                                <Plus className="w-4 h-4 mr-2" /> เสนอราคาเปิดคดี
-                                            </Button>
-                                        )}
+                                         <div>
                                           <p className="font-bold text-slate-700">KASIKORNBANK</p>
                                         </div>
                                     </div>
