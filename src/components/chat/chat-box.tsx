@@ -721,81 +721,213 @@ function ChatBoxContent({
         </DialogContent>
       </Dialog>
 
-      {/* Contract Preview Modal */}
+      {/* Contract Preview Modal (Capdeal Style) */}
       <Dialog open={isContractPreviewOpen} onOpenChange={setIsContractPreviewOpen}>
-        <DialogContent className="max-w-lg w-[95vw] max-h-[85vh] overflow-y-auto rounded-3xl p-0 bg-white dark:bg-slate-900 border-none shadow-2xl">
-            <div className="p-4 bg-gradient-to-r from-blue-700 to-blue-600 text-white flex items-center gap-3 sticky top-0 z-10">
-                <div className="p-2 bg-white/20 rounded-xl">
-                    <FileSignature className="w-5 h-5" />
+        <DialogContent className="max-w-6xl w-[95vw] h-[90vh] overflow-hidden rounded-xl p-0 bg-slate-50 dark:bg-slate-900 border-none shadow-2xl flex flex-col">
+            <div className="flex-none p-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 flex justify-between items-center z-10 shadow-sm">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 bg-blue-600 rounded-lg">
+                        <FileSignature className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                        <div className="flex items-center gap-2">
+                            <DialogTitle className="text-lg font-black text-slate-900 dark:text-white">สัญญา</DialogTitle>
+                            <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full", contractPreviewData?.status === 'signed' ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700")}>
+                                {contractPreviewData?.status === 'signed' ? "เสร็จสิ้น (Completed)" : "รอการเซ็น (Pending)"}
+                            </span>
+                        </div>
+                        <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">เลขที่สัญญา: #{contractPreviewData?.id?.substring(0, 8) || '...'}</p>
+                    </div>
                 </div>
-                <DialogHeader className="p-0">
-                    <DialogTitle className="text-base font-black text-white">สัญญาจ้างทนายความ</DialogTitle>
-                    <p className="text-[10px] font-medium text-white/70 uppercase tracking-wider">Lawslane Official Contract</p>
-                </DialogHeader>
-            </div>
-            {contractPreviewData && (
-                <div className="p-6 space-y-5">
-                    {/* Contract parties */}
-                    <div className="grid grid-cols-2 gap-3">
-                        <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
-                            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-1">ผู้ว่าจ้าง (ลูกความ)</p>
-                            <p className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{contractPreviewData.clientName || 'ลูกความ'}</p>
-                        </div>
-                        <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
-                            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-1">ผู้รับจ้าง (ทนายความ)</p>
-                            <p className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{contractPreviewData.lawyerName || 'ทนายความ'}</p>
-                        </div>
-                    </div>
-
-                    {/* Contract details */}
-                    <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl space-y-3">
-                        <div>
-                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">เรื่อง / ภาระงาน</p>
-                            <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{contractPreviewData.task || contractPreviewData.title}</p>
-                        </div>
-                        {contractPreviewData.description && (
-                            <div className="pt-2 border-t border-slate-200 dark:border-slate-700">
-                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">ขอบเขตงาน (Scope of Work)</p>
-                                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed whitespace-pre-wrap">{contractPreviewData.description}</p>
-                            </div>
-                        )}
-                        <div className="flex justify-between items-center border-t border-slate-200 dark:border-slate-700 pt-3">
-                            <div>
-                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">ค่าบริการรวม</p>
-                                <p className="text-lg font-black text-blue-600">฿{(contractPreviewData.price || contractPreviewData.amount || 0).toLocaleString()}</p>
-                            </div>
-                            <div className="text-right">
-                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">สถานะ</p>
-                                <span className={cn("inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest", contractPreviewData.status === 'signed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700')}>
-                                    {contractPreviewData.status === 'signed' ? 'ลงนามแล้ว' : 'รอการลงนาม'}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Installments */}
-                    {contractPreviewData.installments && contractPreviewData.installments.length > 0 && (
-                        <div className="space-y-2">
-                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest px-1">แผนการชำระเงิน ({contractPreviewData.installments.length} งวด)</p>
-                            {contractPreviewData.installments.map((inst: any, idx: number) => {
-                                const amt = parseFloat(String(inst.amount || 0).replace(/,/g, ''));
-                                return (
-                                    <div key={idx} className={cn("p-3 rounded-xl border text-xs flex justify-between items-center", inst.status === 'paid' ? 'bg-emerald-50 border-emerald-100' : 'bg-slate-50 border-slate-100')}>
-                                        <span className="font-medium">งวดที่ {idx + 1}: {inst.description || ''}</span>
-                                        <span className="font-black text-blue-600">฿{isNaN(amt) ? 0 : amt.toLocaleString()}</span>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    )}
-
-                    <div className="text-xs text-slate-500 leading-relaxed bg-blue-50 dark:bg-blue-900/20 p-4 rounded-2xl border border-blue-100 dark:border-blue-800">
-                        <p className="font-bold mb-2 flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5 text-blue-600"/> ข้อตกลงเบื้องต้น</p>
-                        สัญญาฉบับนี้เป็นสัญญามาตรฐานของแพลตฟอร์ม Lawslane หากมีข้อกำหนดเพิ่มเติม จะเป็นไปตามที่ตกลงกันในแชท ทั้งนี้การลงนามจะสมบูรณ์เมื่อมีการชำระเงินหรือยืนยันผ่านระบบ
-                    </div>
-                    <Button className="w-full h-11 rounded-2xl font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700" onClick={() => setIsContractPreviewOpen(false)}>
-                        ปิดหน้าต่าง
+                <div className="hidden md:flex items-center gap-2">
+                    <Button variant="outline" size="sm" className="h-9 rounded-full text-xs font-bold text-blue-600 border-blue-200 hover:bg-blue-50">
+                        <ExternalLink className="w-4 h-4 mr-1.5" /> แชร์สัญญานี้
                     </Button>
+                    <Button variant="outline" size="sm" className="h-9 rounded-full text-xs font-bold text-amber-600 border-amber-200 hover:bg-amber-50">
+                        <Plus className="w-4 h-4 mr-1.5" /> สร้างฉบับแก้ไข
+                    </Button>
+                    <Button variant="outline" size="sm" className="h-9 rounded-full text-xs font-bold">
+                        <Maximize2 className="w-4 h-4 mr-1.5" /> ดูสัญญาเต็มแผ่น
+                    </Button>
+                    <Button size="sm" className="h-9 rounded-full text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white">
+                        <FileDown className="w-4 h-4 mr-1.5" /> PDF
+                    </Button>
+                </div>
+                <div className="md:hidden">
+                    <Button variant="ghost" size="icon" onClick={() => setIsContractPreviewOpen(false)}><ChevronLeft className="w-6 h-6"/></Button>
+                </div>
+            </div>
+
+            {contractPreviewData && (
+                <div className="flex-1 overflow-y-auto flex flex-col md:flex-row gap-6 p-4 md:p-8 bg-slate-100 dark:bg-slate-900/50">
+                    
+                    {/* Left: A4 Document Area */}
+                    <div className="flex-1 flex justify-center">
+                        <div className="bg-white dark:bg-slate-950 w-full max-w-[210mm] min-h-[297mm] shadow-xl p-8 md:p-16 flex flex-col relative">
+                            {/* Watermark */}
+                            <div className="absolute inset-0 flex items-center justify-center opacity-[0.02] pointer-events-none z-0">
+                                <FileSignature className="w-96 h-96" />
+                            </div>
+
+                            <div className="relative z-10 flex-1 flex flex-col">
+                                <h1 className="text-3xl font-bold text-center text-slate-900 dark:text-white mb-2">สัญญา</h1>
+                                <p className="text-center text-sm text-slate-500 mb-8">(ฉบับย่อ)</p>
+
+                                <div className="space-y-1 mb-8 text-sm md:text-base text-right">
+                                    <p>ทำที่ <span className="border-b border-dotted border-slate-400 pb-0.5 px-4 font-medium inline-block min-w-[200px] text-center">ข้อตกลงออนไลน์</span></p>
+                                    <p>วันที่ <span className="border-b border-dotted border-slate-400 pb-0.5 px-4 font-medium inline-block min-w-[200px] text-center">
+                                        {contractPreviewData.createdAt ? new Date(contractPreviewData.createdAt?.toDate ? contractPreviewData.createdAt.toDate() : contractPreviewData.createdAt).toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' }) : '................'}
+                                    </span></p>
+                                </div>
+
+                                <div className="space-y-6 text-sm md:text-base leading-loose text-slate-800 dark:text-slate-300">
+                                    <p className="indent-12 text-justify">
+                                        สัญญาฉบับนี้ทำขึ้นระหว่าง <span className="font-bold border-b border-dotted border-slate-400 pb-0.5 px-4">{contractPreviewData.clientName || 'ลูกความ'}</span>
+                                        บัตรประจำตัวประชาชนเลขที่ <span className="border-b border-dotted border-slate-400 pb-0.5 px-8"></span> 
+                                        ตั้งอยู่หรืออาศัยอยู่เลขที่ <span className="border-b border-dotted border-slate-400 pb-0.5 px-16"></span> 
+                                        ซึ่งต่อไปในสัญญานี้เรียกว่า <strong>"คู่สัญญาฝ่ายที่หนึ่ง"</strong> ฝ่ายหนึ่ง
+                                    </p>
+
+                                    <p className="indent-12 text-justify">
+                                        กับ <span className="font-bold border-b border-dotted border-slate-400 pb-0.5 px-4">{contractPreviewData.lawyerName || 'ทนายความ'}</span> 
+                                        บัตรประจำตัวประชาชนเลขที่ <span className="border-b border-dotted border-slate-400 pb-0.5 px-8"></span> 
+                                        ตั้งอยู่หรืออาศัยอยู่เลขที่ <span className="border-b border-dotted border-slate-400 pb-0.5 px-16"></span> 
+                                        ซึ่งต่อไปในสัญญานี้เรียกว่า <strong>"คู่สัญญาฝ่ายที่สอง"</strong> อีกฝ่ายหนึ่ง
+                                    </p>
+
+                                    <p className="indent-12 text-justify">
+                                        คู่สัญญาทั้งสองฝ่ายตกลงทำสัญญาฉบับนี้โดยมีข้อความดังต่อไปนี้:
+                                    </p>
+
+                                    <div className="pl-4 md:pl-12 space-y-4">
+                                        <div>
+                                            <p className="font-bold">ข้อ 1. ขอบเขตของงาน (Scope of Work)</p>
+                                            <p className="pl-6 pt-2 leading-relaxed whitespace-pre-wrap">{contractPreviewData.description || contractPreviewData.task || contractPreviewData.title}</p>
+                                        </div>
+                                        <div>
+                                            <p className="font-bold">ข้อ 2. ค่าจ้างและเงื่อนไขการชำระเงิน</p>
+                                            <p className="pl-6 pt-2">
+                                                ผู้ว่าจ้างตกลงชำระค่าจ้างทั้งสิ้น <strong className="text-blue-600">฿{(contractPreviewData.price || contractPreviewData.amount || 0).toLocaleString()}</strong> บาท
+                                            </p>
+                                            
+                                            {contractPreviewData.installments && contractPreviewData.installments.length > 0 && (
+                                                <div className="mt-4 p-4 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-900/50">
+                                                    <p className="font-bold mb-2">แผนการชำระเงิน ({contractPreviewData.installments.length} งวด)</p>
+                                                    <div className="space-y-2">
+                                                        {contractPreviewData.installments.map((inst: any, idx: number) => {
+                                                            const amt = parseFloat(String(inst.amount || 0).replace(/,/g, ''));
+                                                            return (
+                                                                <div key={idx} className="flex justify-between items-center text-sm pb-2 border-b border-slate-200 dark:border-slate-800 last:border-0 last:pb-0">
+                                                                    <span>งวดที่ {idx + 1}: {inst.description}</span>
+                                                                    <span className="font-bold text-blue-600">฿{isNaN(amt) ? 0 : amt.toLocaleString()}</span>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    <p className="indent-12 text-justify mt-8 pt-8 border-t border-slate-100 dark:border-slate-800">
+                                        สัญญานี้เป็นการสรุปข้อตกลงเบื้องต้นจากการเจรจาผ่านทางแชท คู่สัญญาได้อ่านและเข้าใจข้อความโดยตลอดแล้ว จึงได้ลงลายมือชื่อผ่านระบบอิเล็กทรอนิกส์ไว้เป็นสำคัญ
+                                    </p>
+                                </div>
+
+                                <div className="mt-auto pt-16 flex justify-around">
+                                    <div className="text-center space-y-2 flex flex-col items-center">
+                                        <div className="h-16 w-40 flex items-center justify-center border-b border-dotted border-slate-400">
+                                            {contractPreviewData.clientSigned ? (
+                                                <span className="text-emerald-600 font-bold italic">ลงนามผ่านระบบแล้ว</span>
+                                            ) : (
+                                                <span className="text-slate-300 italic text-xs">คลิกเพื่อเซ็นชื่อ</span>
+                                            )}
+                                        </div>
+                                        <p className="font-bold text-sm">ผู้ว่าจ้าง</p>
+                                        <p className="text-xs text-slate-500">( {contractPreviewData.clientName || 'ลูกความ'} )</p>
+                                    </div>
+                                    <div className="text-center space-y-2 flex flex-col items-center">
+                                        <div className="h-16 w-40 flex items-center justify-center border-b border-dotted border-slate-400">
+                                            {contractPreviewData.lawyerSigned ? (
+                                                <span className="text-emerald-600 font-bold italic">ลงนามผ่านระบบแล้ว</span>
+                                            ) : (
+                                                <span className="text-slate-300 italic text-xs">คลิกเพื่อเซ็นชื่อ</span>
+                                            )}
+                                        </div>
+                                        <p className="font-bold text-sm">คู่สัญญาฝ่ายที่สอง</p>
+                                        <p className="text-xs text-slate-500">( {contractPreviewData.lawyerName || 'ทนายความ'} )</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Right: Sidebar */}
+                    <div className="w-full md:w-[320px] flex flex-col gap-4 flex-shrink-0">
+                        <div className="bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+                            <div className="p-4 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+                                <p className="text-xs font-bold text-slate-500">คู่สัญญาฝ่ายที่หนึ่ง (PARTY A)</p>
+                            </div>
+                            <div className="p-4 space-y-4">
+                                <div className="flex items-center gap-3">
+                                    <Avatar className="h-10 w-10 bg-slate-100">
+                                        <AvatarFallback className="text-slate-500">{contractPreviewData.clientName?.charAt(0) || 'C'}</AvatarFallback>
+                                    </Avatar>
+                                    <div>
+                                        <p className="font-bold text-sm">{contractPreviewData.clientName || 'ลูกความ'}</p>
+                                        <p className="text-[10px] text-slate-400">ไม่ระบุอีเมล</p>
+                                    </div>
+                                </div>
+                                {contractPreviewData.clientSigned ? (
+                                    <div className="flex items-center gap-2 text-emerald-600 text-xs font-bold">
+                                        <Check className="w-4 h-4" /> ลงนามเรียบร้อยแล้ว
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-2 text-amber-600 text-xs font-bold">
+                                        <AlertTriangle className="w-4 h-4" /> รอการลงนาม
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+                            <div className="p-4 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+                                <p className="text-xs font-bold text-slate-500">คู่สัญญาฝ่ายที่สอง (PARTY B)</p>
+                            </div>
+                            <div className="p-4 space-y-4">
+                                <div className="flex items-center gap-3">
+                                    <Avatar className="h-10 w-10 bg-slate-100">
+                                        <AvatarFallback className="text-slate-500">{contractPreviewData.lawyerName?.charAt(0) || 'L'}</AvatarFallback>
+                                    </Avatar>
+                                    <div>
+                                        <p className="font-bold text-sm">{contractPreviewData.lawyerName || 'ทนายความ'}</p>
+                                        <p className="text-[10px] text-slate-400">ไม่ระบุอีเมล</p>
+                                    </div>
+                                </div>
+                                {contractPreviewData.lawyerSigned ? (
+                                    <div className="flex items-center gap-2 text-emerald-600 text-xs font-bold">
+                                        <Check className="w-4 h-4" /> ลงนามเรียบร้อยแล้ว
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-2 text-amber-600 text-xs font-bold">
+                                        <AlertTriangle className="w-4 h-4" /> รอการลงนาม
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="bg-blue-600 rounded-xl p-5 text-white">
+                            <div className="flex items-center gap-2 font-bold mb-2">
+                                <FileSignature className="w-5 h-5" /> ปลอดภัยและถูกกฎหมาย
+                            </div>
+                            <p className="text-[11px] opacity-90 leading-relaxed mb-4">
+                                สัญญานี้มีผลผูกพันทางกฎหมายตาม พ.ร.บ. ว่าด้วยธุรกรรมทางอิเล็กทรอนิกส์ ข้อมูลทั้งหมดถูกจัดเก็บอย่างปลอดภัย
+                            </p>
+                            <Button variant="outline" size="sm" className="w-full text-xs font-bold bg-white/10 hover:bg-white/20 border-white/20 text-white">
+                                เรียนรู้เพิ่มเติมเกี่ยวกับ e-Signature
+                            </Button>
+                        </div>
+                    </div>
                 </div>
             )}
         </DialogContent>

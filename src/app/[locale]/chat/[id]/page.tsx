@@ -1361,156 +1361,222 @@ function ChatPageContent() {
                 </DialogContent>
             </Dialog>
 
-            {/* Contract Modal */}
+            {/* Contract Modal — Capdeal Style */}
             <Dialog open={showContractModal} onOpenChange={setShowContractModal}>
-                <DialogContent className="max-w-[95vw] md:max-w-3xl max-h-[90vh] overflow-y-auto p-0 border-none bg-white dark:bg-slate-900 rounded-2xl md:rounded-3xl">
+                <DialogContent className="max-w-6xl w-[95vw] h-[90vh] overflow-hidden rounded-xl p-0 bg-slate-50 dark:bg-slate-900 border-none shadow-2xl flex flex-col">
                     <DialogTitle className="sr-only">เอกสารสัญญาจ้าง</DialogTitle>
                     
-                    {/* Header */}
-                    <div className="sticky top-0 z-20 bg-gradient-to-r from-blue-800 to-blue-600 text-white p-4 md:p-6 flex items-center gap-3">
-                        <div className="p-2 bg-white/20 rounded-xl flex-shrink-0">
-                            <ScrollText className="w-5 h-5" />
+                    {/* Top Bar */}
+                    <div className="flex-none p-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 flex justify-between items-center z-10 shadow-sm">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-blue-600 rounded-lg">
+                                <FileSignature className="w-5 h-5 text-white" />
+                            </div>
+                            <div>
+                                <div className="flex items-center gap-2">
+                                    <h2 className="text-lg font-black text-slate-900 dark:text-white">สัญญา</h2>
+                                    <span className={cn("text-[10px] font-bold px-2 py-0.5 rounded-full", contracts.some((c: any) => c.status === 'signed') ? "bg-emerald-100 text-emerald-700" : "bg-amber-100 text-amber-700")}>
+                                        {contracts.some((c: any) => c.status === 'signed') ? "เสร็จสิ้น (Completed)" : "รอการเซ็น (Pending)"}
+                                    </span>
+                                </div>
+                                <p className="text-[10px] font-medium text-slate-500 uppercase tracking-wider">เลขที่สัญญา: #{contracts[0]?.id?.substring(0, 8) || chatId?.substring(0,8) || '...'}</p>
+                            </div>
                         </div>
-                        <div className="min-w-0">
-                            <h2 className="text-sm md:text-base font-black truncate">สัญญาจ้างทนายความ</h2>
-                            <p className="text-[10px] md:text-xs text-white/70 uppercase tracking-wider">Lawslane Official Contract</p>
+                        <div className="hidden md:flex items-center gap-2">
+                            <Button variant="outline" size="sm" className="h-9 rounded-full text-xs font-bold text-blue-600 border-blue-200 hover:bg-blue-50">
+                                <ExternalLink className="w-4 h-4 mr-1.5" /> แชร์สัญญานี้
+                            </Button>
+                            <Button variant="outline" size="sm" className="h-9 rounded-full text-xs font-bold text-amber-600 border-amber-200 hover:bg-amber-50">
+                                <Plus className="w-4 h-4 mr-1.5" /> สร้างฉบับแก้ไข
+                            </Button>
+                            <Button variant="outline" size="sm" className="h-9 rounded-full text-xs font-bold">
+                                <Maximize2 className="w-4 h-4 mr-1.5" /> ดูสัญญาเต็มแผ่น
+                            </Button>
+                            <Button size="sm" className="h-9 rounded-full text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white">
+                                <FileDown className="w-4 h-4 mr-1.5" /> PDF
+                            </Button>
+                        </div>
+                        <div className="md:hidden">
+                            <Button variant="ghost" size="icon" onClick={() => setShowContractModal(false)}><ChevronLeft className="w-6 h-6"/></Button>
                         </div>
                     </div>
 
-                    <div className="p-4 md:p-8 space-y-6 text-sm md:text-[15px] text-slate-800 dark:text-slate-200 leading-relaxed">
-                        {/* Parties */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                            <div className="p-3 md:p-4 bg-slate-50 dark:bg-slate-800 rounded-xl">
-                                <p className="text-[9px] md:text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">ผู้ว่าจ้าง</p>
-                                <p className="text-sm md:text-base font-bold text-slate-900 dark:text-white truncate">{client?.name || '.....................'}</p>
-                                {clientInfo?.taxId && <p className="text-[10px] text-slate-400 mt-0.5">เลขภาษี: {clientInfo.taxId}</p>}
-                            </div>
-                            <div className="p-3 md:p-4 bg-slate-50 dark:bg-slate-800 rounded-xl">
-                                <p className="text-[9px] md:text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-1">ผู้รับจ้าง (ทนายความ)</p>
-                                <p className="text-sm md:text-base font-bold text-slate-900 dark:text-white truncate">{lawyer?.name || 'ทนายความ'}</p>
-                                <p className="text-[10px] text-slate-400 mt-0.5">ผ่านแพลตฟอร์ม Lawslane</p>
-                            </div>
-                        </div>
+                    <div className="flex-1 overflow-y-auto flex flex-col md:flex-row gap-6 p-4 md:p-8 bg-slate-100 dark:bg-slate-900/50">
+                        {/* Left: A4 Document Area */}
+                        <div className="flex-1 flex justify-center">
+                            <div className="bg-white dark:bg-slate-950 w-full max-w-[210mm] min-h-[297mm] shadow-xl p-8 md:p-16 flex flex-col relative">
+                                {/* Watermark */}
+                                <div className="absolute inset-0 flex items-center justify-center opacity-[0.02] pointer-events-none z-0">
+                                    <FileSignature className="w-96 h-96" />
+                                </div>
 
-                        {/* Contract Body */}
-                        <div className="space-y-4 pl-3 md:pl-5 border-l-4 border-blue-100">
-                            <div>
-                                <p className="font-bold text-slate-900 dark:text-white">ข้อ 1. ขอบเขตของงาน</p>
-                                <p className="pl-3 md:pl-6 text-slate-600 dark:text-slate-400 italic py-1 text-xs md:text-sm leading-relaxed whitespace-pre-wrap">{description || caseTitle || '—'}</p>
-                            </div>
-                            <div>
-                                <p className="font-bold text-slate-900 dark:text-white">ข้อ 2. ค่าจ้างและเงื่อนไขการชำระเงิน</p>
-                                <div className="pl-3 md:pl-6 space-y-2">
-                                    <p className="text-xs md:text-sm">ผู้ว่าจ้างตกลงชำระค่าจ้างทั้งสิ้น <strong className="text-blue-700 dark:text-blue-400">฿{chatAmount.toLocaleString()}</strong> บาท</p>
-                                    <p className="text-xs md:text-sm text-slate-500">เงื่อนไข: {installments?.length > 0 ? `แบ่งชำระ ${installments.length} งวด` : 'ชำระงวดเดียวเมื่อเริ่มงาน'}</p>
-                                </div>
-                            </div>
-                        </div>
+                                <div className="relative z-10 flex-1 flex flex-col">
+                                    <h1 className="text-3xl font-bold text-center text-slate-900 dark:text-white mb-2">สัญญา</h1>
+                                    <p className="text-center text-sm text-slate-500 mb-8">(ฉบับย่อ)</p>
 
-                        {/* Installments with Payment Status */}
-                        {installments && installments.length > 0 && (
-                            <div className="space-y-3 p-3 md:p-4 bg-slate-50 dark:bg-slate-800 rounded-xl">
-                                <div className="flex justify-between items-center">
-                                    <p className="text-[10px] md:text-xs font-black uppercase text-blue-600">แผนการชำระเงิน</p>
-                                    <span className="text-[10px] md:text-xs font-bold text-slate-500">{installments.filter((i: any) => i.status === 'paid').length}/{installments.length} งวดชำระแล้ว</span>
-                                </div>
-                                <div className="w-full h-2 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-                                    <div className="h-full bg-gradient-to-r from-blue-500 to-emerald-400 rounded-full transition-all" style={{ width: `${Math.min(100, (totalPaid / (chatAmount || 1)) * 100)}%` }} />
-                                </div>
-                                <div className="space-y-1.5">
-                                    {installments.map((inst: any, idx: number) => {
-                                        const isPaid = inst.status === 'paid';
-                                        const instAmt = parseFloat(String(inst.amount || 0).replace(/,/g, ''));
-                                        return (
-                                            <div key={idx} className={`flex justify-between items-center p-2 md:p-2.5 rounded-lg border text-xs md:text-sm ${isPaid ? 'bg-emerald-50 border-emerald-100 dark:bg-emerald-900/20 dark:border-emerald-800' : 'bg-white border-slate-100 dark:bg-slate-900 dark:border-slate-700'}`}>
-                                                <div className="flex items-center gap-2 min-w-0">
-                                                    {isPaid ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 flex-shrink-0" /> : <div className="w-3.5 h-3.5 rounded-full border-2 border-slate-300 flex-shrink-0" />}
-                                                    <span className="font-medium truncate">งวด {idx + 1}: {inst.description || ''}</span>
-                                                </div>
-                                                <div className="flex items-center gap-2 flex-shrink-0">
-                                                    <span className="font-black text-blue-600 dark:text-blue-400">฿{isNaN(instAmt) ? 0 : instAmt.toLocaleString()}</span>
-                                                    {isPaid && <span className="text-[8px] md:text-[9px] font-black uppercase bg-emerald-100 text-emerald-700 px-1.5 py-0.5 rounded-full">ชำระแล้ว</span>}
-                                                </div>
+                                    <div className="space-y-1 mb-8 text-sm md:text-base text-right">
+                                        <p>ทำที่ <span className="border-b border-dotted border-slate-400 pb-0.5 px-4 font-medium inline-block min-w-[200px] text-center">ข้อตกลงออนไลน์</span></p>
+                                        <p>วันที่ <span className="border-b border-dotted border-slate-400 pb-0.5 px-4 font-medium inline-block min-w-[200px] text-center">
+                                            {new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' })}
+                                        </span></p>
+                                    </div>
+
+                                    <div className="space-y-6 text-sm md:text-base leading-loose text-slate-800 dark:text-slate-300">
+                                        <p className="indent-12 text-justify">
+                                            สัญญาฉบับนี้ทำขึ้นระหว่าง <span className="font-bold border-b border-dotted border-slate-400 pb-0.5 px-4">{client?.name || 'ลูกความ'}</span>
+                                            บัตรประจำตัวประชาชนเลขที่ <span className="border-b border-dotted border-slate-400 pb-0.5 px-8">{clientInfo?.taxId || ''}</span> 
+                                            ตั้งอยู่หรืออาศัยอยู่เลขที่ <span className="border-b border-dotted border-slate-400 pb-0.5 px-16">{clientInfo?.address || ''}</span> 
+                                            ซึ่งต่อไปในสัญญานี้เรียกว่า <strong>"คู่สัญญาฝ่ายที่หนึ่ง"</strong> ฝ่ายหนึ่ง
+                                        </p>
+
+                                        <p className="indent-12 text-justify">
+                                            กับ <span className="font-bold border-b border-dotted border-slate-400 pb-0.5 px-4">{lawyer?.name || 'ทนายความ'}</span> 
+                                            บัตรประจำตัวประชาชนเลขที่ <span className="border-b border-dotted border-slate-400 pb-0.5 px-8"></span> 
+                                            ตั้งอยู่หรืออาศัยอยู่เลขที่ <span className="border-b border-dotted border-slate-400 pb-0.5 px-16"></span> 
+                                            ซึ่งต่อไปในสัญญานี้เรียกว่า <strong>"คู่สัญญาฝ่ายที่สอง"</strong> อีกฝ่ายหนึ่ง
+                                        </p>
+
+                                        <p className="indent-12 text-justify">
+                                            คู่สัญญาทั้งสองฝ่ายตกลงทำสัญญาฉบับนี้โดยมีข้อความดังต่อไปนี้:
+                                        </p>
+
+                                        <div className="pl-4 md:pl-12 space-y-4">
+                                            <div>
+                                                <p className="font-bold">ข้อ 1. ขอบเขตของงาน (Scope of Work)</p>
+                                                <p className="pl-6 pt-2 leading-relaxed whitespace-pre-wrap">{description || caseTitle || '—'}</p>
                                             </div>
-                                        );
-                                    })}
-                                </div>
-                                <div className="flex justify-between items-center pt-2 border-t border-slate-200 dark:border-slate-700 text-xs md:text-sm">
-                                    <span className="font-bold text-slate-500">รวมทั้งหมด</span>
-                                    <span className="font-black text-slate-900 dark:text-white">฿{chatAmount.toLocaleString()}</span>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Closing text */}
-                        <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-                            สัญญานี้เป็นการสรุปข้อตกลงเบื้องต้นจากการเจรจาผ่านทางระบบ Lawslane คู่สัญญาได้อ่านและเข้าใจข้อความโดยตลอดแล้ว จึงได้ลงลายมือชื่อผ่านระบบอิเล็กทรอนิกส์ไว้เป็นสำคัญ
-                        </p>
-
-                        {/* Signature Section */}
-                        <div className="grid grid-cols-2 gap-3 md:gap-6 pt-4 md:pt-8 border-t border-slate-200 dark:border-slate-700">
-                            <div className="text-center space-y-3">
-                                <p className="text-[9px] md:text-[10px] text-slate-400 font-bold uppercase tracking-widest">ผู้ว่าจ้าง</p>
-                                <div className="h-16 md:h-20 flex items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50/50 dark:bg-slate-800/50">
-                                    {contracts.some((c: any) => c.clientSigned) ? (
-                                        <div className="text-center">
-                                            <CheckCircle2 className="w-6 h-6 text-emerald-500 mx-auto" />
-                                            <p className="text-[9px] text-emerald-600 font-bold mt-1">ลงนามแล้ว</p>
+                                            <div>
+                                                <p className="font-bold">ข้อ 2. ค่าจ้างและเงื่อนไขการชำระเงิน</p>
+                                                <p className="pl-6 pt-2">
+                                                    ผู้ว่าจ้างตกลงชำระค่าจ้างทั้งสิ้น <strong className="text-blue-600">฿{(chatAmount || 0).toLocaleString()}</strong> บาท
+                                                </p>
+                                                
+                                                {installments && installments.length > 0 && (
+                                                    <div className="mt-4 p-4 border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50 dark:bg-slate-900/50">
+                                                        <p className="font-bold mb-2">แผนการชำระเงิน ({installments.length} งวด)</p>
+                                                        <div className="space-y-2">
+                                                            {installments.map((inst: any, idx: number) => {
+                                                                const amt = parseFloat(String(inst.amount || 0).replace(/,/g, ''));
+                                                                return (
+                                                                    <div key={idx} className="flex justify-between items-center text-sm pb-2 border-b border-slate-200 dark:border-slate-800 last:border-0 last:pb-0">
+                                                                        <span>งวดที่ {idx + 1}: {inst.description}</span>
+                                                                        <span className="font-bold text-blue-600">฿{isNaN(amt) ? 0 : amt.toLocaleString()}</span>
+                                                                    </div>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
-                                    ) : (
-                                        <p className="text-[10px] text-slate-300 italic">รอการลงนาม</p>
-                                    )}
-                                </div>
-                                <p className="text-xs md:text-sm font-bold text-slate-900 dark:text-white truncate px-1">{client?.name || 'ผู้ว่าจ้าง'}</p>
-                                {!effectiveIsLawyerView && !contracts.some((c: any) => c.clientSigned) && (
-                                    <Button size="sm" className="w-full h-8 md:h-9 text-[10px] md:text-xs font-bold rounded-xl bg-blue-600 hover:bg-blue-700" onClick={async () => {
-                                        if (!confirm('ยืนยันการลงนามในสัญญา?')) return;
-                                        for (const c of contracts) {
-                                            const { doc: firestoreDoc, updateDoc } = await import('firebase/firestore');
-                                            const contractRef = firestoreDoc(firestore, 'contracts', c.id);
-                                            await updateDoc(contractRef, { clientSigned: true, clientSignedAt: new Date().toISOString(), status: contracts.some((cc: any) => cc.lawyerSigned) ? 'signed' : 'pending' });
-                                        }
-                                        toast({ title: 'ลงนามสำเร็จ', description: 'คุณได้ลงนามในสัญญาเรียบร้อยแล้ว' });
-                                        setShowContractModal(false);
-                                    }}>
-                                        ✍️ ลงนามดิจิทัล
-                                    </Button>
-                                )}
-                            </div>
-                            <div className="text-center space-y-3">
-                                <p className="text-[9px] md:text-[10px] text-slate-400 font-bold uppercase tracking-widest">ผู้รับจ้าง (ทนายความ)</p>
-                                <div className="h-16 md:h-20 flex items-center justify-center border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl bg-slate-50/50 dark:bg-slate-800/50">
-                                    {contracts.some((c: any) => c.lawyerSigned) ? (
-                                        <div className="text-center">
-                                            <CheckCircle2 className="w-6 h-6 text-emerald-500 mx-auto" />
-                                            <p className="text-[9px] text-emerald-600 font-bold mt-1">ลงนามแล้ว</p>
+
+                                        <p className="indent-12 text-justify mt-8 pt-8 border-t border-slate-100 dark:border-slate-800">
+                                            สัญญานี้เป็นการสรุปข้อตกลงเบื้องต้นจากการเจรจาผ่านทางแชท คู่สัญญาได้อ่านและเข้าใจข้อความโดยตลอดแล้ว จึงได้ลงลายมือชื่อผ่านระบบอิเล็กทรอนิกส์ไว้เป็นสำคัญ
+                                        </p>
+                                    </div>
+
+                                    <div className="mt-auto pt-16 flex justify-around">
+                                        <div className="text-center space-y-2 flex flex-col items-center">
+                                            <div className="h-16 w-40 flex items-center justify-center border-b border-dotted border-slate-400 mb-2">
+                                                {contracts.some((c: any) => c.clientSigned) ? (
+                                                    <span className="text-emerald-600 font-bold italic">ลงนามผ่านระบบแล้ว</span>
+                                                ) : !effectiveIsLawyerView ? (
+                                                    <button onClick={async () => { if (!confirm('ยืนยันการลงนามในสัญญา?')) return; for (const c of contracts) { const { doc: firestoreDoc, updateDoc } = await import('firebase/firestore'); await updateDoc(firestoreDoc(firestore, 'contracts', c.id), { clientSigned: true, clientSignedAt: new Date().toISOString(), status: contracts.some((cc: any) => cc.lawyerSigned) ? 'signed' : 'pending' }); } toast({ title: 'ลงนามสำเร็จ' }); setShowContractModal(false); }} className="flex flex-col items-center gap-1.5 text-slate-400 hover:text-blue-600 transition-colors cursor-pointer group">
+                                                        <FileSignature className="w-6 h-6 md:w-8 md:h-8 group-hover:scale-110 transition-transform" />
+                                                        <span className="text-[10px] md:text-xs font-medium">คลิกเพื่อเซ็นชื่อ</span>
+                                                    </button>
+                                                ) : (<span className="text-[10px] text-slate-300 italic">รอลงนาม</span>)}
+                                            </div>
+                                            <p className="font-bold text-sm">ผู้ว่าจ้าง</p>
+                                            <p className="text-xs text-slate-500">( {client?.name || 'ลูกความ'} )</p>
                                         </div>
-                                    ) : (
-                                        <p className="text-[10px] text-slate-300 italic">รอการลงนาม</p>
-                                    )}
+                                        <div className="text-center space-y-2 flex flex-col items-center">
+                                            <div className="h-16 w-40 flex items-center justify-center border-b border-dotted border-slate-400 mb-2">
+                                                {contracts.some((c: any) => c.lawyerSigned) ? (
+                                                    <span className="text-emerald-600 font-bold italic">ลงนามผ่านระบบแล้ว</span>
+                                                ) : effectiveIsLawyerView ? (
+                                                    <button onClick={async () => { if (!confirm('ยืนยันการลงนามในสัญญา?')) return; for (const c of contracts) { const { doc: firestoreDoc, updateDoc } = await import('firebase/firestore'); await updateDoc(firestoreDoc(firestore, 'contracts', c.id), { lawyerSigned: true, lawyerSignedAt: new Date().toISOString(), status: contracts.some((cc: any) => cc.clientSigned) ? 'signed' : 'pending' }); } toast({ title: 'ลงนามสำเร็จ' }); setShowContractModal(false); }} className="flex flex-col items-center gap-1.5 text-slate-400 hover:text-blue-600 transition-colors cursor-pointer group">
+                                                        <FileSignature className="w-6 h-6 md:w-8 md:h-8 group-hover:scale-110 transition-transform" />
+                                                        <span className="text-[10px] md:text-xs font-medium">คลิกเพื่อเซ็นชื่อ</span>
+                                                    </button>
+                                                ) : (<span className="text-[10px] text-slate-300 italic">รอลงนาม</span>)}
+                                            </div>
+                                            <p className="font-bold text-sm">คู่สัญญาฝ่ายที่สอง</p>
+                                            <p className="text-xs text-slate-500">( {lawyer?.name || 'ทนายความ'} )</p>
+                                        </div>
+                                    </div>
                                 </div>
-                                <p className="text-xs md:text-sm font-bold text-slate-900 dark:text-white truncate px-1">{lawyer?.name || 'ทนายความ'}</p>
-                                {effectiveIsLawyerView && !contracts.some((c: any) => c.lawyerSigned) && (
-                                    <Button size="sm" className="w-full h-8 md:h-9 text-[10px] md:text-xs font-bold rounded-xl bg-blue-600 hover:bg-blue-700" onClick={async () => {
-                                        if (!confirm('ยืนยันการลงนามในสัญญา?')) return;
-                                        for (const c of contracts) {
-                                            const { doc: firestoreDoc, updateDoc } = await import('firebase/firestore');
-                                            const contractRef = firestoreDoc(firestore, 'contracts', c.id);
-                                            await updateDoc(contractRef, { lawyerSigned: true, lawyerSignedAt: new Date().toISOString(), status: contracts.some((cc: any) => cc.clientSigned) ? 'signed' : 'pending' });
-                                        }
-                                        toast({ title: 'ลงนามสำเร็จ', description: 'คุณได้ลงนามในสัญญาเรียบร้อยแล้ว' });
-                                        setShowContractModal(false);
-                                    }}>
-                                        ✍️ ลงนามดิจิทัล
-                                    </Button>
-                                )}
                             </div>
                         </div>
 
-                        <p className="text-[10px] text-slate-400 text-center pt-2">สัญญานี้จัดทำผ่านระบบ Lawslane • ฉบับอิเล็กทรอนิกส์มีผลทางกฎหมาย</p>
+                        {/* Right: Sidebar */}
+                        <div className="w-full md:w-[320px] flex flex-col gap-4 flex-shrink-0">
+                            <div className="bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+                                <div className="p-4 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+                                    <p className="text-xs font-bold text-slate-500">คู่สัญญาฝ่ายที่หนึ่ง (PARTY A)</p>
+                                </div>
+                                <div className="p-4 space-y-4">
+                                    <div className="flex items-center gap-3">
+                                        <Avatar className="h-10 w-10 bg-slate-100">
+                                            <AvatarFallback className="text-slate-500">{client?.name?.charAt(0) || 'C'}</AvatarFallback>
+                                        </Avatar>
+                                        <div>
+                                            <p className="font-bold text-sm">{client?.name || 'ลูกความ'}</p>
+                                            <p className="text-[10px] text-slate-400">ไม่ระบุอีเมล</p>
+                                        </div>
+                                    </div>
+                                    {contracts.some((c: any) => c.clientSigned) ? (
+                                        <div className="flex items-center gap-2 text-emerald-600 text-xs font-bold">
+                                            <CheckCircle2 className="w-4 h-4" /> ลงนามเรียบร้อยแล้ว
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-2 text-amber-600 text-xs font-bold">
+                                            <AlertTriangle className="w-4 h-4" /> รอการลงนาม
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="bg-white dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+                                <div className="p-4 bg-slate-50 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800">
+                                    <p className="text-xs font-bold text-slate-500">คู่สัญญาฝ่ายที่สอง (PARTY B)</p>
+                                </div>
+                                <div className="p-4 space-y-4">
+                                    <div className="flex items-center gap-3">
+                                        <Avatar className="h-10 w-10 bg-slate-100">
+                                            <AvatarFallback className="text-slate-500">{lawyer?.name?.charAt(0) || 'L'}</AvatarFallback>
+                                        </Avatar>
+                                        <div>
+                                            <p className="font-bold text-sm">{lawyer?.name || 'ทนายความ'}</p>
+                                            <p className="text-[10px] text-slate-400">ไม่ระบุอีเมล</p>
+                                        </div>
+                                    </div>
+                                    {contracts.some((c: any) => c.lawyerSigned) ? (
+                                        <div className="flex items-center gap-2 text-emerald-600 text-xs font-bold">
+                                            <CheckCircle2 className="w-4 h-4" /> ลงนามเรียบร้อยแล้ว
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-2 text-amber-600 text-xs font-bold">
+                                            <AlertTriangle className="w-4 h-4" /> รอการลงนาม
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+
+                            <div className="bg-blue-600 rounded-xl p-5 text-white">
+                                <div className="flex items-center gap-2 font-bold mb-2">
+                                    <ShieldAlert className="w-5 h-5" /> ปลอดภัยและถูกกฎหมาย
+                                </div>
+                                <p className="text-[11px] opacity-90 leading-relaxed mb-4">
+                                    สัญญานี้มีผลผูกพันทางกฎหมายตาม พ.ร.บ. ว่าด้วยธุรกรรมทางอิเล็กทรอนิกส์ ข้อมูลทั้งหมดถูกจัดเก็บอย่างปลอดภัย
+                                </p>
+                                <Button variant="outline" size="sm" className="w-full text-xs font-bold bg-white/10 hover:bg-white/20 border-white/20 text-white">
+                                    เรียนรู้เพิ่มเติมเกี่ยวกับ e-Signature
+                                </Button>
+                            </div>
+                        </div>
                     </div>
                 </DialogContent>
-            </Dialog>
         </div>
         </>
     );
