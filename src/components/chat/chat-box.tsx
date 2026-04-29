@@ -85,6 +85,10 @@ function ChatBoxContent({
   const [chatMetadata, setChatMetadata] = useState<any>(null);
   const [previewFile, setPreviewFile] = useState<{ url: string, name: string, type: 'image' | 'pdf' | 'other' } | null>(null);
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [contractPreviewData, setContractPreviewData] = useState<any>(null);
+  const [isContractPreviewOpen, setIsContractPreviewOpen] = useState(false);
+  const [invoicePreviewData, setInvoicePreviewData] = useState<any>(null);
+  const [isInvoicePreviewOpen, setIsInvoicePreviewOpen] = useState(false);
   const { toast } = useToast();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const { initialChatMessage, setInitialChatMessage } = useChat();
@@ -138,12 +142,43 @@ function ChatBoxContent({
       isTranslating: (messages.find(m => m.id === msg.id) as any)?.isTranslating,
     })));
     
-    // Clear optimistic messages whose text has appeared in the real socket feed
     if (socketMessages.length > 0) {
        const socketTexts = new Set(socketMessages.map(m => m.text));
        setOptimisticMessages(prev => prev.filter(m => !socketTexts.has(m._optimisticText ?? m.text)));
     }
   }, [socketMessages]);
+
+  const handleViewContract = async (contractId: string) => {
+    try {
+      const docRef = doc(firestore, 'contracts', contractId);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        setContractPreviewData({ id: contractId, ...docSnap.data() });
+        setIsContractPreviewOpen(true);
+      } else {
+        toast({ variant: "destructive", title: 'ไม่พบสัญญา', description: 'ไม่พบข้อมูลสัญญานี้ในระบบ หรือคุณไม่มีสิทธิ์เข้าถึง' });
+      }
+    } catch (e: any) {
+      console.error(e);
+      toast({ variant: "destructive", title: 'เกิดข้อผิดพลาด', description: e.message || 'ไม่สามารถดึงข้อมูลสัญญาได้' });
+    }
+  };
+
+  const handleViewInvoice = async (invoiceId: string) => {
+    try {
+      const docRef = doc(firestore, 'invoices', invoiceId);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        setInvoicePreviewData({ id: invoiceId, ...docSnap.data() });
+        setIsInvoicePreviewOpen(true);
+      } else {
+        toast({ variant: "destructive", title: 'ไม่พบใบเสนอราคา', description: 'ไม่พบข้อมูลนี้ในระบบ หรือคุณไม่มีสิทธิ์เข้าถึง' });
+      }
+    } catch (e: any) {
+      console.error(e);
+      toast({ variant: "destructive", title: 'เกิดข้อผิดพลาด', description: e.message || 'ไม่สามารถดึงข้อมูลใบเสนอราคาได้' });
+    }
+  };
 
   const handleSendMessage = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -428,25 +463,9 @@ function ChatBoxContent({
                                         <div className="flex flex-col gap-2">
                                             <Button 
                                                className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 font-bold rounded-2xl shadow-md text-sm" 
-                                               onClick={() => {
-                                                   setPreviewFile({
-                                                       url: `https://capdeal.lawslane.com/api/contract/pdf/${msg.metadata?.contractId}`,
-                                                       name: `สัญญา - ${msg.metadata?.contractId}.pdf`,
-                                                       type: 'pdf'
-                                                   });
-                                                   setIsPreviewOpen(true);
-                                               }}
+                                               onClick={() => handleViewContract(msg.metadata?.contractId)}
                                             >
-                                               📄 เปิดดูสัญญา (PDF)
-                                            </Button>
-                                            <Button 
-                                               variant="outline"
-                                               className="w-full h-11 border-emerald-200 text-emerald-700 hover:bg-emerald-50 font-bold rounded-2xl text-sm" 
-                                               asChild
-                                            >
-                                               <a href={msg.metadata?.contractLink || `https://capdeal.lawslane.com/th/contract/${msg.metadata?.contractId}`} target="_blank" rel="noopener noreferrer">
-                                                 ✍️ ลงนามสัญญาออนไลน์ (Capdeal)
-                                               </a>
+                                               📄 เปิดดูรายละเอียดสัญญา
                                             </Button>
                                         </div>
                                     </div>
@@ -463,17 +482,10 @@ function ChatBoxContent({
                                         <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400 whitespace-pre-wrap break-words leading-relaxed">{msg.text}</p>
                                         <Button 
                                            className="w-full h-11 bg-blue-600 hover:bg-blue-700 font-bold rounded-2xl shadow-md text-sm" 
-                                           onClick={() => {
-                                               setPreviewFile({
-                                                   url: `https://capdeal.lawslane.com/api/invoice/pdf/${msg.metadata?.invoiceId}`,
-                                                   name: `ใบเสนอราคา - ${msg.metadata?.invoiceId}.pdf`,
-                                                   type: 'pdf'
-                                               });
-                                               setIsPreviewOpen(true);
-                                           }}
+                                           onClick={() => handleViewInvoice(msg.metadata?.invoiceId)}
                                         >
-                                            📄 เปิดดูใบเสนอราคาแบบ PDF
-                                        </Button>
+                                            📄 เปิดดูรายละเอียดใบเสนอราคา
+                                        </Button>>
                                     </div>
                                 </div>
                             ) : isPayment ? (
@@ -703,6 +715,87 @@ function ChatBoxContent({
               <ImagePreviewContent url={previewFile.url} name={previewFile.name} />
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Contract Preview Modal */}
+      <Dialog open={isContractPreviewOpen} onOpenChange={setIsContractPreviewOpen}>
+        <DialogContent className="max-w-md w-[95vw] rounded-3xl p-6 bg-white dark:bg-slate-900 border-none shadow-2xl">
+            <DialogHeader>
+                <DialogTitle className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+                    <FileSignature className="w-5 h-5 text-emerald-600" /> สัญญาจ้างทนายความ
+                </DialogTitle>
+            </DialogHeader>
+            {contractPreviewData && (
+                <div className="mt-4 space-y-4">
+                    <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl space-y-3">
+                        <div>
+                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">เรื่อง / ภาระงาน</p>
+                            <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{contractPreviewData.task || contractPreviewData.title}</p>
+                        </div>
+                        <div className="flex justify-between items-center border-t border-slate-200 dark:border-slate-700 pt-3">
+                            <div>
+                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">ค่าบริการรวม</p>
+                                <p className="text-lg font-black text-blue-600">฿{(contractPreviewData.price || contractPreviewData.amount || 0).toLocaleString()}</p>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">สถานะ</p>
+                                <span className={cn("inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest", contractPreviewData.status === 'signed' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700')}>
+                                    {contractPreviewData.status === 'signed' ? 'ลงนามแล้ว' : 'รอการลงนาม'}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="text-xs text-slate-500 leading-relaxed bg-blue-50 dark:bg-blue-900/20 p-4 rounded-2xl border border-blue-100 dark:border-blue-800">
+                        <p className="font-bold mb-2 flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5 text-blue-600"/> ข้อตกลงเบื้องต้น</p>
+                        สัญญาฉบับนี้เป็นสัญญามาตรฐานของแพลตฟอร์ม Lawslane หากมีข้อกำหนดเพิ่มเติม จะเป็นไปตามที่ตกลงกันในแชท ทั้งนี้การลงนามจะสมบูรณ์เมื่อมีการชำระเงินหรือยืนยันผ่านระบบ Capdeal
+                    </div>
+                    <Button className="w-full h-11 rounded-2xl font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700" onClick={() => setIsContractPreviewOpen(false)}>
+                        ปิดหน้าต่าง
+                    </Button>
+                </div>
+            )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Invoice Preview Modal */}
+      <Dialog open={isInvoicePreviewOpen} onOpenChange={setIsInvoicePreviewOpen}>
+        <DialogContent className="max-w-md w-[95vw] rounded-3xl p-6 bg-white dark:bg-slate-900 border-none shadow-2xl">
+            <DialogHeader>
+                <DialogTitle className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-blue-600" /> ใบเสนอราคา / แจ้งหนี้
+                </DialogTitle>
+            </DialogHeader>
+            {invoicePreviewData && (
+                <div className="mt-4 space-y-4">
+                    <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl space-y-3">
+                        <div>
+                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">รายการ</p>
+                            <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{invoicePreviewData.title || invoicePreviewData.task || 'ค่าบริการทนายความ'}</p>
+                        </div>
+                        <div className="flex justify-between items-center border-t border-slate-200 dark:border-slate-700 pt-3">
+                            <div>
+                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">ยอดชำระ</p>
+                                <p className="text-lg font-black text-blue-600">฿{(invoicePreviewData.amount || invoicePreviewData.price || 0).toLocaleString()}</p>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">สถานะ</p>
+                                <span className={cn("inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest", invoicePreviewData.status === 'paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700')}>
+                                    {invoicePreviewData.status === 'paid' ? 'ชำระแล้ว' : 'รอชำระ'}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    {invoicePreviewData.status !== 'paid' && !isLawyerView && (
+                        <Button className="w-full h-11 rounded-2xl font-bold bg-blue-600 hover:bg-blue-700 text-white" asChild>
+                            <a href={`/payment?chatId=${chatId}&type=case&amount=${invoicePreviewData.amount || invoicePreviewData.price || 0}`}>💳 ดำเนินการชำระเงิน</a>
+                        </Button>
+                    )}
+                    <Button className="w-full h-11 rounded-2xl font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700" onClick={() => setIsInvoicePreviewOpen(false)}>
+                        ปิดหน้าต่าง
+                    </Button>
+                </div>
+            )}
         </DialogContent>
       </Dialog>
     </Card>
