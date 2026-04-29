@@ -337,6 +337,18 @@ function ChatPageContent() {
                 let fetchedLawyer: LawyerProfile | null = null;
                 if (currentLawyerId) {
                     fetchedLawyer = await getLawyerById(firestore!, currentLawyerId) || null;
+                    if (fetchedLawyer) {
+                        try {
+                            const lUserSnap = await getDoc(doc(firestore!, 'users', currentLawyerId));
+                            if (lUserSnap.exists()) {
+                                const lUserData = lUserSnap.data();
+                                fetchedLawyer.email = fetchedLawyer.email || lUserData.email || '';
+                                fetchedLawyer.name = fetchedLawyer.name || lUserData.name || '';
+                            }
+                        } catch (e) {
+                            console.warn("Could not fetch fallback lawyer info", e);
+                        }
+                    }
                     setLawyer(fetchedLawyer);
                 }
                 
@@ -1406,8 +1418,8 @@ function ChatPageContent() {
 
                     <div className="flex-1 overflow-y-auto flex flex-col md:flex-row gap-6 p-4 md:p-8 bg-slate-100 dark:bg-slate-900/50">
                         {/* Left: A4 Document Area */}
-                        <div className="flex-1 flex justify-center">
-                            <div className="bg-white dark:bg-slate-950 w-full max-w-[210mm] min-h-[297mm] shadow-xl p-8 md:p-16 flex flex-col relative">
+                        <div className="flex-1 flex justify-center pb-8">
+                            <div className="bg-white dark:bg-slate-950 w-full max-w-[210mm] min-h-[297mm] shadow-xl p-8 md:p-16 flex flex-col relative h-max">
                                 {/* Watermark */}
                                 <div className="absolute inset-0 flex items-center justify-center opacity-[0.02] pointer-events-none z-0">
                                     <FileSignature className="w-96 h-96" />
@@ -1478,7 +1490,7 @@ function ChatPageContent() {
                                         </p>
                                     </div>
 
-                                    <div className="mt-auto pt-16 flex justify-around">
+                                    <div className="mt-12 pt-8 flex justify-around">
                                         <div className="text-center space-y-2 flex flex-col items-center">
                                             <div className="h-16 w-40 flex items-center justify-center border-b border-dotted border-slate-400 mb-2">
                                                 {contracts.some((c: any) => c.clientSigned) ? (
