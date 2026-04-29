@@ -102,7 +102,7 @@ function ChatPageContent() {
     const view = searchParams.get('view');
 
     const [lawyer, setLawyer] = useState<LawyerProfile | null>(null);
-    const [client, setClient] = useState<{ id: string, name: string, imageUrl: string } | null>(null);
+    const [client, setClient] = useState<{ id: string, name: string, imageUrl: string, email?: string } | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isUploading, setIsUploading] = useState(false);
     const [files, setFiles] = useState<{ name: string, url: string, size: number }[]>([]);
@@ -343,6 +343,7 @@ function ChatPageContent() {
                 if (currentClientId) {
                     let resolvedName = 'ลูกความ';
                     let resolvedAvatar = '';
+                    let resolvedEmail = '';
 
                     try {
                         const clientRef = doc(firestore!, 'users', currentClientId);
@@ -352,6 +353,7 @@ function ChatPageContent() {
                             const userData = userDocSnap.data();
                             resolvedName = userData.name || 'ลูกความ';
                             resolvedAvatar = userData.avatar || '';
+                            resolvedEmail = userData.email || '';
                         }
                     } catch (e) {
                         console.warn("Could not fetch client profile directly (likely permission rules):", e);
@@ -368,6 +370,7 @@ function ChatPageContent() {
                     // If current user is the client, they can also contribute their own name
                     if (user?.uid === currentClientId && (resolvedName === 'ลูกความ' || !resolvedName)) {
                         resolvedName = user.displayName || user.email?.split('@')[0] || 'ลูกความ';
+                        if (!resolvedEmail) resolvedEmail = user.email || '';
                         
                         // AUTO-REPAIR: Create/Fix the missing profile document
                         const clientRef = doc(firestore!, 'users', currentClientId);
@@ -383,7 +386,7 @@ function ChatPageContent() {
                         });
                     }
                     
-                    setClient({ id: currentClientId, name: resolvedName, imageUrl: resolvedAvatar });
+                    setClient({ id: currentClientId, name: resolvedName, imageUrl: resolvedAvatar, email: resolvedEmail });
                 }
 
                 const currentUserIsLawyer = !!((fetchedLawyer?.userId === user?.uid) || 
@@ -1424,15 +1427,15 @@ function ChatPageContent() {
                                     <div className="space-y-6 text-sm md:text-base leading-loose text-slate-800 dark:text-slate-300">
                                         <p className="indent-12 text-justify">
                                             สัญญาฉบับนี้ทำขึ้นระหว่าง <span className="font-bold border-b border-dotted border-slate-400 pb-0.5 px-4">{client?.name || 'ลูกความ'}</span>
-                                            บัตรประจำตัวประชาชนเลขที่ <span className="border-b border-dotted border-slate-400 pb-0.5 px-8">{clientInfo?.taxId || ''}</span> 
-                                            ตั้งอยู่หรืออาศัยอยู่เลขที่ <span className="border-b border-dotted border-slate-400 pb-0.5 px-16">{clientInfo?.address || ''}</span> 
+                                            บัตรประจำตัวประชาชนเลขที่ <span className="inline-block border-b border-dotted border-slate-400 pb-0.5 px-4 min-w-[150px] text-center">{clientInfo?.taxId || ''}</span> 
+                                            ตั้งอยู่หรืออาศัยอยู่เลขที่ <span className="inline-block border-b border-dotted border-slate-400 pb-0.5 px-4 min-w-[200px] text-center">{clientInfo?.address || ''}</span> 
                                             ซึ่งต่อไปในสัญญานี้เรียกว่า <strong>"คู่สัญญาฝ่ายที่หนึ่ง"</strong> ฝ่ายหนึ่ง
                                         </p>
 
                                         <p className="indent-12 text-justify">
                                             กับ <span className="font-bold border-b border-dotted border-slate-400 pb-0.5 px-4">{lawyer?.name || 'ทนายความ'}</span> 
-                                            บัตรประจำตัวประชาชนเลขที่ <span className="border-b border-dotted border-slate-400 pb-0.5 px-8"></span> 
-                                            ตั้งอยู่หรืออาศัยอยู่เลขที่ <span className="border-b border-dotted border-slate-400 pb-0.5 px-16"></span> 
+                                            บัตรประจำตัวประชาชนเลขที่ <span className="inline-block border-b border-dotted border-slate-400 pb-0.5 px-4 min-w-[150px] text-center"></span> 
+                                            ตั้งอยู่หรืออาศัยอยู่เลขที่ <span className="inline-block border-b border-dotted border-slate-400 pb-0.5 px-4 min-w-[200px] text-center"></span> 
                                             ซึ่งต่อไปในสัญญานี้เรียกว่า <strong>"คู่สัญญาฝ่ายที่สอง"</strong> อีกฝ่ายหนึ่ง
                                         </p>
 
@@ -1522,7 +1525,7 @@ function ChatPageContent() {
                                         </Avatar>
                                         <div>
                                             <p className="font-bold text-sm">{client?.name || 'ลูกความ'}</p>
-                                            <p className="text-[10px] text-slate-400">ไม่ระบุอีเมล</p>
+                                            <p className="text-[10px] text-slate-400">{client?.email || 'ไม่ระบุอีเมล'}</p>
                                         </div>
                                     </div>
                                     {contracts.some((c: any) => c.clientSigned) ? (
@@ -1548,7 +1551,7 @@ function ChatPageContent() {
                                         </Avatar>
                                         <div>
                                             <p className="font-bold text-sm">{lawyer?.name || 'ทนายความ'}</p>
-                                            <p className="text-[10px] text-slate-400">ไม่ระบุอีเมล</p>
+                                            <p className="text-[10px] text-slate-400">{lawyer?.email || 'ไม่ระบุอีเมล'}</p>
                                         </div>
                                     </div>
                                     {contracts.some((c: any) => c.lawyerSigned) ? (
