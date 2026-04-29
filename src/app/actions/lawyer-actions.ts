@@ -244,7 +244,7 @@ export async function createManualCaseAction(lawyerId: string, data: {
         await invoiceRef.set(invoicePayload);
 
         // FEED VISIBILITY FIX: Post a formal system message with a document link
-        const invoiceLink = `https://capdeal.lawslane.com/th/invoice/${encodeURIComponent(invoiceId)}`;
+        const invoiceLink = `/chat/${chatId}`;
         const messagesRef = chatRef.collection('messages');
         const newMessageRef = messagesRef.doc();
         const proposalMessage = {
@@ -490,8 +490,8 @@ export async function repairChatDocumentsAction(chatId: string) {
         }
 
         // Post the professional link to the chat if not already present
-        // IMPORTANT: Invoices are served via the Capdeal subdomain
-        const invoiceLink = `https://capdeal.lawslane.com/th/invoice/${encodeURIComponent(invoiceId)}`;
+        // IMPORTANT: Use internal link for invoice viewing
+        const invoiceLink = `/chat/${chatId}`;
         const messagesRef = chatRef.collection('messages');
         
         // Check for existing proposal message

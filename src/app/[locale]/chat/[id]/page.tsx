@@ -801,23 +801,23 @@ function ChatPageContent() {
                                                     <p className="text-[10px] font-black uppercase tracking-widest text-blue-600 mb-2">เอกสารทางการ (Official Documents)</p>
                                                     
                                                     {contracts.map((contract) => (
-                                                        <div key={contract.id} className="flex flex-col gap-2 p-3 rounded-2xl bg-white dark:bg-slate-800 border border-blue-100 shadow-sm">
-                                                            <div className="flex justify-between items-center">
+                                                        <button key={contract.id} onClick={() => { setSelectedContract(contract); setShowContractModal(true); }} className="w-full flex flex-col gap-2 p-3 rounded-2xl bg-white dark:bg-slate-800 border border-blue-100 shadow-sm hover:shadow-md hover:border-blue-300 transition-all cursor-pointer text-left">
+                                                            <div className="flex justify-between items-center w-full">
                                                                 <span className="text-[11px] font-bold truncate flex-1 mr-2">{contract.title || 'สัญญาจ้างทนายความ'}</span>
                                                                 <Badge className="text-[9px] bg-blue-100 text-blue-700 border-none">{contract.status === 'signed' ? 'เซ็นแล้ว' : 'รอการลงนาม'}</Badge>
                                                             </div>
-                                                        </div>
+                                                        </button>
                                                     ))}
                                                     
                                                     {invoices.map((inv) => (
-                                                        <div key={inv.id} className="flex flex-col gap-2 p-3 rounded-2xl bg-white dark:bg-slate-800 border border-amber-100 shadow-sm">
-                                                            <div className="flex justify-between items-center">
+                                                        <button key={inv.id} onClick={() => { setSelectedContract(inv); setShowContractModal(true); }} className="w-full flex flex-col gap-2 p-3 rounded-2xl bg-white dark:bg-slate-800 border border-amber-100 shadow-sm hover:shadow-md hover:border-amber-300 transition-all cursor-pointer text-left">
+                                                            <div className="flex justify-between items-center w-full">
                                                                 <span className="text-[11px] font-bold truncate flex-1 mr-2">
                                                                     {inv.title?.includes('ชุดย้อนหลัง') ? 'สัญญาจ้างทนายความ (ฉบับลงระบบ)' : (inv.title || 'ใบแจ้งหนี้')}
                                                                 </span>
                                                                 <Badge className="text-[9px] bg-amber-100 text-amber-700 border-none">{inv.status === 'paid' ? 'ชำระแล้ว' : 'รอชำระ'}</Badge>
                                                             </div>
-                                                        </div>
+                                                        </button>
                                                     ))}
                                                 </div>
                                             )}
@@ -937,28 +937,28 @@ function ChatPageContent() {
                                                 <p className="text-[10px] font-black uppercase text-blue-600">เอกสารทางการ (Official)</p>
                                                 
                                                 {contracts.map((c: any) => (
-                                                    <div key={c.id} className="flex flex-col gap-2 p-2 rounded-xl bg-white border border-blue-100 shadow-sm">
-                                                        <div className="flex justify-between items-center">
+                                                    <button key={c.id} onClick={() => { setSelectedContract(c); setShowContractModal(true); }} className="w-full flex flex-col gap-2 p-2 rounded-xl bg-white border border-blue-100 shadow-sm hover:shadow-md hover:border-blue-300 transition-all cursor-pointer text-left">
+                                                        <div className="flex justify-between items-center w-full">
                                                             <span className="text-[10px] font-bold truncate flex-1 mr-1">{c.title || 'สัญญาจ้างทนายความ'}</span>
                                                             <Badge className="text-[8px] bg-blue-100 text-blue-700 h-4 px-1">{c.status === 'signed' ? 'เซ็นแล้ว' : 'รอลงนาม'}</Badge>
                                                         </div>
-                                                    </div>
+                                                    </button>
                                                 ))}
                                                 
                                                 {invoices.map((i: any) => (
-                                                    <div key={i.id} className="flex flex-col gap-2 p-2 rounded-xl bg-white border border-amber-100 shadow-sm">
-                                                        <div className="flex justify-between items-center">
+                                                    <button key={i.id} onClick={() => { setSelectedContract(i); setShowContractModal(true); }} className="w-full flex flex-col gap-2 p-2 rounded-xl bg-white border border-amber-100 shadow-sm hover:shadow-md hover:border-amber-300 transition-all cursor-pointer text-left">
+                                                        <div className="flex justify-between items-center w-full">
                                                             <span className="text-[10px] font-bold truncate flex-1 mr-1">
                                                                 {i.title?.includes('ชุดย้อนหลัง') ? 'สัญญาจ้างทนายความ (ฉบับลงระบบ)' : (i.title || 'ใบแจ้งหนี้')}
                                                             </span>
                                                             <Badge className="text-[8px] bg-amber-100 text-amber-700 h-4 px-1">{i.status === 'paid' ? 'ชำระแล้ว' : 'รอชำระ'}</Badge>
                                                         </div>
-                                                    </div>
+                                                    </button>
                                                 ))}
                                             </div>
                                         )}
                                     </div>
-                                    {contractText && (
+                                    {isOfficial && (
                                         <CardFooter className="pt-2">
                                             <Button 
                                                 variant="outline" 

@@ -692,11 +692,25 @@ export async function markInstallmentPaidAction(params: {
             updatePayload.status = 'active';
             updatePayload.paidAt = admin.firestore.FieldValue.serverTimestamp();
 
-            // CAPDEAL INTEGRATION: Create a contract document
+            // CONTRACT CREATION: Create a contract document viewable within Lawslane
             try {
                 const lawyerId = chatData.participants?.find((p: string) => p !== chatData.clientId && p !== chatData.userId);
                 const clientId = chatData.clientId || chatData.userId;
                 
+                // Fetch names for the contract document
+                let clientName = 'ลูกความ';
+                let lawyerName = 'ทนายความ';
+                try {
+                    if (clientId) {
+                        const cDoc = await db.collection('users').doc(clientId).get();
+                        if (cDoc.exists) clientName = cDoc.data()?.name || clientName;
+                    }
+                    if (lawyerId) {
+                        const lDoc = await db.collection('lawyerProfiles').doc(lawyerId).get();
+                        if (lDoc.exists) lawyerName = lDoc.data()?.name || lawyerName;
+                    }
+                } catch (_) {}
+
                 const contractRef = db.collection('contracts').doc();
                 const contractId = contractRef.id;
                 
@@ -704,33 +718,37 @@ export async function markInstallmentPaidAction(params: {
                     userId: clientId,
                     lawyerId: lawyerId || '',
                     chatId: params.chatId,
-                    title: chatData.caseTitle || chatData.title || 'สัญญาจ้างทำของ',
+                    title: chatData.caseTitle || chatData.title || 'สัญญาจ้างทนายความ',
                     task: chatData.caseTitle || chatData.title || 'การดำเนินคดีทางกฎหมาย',
+                    description: chatData.description || '',
                     price: chatData.amount || params.amount,
-                    status: 'pending', // 'pending' means ready for signature
+                    installments: chatData.installments || [],
+                    clientName,
+                    lawyerName,
+                    clientInfo: chatData.clientInfo || null,
+                    status: 'pending',
                     createdAt: admin.firestore.FieldValue.serverTimestamp(),
                     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
                 });
 
-                // Post a system message with the Capdeal link
+                // Post a system message (viewable inline, no external link needed)
                 const messagesRef = chatRef.collection('messages');
                 const contractMsgRef = messagesRef.doc();
-                const contractLink = `https://capdeal.lawslane.com/th/contract/${contractId}`;
+                const numInstallments = chatData.installments?.length || 0;
                 
                 await contractMsgRef.set({
                     chatId: params.chatId,
-                    text: `📄 **เอกสารจากแคปดีล**\n\nระบบได้ออกสัญญาจ้างทนายความอิเล็กทรอนิกส์ให้คุณแล้ว กรุณากดลิงก์ด้านล่างเพื่อตรวจสอบและลงนามแบบดิจิทัล:\n\n🔗 [กดเพื่อเซ็นสัญญาที่นี่](${contractLink})\n\n*หมายเหตุ: สัญญานี้มีผลผูกพันตามกฎหมายหลังจากทั้งสองฝ่ายลงนามแล้ว*`,
+                    text: `📄 **สัญญาจ้างทนายความ (ฉบับทางการ)**\n\nระบบได้ออกสัญญาจ้างทนายความอิเล็กทรอนิกส์ให้คุณแล้ว ทั้งทนายความและลูกความสามารถตรวจสอบรายละเอียดและลงนามแบบดิจิทัลได้ที่ลิงก์ด้านล่าง:\n\n**รายละเอียดสัญญา:**\n- หัวข้อ: Ticket สนทนา: ${chatData.caseTitle || chatData.title || ''}\n- ยอดรวม: ฿${(chatData.amount || params.amount || 0).toLocaleString()}${numInstallments > 0 ? `\n- จำนวนงวด: ${numInstallments} งวด` : ''}\n\n*หมายเหตุ: สัญญานี้มีผลผูกพันตามกฎหมายหลังจากทั้งสองฝ่ายลงนามแล้ว*`,
                     senderId: 'system',
                     senderName: 'System',
                     timestamp: admin.firestore.FieldValue.serverTimestamp(),
                     type: 'capdeal_contract',
                     metadata: {
                         contractId,
-                        contractLink
                     }
                 });
             } catch (contractErr) {
-                console.error("Failed to create Capdeal contract:", contractErr);
+                console.error("Failed to create contract:", contractErr);
             }
         }
 
@@ -915,14 +933,27 @@ export async function markCasePaidAction(params: {
             type: 'system_payment'
         });
 
-        // CAPDEAL INTEGRATION: Create contract for full case payment (no installments)
+        // CONTRACT CREATION: Create contract for full case payment (no installments)
         // Fires for both auto-approved and pending-verification so lawyer & client
-        // always receive the Capdeal link regardless of slip scan outcome.
+        // always see the contract regardless of slip scan outcome.
         if (params.type === 'case') {
             try {
                 const lawyerId = chatData.lawyerId ||
                     chatData.participants?.find((p: string) => p !== (chatData.clientId || chatData.userId));
                 const clientId = chatData.clientId || chatData.userId;
+
+                let clientName = 'ลูกความ';
+                let lawyerName = 'ทนายความ';
+                try {
+                    if (clientId) {
+                        const cDoc = await db.collection('users').doc(clientId).get();
+                        if (cDoc.exists) clientName = cDoc.data()?.name || clientName;
+                    }
+                    if (lawyerId) {
+                        const lDoc = await db.collection('lawyerProfiles').doc(lawyerId).get();
+                        if (lDoc.exists) lawyerName = lDoc.data()?.name || lawyerName;
+                    }
+                } catch (_) {}
 
                 const contractRef = db.collection('contracts').doc();
                 const contractId = contractRef.id;
@@ -931,26 +962,31 @@ export async function markCasePaidAction(params: {
                     userId: clientId || '',
                     lawyerId: lawyerId || '',
                     chatId: params.chatId,
-                    title: chatData.caseTitle || chatData.title || 'สัญญาจ้างทำของ',
+                    title: chatData.caseTitle || chatData.title || 'สัญญาจ้างทนายความ',
                     task: chatData.caseTitle || chatData.title || 'การดำเนินคดีทางกฎหมาย',
+                    description: chatData.description || '',
                     price: chatData.amount || params.amount,
+                    installments: chatData.installments || [],
+                    clientName,
+                    lawyerName,
+                    clientInfo: chatData.clientInfo || null,
                     status: 'pending',
                     createdAt: admin.firestore.FieldValue.serverTimestamp(),
                     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
                 });
 
-                const contractLink = `https://capdeal.lawslane.com/th/contract/${contractId}`;
+                const numInstallments = chatData.installments?.length || 0;
                 await messagesRef.add({
                     chatId: params.chatId,
-                    text: `📄 **เอกสารจากแคปดีล**\n\nระบบได้ออกสัญญาจ้างทนายความอิเล็กทรอนิกส์ให้คุณแล้ว กรุณากดลิงก์ด้านล่างเพื่อตรวจสอบและลงนามแบบดิจิทัล:\n\n🔗 [กดเพื่อเซ็นสัญญาที่นี่](${contractLink})\n\n*หมายเหตุ: สัญญานี้มีผลผูกพันตามกฎหมายหลังจากทั้งสองฝ่ายลงนามแล้ว*`,
+                    text: `📄 **สัญญาจ้างทนายความ (ฉบับทางการ)**\n\nระบบได้ออกสัญญาจ้างทนายความอิเล็กทรอนิกส์ให้คุณแล้ว ทั้งทนายความและลูกความสามารถตรวจสอบรายละเอียดและลงนามแบบดิจิทัลได้ที่ลิงก์ด้านล่าง:\n\n**รายละเอียดสัญญา:**\n- หัวข้อ: Ticket สนทนา: ${chatData.caseTitle || chatData.title || ''}\n- ยอดรวม: ฿${(chatData.amount || params.amount || 0).toLocaleString()}${numInstallments > 0 ? `\n- จำนวนงวด: ${numInstallments} งวด` : ''}\n\n*หมายเหตุ: สัญญานี้มีผลผูกพันตามกฎหมายหลังจากทั้งสองฝ่ายลงนามแล้ว*`,
                     senderId: 'system',
                     senderName: 'System',
                     timestamp: admin.firestore.FieldValue.serverTimestamp(),
                     type: 'capdeal_contract',
-                    metadata: { contractId, contractLink }
+                    metadata: { contractId }
                 });
             } catch (contractErr) {
-                console.error("Failed to create Capdeal contract in markCasePaidAction:", contractErr);
+                console.error("Failed to create contract in markCasePaidAction:", contractErr);
             }
         }
 
@@ -1013,34 +1049,52 @@ export async function approveInstallmentAction(chatId: string, installmentIndex:
             updatePayload.status = 'active';
             updatePayload.paidAt = admin.firestore.FieldValue.serverTimestamp();
             
-            // Create Contract
+            // Create Contract (viewable within Lawslane)
             try {
                 const contractRef = db.collection('contracts').doc();
                 const contractId = contractRef.id;
                 
+                let clientName = 'ลูกความ';
+                let lawyerName = 'ทนายความ';
+                try {
+                    const cId = chatData.userId || chatData.clientId;
+                    if (cId) {
+                        const cDoc = await db.collection('users').doc(cId).get();
+                        if (cDoc.exists) clientName = cDoc.data()?.name || clientName;
+                    }
+                    if (chatData.lawyerId) {
+                        const lDoc = await db.collection('lawyerProfiles').doc(chatData.lawyerId).get();
+                        if (lDoc.exists) lawyerName = lDoc.data()?.name || lawyerName;
+                    }
+                } catch (_) {}
+
                 await contractRef.set({
                     userId: chatData.userId || chatData.clientId,
                     lawyerId: chatData.lawyerId || '',
                     chatId: chatId,
                     title: chatData.caseTitle || 'สัญญาจ้างทนายความ',
+                    task: chatData.caseTitle || 'การดำเนินคดีทางกฎหมาย',
+                    description: chatData.description || '',
                     price: chatData.amount || inst.amount,
+                    installments: chatData.installments || [],
+                    clientName,
+                    lawyerName,
+                    clientInfo: chatData.clientInfo || null,
                     status: 'pending',
                     createdAt: admin.firestore.FieldValue.serverTimestamp(),
                     updatedAt: admin.firestore.FieldValue.serverTimestamp(),
                 });
 
-                // Post contract message
-                const contractLink = `https://capdeal.lawslane.com/th/contract/${contractId}`;
+                const numInstallments = chatData.installments?.length || 0;
                 await chatRef.collection('messages').add({
                     chatId,
-                    text: `📄 **เอกสารจากแคปดีล**\n\nระบบได้ออกสัญญาจ้างทนายความอิเล็กทรอนิกส์ให้คุณแล้ว กรุณากดลิงก์ด้านล่างเพื่อตรวจสอบและลงนามแบบดิจิทัล:\n\n🔗 [กดเพื่อเซ็นสัญญาที่นี่](${contractLink})\n\n*หมายเหตุ: สัญญานี้มีผลผูกพันตามกฎหมายหลังจากทั้งสองฝ่ายลงนามแล้ว*`,
+                    text: `📄 **สัญญาจ้างทนายความ (ฉบับทางการ)**\n\nระบบได้ออกสัญญาจ้างทนายความอิเล็กทรอนิกส์ให้คุณแล้ว ทั้งทนายความและลูกความสามารถตรวจสอบรายละเอียดและลงนามแบบดิจิทัลได้ที่ลิงก์ด้านล่าง:\n\n**รายละเอียดสัญญา:**\n- หัวข้อ: Ticket สนทนา: ${chatData.caseTitle || ''}\n- ยอดรวม: ฿${(chatData.amount || inst.amount || 0).toLocaleString()}${numInstallments > 0 ? `\n- จำนวนงวด: ${numInstallments} งวด` : ''}\n\n*หมายเหตุ: สัญญานี้มีผลผูกพันตามกฎหมายหลังจากทั้งสองฝ่ายลงนามแล้ว*`,
                     senderId: 'system',
                     senderName: 'System',
                     timestamp: admin.firestore.FieldValue.serverTimestamp(),
                     type: 'capdeal_contract',
                     metadata: {
                         contractId,
-                        contractLink
                     }
                 });
             } catch (e) {

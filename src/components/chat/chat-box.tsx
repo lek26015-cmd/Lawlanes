@@ -452,17 +452,20 @@ function ChatBoxContent({
                           >
                             {isCapdeal ? (
                                 <div className="flex flex-col min-w-0">
-                                    <div className="p-4 bg-emerald-600 text-white flex items-center gap-3">
+                                    <div className="p-4 bg-gradient-to-r from-blue-700 to-blue-600 text-white flex items-center gap-3">
                                         <div className="p-2 bg-white/20 rounded-xl">
                                             <FileSignature className="w-5 h-5" />
                                         </div>
-                                        <span className="text-xs font-black uppercase tracking-widest">Capdeal Contract</span>
+                                        <div>
+                                            <span className="text-xs font-black uppercase tracking-widest block">สัญญาจ้างทนายความ</span>
+                                            <span className="text-[9px] font-medium opacity-70 uppercase tracking-wider">Official Contract</span>
+                                        </div>
                                     </div>
                                     <div className="p-5 bg-white dark:bg-slate-900 space-y-4 min-w-0">
                                         <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400 whitespace-pre-wrap break-words leading-relaxed">{msg.text}</p>
                                         <div className="flex flex-col gap-2">
                                             <Button 
-                                               className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 font-bold rounded-2xl shadow-md text-sm" 
+                                               className="w-full h-11 bg-blue-600 hover:bg-blue-700 font-bold rounded-2xl shadow-md text-sm" 
                                                onClick={() => handleViewContract(msg.metadata?.contractId)}
                                             >
                                                📄 เปิดดูรายละเอียดสัญญา
@@ -720,19 +723,42 @@ function ChatBoxContent({
 
       {/* Contract Preview Modal */}
       <Dialog open={isContractPreviewOpen} onOpenChange={setIsContractPreviewOpen}>
-        <DialogContent className="max-w-md w-[95vw] rounded-3xl p-6 bg-white dark:bg-slate-900 border-none shadow-2xl">
-            <DialogHeader>
-                <DialogTitle className="text-xl font-black text-slate-900 dark:text-white flex items-center gap-2">
-                    <FileSignature className="w-5 h-5 text-emerald-600" /> สัญญาจ้างทนายความ
-                </DialogTitle>
-            </DialogHeader>
+        <DialogContent className="max-w-lg w-[95vw] max-h-[85vh] overflow-y-auto rounded-3xl p-0 bg-white dark:bg-slate-900 border-none shadow-2xl">
+            <div className="p-4 bg-gradient-to-r from-blue-700 to-blue-600 text-white flex items-center gap-3 sticky top-0 z-10">
+                <div className="p-2 bg-white/20 rounded-xl">
+                    <FileSignature className="w-5 h-5" />
+                </div>
+                <DialogHeader className="p-0">
+                    <DialogTitle className="text-base font-black text-white">สัญญาจ้างทนายความ</DialogTitle>
+                    <p className="text-[10px] font-medium text-white/70 uppercase tracking-wider">Lawslane Official Contract</p>
+                </DialogHeader>
+            </div>
             {contractPreviewData && (
-                <div className="mt-4 space-y-4">
+                <div className="p-6 space-y-5">
+                    {/* Contract parties */}
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
+                            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-1">ผู้ว่าจ้าง (ลูกความ)</p>
+                            <p className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{contractPreviewData.clientName || 'ลูกความ'}</p>
+                        </div>
+                        <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-xl">
+                            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest mb-1">ผู้รับจ้าง (ทนายความ)</p>
+                            <p className="text-sm font-bold text-slate-800 dark:text-slate-200 truncate">{contractPreviewData.lawyerName || 'ทนายความ'}</p>
+                        </div>
+                    </div>
+
+                    {/* Contract details */}
                     <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-2xl space-y-3">
                         <div>
                             <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">เรื่อง / ภาระงาน</p>
                             <p className="text-sm font-bold text-slate-800 dark:text-slate-200">{contractPreviewData.task || contractPreviewData.title}</p>
                         </div>
+                        {contractPreviewData.description && (
+                            <div className="pt-2 border-t border-slate-200 dark:border-slate-700">
+                                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">ขอบเขตงาน (Scope of Work)</p>
+                                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed whitespace-pre-wrap">{contractPreviewData.description}</p>
+                            </div>
+                        )}
                         <div className="flex justify-between items-center border-t border-slate-200 dark:border-slate-700 pt-3">
                             <div>
                                 <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest mb-1">ค่าบริการรวม</p>
@@ -746,9 +772,26 @@ function ChatBoxContent({
                             </div>
                         </div>
                     </div>
+
+                    {/* Installments */}
+                    {contractPreviewData.installments && contractPreviewData.installments.length > 0 && (
+                        <div className="space-y-2">
+                            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest px-1">แผนการชำระเงิน ({contractPreviewData.installments.length} งวด)</p>
+                            {contractPreviewData.installments.map((inst: any, idx: number) => {
+                                const amt = parseFloat(String(inst.amount || 0).replace(/,/g, ''));
+                                return (
+                                    <div key={idx} className={cn("p-3 rounded-xl border text-xs flex justify-between items-center", inst.status === 'paid' ? 'bg-emerald-50 border-emerald-100' : 'bg-slate-50 border-slate-100')}>
+                                        <span className="font-medium">งวดที่ {idx + 1}: {inst.description || ''}</span>
+                                        <span className="font-black text-blue-600">฿{isNaN(amt) ? 0 : amt.toLocaleString()}</span>
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    )}
+
                     <div className="text-xs text-slate-500 leading-relaxed bg-blue-50 dark:bg-blue-900/20 p-4 rounded-2xl border border-blue-100 dark:border-blue-800">
                         <p className="font-bold mb-2 flex items-center gap-1.5"><AlertTriangle className="w-3.5 h-3.5 text-blue-600"/> ข้อตกลงเบื้องต้น</p>
-                        สัญญาฉบับนี้เป็นสัญญามาตรฐานของแพลตฟอร์ม Lawslane หากมีข้อกำหนดเพิ่มเติม จะเป็นไปตามที่ตกลงกันในแชท ทั้งนี้การลงนามจะสมบูรณ์เมื่อมีการชำระเงินหรือยืนยันผ่านระบบ Capdeal
+                        สัญญาฉบับนี้เป็นสัญญามาตรฐานของแพลตฟอร์ม Lawslane หากมีข้อกำหนดเพิ่มเติม จะเป็นไปตามที่ตกลงกันในแชท ทั้งนี้การลงนามจะสมบูรณ์เมื่อมีการชำระเงินหรือยืนยันผ่านระบบ
                     </div>
                     <Button className="w-full h-11 rounded-2xl font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700" onClick={() => setIsContractPreviewOpen(false)}>
                         ปิดหน้าต่าง
