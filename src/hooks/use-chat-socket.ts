@@ -148,7 +148,7 @@ export function useChatSocket(chatId: string, userId: string, userName: string) 
           text: text,
           senderId: data.senderId,
           timestamp: data.timestamp?.toMillis() || Date.now(),
-          type: 'message',
+          type: data.type || 'message',
           metadata: data.metadata || null
         } as HumanChatMessage;
       }));

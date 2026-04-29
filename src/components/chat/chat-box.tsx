@@ -435,8 +435,8 @@ function ChatBoxContent({
                       {showAvatar && !isOwn && <span className="text-[10px] font-bold text-muted-foreground/60 ml-2 mb-1.5 truncate max-w-full block uppercase tracking-wider">{otherUser.name}</span>}
                       {(() => {
                         const isPayment = msg.text.includes('💳');
-                        const isCapdeal = msg.type === 'capdeal_contract';
-                        const isProposal = msg.type === 'case_proposal';
+                        const isCapdeal = msg.type === 'capdeal_contract' || (msg.text.includes('สัญญาจ้างทนายความ') && msg.text.includes('/contract/'));
+                        const isProposal = msg.type === 'case_proposal' || (msg.text.includes('ใบเสนอราคา') && msg.text.includes('/invoice/'));
                         return (
                           <div 
                             className={cn(
@@ -466,7 +466,14 @@ function ChatBoxContent({
                                         <div className="flex flex-col gap-2">
                                             <Button 
                                                className="w-full h-11 bg-blue-600 hover:bg-blue-700 font-bold rounded-2xl shadow-md text-sm" 
-                                               onClick={() => handleViewContract(msg.metadata?.contractId)}
+                                               onClick={() => {
+                                                   let cid = msg.metadata?.contractId;
+                                                   if (!cid) {
+                                                       const match = msg.text.match(/\/contract\/([a-zA-Z0-9_-]+)/);
+                                                       if (match) cid = match[1];
+                                                   }
+                                                   if (cid) handleViewContract(cid);
+                                               }}
                                             >
                                                📄 เปิดดูรายละเอียดสัญญา
                                             </Button>
@@ -485,7 +492,14 @@ function ChatBoxContent({
                                         <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400 whitespace-pre-wrap break-words leading-relaxed">{msg.text}</p>
                                         <Button 
                                            className="w-full h-11 bg-blue-600 hover:bg-blue-700 font-bold rounded-2xl shadow-md text-sm" 
-                                           onClick={() => handleViewInvoice(msg.metadata?.invoiceId)}
+                                           onClick={() => {
+                                                let invoiceId = msg.metadata?.invoiceId;
+                                                if (!invoiceId) {
+                                                    const match = msg.text.match(/\/invoice\/([a-zA-Z0-9_-]+)/);
+                                                    if (match) invoiceId = match[1];
+                                                }
+                                                if (invoiceId) handleViewInvoice(invoiceId);
+                                           }}
                                         >
                                             📄 เปิดดูรายละเอียดใบเสนอราคา
                                         </Button>
