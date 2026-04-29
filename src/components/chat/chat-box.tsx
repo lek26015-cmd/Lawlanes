@@ -15,7 +15,7 @@ import type { HumanChatMessage } from '@/lib/types';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Send, Loader2, Sparkles, Languages, AlertTriangle, RefreshCcw, Check, CheckCheck, CreditCard, ImageIcon, FileIcon, Maximize2, ExternalLink, Plus, Paperclip, ChevronLeft } from 'lucide-react';
+import { Send, Loader2, Sparkles, Languages, AlertTriangle, RefreshCcw, Check, CheckCheck, CreditCard, ImageIcon, FileIcon, Maximize2, ExternalLink, Plus, Paperclip, ChevronLeft, FileSignature, FileDown, FileText } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getCloudflareVariantUrl } from '@/lib/cloudflare-images';
