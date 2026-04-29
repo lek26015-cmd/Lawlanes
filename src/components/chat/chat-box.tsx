@@ -428,19 +428,24 @@ function ChatBoxContent({
                                         <div className="flex flex-col gap-2">
                                             <Button 
                                                className="w-full h-11 bg-emerald-600 hover:bg-emerald-700 font-bold rounded-2xl shadow-md text-sm" 
-                                               asChild
+                                               onClick={() => {
+                                                   setPreviewFile({
+                                                       url: `https://capdeal.lawslane.com/api/contract/pdf/${msg.metadata?.contractId}`,
+                                                       name: `สัญญา - ${msg.metadata?.contractId}.pdf`,
+                                                       type: 'pdf'
+                                                   });
+                                                   setIsPreviewOpen(true);
+                                               }}
                                             >
-                                               <a href={msg.metadata?.contractLink || `https://capdeal.lawslane.com/th/contract/${msg.metadata?.contractId}`} target="_blank" rel="noopener noreferrer">
-                                                 ✍️ ลงนามสัญญาออนไลน์
-                                               </a>
+                                               📄 เปิดดูสัญญา (PDF)
                                             </Button>
                                             <Button 
                                                variant="outline"
                                                className="w-full h-11 border-emerald-200 text-emerald-700 hover:bg-emerald-50 font-bold rounded-2xl text-sm" 
                                                asChild
                                             >
-                                               <a href={`https://capdeal.lawslane.com/api/contract/pdf/${msg.metadata?.contractId}`} target="_blank" rel="noopener noreferrer">
-                                                 <FileDown className="w-4 h-4 mr-2" /> ดาวน์โหลด PDF
+                                               <a href={msg.metadata?.contractLink || `https://capdeal.lawslane.com/th/contract/${msg.metadata?.contractId}`} target="_blank" rel="noopener noreferrer">
+                                                 ✍️ ลงนามสัญญาออนไลน์ (Capdeal)
                                                </a>
                                             </Button>
                                         </div>
@@ -458,11 +463,16 @@ function ChatBoxContent({
                                         <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400 whitespace-pre-wrap break-words leading-relaxed">{msg.text}</p>
                                         <Button 
                                            className="w-full h-11 bg-blue-600 hover:bg-blue-700 font-bold rounded-2xl shadow-md text-sm" 
-                                           asChild
+                                           onClick={() => {
+                                               setPreviewFile({
+                                                   url: `https://capdeal.lawslane.com/api/invoice/pdf/${msg.metadata?.invoiceId}`,
+                                                   name: `ใบเสนอราคา - ${msg.metadata?.invoiceId}.pdf`,
+                                                   type: 'pdf'
+                                               });
+                                               setIsPreviewOpen(true);
+                                           }}
                                         >
-                                            <a href={msg.metadata?.invoiceLink || `https://capdeal.lawslane.com/th/invoice/${msg.metadata?.invoiceId}`} target="_blank" rel="noopener noreferrer">
-                                              📄 เปิดดูใบเสนอราคาแบบ PDF
-                                            </a>
+                                            📄 เปิดดูใบเสนอราคาแบบ PDF
                                         </Button>
                                     </div>
                                 </div>
