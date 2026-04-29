@@ -754,16 +754,43 @@ function ChatBoxContent({
                     </div>
                 </div>
                 <div className="hidden md:flex items-center gap-2">
-                    <Button variant="outline" size="sm" className="h-9 rounded-full text-xs font-bold text-blue-600 border-blue-200 hover:bg-blue-50">
+                    <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="h-9 rounded-full text-xs font-bold text-blue-600 border-blue-200 hover:bg-blue-50"
+                        onClick={() => {
+                            navigator.clipboard.writeText(`https://capdeal.lawslane.com/th/contract/${contractPreviewData?.id}`);
+                            toast({ title: 'คัดลอกลิงก์เรียบร้อย', description: 'แชร์ลิงก์นี้ให้คู่สัญญาเพื่อดำเนินการต่อ' });
+                        }}
+                    >
                         <ExternalLink className="w-4 h-4 mr-1.5" /> แชร์สัญญานี้
                     </Button>
-                    <Button variant="outline" size="sm" className="h-9 rounded-full text-xs font-bold text-amber-600 border-amber-200 hover:bg-amber-50">
-                        <Plus className="w-4 h-4 mr-1.5" /> สร้างฉบับแก้ไข
-                    </Button>
-                    <Button variant="outline" size="sm" className="h-9 rounded-full text-xs font-bold">
+                    {isLawyerView && (
+                        <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="h-9 rounded-full text-xs font-bold text-amber-600 border-amber-200 hover:bg-amber-50"
+                            onClick={() => {
+                                toast({ title: 'ระบบกำลังเปิดหน้าสร้างสัญญา', description: 'กรุณาไปที่ปุ่ม "สัญญา" ในเมนูจัดการด้านขวา' });
+                                setIsContractPreviewOpen(false);
+                            }}
+                        >
+                            <Plus className="w-4 h-4 mr-1.5" /> สร้างฉบับแก้ไข
+                        </Button>
+                    )}
+                    <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="h-9 rounded-full text-xs font-bold"
+                        onClick={() => window.open(`https://capdeal.lawslane.com/th/contract/${contractPreviewData?.id}`, '_blank')}
+                    >
                         <Maximize2 className="w-4 h-4 mr-1.5" /> ดูสัญญาเต็มแผ่น
                     </Button>
-                    <Button size="sm" className="h-9 rounded-full text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white">
+                    <Button 
+                        size="sm" 
+                        className="h-9 rounded-full text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white"
+                        onClick={() => window.open(`https://capdeal.lawslane.com/th/contract/${contractPreviewData?.id}?print=1`, '_blank')}
+                    >
                         <FileDown className="w-4 h-4 mr-1.5" /> PDF
                     </Button>
                 </div>
