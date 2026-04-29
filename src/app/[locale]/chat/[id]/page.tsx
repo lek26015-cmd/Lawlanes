@@ -345,7 +345,9 @@ function ChatPageContent() {
                         if (lUserSnap.exists()) {
                             const lUserData = lUserSnap.data();
                             fetchedLawyer.email = fetchedLawyer.email || lUserData.email || '';
-                            fetchedLawyer.name = fetchedLawyer.name || lUserData.name || '';
+                            if (!fetchedLawyer.name || fetchedLawyer.name === 'ทนายความ' || fetchedLawyer.name === 'Unknown Lawyer') {
+                                fetchedLawyer.name = lUserData.name || fetchedLawyer.name;
+                            }
                         }
                     } catch (e) {
                         console.warn("Could not fetch fallback lawyer info", e);
