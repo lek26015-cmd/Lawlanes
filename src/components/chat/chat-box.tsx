@@ -485,7 +485,7 @@ function ChatBoxContent({
                                            onClick={() => handleViewInvoice(msg.metadata?.invoiceId)}
                                         >
                                             📄 เปิดดูรายละเอียดใบเสนอราคา
-                                        </Button>>
+                                        </Button>
                                     </div>
                                 </div>
                             ) : isPayment ? (
