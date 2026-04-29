@@ -196,6 +196,25 @@ service cloud.firestore {
       );
     }
 
+    match /invoices/{invoiceId} {
+      allow read: if isSignedIn() && (
+        request.auth.uid == resource.data.client_id ||
+        request.auth.uid == resource.data.userId ||
+        request.auth.uid == resource.data.lawyer_id ||
+        request.auth.uid == resource.data.lawyerId ||
+        isAdmin()
+      );
+      allow create: if isSignedIn();
+      allow update: if isSignedIn() && (
+        request.auth.uid == resource.data.client_id ||
+        request.auth.uid == resource.data.userId ||
+        request.auth.uid == resource.data.lawyer_id ||
+        request.auth.uid == resource.data.lawyerId ||
+        isAdmin()
+      );
+      allow delete: if isAdmin();
+    }
+
     match /contracts/{contractId} {
       function canAccessContract() {
         let userDocPath = /databases/$(database)/documents/users/$(request.auth.uid);
@@ -206,13 +225,17 @@ service cloud.firestore {
         
         return isSignedIn() && (
           request.auth.uid == resource.data.ownerId ||
+          request.auth.uid == resource.data.userId ||
+          request.auth.uid == resource.data.client_id ||
+          request.auth.uid == resource.data.lawyerId ||
+          request.auth.uid == resource.data.lawyer_id ||
           (resourceCompanyId != null && userCompanyId != null && resourceCompanyId == userCompanyId) ||
           isAdmin()
         );
       }
 
       allow read: if canAccessContract();
-      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow create: if isSignedIn();
       allow update: if canAccessContract();
       allow delete: if isAdmin() || (isSignedIn() && request.auth.uid == resource.data.ownerId);
     }
