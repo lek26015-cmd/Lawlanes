@@ -139,7 +139,7 @@ export async function chat(
 
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
-      model: "gemini-flash-latest",
+      model: "gemini-1.5-flash",
       tools: [{ functionDeclarations: [searchArticlesDeclaration] }],
       systemInstruction: `You are LAlin (ละลิน), the expert female legal AI assistant for Lawslane Thailand.
 
