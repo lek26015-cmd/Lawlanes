@@ -1191,3 +1191,112 @@ export async function approveInstallmentAction(chatId: string, installmentIndex:
         return { success: false, error: error.message };
     }
 }
+
+/**
+ * Robustly starts a new consultation chat from the server side.
+ * Ensures chat creation, initial message, in-app notification, and email are all handled.
+ */
+export async function startConsultationAction(params: {
+    lawyerId: string;
+    clientId: string;
+    clientName: string;
+    initialMessage: string;
+    locale: string;
+}) {
+    const { lawyerId, clientId, clientName, initialMessage, locale } = params;
+
+    try {
+        const adminApp = await initAdmin();
+        if (!adminApp) return { success: false, error: 'Firebase Admin not initialized.' };
+        const db = adminApp.firestore();
+
+        // 1. Resolve Lawyer Auth UID
+        let lawyerAuthId = lawyerId;
+        let lawyerEmail = '';
+        let lawyerName = 'ทนายความ';
+        
+        const lpSnap = await db.collection('lawyerProfiles').doc(lawyerId).get();
+        if (lpSnap.exists) {
+            const lpData = lpSnap.data();
+            lawyerAuthId = lpData?.userId || lawyerId;
+            lawyerEmail = lpData?.email || '';
+            lawyerName = lpData?.name || lawyerName;
+        }
+
+        const chatId = db.collection('chats').doc().id;
+        const participants = Array.from(new Set([clientId, lawyerId, lawyerAuthId]));
+
+        const chatPayload = {
+            participants,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            caseTitle: `Ticket สนทนา: ${initialMessage.substring(0, 30)}${initialMessage.length > 30 ? '...' : ''}`,
+            status: 'active',
+            lawyerId: lawyerId,
+            userId: clientId,
+            clientId: clientId,
+            lastMessage: initialMessage,
+            lastMessageAt: admin.firestore.FieldValue.serverTimestamp(),
+            amount: 0,
+            originalFee: 0,
+            discount: 0,
+            hasNewMessage: true,
+            lawyerReadStatus: 'unread',
+            clientReadStatus: 'read'
+        };
+
+        const batch = db.batch();
+        const chatRef = db.collection('chats').doc(chatId);
+        
+        // Create Chat
+        batch.set(chatRef, chatPayload);
+
+        // Create Initial Message
+        const msgRef = chatRef.collection('messages').doc();
+        batch.set(msgRef, {
+            text: initialMessage,
+            senderId: clientId,
+            senderName: clientName,
+            timestamp: admin.firestore.FieldValue.serverTimestamp()
+        });
+
+        // Create In-App Notification for Lawyer
+        const notificationRef = db.collection('notifications').doc();
+        batch.set(notificationRef, {
+            type: 'chat_message',
+            title: `คำขอปรึกษาใหม่จากคุณ ${clientName}`,
+            message: initialMessage.length > 100 ? initialMessage.substring(0, 100) + '...' : initialMessage,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            read: false,
+            recipient: lawyerAuthId,
+            link: `/${locale}/chat/${chatId}?view=lawyer`,
+            relatedId: chatId
+        });
+
+        await batch.commit();
+
+        // Send Email Notification via Server
+        if (lawyerEmail) {
+            try {
+                const { sendLawyerNewCaseEmail } = await import('@/app/actions/email');
+                // Use absolute URL for the link
+                const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://lawslane.com';
+                const caseLink = `${baseUrl}/${locale}/chat/${chatId}?lawyerId=${lawyerId}&clientId=${clientId}&view=lawyer`;
+                
+                await sendLawyerNewCaseEmail(
+                    lawyerEmail,
+                    lawyerName,
+                    clientName,
+                    initialMessage,
+                    caseLink
+                );
+            } catch (emailErr) {
+                console.error("[startConsultationAction] Email failed:", emailErr);
+            }
+        }
+
+        return { success: true, chatId };
+    } catch (error: any) {
+        console.error("Error in startConsultationAction:", error);
+        return { success: false, error: error.message };
+    }
+}

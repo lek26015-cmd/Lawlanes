@@ -155,67 +155,32 @@ export default function LawyerProfileClient({ initialLawyer, id }: LawyerProfile
         if (!user || !firestore || !lawyer) return;
 
         setIsCreatingChat(true);
-
         try {
-            const newChatId = uuidv4();
-            const chatRef = doc(firestore, 'chats', newChatId);
-            const messagesRef = collection(chatRef, 'messages');
+            const { startConsultationAction } = await import('@/app/actions/chat-actions');
+            const result = await startConsultationAction({
+                lawyerId: lawyer.id,
+                clientId: user.uid,
+                clientName: user.displayName || 'ลูกความ',
+                initialMessage: initialMessage,
+                locale: locale
+            });
 
-            const participants = [user.uid, lawyer.id];
-            if (lawyer.userId && lawyer.userId !== lawyer.id) {
-                participants.push(lawyer.userId);
+            if (result.success && result.chatId) {
+                toast({
+                    title: "ส่งข้อความสำเร็จ",
+                    description: "กำลังนำคุณไปยังห้องแชท...",
+                });
+                setIsMessageModalOpen(false);
+                router.push(`/${locale}/chat/${result.chatId}?lawyerId=${lawyer.id}`);
+            } else {
+                throw new Error(result.error || 'Failed to start consultation');
             }
-
-            const chatPayload = {
-                participants,
-                createdAt: serverTimestamp(),
-                caseTitle: `Ticket สนทนา: ${initialMessage.substring(0, 30)}...`,
-                status: 'active',
-                lawyerId: lawyer.id, 
-                userId: user.uid, 
-                lastMessage: initialMessage,
-                lastMessageAt: serverTimestamp(),
-                amount: 0, 
-                originalFee: 0,
-                discount: 0,
-                couponCode: null,
-                couponId: null
-            };
-
-            await setDoc(chatRef, chatPayload);
-
-            const messagePayload = {
-                text: initialMessage,
-                senderId: user.uid,
-                timestamp: serverTimestamp(),
-            };
-            await addDoc(messagesRef, messagePayload);
-
-            // Send notification email
-            import('@/app/actions/email').then(({ sendLawyerNewCaseEmail }) => {
-                const caseLink = `${window.location.origin}/chat/${newChatId}?lawyerId=${lawyer.id}&clientId=${user.uid}&view=lawyer`;
-                sendLawyerNewCaseEmail(
-                    lawyer.email,
-                    lawyer.name,
-                    user.displayName || 'ลูกความ',
-                    `Ticket สนทนา: ${initialMessage.substring(0, 30)}...`,
-                    caseLink
-                ).then(res => console.log("Email sent:", res)).catch(console.error);
-            });
-
-            toast({
-                title: "ส่งข้อความสำเร็จ",
-                description: "กำลังนำคุณไปยังห้องแชท...",
-            });
-
-            setIsMessageModalOpen(false);
-            router.push(`/chat/${newChatId}?lawyerId=${lawyer.id}`);
-        } catch (error) {
-            console.error("Error creating chat:", error);
+        } catch (error: any) {
+            console.error("Error starting consultation:", error);
             toast({
                 variant: 'destructive',
                 title: 'เกิดข้อผิดพลาด',
-                description: 'ไม่สามารถส่งข้อความได้ กรุณาลองใหม่อีกครั้ง',
+                description: 'ไม่สามารถเริ่มการปรึกษาได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง',
             });
         } finally {
             setIsCreatingChat(false);
