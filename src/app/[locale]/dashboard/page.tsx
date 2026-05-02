@@ -27,6 +27,7 @@ export default function DashboardPage() {
     const t = useTranslations('Dashboard');
     const tHelp = useTranslations('Help');
     const locale = useLocale();
+    const { firestore: db } = useFirebase();
 
     const [cases, setCases] = useState<Case[]>([]);
     const [appointments, setAppointments] = useState<UpcomingAppointment[]>([]);

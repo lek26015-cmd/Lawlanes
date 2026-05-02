@@ -622,6 +622,7 @@
         "quickLinks": {
             "title": "快速链接",
             "home": "首页",
+            "about": "关于我们",
             "articles": "文章",
             "findLawyer": "查找律师",
             "verifyLawyer": "验证律师状态",
