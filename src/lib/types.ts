@@ -143,6 +143,7 @@ export interface Case {
   lastMessageTimestamp: string;
   status: 'active' | 'closed' | 'pending_payment' | 'rejected' | 'approved' | 'pending';
   hasNewMessage?: boolean;
+  clientReadStatus?: 'read' | 'unread';
   color?: 'blue' | 'yellow';
   rejectReason?: string;
   updatedAt: Date;

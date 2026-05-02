@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,6 +18,8 @@ import { useTranslations, useLocale } from 'next-intl';
 import { getUserDashboardData } from '@/app/actions/dashboard-actions';
 import { cn } from '@/lib/utils';
 import { ChatListItem } from '@/components/dashboard/chat-list-item';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
+import { useFirebase } from '@/firebase';
 
 export default function DashboardPage() {
     const router = useRouter();
@@ -36,6 +38,44 @@ export default function DashboardPage() {
 
     const dateLocale = locale === 'th' ? th : locale === 'zh' ? zhCN : enUS;
 
+    const fetchData = useCallback(async (isInitial = true) => {
+        if (isInitial) setIsLoading(true);
+        if (user?.uid) {
+            try {
+                const data = await getUserDashboardData(user.uid);
+                setCases(data.cases);
+                setAppointments(data.appointments);
+                setTickets(data.tickets);
+
+                if (data.capDeals) {
+                    setCapDeals(data.capDeals);
+                }
+                if (data.bookOrders) {
+                    setBookOrders(data.bookOrders);
+                }
+                if (data.invoices) {
+                    setInvoices(data.invoices);
+                }
+            } catch (error) {
+                console.error("Error fetching dashboard data:", error);
+                setCases([]);
+                setAppointments([]);
+                setTickets([]);
+                setCapDeals([]);
+                setBookOrders([]);
+                setInvoices([]);
+            }
+        } else {
+            setCases([]);
+            setAppointments([]);
+            setTickets([]);
+            setCapDeals([]);
+            setBookOrders([]);
+            setInvoices([]);
+        }
+        if (isInitial) setIsLoading(false);
+    }, [user]);
+
     useEffect(() => {
         if (isUserLoading) {
             setIsLoading(true);
@@ -45,46 +85,46 @@ export default function DashboardPage() {
             router.push('/login');
             return;
         }
+        fetchData(true);
+    }, [isUserLoading, user, router, fetchData]);
 
-        async function fetchData() {
-            setIsLoading(true);
-            if (user?.uid) {
-                try {
-                    const data = await getUserDashboardData(user.uid);
-                    setCases(data.cases);
-                    setAppointments(data.appointments);
-                    setTickets(data.tickets);
+    // Real-time listener for chats to update unread counts and last messages
+    useEffect(() => {
+        if (isUserLoading || !user || !db) return;
 
-                    if (data.capDeals) {
-                        setCapDeals(data.capDeals);
-                    }
-                    if (data.bookOrders) {
-                        setBookOrders(data.bookOrders);
-                    }
-                    if (data.invoices) {
-                        setInvoices(data.invoices);
-                    }
-                } catch (error) {
-                    console.error("Error fetching dashboard data:", error);
-                    setCases([]);
-                    setAppointments([]);
-                    setTickets([]);
-                    setCapDeals([]);
-                    setBookOrders([]);
-                    setInvoices([]);
-                }
-            } else {
-                setCases([]);
-                setAppointments([]);
-                setTickets([]);
-                setCapDeals([]);
-                setBookOrders([]);
-                setInvoices([]);
+        const q = query(
+            collection(db, 'chats'),
+            where('participants', 'array-contains', user.uid)
+        );
+
+        let isFirstRun = true;
+        const unsubscribe = onSnapshot(q, (snapshot) => {
+            if (isFirstRun) {
+                isFirstRun = false;
+                return;
             }
-            setIsLoading(false);
-        }
-        fetchData();
-    }, [isUserLoading, user, router, locale]); // Removed firestore from dependencies
+            
+            if (!snapshot.metadata.hasPendingWrites) {
+                fetchData(false); // Silent refresh
+                
+                // Check for new messages directed to the client
+                const hasUnread = snapshot.docs.some((doc) => {
+                    const data = doc.data();
+                    return data.clientReadStatus === 'unread' && data.lastMessageAt?.toMillis() > (Date.now() - 5000);
+                });
+
+                if (hasUnread) {
+                    const audio = new Audio("data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZWY1OC43Ni4xMDABABAAAAAAAAAA/+NAAAAAAAAAAAAAAAAAAAAAAABYaW5nAAAADwAAABIAAA7sAAICAgICAgICAgMDAwMDAwMDDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwLC8vdHh0AExhdmVjNTguNzYAL7Ois6KzoqKioqKis6KzAAD/40AAAsXzB6p9AEUAAAABpAAAAn9Y+Z/Wvmf1P6n9Y+Z/U/qf1j5n9T+p/Wvmf1P6n9Y+S60AsXzBt1pBFAAAAApAAAAn9Y+S60At60AsXzBt1ZBLAAAAApAAAAn9Y+S60At60AsXzBt1pBLAACAAD/40AAAsXzBt1pBLAAAAApAAAAtXzBt1ZBLAAGAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVs=");
+                    audio.volume = 0.4;
+                    audio.play().catch(() => {});
+                }
+            }
+        });
+
+        return () => {
+            unsubscribe();
+        };
+    }, [isUserLoading, user, db, fetchData]);
 
     if (isUserLoading || isLoading || !user) {
         return (
@@ -141,7 +181,7 @@ export default function DashboardPage() {
                                                 imageUrl={caseItem.lawyer.imageUrl}
                                                 lastMessage={caseItem.lastMessage}
                                                 updatedAt={caseItem.updatedAt}
-                                                unreadCount={caseItem.hasNewMessage ? 1 : 0}
+                                                unreadCount={caseItem.clientReadStatus === 'unread' ? 1 : 0}
                                                 status={caseItem.isWaitingVerification ? 'pending_verification' : caseItem.status}
                                                 type={caseItem.isOfficial ? 'case' : 'preliminary'}
                                                 href={`/${locale}/chat/${caseItem.id}?lawyerId=${caseItem.lawyer.id}`}

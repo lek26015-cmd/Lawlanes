@@ -161,10 +161,13 @@ export default function LawyerProfileClient({ initialLawyer, id }: LawyerProfile
             const chatRef = doc(firestore, 'chats', newChatId);
             const messagesRef = collection(chatRef, 'messages');
 
-            const targetLawyerUserId = lawyer.userId || lawyer.id;
+            const participants = [user.uid, lawyer.id];
+            if (lawyer.userId && lawyer.userId !== lawyer.id) {
+                participants.push(lawyer.userId);
+            }
 
             const chatPayload = {
-                participants: [user.uid, targetLawyerUserId],
+                participants,
                 createdAt: serverTimestamp(),
                 caseTitle: `Ticket สนทนา: ${initialMessage.substring(0, 30)}...`,
                 status: 'active',

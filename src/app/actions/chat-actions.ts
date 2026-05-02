@@ -29,12 +29,23 @@ export async function getChatDetailsAction(chatId: string) {
         
         const participants: string[] = data.participants || [];
 
-        if (!participants.includes(requesterId) && !isRequesterAdmin) {
+        // ENHANCED AUTH CHECK: Allow if UID is in participants OR if this is the lawyer for this case
+        let isAuthorizedLawyer = false;
+        const lawyerProfileId = data.lawyerId;
+        
+        if (lawyerProfileId) {
+            const lawyerProfileSnap = await db.collection('lawyerProfiles').doc(lawyerProfileId).get();
+            if (lawyerProfileSnap.exists && lawyerProfileSnap.data()?.userId === requesterId) {
+                isAuthorizedLawyer = true;
+            }
+        }
+
+        if (!participants.includes(requesterId) && !isRequesterAdmin && !isAuthorizedLawyer) {
             console.warn(`[Security] Unauthorized access attempt to chat ${chatId} by user ${requesterId}`);
             return { success: false, error: 'Unauthorized access.' };
         }
 
-        // REPAIR: Ensure lawyerId and clientId are in participants for real-time access
+        // REPAIR: Ensure lawyerId, clientId, and requesterId (if authorized) are in participants
         const lawyerId = data.lawyerId;
         const clientIdFromData = data.clientId || data.userId;
         
@@ -46,6 +57,10 @@ export async function getChatDetailsAction(chatId: string) {
         if (clientIdFromData && !participants.includes(clientIdFromData)) {
             needsRepair = true;
             participants.push(clientIdFromData);
+        }
+        if (isAuthorizedLawyer && !participants.includes(requesterId)) {
+            needsRepair = true;
+            participants.push(requesterId);
         }
 
         if (needsRepair) {
@@ -90,6 +105,13 @@ export async function getChatDetailsAction(chatId: string) {
             }
         }
 
+        // ENHANCED: Try to find the lawyer's actual UID for E2EE and dashboard sync
+        let lawyerUserId = data.lawyerUserId || null;
+        if (!lawyerUserId && lawyerId) {
+            const lp = await db.collection('lawyerProfiles').doc(lawyerId).get();
+            lawyerUserId = lp.data()?.userId || null;
+        }
+
         return {
             success: true,
             isRequesterAdmin,
@@ -97,6 +119,7 @@ export async function getChatDetailsAction(chatId: string) {
                 id: chatSnap.id,
                 ...data,
                 clientName, // Return the recovered name
+                lawyerUserId, // Return the real UID
                 createdAt: data?.createdAt?.toDate(),
                 lastMessageAt: data?.lastMessageAt?.toDate()
             }))
@@ -188,13 +211,31 @@ export async function sendChatMessageAction(params: {
                 return { success: false, error: 'Unauthorized: invalid auth token.' };
             }
         } else {
-            // No token provided — verify senderId is a participant of the chat as a weaker guard
+            // No token provided — verify senderId is a participant or the authorized lawyer
             const chatSnap = await db.collection('chats').doc(chatId).get();
             if (!chatSnap.exists) return { success: false, error: 'Chat not found.' };
-            const participants: string[] = chatSnap.data()?.participants || [];
-            if (!participants.includes(senderId)) {
+            
+            const chatData = chatSnap.data();
+            const participants: string[] = chatData?.participants || [];
+            
+            let isAuthorizedLawyer = false;
+            if (chatData?.lawyerId) {
+                const lpSnap = await db.collection('lawyerProfiles').doc(chatData.lawyerId).get();
+                if (lpSnap.exists && lpSnap.data()?.userId === senderId) {
+                    isAuthorizedLawyer = true;
+                }
+            }
+
+            if (!participants.includes(senderId) && !isAuthorizedLawyer) {
                 console.error(`[Auth] senderId ${senderId} is not a participant of chat ${chatId}`);
                 return { success: false, error: 'Unauthorized: not a participant of this chat.' };
+            }
+
+            // AUTO-REPAIR: If authorized lawyer but not in participants, add them now
+            if (isAuthorizedLawyer && !participants.includes(senderId)) {
+                await db.collection('chats').doc(chatId).update({
+                    participants: admin.firestore.FieldValue.arrayUnion(senderId)
+                });
             }
         }
 
@@ -281,23 +322,26 @@ export async function sendChatMessageAction(params: {
                 
                 // 1. Try lawyerProfiles first
                 const lawyerDoc = await db.collection('lawyerProfiles').doc(recipientId).get();
+                let lawyerLineId = '';
                 if (lawyerDoc.exists) {
                     const data = lawyerDoc.data() || {};
                     lawyerEmail = data.email;
                     lawyerName = data.name || 'ทนายความ';
+                    lawyerLineId = data.lineId || '';
                 }
                 
                 // 2. Fallback to users collection if email is missing (sometimes profile is incomplete)
-                if (!lawyerEmail) {
+                if (!lawyerEmail || !lawyerLineId) {
                     const userDoc = await db.collection('users').doc(recipientId).get();
                     if (userDoc.exists) {
                         const data = userDoc.data() || {};
-                        lawyerEmail = data.email;
-                        if (!lawyerName) lawyerName = data.name || 'ทนายความ';
+                        if (!lawyerEmail) lawyerEmail = data.email;
+                        if (!lawyerLineId) lawyerLineId = data.lineId || '';
+                        if (!lawyerName || lawyerName === 'ทนายความ') lawyerName = data.name || 'ทนายความ';
                     }
                 }
 
-                if (lawyerEmail) {
+                if (lawyerEmail || lawyerLineId) {
                     const chatDoc = await db.collection('chats').doc(chatId).get();
                     const chatData = chatDoc.data();
                     
@@ -315,6 +359,7 @@ export async function sendChatMessageAction(params: {
                             lawyerId: recipientId,
                             lawyerName: lawyerName,
                             lawyerEmail: lawyerEmail,
+                            lawyerLineId: lawyerLineId,
                             clientName: senderName,
                             messageSnippet: text.substring(0, 100),
                             chatId
@@ -390,6 +435,32 @@ export async function markChatAsReadAction(chatId: string, isLawyerView: boolean
         }
 
         await db.collection('chats').doc(chatId).update(updateData);
+
+        // Also mark all in-app notifications for this chat as read
+        try {
+            const cookieStore = await cookies();
+            const sessionCookie = cookieStore.get('session')?.value;
+            if (sessionCookie) {
+                const decodedToken = await adminApp.auth().verifySessionCookie(sessionCookie);
+                const userId = decodedToken.uid;
+                
+                const notificationsSnap = await db.collection('notifications')
+                    .where('recipient', '==', userId)
+                    .where('relatedId', '==', chatId)
+                    .where('read', '==', false)
+                    .get();
+
+                if (!notificationsSnap.empty) {
+                    const batch = db.batch();
+                    notificationsSnap.docs.forEach(doc => {
+                        batch.update(doc.ref, { read: true });
+                    });
+                    await batch.commit();
+                }
+            }
+        } catch (notifErr) {
+            console.warn("[markChatAsReadAction] Failed to clear notifications:", notifErr);
+        }
         return { success: true };
     } catch (error: any) {
         console.error("Error marking chat as read action:", error);

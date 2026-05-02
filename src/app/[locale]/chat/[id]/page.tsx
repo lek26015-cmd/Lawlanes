@@ -352,6 +352,9 @@ function ChatPageContent() {
                     } catch (e) {
                         console.warn("Could not fetch fallback lawyer info", e);
                     }
+                    if (chatData?.lawyerUserId && !fetchedLawyer.userId) {
+                        fetchedLawyer.userId = chatData.lawyerUserId;
+                    }
                     setLawyer(fetchedLawyer);
                 }
                 

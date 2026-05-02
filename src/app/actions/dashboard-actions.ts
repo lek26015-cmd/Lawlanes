@@ -103,6 +103,7 @@ export async function getUserDashboardData(userId: string) {
                 amount: amount,
                 isOfficial: isOfficial,
                 hasNewMessage: data.hasNewMessage || false,
+                clientReadStatus: data.clientReadStatus || 'read',
                 isWaitingVerification: data.status === 'pending_payment' && !!data.paymentSlipUrl,
                 isOnline: isOnline
             });
@@ -364,12 +365,33 @@ export async function getLawyerDashboardDataAction(lawyerId: string): Promise<{ 
             .limit(100)
             .get();
 
+        const initialChatDocs = casesSnap.docs;
+        const allChatDocs = [...initialChatDocs];
+
+        // 1.5 Fallback: Find chats where this user is the assigned lawyer (via profile ID) 
+        // but their UID isn't in participants yet.
+        const lawyerProfiles = await db.collection('lawyerProfiles').where('userId', '==', lawyerId).get();
+        if (!lawyerProfiles.empty) {
+            const profileIds = lawyerProfiles.docs.map(d => d.id);
+            // Query for chats where lawyerId is one of these profiles
+            const orphanSnap = await db.collection('chats')
+                .where('lawyerId', 'in', profileIds)
+                .limit(50)
+                .get();
+            
+            orphanSnap.docs.forEach(doc => {
+                if (!allChatDocs.some(existing => existing.id === doc.id)) {
+                    allChatDocs.push(doc);
+                }
+            });
+        }
+
         // 2. Fetch user profiles in batch
         const userIds = new Set<string>();
         requestsSnap.docs.forEach(d => { if (d.get('userId')) userIds.add(d.get('userId')); });
-        casesSnap.docs.forEach(d => {
-            const participants = d.get('participants');
-            const clientParticipantId = participants?.find((p: string) => p !== lawyerId);
+        allChatDocs.forEach(d => {
+            const participants = d.get('participants') || [];
+            const clientParticipantId = participants.find((p: string) => p !== lawyerId) || d.get('clientId') || d.get('userId');
             if (clientParticipantId) userIds.add(clientParticipantId);
         });
 
@@ -401,9 +423,9 @@ export async function getLawyerDashboardDataAction(lawyerId: string): Promise<{ 
             };
         });
 
-        const lawyerCases = casesSnap.docs.map(d => {
+        const lawyerCases = allChatDocs.map(d => {
             const chatData = d.data();
-            const clientParticipantId = chatData.participants.find((p: string) => p !== lawyerId);
+            const clientParticipantId = (chatData.participants || []).find((p: string) => p !== lawyerId) || chatData.clientId || chatData.userId;
 
             const lastMessageAt = chatData.lastMessageAt?.toDate() || chatData.createdAt?.toDate() || new Date(0);
             const lawyerReadAt = chatData.lawyerReadAt?.toDate() || new Date(0);
@@ -464,20 +486,30 @@ export async function getAdminLawyerDashboardDataAction(): Promise<{ newRequests
 
     try {
         const [requestsSnap, casesSnap] = await Promise.all([
-            db.collection('appointments').where('status', '==', 'pending').limit(100).get(),
-            db.collection('chats').limit(100).get()
+            db.collection('appointments')
+                .where('status', '==', 'pending')
+                .orderBy('createdAt', 'desc')
+                .limit(100)
+                .get(),
+            db.collection('chats')
+                .orderBy('lastMessageAt', 'desc')
+                .limit(200) // Increased limit for better admin overview
+                .get()
         ]);
 
         const userIds = new Set<string>();
         requestsSnap.docs.forEach(d => { if (d.get('userId')) userIds.add(d.get('userId')); });
         casesSnap.docs.forEach(d => {
-            const participants = d.get('participants');
-            if (participants) participants.forEach((p: string) => userIds.add(p));
+            const participants = d.get('participants') || [];
+            participants.forEach((p: string) => userIds.add(p));
+            // Ensure clientId and userId are also included as fallbacks
+            if (d.get('clientId')) userIds.add(d.get('clientId'));
+            if (d.get('userId')) userIds.add(d.get('userId'));
         });
 
         const userProfiles: Record<string, any> = {};
         if (userIds.size > 0) {
-            const idsArray = Array.from(userIds);
+            const idsArray = Array.from(userIds).filter(Boolean);
             const chunks = [];
             for (let i = 0; i < idsArray.length; i += 30) {
                 chunks.push(idsArray.slice(i, i + 30));
@@ -504,7 +536,12 @@ export async function getAdminLawyerDashboardDataAction(): Promise<{ newRequests
 
         const lawyerCases = casesSnap.docs.map(d => {
             const chatData = d.data();
-            const clientParticipantId = chatData.participants?.[0] || '';
+            const participants = chatData.participants || [];
+            
+            // Logic to find the client: they are usually NOT the lawyerId stored in the chat
+            const lawyerIdInChat = chatData.lawyerId;
+            const clientParticipantId = participants.find((p: string) => p !== lawyerIdInChat) || chatData.clientId || chatData.userId || '';
+            
             const lastUpdateDate = chatData.lastMessageAt?.toDate() || chatData.createdAt?.toDate() || new Date();
 
             return {

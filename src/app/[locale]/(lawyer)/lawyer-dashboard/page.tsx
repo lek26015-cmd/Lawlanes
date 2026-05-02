@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -48,6 +48,7 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { signOut } from 'firebase/auth';
 
 import { getLawyerLegalCases } from '@/app/actions/lawyer-case-actions';
+import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { Case as LegalCase } from '@/lib/types/billing-types';
 import { ChatListItem } from '@/components/dashboard/chat-list-item';
 
@@ -86,81 +87,120 @@ export default function LawyerDashboardPage() {
     }
   };
 
+  const fetchData = useCallback(async (isInitial = true) => {
+    if (isInitial) setIsLoading(true);
+    try {
+      if (!user) return;
+      // Check if user is admin
+      const userRole = await getUserRoleAction(user.uid);
+      const isAdmin = userRole === 'admin';
+
+      // Always fetch personal cases for the lawyer dashboard to ensure privacy
+      // Admins can see system-wide overview in the dedicated Admin Dashboard
+      const [data, statsData, profile, fetchedLegalCases] = await Promise.all([
+        getLawyerDashboardDataAction(user.uid),
+        getLawyerStatsAction(user.uid),
+        getLawyerProfileAction(user.uid),
+        getLawyerLegalCases(user.uid)
+      ]);
+
+      if (isAdmin && !profile) {
+        // If admin doesn't have a lawyer profile, set a default one for display
+        setLawyerProfile({
+          id: user.uid,
+          userId: user.uid,
+          name: user.displayName || 'Administrator',
+          email: user.email || '',
+          phone: '',
+          licenseNumber: 'ADMIN',
+          status: 'approved',
+          imageUrl: user.photoURL || '',
+          dob: new Date(),
+          gender: 'อื่นๆ',
+          address: 'Headquarters',
+          description: 'System Administrator',
+          education: '',
+          experience: '',
+          bankName: '',
+          bankAccountName: '',
+          bankAccountNumber: '',
+          serviceProvinces: ['All'],
+          specialty: ['System Admin'],
+          imageHint: '',
+          idCardUrl: '',
+          lawyerLicenseUrl: '',
+          createdAt: new Date(),
+          licenseUrl: '',
+          joinedAt: new Date().toISOString(),
+        } as LawyerProfile);
+      } else {
+        setLawyerProfile(profile || null);
+      }
+
+      setRequests(data.newRequests);
+      setActiveCases(data.activeCases);
+      setCompletedCases(data.completedCases);
+      setStats(statsData);
+      if (fetchedLegalCases) setLegalCases(fetchedLegalCases);
+    } catch (error) {
+      console.error("Error fetching lawyer dashboard data:", error);
+      toast({
+        variant: "destructive",
+        title: "เกิดข้อผิดพลาด",
+        description: "ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่อีกครั้ง",
+      });
+    } finally {
+      if (isInitial) setIsLoading(false);
+    }
+  }, [user, toast]);
+
   useEffect(() => {
     if (isUserLoading) return;
     if (!user) {
       router.push('/lawyer-login');
       return;
     }
-    if (!firestore) return;
+    fetchData(true);
+  }, [isUserLoading, user, router, fetchData]);
 
-    async function fetchData() {
-      setIsLoading(true);
-      try {
-        // Check if user is admin
-        const userRole = await getUserRoleAction(user!.uid);
-        const isAdmin = userRole === 'admin';
+  // Real-time listener for chats to update unread counts and last messages
+  useEffect(() => {
+    if (isUserLoading || !user || !firestore) return;
 
-        // Always fetch personal cases for the lawyer dashboard to ensure privacy
-        // Admins can see system-wide overview in the dedicated Admin Dashboard
-        const [data, statsData, profile, fetchedLegalCases] = await Promise.all([
-          getLawyerDashboardDataAction(user!.uid),
-          getLawyerStatsAction(user!.uid),
-          getLawyerProfileAction(user!.uid),
-          getLawyerLegalCases(user!.uid)
-        ]);
+    const q = query(
+      collection(firestore, 'chats'),
+      where('participants', 'array-contains', user.uid)
+    );
 
-        if (isAdmin && !profile) {
-          // If admin doesn't have a lawyer profile, set a default one for display
-          setLawyerProfile({
-            id: user!.uid,
-            userId: user!.uid,
-            name: user!.displayName || 'Administrator',
-            email: user!.email || '',
-            phone: '',
-            licenseNumber: 'ADMIN',
-            status: 'approved',
-            imageUrl: user!.photoURL || '',
-            dob: new Date(),
-            gender: 'อื่นๆ',
-            address: 'Headquarters',
-            description: 'System Administrator',
-            education: '',
-            experience: '',
-            bankName: '',
-            bankAccountName: '',
-            bankAccountNumber: '',
-            serviceProvinces: ['All'],
-            specialty: ['System Admin'],
-            imageHint: '',
-            idCardUrl: '',
-            lawyerLicenseUrl: '',
-            createdAt: new Date(),
-            licenseUrl: '',
-            joinedAt: new Date().toISOString(),
-          } as LawyerProfile);
-        } else {
-          setLawyerProfile(profile || null);
-        }
-
-        setRequests(data.newRequests);
-        setActiveCases(data.activeCases);
-        setCompletedCases(data.completedCases);
-        setStats(statsData);
-        if (fetchedLegalCases) setLegalCases(fetchedLegalCases);
-      } catch (error) {
-        console.error("Error fetching lawyer dashboard data:", error);
-        toast({
-          variant: "destructive",
-          title: "เกิดข้อผิดพลาด",
-          description: "ไม่สามารถโหลดข้อมูลได้ กรุณาลองใหม่อีกครั้ง",
-        });
-      } finally {
-        setIsLoading(false);
+    let isFirstRun = true;
+    const unsubscribe = onSnapshot(q, (snapshot: any) => {
+      if (isFirstRun) {
+        isFirstRun = false;
+        return;
       }
-    }
-    fetchData();
-  }, [isUserLoading, user, router, firestore, toast]);
+      
+      // If something changed in chats, refresh the dashboard data
+      // We check for metadata.hasPendingWrites to avoid refreshing on our own local updates if any
+      if (!snapshot.metadata.hasPendingWrites) {
+        fetchData(false); // Silent refresh
+        
+        // Play notification sound if a new message is detected
+        // (This is a bit crude but effective: if any doc in the snapshot has lawyerReadStatus === 'unread')
+        const hasUnread = snapshot.docs.some((doc: any) => {
+          const data = doc.data();
+          return data.lawyerReadStatus === 'unread' && data.lastMessageAt?.toMillis() > (Date.now() - 5000);
+        });
+
+        if (hasUnread) {
+          const audio = new Audio("data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZWY1OC43Ni4xMDABABAAAAAAAAAA/+NAAAAAAAAAAAAAAAAAAAAAAABYaW5nAAAADwAAABIAAA7sAAICAgICAgICAgMDAwMDAwMDDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwLC8vdHh0AExhdmVjNTguNzYAL7Ois6KzoqKioqKis6KzAAD/40AAAsXzB6p9AEUAAAABpAAAAn9Y+Z/Wvmf1P6n9Y+Z/U/qf1j5n9T+p/Wvmf1P6n9Y+S60AsXzBt1pBFAAAAApAAAAn9Y+S60At60AsXzBt1ZBLAAAAApAAAAn9Y+S60At60AsXzBt1pBLAACAAD/40AAAsXzBt1pBLAAAAApAAAAtXzBt1ZBLAAGAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVs=");
+          audio.volume = 0.4;
+          audio.play().catch(() => {});
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, [isUserLoading, user, firestore, fetchData]);
 
   if (isUserLoading || isLoading || !user) {
     return (
