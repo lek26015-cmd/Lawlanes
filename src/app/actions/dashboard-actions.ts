@@ -492,7 +492,8 @@ export async function getAdminLawyerDashboardDataAction(): Promise<{ newRequests
                 .limit(100)
                 .get(),
             db.collection('chats')
-                .limit(200) // Increased limit for better admin overview
+                .orderBy('createdAt', 'desc')
+                .limit(500) 
                 .get()
         ]);
 
