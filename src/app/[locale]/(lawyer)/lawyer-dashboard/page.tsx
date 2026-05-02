@@ -95,10 +95,9 @@ export default function LawyerDashboardPage() {
       const userRole = await getUserRoleAction(user.uid);
       const isAdmin = userRole === 'admin';
 
-      // Always fetch personal cases for the lawyer dashboard to ensure privacy
-      // Admins can see system-wide overview in the dedicated Admin Dashboard
+      // Use system-wide overview for admins, personal data for lawyers
       const [data, statsData, profile, fetchedLegalCases] = await Promise.all([
-        getLawyerDashboardDataAction(user.uid),
+        isAdmin ? getAdminLawyerDashboardDataAction() : getLawyerDashboardDataAction(user.uid),
         getLawyerStatsAction(user.uid),
         getLawyerProfileAction(user.uid),
         getLawyerLegalCases(user.uid)
