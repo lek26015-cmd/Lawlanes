@@ -488,7 +488,6 @@ export async function getAdminLawyerDashboardDataAction(): Promise<{ newRequests
         const [requestsSnap, casesSnap] = await Promise.all([
             db.collection('appointments')
                 .where('status', '==', 'pending')
-                .orderBy('createdAt', 'desc')
                 .limit(100)
                 .get(),
             db.collection('chats')
