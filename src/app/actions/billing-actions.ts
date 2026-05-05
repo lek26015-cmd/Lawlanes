@@ -208,14 +208,33 @@ export async function getContractByIdAction(contractId: string) {
         if (!adminApp) return { success: false, error: 'Firebase Admin not initialized.' };
         const db = adminApp.firestore();
 
-        const docRef = db.collection('contracts').doc(contractId);
-        const docSnap = await docRef.get();
+        let docSnap: any = await db.collection('contracts').doc(contractId).get();
+        let data: any = null;
 
         if (!docSnap.exists) {
-            return { success: false, error: 'ไม่พบสัญญา' };
+            // Fallback: Check if contractId is actually a chatId (since scripts generated links with chatId)
+            const queries = [
+                db.collection('contracts').where('chatId', '==', contractId).limit(1).get(),
+                db.collection('contracts').where('case_id', '==', contractId).limit(1).get(),
+                db.collection('contracts').where('caseId', '==', contractId).limit(1).get(),
+                db.collection('contracts').where('chat_id', '==', contractId).limit(1).get()
+            ];
+            
+            const snapshots = await Promise.all(queries);
+            let found = false;
+            for (const snap of snapshots) {
+                if (!snap.empty) {
+                    docSnap = snap.docs[0];
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                return { success: false, error: 'ไม่พบสัญญา' };
+            }
         }
 
-        const data = docSnap.data() as any;
+        data = docSnap.data();
         const contract = {
             id: docSnap.id,
             ...data,
@@ -239,14 +258,33 @@ export async function getInvoiceByIdAction(invoiceId: string) {
         if (!adminApp) return { success: false, error: 'Firebase Admin not initialized.' };
         const db = adminApp.firestore();
 
-        const docRef = db.collection('invoices').doc(invoiceId);
-        const docSnap = await docRef.get();
+        let docSnap: any = await db.collection('invoices').doc(invoiceId).get();
+        let data: any = null;
 
         if (!docSnap.exists) {
-            return { success: false, error: 'ไม่พบใบแจ้งหนี้' };
+            // Fallback: Check if invoiceId is actually a chatId (since scripts generated links with chatId)
+            const queries = [
+                db.collection('invoices').where('chatId', '==', invoiceId).limit(1).get(),
+                db.collection('invoices').where('case_id', '==', invoiceId).limit(1).get(),
+                db.collection('invoices').where('caseId', '==', invoiceId).limit(1).get(),
+                db.collection('invoices').where('chat_id', '==', invoiceId).limit(1).get()
+            ];
+            
+            const snapshots = await Promise.all(queries);
+            let found = false;
+            for (const snap of snapshots) {
+                if (!snap.empty) {
+                    docSnap = snap.docs[0];
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                return { success: false, error: 'ไม่พบใบแจ้งหนี้' };
+            }
         }
 
-        const data = docSnap.data() as any;
+        data = docSnap.data();
         const invoice = {
             id: docSnap.id,
             ...data,
