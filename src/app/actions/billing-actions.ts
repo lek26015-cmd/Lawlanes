@@ -317,15 +317,34 @@ export async function signContractAction(chatId: string, role: 'client' | 'lawye
             
             const chatData = chatSnap.data() || {};
             
+            const lawyerId = chatData.lawyerId || chatData.lawyer_id || '';
+            const clientId = chatData.clientId || chatData.userId || chatData.client_id || '';
+            
+            let clientName = 'ลูกความ';
+            let lawyerName = 'ทนายความ';
+            try {
+                if (clientId) {
+                    const cDoc = await db.collection('users').doc(clientId).get();
+                    if (cDoc.exists) clientName = cDoc.data()?.name || clientName;
+                }
+                if (lawyerId) {
+                    const lDoc = await db.collection('lawyerProfiles').doc(lawyerId).get();
+                    if (lDoc.exists) lawyerName = lDoc.data()?.name || lawyerName;
+                }
+            } catch (_) {}
+
+            updateData.userId = clientId;
+            updateData.lawyerId = lawyerId;
             updateData.chatId = chatId;
-            updateData.case_id = chatId;
-            updateData.lawyer_id = chatData.lawyerId || chatData.lawyer_id || 'unknown';
-            updateData.client_id = chatData.clientId || chatData.userId || chatData.client_id || 'unknown';
-            updateData.title = `สัญญาจ้างทนายความ: ${chatData.caseTitle || chatData.title || 'คดี'}`;
-            updateData.amount = chatData.amount || 0;
+            updateData.title = chatData.caseTitle || chatData.title || 'สัญญาจ้างทนายความ';
+            updateData.task = chatData.caseTitle || chatData.title || 'การดำเนินคดีทางกฎหมาย';
+            updateData.description = chatData.description || '';
+            updateData.price = chatData.amount || 0;
+            updateData.installments = chatData.installments || [];
+            updateData.clientName = clientName;
+            updateData.lawyerName = lawyerName;
+            updateData.clientInfo = chatData.clientInfo || null;
             updateData.status = 'pending';
-            updateData.type = 'capdeal_contract';
-            updateData.content = chatData.contractText || chatData.description || 'ไม่มีรายละเอียดสัญญา';
             updateData.createdAt = admin.firestore.FieldValue.serverTimestamp();
             updateData.updatedAt = admin.firestore.FieldValue.serverTimestamp();
 
