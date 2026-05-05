@@ -317,17 +317,26 @@ export async function sendChatMessageAction(params: {
 
             if (!isLawyerView) {
                 // Client sending to Lawyer
+                // 1. Try lawyerProfiles by document ID first
+                let lawyerDoc = await db.collection('lawyerProfiles').doc(recipientId).get();
                 let lawyerEmail = '';
                 let lawyerName = '';
-                
-                // 1. Try lawyerProfiles first
-                const lawyerDoc = await db.collection('lawyerProfiles').doc(recipientId).get();
                 let lawyerLineId = '';
+                
                 if (lawyerDoc.exists) {
                     const data = lawyerDoc.data() || {};
                     lawyerEmail = data.email;
                     lawyerName = data.name || 'ทนายความ';
                     lawyerLineId = data.lineId || '';
+                } else {
+                    // Try to find by userId
+                    const lpQuery = await db.collection('lawyerProfiles').where('userId', '==', recipientId).limit(1).get();
+                    if (!lpQuery.empty) {
+                        const data = lpQuery.docs[0].data();
+                        lawyerEmail = data.email;
+                        lawyerName = data.name || 'ทนายความ';
+                        lawyerLineId = data.lineId || '';
+                    }
                 }
                 
                 // 2. Fallback to users collection if email is missing (sometimes profile is incomplete)
@@ -1213,6 +1222,7 @@ export async function startConsultationAction(params: {
         // 1. Resolve Lawyer Auth UID
         let lawyerAuthId = lawyerId;
         let lawyerEmail = '';
+        let lawyerLineId = '';
         let lawyerName = 'ทนายความ';
         
         const lpSnap = await db.collection('lawyerProfiles').doc(lawyerId).get();
@@ -1220,6 +1230,7 @@ export async function startConsultationAction(params: {
             const lpData = lpSnap.data();
             lawyerAuthId = lpData?.userId || lawyerId;
             lawyerEmail = lpData?.email || '';
+            lawyerLineId = lpData?.lineId || '';
             lawyerName = lpData?.name || lawyerName;
         }
 

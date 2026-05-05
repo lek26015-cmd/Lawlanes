@@ -22,7 +22,8 @@ import { useTranslations } from 'next-intl';
 import { getSecureDownloadUrl } from '@/app/actions/secure-view';
 import { CaseRoadmap } from '@/components/case/case-roadmap';
 import { LegalResearchTool } from '@/components/case/legal-research-tool';
-import { getInvoicesByChatAction, getContractsByChatAction } from '@/app/actions/billing-actions';
+import { getInvoicesByChatAction, getContractsByChatAction, signContractAction } from '@/app/actions/billing-actions';
+import { SignaturePad } from '@/components/ui/signature-pad';
 import { repairChatDocumentsAction } from '@/app/actions/lawyer-actions';
 import { Invoice } from '@/lib/types/billing-types';
 import { FileSignature, ReceiptText } from 'lucide-react';
@@ -219,6 +220,8 @@ function ChatPageContent() {
     const [rating, setRating] = useState(0);
     const [reviewText, setReviewText] = useState("");
     const [showContractModal, setShowContractModal] = useState(false);
+    const [showSignaturePad, setShowSignaturePad] = useState(false);
+    const [signingRole, setSigningRole] = useState<'client' | 'lawyer' | null>(null);
     const [selectedContract, setSelectedContract] = useState<any>(null);
 
     // Hide navbar on mobile for this page only
@@ -1404,16 +1407,29 @@ function ChatPageContent() {
                             </div>
                         </div>
                         <div className="hidden md:flex items-center gap-2">
-                            <Button variant="outline" size="sm" className="h-9 rounded-full text-xs font-bold text-blue-600 border-blue-200 hover:bg-blue-50">
+                            <Button variant="outline" size="sm" className="h-9 rounded-full text-xs font-bold text-blue-600 border-blue-200 hover:bg-blue-50" onClick={() => {
+                                if (contracts[0]?.id) {
+                                    navigator.clipboard.writeText(`https://capdeal.lawslane.com/th/contract/${contracts[0].id}`);
+                                    toast({ title: 'คัดลอกลิงก์สำเร็จ', description: 'คุณสามารถนำลิงก์นี้ไปส่งให้คู่สัญญาได้เลย' });
+                                } else {
+                                    toast({ variant: 'destructive', title: 'เกิดข้อผิดพลาด', description: 'ยังไม่มีเอกสารสัญญาสมบูรณ์' });
+                                }
+                            }}>
                                 <ExternalLink className="w-4 h-4 mr-1.5" /> แชร์สัญญานี้
                             </Button>
                             <Button variant="outline" size="sm" className="h-9 rounded-full text-xs font-bold text-amber-600 border-amber-200 hover:bg-amber-50">
                                 <Plus className="w-4 h-4 mr-1.5" /> สร้างฉบับแก้ไข
                             </Button>
-                            <Button variant="outline" size="sm" className="h-9 rounded-full text-xs font-bold">
+                            <Button variant="outline" size="sm" className="h-9 rounded-full text-xs font-bold" onClick={() => {
+                                if (contracts[0]?.id) window.open(`https://capdeal.lawslane.com/th/contract/${contracts[0].id}`, '_blank');
+                                else toast({ variant: 'destructive', title: 'เกิดข้อผิดพลาด', description: 'ยังไม่มีเอกสารสัญญาสมบูรณ์' });
+                            }}>
                                 <Maximize2 className="w-4 h-4 mr-1.5" /> ดูสัญญาเต็มแผ่น
                             </Button>
-                            <Button size="sm" className="h-9 rounded-full text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white">
+                            <Button size="sm" className="h-9 rounded-full text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white" onClick={() => {
+                                if (contracts[0]?.id) window.open(`https://capdeal.lawslane.com/th/contract/${contracts[0].id}?print=1`, '_blank');
+                                else toast({ variant: 'destructive', title: 'เกิดข้อผิดพลาด', description: 'ยังไม่มีเอกสารสัญญาสมบูรณ์' });
+                            }}>
                                 <FileDown className="w-4 h-4 mr-1.5" /> PDF
                             </Button>
                         </div>
@@ -1500,9 +1516,19 @@ function ChatPageContent() {
                                         <div className="text-center space-y-2 flex flex-col items-center">
                                             <div className="h-16 w-40 flex items-center justify-center border-b border-dotted border-slate-400 mb-2">
                                                 {contracts.some((c: any) => c.clientSigned) ? (
-                                                    <span className="text-emerald-600 font-bold italic">ลงนามผ่านระบบแล้ว</span>
+                                                    contracts[0]?.clientSignatureImage ? (
+                                                        <div className="relative w-full h-full flex items-center justify-center">
+                                                            <img src={contracts[0].clientSignatureImage} alt="Client Signature" className="max-h-full max-w-full object-contain mix-blend-multiply opacity-80" />
+                                                            <div className="absolute -bottom-2 right-0 text-[8px] text-emerald-600 font-bold bg-white/80 px-1 rounded">✔ ลงนามแล้ว</div>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-emerald-600 font-bold italic">ลงนามผ่านระบบแล้ว</span>
+                                                    )
                                                 ) : !effectiveIsLawyerView ? (
-                                                    <button onClick={async () => { if (!confirm('ยืนยันการลงนามในสัญญา?')) return; for (const c of contracts) { const { doc: firestoreDoc, updateDoc } = await import('firebase/firestore'); await updateDoc(firestoreDoc(firestore, 'contracts', c.id), { clientSigned: true, clientSignedAt: new Date().toISOString(), status: contracts.some((cc: any) => cc.lawyerSigned) ? 'signed' : 'pending' }); } toast({ title: 'ลงนามสำเร็จ' }); setShowContractModal(false); }} className="flex flex-col items-center gap-1.5 text-slate-400 hover:text-blue-600 transition-colors cursor-pointer group">
+                                                    <button onClick={() => { 
+                                                        setSigningRole('client');
+                                                        setShowSignaturePad(true);
+                                                    }} className="flex flex-col items-center gap-1.5 text-slate-400 hover:text-blue-600 transition-colors cursor-pointer group">
                                                         <FileSignature className="w-6 h-6 md:w-8 md:h-8 group-hover:scale-110 transition-transform" />
                                                         <span className="text-[10px] md:text-xs font-medium">คลิกเพื่อเซ็นชื่อ</span>
                                                     </button>
@@ -1514,9 +1540,19 @@ function ChatPageContent() {
                                         <div className="text-center space-y-2 flex flex-col items-center">
                                             <div className="h-16 w-40 flex items-center justify-center border-b border-dotted border-slate-400 mb-2">
                                                 {contracts.some((c: any) => c.lawyerSigned) ? (
-                                                    <span className="text-emerald-600 font-bold italic">ลงนามผ่านระบบแล้ว</span>
+                                                    contracts[0]?.lawyerSignatureImage ? (
+                                                        <div className="relative w-full h-full flex items-center justify-center">
+                                                            <img src={contracts[0].lawyerSignatureImage} alt="Lawyer Signature" className="max-h-full max-w-full object-contain mix-blend-multiply opacity-80" />
+                                                            <div className="absolute -bottom-2 right-0 text-[8px] text-emerald-600 font-bold bg-white/80 px-1 rounded">✔ ลงนามแล้ว</div>
+                                                        </div>
+                                                    ) : (
+                                                        <span className="text-emerald-600 font-bold italic">ลงนามผ่านระบบแล้ว</span>
+                                                    )
                                                 ) : effectiveIsLawyerView ? (
-                                                    <button onClick={async () => { if (!confirm('ยืนยันการลงนามในสัญญา?')) return; for (const c of contracts) { const { doc: firestoreDoc, updateDoc } = await import('firebase/firestore'); await updateDoc(firestoreDoc(firestore, 'contracts', c.id), { lawyerSigned: true, lawyerSignedAt: new Date().toISOString(), status: contracts.some((cc: any) => cc.clientSigned) ? 'signed' : 'pending' }); } toast({ title: 'ลงนามสำเร็จ' }); setShowContractModal(false); }} className="flex flex-col items-center gap-1.5 text-slate-400 hover:text-blue-600 transition-colors cursor-pointer group">
+                                                    <button onClick={() => { 
+                                                        setSigningRole('lawyer');
+                                                        setShowSignaturePad(true);
+                                                    }} className="flex flex-col items-center gap-1.5 text-slate-400 hover:text-blue-600 transition-colors cursor-pointer group">
                                                         <FileSignature className="w-6 h-6 md:w-8 md:h-8 group-hover:scale-110 transition-transform" />
                                                         <span className="text-[10px] md:text-xs font-medium">คลิกเพื่อเซ็นชื่อ</span>
                                                     </button>
@@ -1599,6 +1635,35 @@ function ChatPageContent() {
                     </div>
                 </DialogContent>
             </Dialog>
+
+            {showSignaturePad && (
+                <Dialog open={showSignaturePad} onOpenChange={setShowSignaturePad}>
+                    <DialogContent className="sm:max-w-[500px]">
+                        <div className="flex flex-col space-y-4 pt-4">
+                            <h2 className="text-xl font-bold text-center">เซ็นชื่อกำกับสัญญา</h2>
+                            <p className="text-sm text-slate-500 text-center">กรุณาวาดลายเซ็นของคุณในกรอบด้านล่าง</p>
+                            <SignaturePad 
+                                onSave={async (dataUrl) => {
+                                    if (!signingRole) return;
+                                    const res = await signContractAction(chatId, signingRole, dataUrl);
+                                    if (res.success) {
+                                        toast({ title: 'ลงนามสำเร็จ' });
+                                        setShowSignaturePad(false);
+                                        setShowContractModal(false);
+                                        fetchDocsRef.current();
+                                    } else {
+                                        toast({ variant: 'destructive', title: 'เกิดข้อผิดพลาด', description: res.error });
+                                    }
+                                }} 
+                                onCancel={() => setShowSignaturePad(false)} 
+                            />
+                            <Button variant="outline" onClick={() => setShowSignaturePad(false)}>
+                                ยกเลิก
+                            </Button>
+                        </div>
+                    </DialogContent>
+                </Dialog>
+            )}
         </div>
         </>
     );

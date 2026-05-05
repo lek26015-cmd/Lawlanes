@@ -28,6 +28,7 @@ import { ErrorBoundary } from '@/components/ui/error-boundary';
 import { cn } from '@/lib/utils';
 import { useToast } from '@/hooks/use-toast';
 import { getSecureDownloadUrl } from '@/app/actions/secure-view';
+import { getContractByIdAction, getInvoiceByIdAction } from '@/app/actions/billing-actions';
 import { 
   Dialog, 
   DialogContent, 
@@ -150,13 +151,12 @@ function ChatBoxContent({
 
   const handleViewContract = async (contractId: string) => {
     try {
-      const docRef = doc(firestore, 'contracts', contractId);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        setContractPreviewData({ id: contractId, ...docSnap.data() });
+      const res = await getContractByIdAction(contractId);
+      if (res.success && res.data) {
+        setContractPreviewData(res.data);
         setIsContractPreviewOpen(true);
       } else {
-        toast({ variant: "destructive", title: 'ไม่พบสัญญา', description: 'ไม่พบข้อมูลสัญญานี้ในระบบ หรือคุณไม่มีสิทธิ์เข้าถึง' });
+        toast({ variant: "destructive", title: 'ไม่พบสัญญา', description: res.error || 'ไม่พบข้อมูลสัญญานี้ในระบบ หรือคุณไม่มีสิทธิ์เข้าถึง' });
       }
     } catch (e: any) {
       console.error(e);
@@ -166,13 +166,12 @@ function ChatBoxContent({
 
   const handleViewInvoice = async (invoiceId: string) => {
     try {
-      const docRef = doc(firestore, 'invoices', invoiceId);
-      const docSnap = await getDoc(docRef);
-      if (docSnap.exists()) {
-        setInvoicePreviewData({ id: invoiceId, ...docSnap.data() });
+      const res = await getInvoiceByIdAction(invoiceId);
+      if (res.success && res.data) {
+        setInvoicePreviewData(res.data);
         setIsInvoicePreviewOpen(true);
       } else {
-        toast({ variant: "destructive", title: 'ไม่พบใบเสนอราคา', description: 'ไม่พบข้อมูลนี้ในระบบ หรือคุณไม่มีสิทธิ์เข้าถึง' });
+        toast({ variant: "destructive", title: 'ไม่พบใบเสนอราคา', description: res.error || 'ไม่พบข้อมูลนี้ในระบบ หรือคุณไม่มีสิทธิ์เข้าถึง' });
       }
     } catch (e: any) {
       console.error(e);

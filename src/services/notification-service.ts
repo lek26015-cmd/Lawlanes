@@ -62,12 +62,8 @@ export const NotificationService = {
    * Trigger 1: Send a LINE notification to a specific lawyer for a new case.
    */
   async notifyLawyerNewCase(lawyerId: string, lawyerLineId: string, caseTitle: string) {
-    console.log(`Queueing LINE notification for lawyer ${lawyerId}`);
-    return await pushToNotificationQueue({
-      type: "LINE_NOTIFICATION",
-      to: lawyerLineId,
-      text: `🔔 มีเคสใหม่รอท่านอยู่: "${caseTitle}"\nกรุณาเข้าสู่ระบบเพื่อตรวจสอบรายละเอียดค่ะ`,
-    });
+    console.log(`LINE notifications are disabled by user request. Lawyer ${lawyerId}`);
+    return { success: true };
   },
 
   /**
@@ -76,11 +72,7 @@ export const NotificationService = {
   async notifyAdminNewLawyer(lawyerName: string, lawyerEmail?: string) {
     console.log(`Queueing notifications for new lawyer registration: ${lawyerName}`);
     
-    // 1. LINE Notification (Admin Group)
-    await pushToNotificationQueue({
-      type: "LINE_NOTIFICATION",
-      text: `⚖️ มีทนายความใหม่ลงทะเบียน: "${lawyerName}"${lawyerEmail ? ` (${lawyerEmail})` : ''}\nกรุณาตรวจสอบและอนุมัติในระบบหลังบ้านค่ะ`,
-    });
+    // 1. LINE Notification (Admin Group) - Removed by user request
 
     // 2. Email Notification to Admins
     const emailHtml = generateStandardEmailHtml({
@@ -103,11 +95,7 @@ export const NotificationService = {
   async notifyAdminNewTicket(ticketId: string, subject: string) {
     console.log(`Queueing notifications for new ticket: ${ticketId}`);
     
-    // 1. LINE Notification
-    await pushToNotificationQueue({
-      type: "LINE_NOTIFICATION",
-      text: `🆘 มีตั๋วความช่วยเหลือใหม่ (Ticket #${ticketId}): "${subject}"\nกรุณาตรวจสอบในระบบแอดมินค่ะ`,
-    });
+    // 1. LINE Notification - Removed by user request
 
     // 2. Email Notification to Admins
     const emailHtml = generateStandardEmailHtml({
@@ -149,17 +137,8 @@ export const NotificationService = {
 
     const emailRes = await sendEmailFlexible(lawyerEmail, `[Lawslane] ข้อความใหม่จากคุณ ${clientName}`, emailHtml);
 
-    // 2. LINE Notification (if available)
-    let lineRes = { success: true };
-    if (lawyerLineId) {
-      lineRes = await pushToNotificationQueue({
-        type: "LINE_NOTIFICATION",
-        to: lawyerLineId,
-        text: `💬 ท่านมีข้อความใหม่จากคุณ ${clientName}: "${messageSnippet.substring(0, 30)}${messageSnippet.length > 30 ? '...' : ''}"\nคลิกเพื่อตอบแชท: ${SITE_URL}/chat/${chatId}?view=lawyer`,
-      });
-    }
-
-    return { success: emailRes.success && lineRes.success };
+    // 2. LINE Notification removed as per request
+    return { success: emailRes.success };
   },
 
   /**

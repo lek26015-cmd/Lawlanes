@@ -198,3 +198,143 @@ export async function getContractsByChatAction(chatId: string, userId?: string) 
         return { success: false, error: error.message };
     }
 }
+
+/**
+ * Fetches a specific contract by ID using Admin SDK
+ */
+export async function getContractByIdAction(contractId: string) {
+    try {
+        const adminApp = await initAdmin();
+        if (!adminApp) return { success: false, error: 'Firebase Admin not initialized.' };
+        const db = adminApp.firestore();
+
+        const docRef = db.collection('contracts').doc(contractId);
+        const docSnap = await docRef.get();
+
+        if (!docSnap.exists) {
+            return { success: false, error: 'ไม่พบสัญญา' };
+        }
+
+        const data = docSnap.data() as any;
+        const contract = {
+            id: docSnap.id,
+            ...data,
+            createdAt: data.createdAt?.toDate ? data.createdAt.toDate().getTime() : (data.createdAt || Date.now()),
+            updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate().getTime() : (data.updatedAt || Date.now()),
+        };
+
+        return { success: true, data: JSON.parse(JSON.stringify(contract)) };
+    } catch (error: any) {
+        console.error("Error fetching contract:", error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Fetches a specific invoice by ID using Admin SDK
+ */
+export async function getInvoiceByIdAction(invoiceId: string) {
+    try {
+        const adminApp = await initAdmin();
+        if (!adminApp) return { success: false, error: 'Firebase Admin not initialized.' };
+        const db = adminApp.firestore();
+
+        const docRef = db.collection('invoices').doc(invoiceId);
+        const docSnap = await docRef.get();
+
+        if (!docSnap.exists) {
+            return { success: false, error: 'ไม่พบใบแจ้งหนี้' };
+        }
+
+        const data = docSnap.data() as any;
+        const invoice = {
+            id: docSnap.id,
+            ...data,
+            createdAt: data.createdAt?.toDate ? data.createdAt.toDate().getTime() : (data.createdAt || Date.now()),
+            due_date: data.due_date?.toDate ? data.due_date.toDate().getTime() : (data.due_date || Date.now()),
+            paidAt: data.paidAt?.toDate ? data.paidAt.toDate().getTime() : data.paidAt,
+        };
+
+        return { success: true, data: JSON.parse(JSON.stringify(invoice)) };
+    } catch (error: any) {
+        console.error("Error fetching invoice:", error);
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Signs a contract by chatId and role. Creates a formal contract if missing.
+ */
+export async function signContractAction(chatId: string, role: 'client' | 'lawyer', signatureDataUrl?: string) {
+    try {
+        const adminApp = await initAdmin();
+        if (!adminApp) return { success: false, error: 'Firebase Admin not initialized.' };
+        const db = adminApp.firestore();
+
+        // 1. Search for existing contract for this chat
+        const queries = [
+            db.collection('contracts').where('chatId', '==', chatId).get(),
+            db.collection('contracts').where('case_id', '==', chatId).get(),
+            db.collection('contracts').where('caseId', '==', chatId).get(),
+            db.collection('contracts').where('chat_id', '==', chatId).get()
+        ];
+        
+        const snapshots = await Promise.all(queries);
+        let existingContractDoc: admin.firestore.QueryDocumentSnapshot | null = null;
+        
+        for (const snap of snapshots) {
+            if (!snap.empty) {
+                existingContractDoc = snap.docs[0];
+                break;
+            }
+        }
+
+        const now = new Date().toISOString();
+        const updateData: any = {};
+        
+        if (role === 'client') {
+            updateData.clientSigned = true;
+            updateData.clientSignedAt = now;
+            if (signatureDataUrl) updateData.clientSignatureImage = signatureDataUrl;
+        } else {
+            updateData.lawyerSigned = true;
+            updateData.lawyerSignedAt = now;
+            if (signatureDataUrl) updateData.lawyerSignatureImage = signatureDataUrl;
+        }
+
+        if (existingContractDoc) {
+            // Update existing contract
+            const data = existingContractDoc.data();
+            const bothSigned = (role === 'client' ? data.lawyerSigned : data.clientSigned) === true;
+            updateData.status = bothSigned ? 'signed' : 'pending';
+            
+            await existingContractDoc.ref.update(updateData);
+            return { success: true, contractId: existingContractDoc.id };
+        } else {
+            // No contract exists (Bug #7 fix). We need to create one based on chat data.
+            const chatSnap = await db.collection('chats').doc(chatId).get();
+            if (!chatSnap.exists) return { success: false, error: 'ไม่พบข้อมูลคดี' };
+            
+            const chatData = chatSnap.data() || {};
+            
+            updateData.chatId = chatId;
+            updateData.case_id = chatId;
+            updateData.lawyer_id = chatData.lawyerId || chatData.lawyer_id || 'unknown';
+            updateData.client_id = chatData.clientId || chatData.userId || chatData.client_id || 'unknown';
+            updateData.title = `สัญญาจ้างทนายความ: ${chatData.caseTitle || chatData.title || 'คดี'}`;
+            updateData.amount = chatData.amount || 0;
+            updateData.status = 'pending';
+            updateData.type = 'capdeal_contract';
+            updateData.content = chatData.contractText || chatData.description || 'ไม่มีรายละเอียดสัญญา';
+            updateData.createdAt = admin.firestore.FieldValue.serverTimestamp();
+            updateData.updatedAt = admin.firestore.FieldValue.serverTimestamp();
+
+            const newContractRef = db.collection('contracts').doc();
+            await newContractRef.set(updateData);
+            return { success: true, contractId: newContractRef.id };
+        }
+    } catch (error: any) {
+        console.error("Error signing contract:", error);
+        return { success: false, error: error.message };
+    }
+}
