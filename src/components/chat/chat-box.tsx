@@ -781,16 +781,20 @@ function ChatBoxContent({
                         variant="outline" 
                         size="sm" 
                         className="h-9 rounded-full text-xs font-bold"
-                        onClick={() => window.open(`https://capdeal.lawslane.com/th/contract/${contractPreviewData?.id}`, '_blank')}
+                        asChild
                     >
-                        <Maximize2 className="w-4 h-4 mr-1.5" /> ดูสัญญาเต็มแผ่น
+                        <a href={`/contract/${contractPreviewData?.id}/print`} target="_blank" rel="noopener noreferrer">
+                            <Maximize2 className="w-4 h-4 mr-1.5" /> ดูสัญญาเต็มแผ่น
+                        </a>
                     </Button>
                     <Button 
                         size="sm" 
                         className="h-9 rounded-full text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white"
-                        onClick={() => window.open(`https://capdeal.lawslane.com/th/contract/${contractPreviewData?.id}?print=1`, '_blank')}
+                        asChild
                     >
-                        <FileDown className="w-4 h-4 mr-1.5" /> PDF
+                        <a href={`/contract/${contractPreviewData?.id}/print?print=1`} target="_blank" rel="noopener noreferrer">
+                            <FileDown className="w-4 h-4 mr-1.5" /> PDF
+                        </a>
                     </Button>
                 </div>
                 <div className="md:hidden">

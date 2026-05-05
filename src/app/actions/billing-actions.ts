@@ -235,9 +235,39 @@ export async function getContractByIdAction(contractId: string) {
         }
 
         data = docSnap.data();
+        
+        let clientName = data.clientName;
+        let lawyerName = data.lawyerName;
+
+        if (!clientName && data.userId) {
+            const userSnap = await db.collection('users').doc(data.userId).get();
+            if (userSnap.exists) {
+                clientName = userSnap.data()?.name || userSnap.data()?.displayName || 'ลูกความ';
+            }
+        }
+
+        if (!lawyerName && data.lawyerId) {
+            let foundLawyer = false;
+            // try lawyerProfiles first
+            const lawyerSnap = await db.collection('lawyerProfiles').doc(data.lawyerId).get();
+            if (lawyerSnap.exists) {
+                lawyerName = lawyerSnap.data()?.name || lawyerSnap.data()?.fullName || 'ทนายความ';
+                foundLawyer = true;
+            }
+            // fallback to users collection
+            if (!foundLawyer) {
+                const userSnap = await db.collection('users').doc(data.lawyerId).get();
+                if (userSnap.exists) {
+                    lawyerName = userSnap.data()?.name || userSnap.data()?.displayName || 'ทนายความ';
+                }
+            }
+        }
+
         const contract = {
             id: docSnap.id,
             ...data,
+            clientName: clientName || 'ลูกความ',
+            lawyerName: lawyerName || 'ทนายความ',
             createdAt: data.createdAt?.toDate ? data.createdAt.toDate().getTime() : (data.createdAt || Date.now()),
             updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate().getTime() : (data.updatedAt || Date.now()),
         };

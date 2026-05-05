@@ -1409,7 +1409,7 @@ function ChatPageContent() {
                         <div className="hidden md:flex items-center gap-2">
                             <Button variant="outline" size="sm" className="h-9 rounded-full text-xs font-bold text-blue-600 border-blue-200 hover:bg-blue-50" onClick={() => {
                                 if (contracts[0]?.id) {
-                                    navigator.clipboard.writeText(`https://capdeal.lawslane.com/th/contract/${contracts[0].id}`);
+                                    navigator.clipboard.writeText(`${window.location.origin}/contract/${contracts[0].id}/print`);
                                     toast({ title: 'คัดลอกลิงก์สำเร็จ', description: 'คุณสามารถนำลิงก์นี้ไปส่งให้คู่สัญญาได้เลย' });
                                 } else {
                                     toast({ variant: 'destructive', title: 'เกิดข้อผิดพลาด', description: 'ยังไม่มีเอกสารสัญญาสมบูรณ์' });
@@ -1420,17 +1420,27 @@ function ChatPageContent() {
                             <Button variant="outline" size="sm" className="h-9 rounded-full text-xs font-bold text-amber-600 border-amber-200 hover:bg-amber-50">
                                 <Plus className="w-4 h-4 mr-1.5" /> สร้างฉบับแก้ไข
                             </Button>
-                            <Button variant="outline" size="sm" className="h-9 rounded-full text-xs font-bold" onClick={() => {
-                                if (contracts[0]?.id) window.open(`https://capdeal.lawslane.com/th/contract/${contracts[0].id}`, '_blank');
-                                else toast({ variant: 'destructive', title: 'เกิดข้อผิดพลาด', description: 'ยังไม่มีเอกสารสัญญาสมบูรณ์' });
-                            }}>
-                                <Maximize2 className="w-4 h-4 mr-1.5" /> ดูสัญญาเต็มแผ่น
+                            <Button variant="outline" size="sm" className="h-9 rounded-full text-xs font-bold" asChild>
+                                {contracts[0]?.id ? (
+                                    <a href={`/contract/${contracts[0].id}/print`} target="_blank" rel="noopener noreferrer">
+                                        <Maximize2 className="w-4 h-4 mr-1.5" /> ดูสัญญาเต็มแผ่น
+                                    </a>
+                                ) : (
+                                    <button onClick={() => toast({ variant: 'destructive', title: 'เกิดข้อผิดพลาด', description: 'ยังไม่มีเอกสารสัญญาสมบูรณ์' })}>
+                                        <Maximize2 className="w-4 h-4 mr-1.5" /> ดูสัญญาเต็มแผ่น
+                                    </button>
+                                )}
                             </Button>
-                            <Button size="sm" className="h-9 rounded-full text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white" onClick={() => {
-                                if (contracts[0]?.id) window.open(`https://capdeal.lawslane.com/th/contract/${contracts[0].id}?print=1`, '_blank');
-                                else toast({ variant: 'destructive', title: 'เกิดข้อผิดพลาด', description: 'ยังไม่มีเอกสารสัญญาสมบูรณ์' });
-                            }}>
-                                <FileDown className="w-4 h-4 mr-1.5" /> PDF
+                            <Button size="sm" className="h-9 rounded-full text-xs font-bold bg-blue-600 hover:bg-blue-700 text-white" asChild>
+                                {contracts[0]?.id ? (
+                                    <a href={`/contract/${contracts[0].id}/print?print=1`} target="_blank" rel="noopener noreferrer">
+                                        <FileDown className="w-4 h-4 mr-1.5" /> PDF
+                                    </a>
+                                ) : (
+                                    <button onClick={() => toast({ variant: 'destructive', title: 'เกิดข้อผิดพลาด', description: 'ยังไม่มีเอกสารสัญญาสมบูรณ์' })}>
+                                        <FileDown className="w-4 h-4 mr-1.5" /> PDF
+                                    </button>
+                                )}
                             </Button>
                         </div>
                         <div className="md:hidden">
@@ -1639,6 +1649,7 @@ function ChatPageContent() {
             {showSignaturePad && (
                 <Dialog open={showSignaturePad} onOpenChange={setShowSignaturePad}>
                     <DialogContent className="sm:max-w-[500px]">
+                        <DialogTitle className="sr-only">เซ็นชื่อกำกับสัญญา</DialogTitle>
                         <div className="flex flex-col space-y-4 pt-4">
                             <h2 className="text-xl font-bold text-center">เซ็นชื่อกำกับสัญญา</h2>
                             <p className="text-sm text-slate-500 text-center">กรุณาวาดลายเซ็นของคุณในกรอบด้านล่าง</p>
