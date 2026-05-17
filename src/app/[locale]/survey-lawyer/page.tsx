@@ -172,7 +172,7 @@ export default function SurveyLawyerPage() {
                 </p>
 
                 {q.type === 'radio' && q.options?.map(opt => (
-                  <label key={opt} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${answers[q.id] === opt ? 'border-blue-500 bg-blue-50 shadow-sm' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'}`}>
+                  <label key={opt} onClick={() => setRadio(q.id, opt)} className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-all ${answers[q.id] === opt ? 'border-blue-500 bg-blue-50 shadow-sm' : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'}`}>
                     <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${answers[q.id] === opt ? 'border-blue-500' : 'border-slate-300'}`}>
                       {answers[q.id] === opt && <div className="w-2.5 h-2.5 rounded-full bg-blue-500" />}
                     </div>

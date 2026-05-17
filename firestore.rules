@@ -272,6 +272,17 @@ service cloud.firestore {
       allow update: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
     }
 
+
+    match /survey_lawyer_responses/{responseId} {
+        allow create: if true;
+        allow read, update, delete: if isAdmin();
+    }
+
+    match /survey_public_responses/{responseId} {
+        allow create: if true;
+        allow read, update, delete: if isAdmin();
+    }
+
     // Default deny at the very end
     match /{document=**} {
       allow read, write: if false;
