@@ -31,7 +31,7 @@ export async function analyzeContract(contractText: string): Promise<ContractAna
 
     const genAI = new GoogleGenerativeAI(apiKey);
     const extractionModel = genAI.getGenerativeModel({
-        model: "gemini-1.5-flash",
+        model: "gemini-2.5-flash",
         generationConfig: {
             responseMimeType: "application/json",
             responseSchema: {
@@ -78,7 +78,7 @@ export async function analyzeContract(contractText: string): Promise<ContractAna
 
     // Step 3: Analyze Contract against Laws
     const analysisModel = genAI.getGenerativeModel({
-        model: "gemini-1.5-flash", // Optimized: Using Flash with better prompting for cost efficiency
+        model: "gemini-2.5-flash",
         generationConfig: {
             responseMimeType: "application/json",
             responseSchema: {

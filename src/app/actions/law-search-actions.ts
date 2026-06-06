@@ -28,7 +28,7 @@ export async function searchLaws(query: string, limit: number = 10): Promise<Sea
         if (!apiKey) return filteredResults; // Fallback if no key
 
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
         const repairedResults = await Promise.all(filteredResults.map(async (res) => {
             // Detection: Check for common "box" chars (tofu) or lack of Thai tone marks/vowels in long text
