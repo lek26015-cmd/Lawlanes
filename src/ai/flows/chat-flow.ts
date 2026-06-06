@@ -316,17 +316,6 @@ async function fallbackChat(prompt: string, history: any[], locale: string = 'th
     const strings = locale.startsWith('en') ? t.en : (locale.startsWith('zh') ? t.zh : t.th);
 
     const lowerCaseQuery = prompt.toLowerCase();
-    
-    // Quick handle for greetings to save RAG/Firestore calls
-    const greetings = ['สวัสดี', 'หวัดดี', 'hello', 'hi', 'ทักทาย', '你好'];
-    if (greetings.some(g => lowerCaseQuery.includes(g))) {
-      return {
-        sections: [{
-          title: strings.greetingTitle,
-          content: strings.greetingContent
-        }]
-      };
-    }
 
     const cleanPrompt = lowerCaseQuery
       .replace(/^(คดี|กฎหมาย|เรื่อง|การ|ความ|ข้อหา|มี|เป็น)/g, '')
