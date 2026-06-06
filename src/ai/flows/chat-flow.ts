@@ -137,16 +137,39 @@ export async function chat(
       finalPrompt += `\n\n[System Note: This is a continuing conversation. Do NOT introduce yourself again. Do NOT say 'Hello' or 'Sawasdee'. Answer the question directly.]`;
     }
 
+    // ALWAYS pre-fetch RAG results before sending to Gemini
+    let ragContext = '';
+    try {
+      const ragDocs = await retrieveDocuments(prompt);
+      const relevantDocs = ragDocs.filter(doc => doc.score > 0.4);
+      if (relevantDocs.length > 0) {
+        ragContext = relevantDocs.slice(0, 3).map((doc, i) => {
+          const sourceTitle = formatSourceTitle(doc.source);
+          return `[Source ${i + 1}: ${sourceTitle}]\n${doc.content}`;
+        }).join('\n\n---\n\n');
+        console.log(`[ChatFlow] Pre-fetched RAG: ${relevantDocs.length} relevant docs for "${prompt.substring(0, 30)}..."`);
+      } else {
+        console.log(`[ChatFlow] RAG returned no relevant docs above threshold for "${prompt.substring(0, 30)}..."`);
+      }
+    } catch (ragErr) {
+      console.error('[ChatFlow] RAG pre-fetch failed:', ragErr);
+    }
+
+    // Inject RAG context into the prompt
+    if (ragContext) {
+      finalPrompt += `\n\n[Legal Database Results - USE THESE AS YOUR PRIMARY SOURCE AND CITE THEM]:\n${ragContext}`;
+    }
+
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
       model: "gemini-2.5-flash",
       tools: [{ functionDeclarations: [searchArticlesDeclaration] }],
       systemInstruction: `You are LAlin (ละลิน), the expert female legal AI assistant for Lawslane Thailand.
 
-MANDATORY TOOL USE:
-- You MUST ALWAYS call the searchArticles function before answering ANY legal question. NEVER answer legal questions from your own knowledge alone.
-- Even for greetings, call searchArticles with a general legal topic to provide useful information.
-- After receiving search results, synthesize them into your answer and cite the sources naturally.
+MANDATORY SOURCE USE:
+- Legal Database Results are provided in the user's message. You MUST use them as your PRIMARY source and cite them in your answer.
+- If the provided results are not sufficient, you MAY call searchArticles for additional information.
+- NEVER answer legal questions purely from your own knowledge without referencing the provided sources.
 
 CONVERSATION STYLE:
 - Respond naturally and conversationally, like chatting with a knowledgeable legal friend.
@@ -186,7 +209,7 @@ For simple conversational answers, use a single section with an empty title.
 
     let result = await chatSession.sendMessage(finalPrompt);
 
-    // Handle function calls if any
+    // Handle function calls if Gemini wants additional search
     if (result.response.functionCalls()) {
       const calls = result.response.functionCalls();
       for (const call of calls || []) {
