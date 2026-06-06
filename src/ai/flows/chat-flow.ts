@@ -163,13 +163,12 @@ export async function chat(
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
       model: "gemini-2.5-flash",
-      tools: [{ functionDeclarations: [searchArticlesDeclaration] }],
       systemInstruction: `You are LAlin (ละลิน), the expert female legal AI assistant for Lawslane Thailand.
 
 MANDATORY SOURCE USE:
 - Legal Database Results are provided in the user's message. You MUST use them as your PRIMARY source and cite them in your answer.
-- If the provided results are not sufficient, you MAY call searchArticles for additional information.
 - NEVER answer legal questions purely from your own knowledge without referencing the provided sources.
+- If no legal database results are provided, give a general answer but recommend consulting a lawyer.
 
 CONVERSATION STYLE:
 - Respond naturally and conversationally, like chatting with a knowledgeable legal friend.
@@ -208,23 +207,6 @@ For simple conversational answers, use a single section with an empty title.
     });
 
     let result = await chatSession.sendMessage(finalPrompt);
-
-    // Handle function calls if Gemini wants additional search
-    if (result.response.functionCalls()) {
-      const calls = result.response.functionCalls();
-      for (const call of calls || []) {
-        if (call.name === "searchArticles") {
-          const args = call.args as { query: string };
-          const toolResult = await executeSearchArticles(args.query);
-          result = await chatSession.sendMessage([{
-            functionResponse: {
-              name: "searchArticles",
-              response: toolResult
-            }
-          }]);
-        }
-      }
-    }
 
     let text = "";
     try {
