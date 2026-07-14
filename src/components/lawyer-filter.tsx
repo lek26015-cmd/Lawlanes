@@ -24,11 +24,13 @@ import { thaiProvinces } from '@/data/thai-provinces';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Button } from '@/components/ui/button';
-import { Scale } from 'lucide-react';
+import { Scale, ShieldCheck } from 'lucide-react';
 import { useTranslations } from 'next-intl';
+import { Link } from '@/navigation';
 
 export default function LawyerFilterSidebar() {
   const t = useTranslations('Lawyers');
+  const tVerify = useTranslations('VerifyLawyer');
   const router = useRouter();
   const pathname = usePathname();
 
@@ -129,13 +131,20 @@ export default function LawyerFilterSidebar() {
           </Select>
         </div>
       </CardContent>
-      <CardFooter className="pb-8 pt-4">
+      <CardFooter className="pb-8 pt-4 flex flex-col gap-3">
         <Button 
           onClick={handleSearch}
           className="w-full rounded-xl h-12 text-base font-bold shadow-lg hover:shadow-xl transition-all duration-300 bg-[#0B3979] hover:bg-[#082a5a] text-white"
         >
           {t('filter.searchButton')}
         </Button>
+        <Link
+          href="/verify-lawyer"
+          className="w-full flex items-center justify-center gap-2 text-sm text-slate-500 hover:text-[#0B3979] transition-colors py-2 rounded-xl hover:bg-blue-50"
+        >
+          <ShieldCheck className="w-4 h-4" />
+          {tVerify('filter.verifyLink')}
+        </Link>
       </CardFooter>
     </Card>
   );

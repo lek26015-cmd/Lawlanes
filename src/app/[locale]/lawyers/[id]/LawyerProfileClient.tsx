@@ -8,14 +8,14 @@ import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Trophy, BookCopy, Mail, Phone, Scale, X } from 'lucide-react';
+import { ArrowLeft, Trophy, BookCopy, Mail, Phone, Scale, X, ShieldCheck } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import React, { useState, useEffect } from 'react';
 import type { LawyerProfile } from '@/lib/types';
 import { useFirebase } from '@/firebase';
-import { doc, getDoc, setDoc, collection, serverTimestamp, addDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc, collection, serverTimestamp, addDoc, query, where, getDocs, limit } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -51,6 +51,7 @@ export default function LawyerProfileClient({ initialLawyer, id }: LawyerProfile
     const [reviews, setReviews] = useState<any[]>([]);
     const [isLawyer, setIsLawyer] = useState(false);
     const [stats, setStats] = useState({ responseRate: 0, completedCases: 0 });
+    const [verifiedByBar, setVerifiedByBar] = useState(false);
     const { toast } = useToast();
 
     // Modal States
@@ -87,6 +88,24 @@ export default function LawyerProfileClient({ initialLawyer, id }: LawyerProfile
         }
         checkUserRole();
     }, [user, firestore]);
+
+    // Check if lawyer is verified by Bar Association
+    useEffect(() => {
+        async function checkBarVerification() {
+            if (!firestore || !lawyer?.licenseNumber) return;
+            try {
+                const verifiedRef = collection(firestore, 'verifiedLawyers');
+                const q = query(verifiedRef, where('licenseNumber', '==', lawyer.licenseNumber), where('status', '==', 'active'), limit(1));
+                const snap = await getDocs(q);
+                if (!snap.empty) {
+                    setVerifiedByBar(true);
+                }
+            } catch (error) {
+                console.error('Error checking bar verification:', error);
+            }
+        }
+        checkBarVerification();
+    }, [firestore, lawyer?.licenseNumber]);
 
     const searchParams = useSearchParams();
     const autoOpenChat = searchParams.get('chat') === 'true';
@@ -240,6 +259,12 @@ export default function LawyerProfileClient({ initialLawyer, id }: LawyerProfile
                                         <span className="text-muted-foreground">({reviewCount} {t('reviews')})</span>
                                     </div>
                                     <div className="mt-4 flex flex-wrap gap-2 justify-center md:justify-start">
+                                        {verifiedByBar && (
+                                            <Badge className="bg-emerald-50 text-emerald-700 border border-emerald-200 gap-1 font-medium" variant="outline">
+                                                <ShieldCheck className="w-3.5 h-3.5" />
+                                                ยืนยันโดยสภาทนายฯ
+                                            </Badge>
+                                        )}
                                         {(lawyer.specialty || []).map((spec, index) => (
                                             <Badge key={index} variant="secondary">{translateSpecialty(spec)}</Badge>
                                         ))}

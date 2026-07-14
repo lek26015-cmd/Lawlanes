@@ -251,8 +251,15 @@
         "or": "or",
         "lawyerNameLabel": "Lawyer's Full Name",
         "lawyerNamePlaceholder": "Enter full name",
+        "searchByNameTip": "We recommend searching by name, as some lawyers may not have license numbers registered yet.",
         "verifyButton": "Verify",
-        "verifying": "Verifying information from the Bar Association (simulated)...",
+        "verifying": "Verifying information from database...",
+        "totalRegistryCount": "{count} lawyers in the database",
+        "resultSummary": "Found {count} results",
+        "searchAgain": "Search Again",
+        "ctaBrowseLawyers": "Browse verified and trusted lawyers on Lawslane",
+        "ctaBrowseSubtitle": "Verified lawyers ready for consultation",
+        "ctaBrowseCount": "{count} verified lawyers in the system",
         "resultFound": {
             "title": "Information Found",
             "description": "This lawyer has been verified in the Lawslane system",
@@ -263,6 +270,24 @@
             "title": "Not Found",
             "description": "No lawyer found with the provided information. Please check the details or contact support.",
             "closeButton": "Close"
+        },
+        "status": {
+            "active": "Active License",
+            "suspended": "License Suspended",
+            "struckOff": "Struck Off",
+            "pending": "Pending Verification"
+        },
+        "card": {
+            "onLawslane": "Registered on Lawslane",
+            "registryOnly": "Data from Bar Association Registry",
+            "notRegisteredMessage": "This lawyer has not registered with Lawslane yet, so there is no contact channel available through the system.",
+            "notRegisteredCta": "If you are this lawyer, you can register to add your contact information and receive clients through Lawslane.",
+            "registerButton": "Register as a Lawyer",
+            "share": "Share",
+            "shareLawyer": "Invite to Register"
+        },
+        "filter": {
+            "verifyLink": "Verify Lawyer Status"
         }
     },
     "LegalForms": {

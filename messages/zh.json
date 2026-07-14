@@ -251,7 +251,13 @@
         "lawyerNameLabel": "律师姓名",
         "lawyerNamePlaceholder": "请输入姓名",
         "verifyButton": "验证",
-        "verifying": "正在从律师协会验证信息（模拟）...",
+        "verifying": "正在从数据库验证信息...",
+        "totalRegistryCount": "数据库中共有 {count} 位律师",
+        "resultSummary": "找到 {count} 条结果",
+        "searchAgain": "重新搜索",
+        "ctaBrowseLawyers": "浏览已注册且安全的 Lawslane 律师",
+        "ctaBrowseSubtitle": "经过验证的律师，随时为您提供咨询",
+        "ctaBrowseCount": "系统中共有 {count} 位律师",
         "resultFound": {
             "title": "找到信息",
             "description": "该律师已在 Lawslane 系统中验证",
@@ -262,6 +268,24 @@
             "title": "未找到",
             "description": "未找到符合所提供信息的律师。请检查详细信息或联系支持。",
             "closeButton": "关闭"
+        },
+        "status": {
+            "active": "执照有效",
+            "suspended": "执照暂停",
+            "struckOff": "已除名",
+            "pending": "待验证"
+        },
+        "card": {
+            "onLawslane": "已注册 Lawslane",
+            "registryOnly": "来自律师协会注册数据",
+            "notRegisteredMessage": "该律师尚未注册 Lawslane，因此无法通过系统联系。",
+            "notRegisteredCta": "如果您是该律师，可以注册以添加联系方式并通过 Lawslane 接收客户。",
+            "registerButton": "注册成为律师",
+            "share": "分享",
+            "shareLawyer": "邀请注册"
+        },
+        "filter": {
+            "verifyLink": "验证律师状态"
         }
     },
     "LegalForms": {
