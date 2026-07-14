@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { createUserWithEmailAndPassword, updateProfile, signOut } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp, addDoc, collection } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, addDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { useFirebase } from '@/firebase';
 import { uploadToFirebasePublic } from '@/app/actions/upload-secure';
 import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '@/lib/constants';
@@ -168,6 +168,22 @@ export default function LawyerExpressSignupPage() {
                 profileImageUrl = await uploadToFirebasePublic(formData, 'profile-images');
             }
 
+            // 2.6 Check if license number exists in registry (auto-approve if found)
+            let autoApproved = false;
+            try {
+                const registryQuery = query(
+                    collection(firestore, 'verifiedLawyers'),
+                    where('licenseNumber', '==', values.licenseNumber.trim()),
+                    where('status', '==', 'active')
+                );
+                const registrySnap = await getDocs(registryQuery);
+                autoApproved = !registrySnap.empty;
+            } catch (err) {
+                console.error('Error checking registry:', err);
+            }
+
+            const registrationStatus = autoApproved ? 'approved' : 'pending';
+
             // 3. Create user profile document in Firestore (users collection)
             const userDocRef = doc(firestore, 'users', user.uid);
             const userProfileData = {
@@ -177,7 +193,7 @@ export default function LawyerExpressSignupPage() {
                 role: 'lawyer',
                 type: 'บุคคลทั่วไป',
                 registeredAt: serverTimestamp(),
-                status: 'pending', // Pending approval
+                status: registrationStatus,
                 avatar: '',
                 termsAccepted: true,
                 termsAcceptedAt: serverTimestamp(),
@@ -194,7 +210,7 @@ export default function LawyerExpressSignupPage() {
                 email: values.email,
                 licenseNumber: values.licenseNumber,
                 specialty: values.specialties,
-                status: 'pending',
+                status: registrationStatus,
                 joinedAt: serverTimestamp(),
                 // Default empty/pending values for fields not collected yet
                 phone: '',
@@ -233,8 +249,10 @@ export default function LawyerExpressSignupPage() {
             try {
                 await addDoc(collection(firestore, 'notifications'), {
                     type: 'lawyer_registration',
-                    title: 'สมัครทนายความ (Express)',
-                    message: `มีทนายความใหม่สมัครสมาชิก (ด่วน): ${values.name}`,
+                    title: autoApproved ? 'ทนายความสมัคร (อนุมัติอัตโนมัติ)' : 'สมัครทนายความ (Express)',
+                    message: autoApproved 
+                        ? `ทนายความ ${values.name} สมัครสมาชิกและได้รับการอนุมัติอัตโนมัติ (พบในทะเบียนทนาย)`
+                        : `มีทนายความใหม่สมัครสมาชิก (ด่วน): ${values.name}`,
                     createdAt: serverTimestamp(),
                     read: false,
                     recipient: 'admin',
@@ -252,8 +270,10 @@ export default function LawyerExpressSignupPage() {
             }
 
             toast({
-                title: 'สมัครเข้าร่วมสำเร็จ',
-                description: 'กรุณาตรวจสอบอีเมลเพื่อยืนยันตัวตน',
+                title: autoApproved ? 'สมัครและอนุมัติสำเร็จ!' : 'สมัครเข้าร่วมสำเร็จ',
+                description: autoApproved 
+                    ? 'บัญชีของคุณได้รับการอนุมัติอัตโนมัติแล้ว กรุณาตรวจสอบอีเมลเพื่อยืนยันตัวตน'
+                    : 'กรุณาตรวจสอบอีเมลเพื่อยืนยันตัวตน',
             });
 
             await signOut(auth);

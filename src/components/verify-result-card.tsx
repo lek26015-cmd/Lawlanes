@@ -111,10 +111,6 @@ export default function VerifyResultCard({ result }: VerifyResultCardProps) {
                             </p>
 
                             <div className="flex flex-wrap gap-2 mt-3 justify-center sm:justify-start">
-                                <Badge className={`${currentStatus.color} border font-medium gap-1`} variant="outline">
-                                    {currentStatus.icon}
-                                    {currentStatus.label}
-                                </Badge>
                                 {result.province && (
                                     <Badge variant="outline" className="text-slate-500 border-slate-200 gap-1 font-normal">
                                         <MapPin className="w-3 h-3" />
@@ -185,10 +181,6 @@ export default function VerifyResultCard({ result }: VerifyResultCardProps) {
                         </p>
 
                         <div className="flex flex-wrap gap-2 mt-3 justify-center sm:justify-start">
-                            <Badge className={`${currentStatus.color} border font-medium gap-1`} variant="outline">
-                                {currentStatus.icon}
-                                {currentStatus.label}
-                            </Badge>
                             {result.province && (
                                 <Badge variant="outline" className="text-slate-500 border-slate-200 gap-1 font-normal">
                                     <MapPin className="w-3 h-3" />
