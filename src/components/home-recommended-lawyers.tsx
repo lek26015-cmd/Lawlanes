@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import LawyerCard from '@/components/lawyer-card';
+import FeaturedLawyerCard from '@/components/featured-lawyer-card';
 import { useFirebase } from '@/firebase';
 import { getApprovedLawyers } from '@/lib/data';
 import { LawyerProfile } from '@/lib/types';
@@ -22,16 +23,29 @@ export function HomeRecommendedLawyers({ initialLawyers }: HomeRecommendedLawyer
     const [lawyers, setLawyers] = useState<LawyerProfile[]>(initialLawyers || []);
     const [loading, setLoading] = useState(!initialLawyers);
     const t = useTranslations('HomePage.recommendedLawyers');
+    const FEATURED_LAWYER_NAMES = ['กฤตเมธ ไวโส'];
+
+    // Sort featured lawyers first
+    const sortFeaturedFirst = (list: LawyerProfile[]) =>
+        [...list].sort((a, b) => {
+            const isFeatA = FEATURED_LAWYER_NAMES.some(name => a.name?.includes(name));
+            const isFeatB = FEATURED_LAWYER_NAMES.some(name => b.name?.includes(name));
+            if (isFeatA && !isFeatB) return -1;
+            if (!isFeatA && isFeatB) return 1;
+            return 0;
+        });
 
     useEffect(() => {
-        // Only fetch if we don't have initial lawyers
-        if (initialLawyers && initialLawyers.length > 0) return;
+        if (initialLawyers && initialLawyers.length > 0) {
+            setLawyers(sortFeaturedFirst(initialLawyers));
+            return;
+        }
 
         async function fetchLawyers() {
             if (!firestore) return;
             try {
                 const fetchedLawyers = await getApprovedLawyers(firestore);
-                setLawyers(fetchedLawyers.slice(0, 10));
+                setLawyers(sortFeaturedFirst(fetchedLawyers.slice(0, 10)));
             } catch (error) {
                 console.error("Error fetching lawyers:", error);
             } finally {
@@ -92,7 +106,11 @@ export function HomeRecommendedLawyers({ initialLawyers }: HomeRecommendedLawyer
                             <div className="flex flex-col gap-6">
                                 {lawyers.map((lawyer, index) => (
                                     <FadeIn key={lawyer.id} delay={index * 150} direction="up">
-                                        <LawyerCard lawyer={lawyer} />
+                                        {FEATURED_LAWYER_NAMES.some(name => lawyer.name?.includes(name)) ? (
+                                            <FeaturedLawyerCard lawyer={lawyer} />
+                                        ) : (
+                                            <LawyerCard lawyer={lawyer} />
+                                        )}
                                     </FadeIn>
                                 ))}
                             </div>

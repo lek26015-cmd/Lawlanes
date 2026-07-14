@@ -283,6 +283,12 @@ service cloud.firestore {
         allow read, update, delete: if isAdmin();
     }
 
+    // Site statistics (page views)
+    match /siteStats/{docId} {
+        allow read: if true;
+        allow write: if true;
+    }
+
     // Default deny at the very end
     match /{document=**} {
       allow read, write: if false;

@@ -12,9 +12,10 @@ import {
   updateDoc,
   increment,
   getCountFromServer,
-  writeBatch
+  writeBatch,
+  setDoc
 } from 'firebase/firestore';
-import type { LawyerProfile, ImagePlaceholder, Ad, Article, Case, UpcomingAppointment, ReportedTicket, LawyerAppointmentRequest, LawyerCase, UserProfile, LegalForm } from '@/lib/types';
+import type { LawyerProfile, RegistryLawyer, ImagePlaceholder, Ad, Article, Case, UpcomingAppointment, ReportedTicket, LawyerAppointmentRequest, LawyerCase, UserProfile, LegalForm } from '@/lib/types';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { format } from 'date-fns';
 import { th } from 'date-fns/locale';
@@ -44,6 +45,58 @@ export async function getApprovedLawyers(db: Firestore, limitCount: number = 50)
     });
   } catch (error) {
     console.error("Error fetching approved lawyers:", error);
+    return [];
+  }
+}
+
+/**
+ * Fetch registry lawyers (from verifiedLawyers collection) that have a license number
+ * but are NOT already registered on Lawslane. Used to show them in the search page.
+ */
+export async function getRegistryLawyers(
+  db: Firestore,
+  approvedLawyerLicenseNumbers: Set<string>,
+  limitCount: number = 50
+): Promise<RegistryLawyer[]> {
+  if (!db) return [];
+  try {
+    const verifiedRef = collection(db, 'verifiedLawyers');
+    const q = query(
+      verifiedRef,
+      where('status', '==', 'active'),
+      limit(limitCount + approvedLawyerLicenseNumbers.size) // fetch extra to account for duplicates
+    );
+    const querySnapshot = await getDocs(q);
+
+    const results: RegistryLawyer[] = [];
+    for (const docSnap of querySnapshot.docs) {
+      const data = docSnap.data();
+      const licenseNumber = data.licenseNumber?.trim() || '';
+
+      // Skip if no license number
+      if (!licenseNumber) continue;
+
+      // Skip if already registered on Lawslane
+      if (approvedLawyerLicenseNumbers.has(licenseNumber)) continue;
+
+      results.push({
+        id: docSnap.id,
+        prefix: data.prefix || '',
+        firstName: data.firstName || '',
+        lastName: data.lastName || '',
+        licenseNumber,
+        licenseType: data.licenseType || '',
+        province: data.province || '',
+        status: data.status || 'active',
+        source: data.source || 'document_import',
+      });
+
+      if (results.length >= limitCount) break;
+    }
+
+    return results;
+  } catch (error) {
+    console.error('Error fetching registry lawyers:', error);
     return [];
   }
 }
@@ -979,5 +1032,43 @@ export async function getCaseById(db: Firestore, id: string): Promise<Case | und
   } catch (error) {
     console.error("Error fetching case by id:", error);
     return undefined;
+  }
+}
+
+// --- Page View Tracking ---
+
+/**
+ * Increment the page view counter for the current month.
+ * Uses a single document in siteStats/pageViews with monthly fields (e.g. "2026-07": 1234)
+ */
+export async function incrementPageView(db: Firestore): Promise<void> {
+  if (!db) return;
+  try {
+    const now = new Date();
+    const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+    const docRef = doc(db, 'siteStats', 'pageViews');
+    await setDoc(docRef, { [monthKey]: increment(1) }, { merge: true });
+  } catch (error) {
+    // Silently fail — don't break user experience for analytics
+    console.error("Error incrementing page view:", error);
+  }
+}
+
+/**
+ * Get total page views across all months.
+ */
+export async function getTotalPageViews(db: Firestore): Promise<number> {
+  if (!db) return 0;
+  try {
+    const docRef = doc(db, 'siteStats', 'pageViews');
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      return Object.values(data).reduce((sum: number, val) => sum + (typeof val === 'number' ? val : 0), 0);
+    }
+    return 0;
+  } catch (error) {
+    console.error("Error getting total page views:", error);
+    return 0;
   }
 }

@@ -7,6 +7,10 @@ export const metadata: Metadata = {
     icons: {
         icon: '/icon.jpg',
     },
+    robots: {
+        index: false,
+        follow: false,
+    },
 };
 
 export default async function LawyerLayout({

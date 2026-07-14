@@ -3,10 +3,12 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { getApprovedLawyers, getAdsByPlacement } from '@/lib/data';
+import { getApprovedLawyers, getRegistryLawyers } from '@/lib/data';
 import LawyerCard from '@/components/lawyer-card';
-import type { LawyerProfile, Ad } from '@/lib/types';
-import { Loader2, Award, Sparkles } from 'lucide-react';
+import FeaturedLawyerCard from '@/components/featured-lawyer-card';
+import RegistryLawyerCard from '@/components/registry-lawyer-card';
+import type { LawyerProfile, RegistryLawyer } from '@/lib/types';
+import { Loader2, Award, Sparkles, ClipboardList } from 'lucide-react';
 import React from 'react';
 import { Progress } from '@/components/ui/progress';
 import LawyerFilterSidebar from '@/components/lawyer-filter';
@@ -26,8 +28,14 @@ function LawyersPageContent() {
   const { firestore } = useFirebase();
   const t = useTranslations('Lawyers');
 
+  // Configurable list of featured lawyer names
+  const FEATURED_LAWYER_NAMES = ['กฤตเมธ ไวโส'];
+  const LAST_PLACE_NAMES = ['ชนาพัทธ์ ผมเพชร'];
+
   const [allLawyers, setAllLawyers] = useState<LawyerProfile[]>([]);
   const [filteredLawyers, setFilteredLawyers] = useState<LawyerProfile[]>([]);
+  const [registryLawyers, setRegistryLawyers] = useState<RegistryLawyer[]>([]);
+  const [registryDisplayCount, setRegistryDisplayCount] = useState(10);
   const [isLoading, setIsLoading] = useState(true);
   const [isSorting, setIsSorting] = useState(false);
   const [recommendedLawyerIds, setRecommendedLawyerIds] = useState<string[]>([]);
@@ -43,8 +51,13 @@ function LawyersPageContent() {
       setIsLoading(true);
       const lawyers = await getApprovedLawyers(firestore);
 
-      // Sort: Lawyers with images first
+      // Sort: Lawyers with images first, then push LAST_PLACE to end
       lawyers.sort((a, b) => {
+        const isLastA = LAST_PLACE_NAMES.some(name => a.name?.includes(name));
+        const isLastB = LAST_PLACE_NAMES.some(name => b.name?.includes(name));
+        if (isLastA && !isLastB) return 1;
+        if (!isLastA && isLastB) return -1;
+
         const hasImageA = a.imageUrl && a.imageUrl.length > 0;
         const hasImageB = b.imageUrl && b.imageUrl.length > 0;
         if (hasImageA && !hasImageB) return -1;
@@ -54,6 +67,14 @@ function LawyersPageContent() {
 
       setAllLawyers(lawyers);
       setFilteredLawyers(lawyers);
+
+      // Fetch registry lawyers (exclude those already on Lawslane)
+      const approvedLicenseNumbers = new Set(
+        lawyers.map(l => l.licenseNumber).filter(Boolean)
+      );
+      const registry = await getRegistryLawyers(firestore, approvedLicenseNumbers, 100);
+      setRegistryLawyers(registry);
+
       setIsLoading(false);
     }
     fetchData();
@@ -237,7 +258,17 @@ function LawyersPageContent() {
                 {t('foundLawyers', { count: filteredLawyers.length })}
               </p>
 
-              {filteredLawyers.map((lawyer) => (
+              {/* Featured Lawyers (amber border, shown first) */}
+              {filteredLawyers
+                .filter(l => FEATURED_LAWYER_NAMES.some(name => l.name?.includes(name)))
+                .map((lawyer) => (
+                  <FeaturedLawyerCard key={lawyer.id} lawyer={lawyer} />
+                ))
+              }
+
+              {filteredLawyers
+                .filter(l => !FEATURED_LAWYER_NAMES.some(name => l.name?.includes(name)))
+                .map((lawyer) => (
                 <div
                   key={lawyer.id}
                   className={`transition-all duration-500 rounded-xl ${
@@ -255,6 +286,47 @@ function LawyersPageContent() {
                   <LawyerCard lawyer={lawyer} />
                 </div>
               ))}
+
+              {/* Registry Lawyers Section */}
+              {registryLawyers.length > 0 && (
+                <div className="mt-10">
+                  {/* Section Header */}
+                  <div className="flex items-center gap-3 mb-1">
+                    <div className="w-8 h-8 bg-slate-100 rounded-lg flex items-center justify-center">
+                      <ClipboardList className="w-4 h-4 text-slate-500" />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-bold text-slate-700">{t('registry.sectionTitle')}</h2>
+                    </div>
+                  </div>
+                  <p className="text-sm text-slate-400 mb-4 ml-11">
+                    {t('registry.sectionDescription')}
+                  </p>
+                  <p className="text-xs text-slate-400 mb-4 ml-11">
+                    {t('registry.foundCount', { count: registryLawyers.length })}
+                  </p>
+
+                  {/* Registry Lawyer Cards */}
+                  <div className="flex flex-col gap-3">
+                    {registryLawyers.slice(0, registryDisplayCount).map((lawyer) => (
+                      <RegistryLawyerCard key={lawyer.id} lawyer={lawyer} />
+                    ))}
+                  </div>
+
+                  {/* Show More Button */}
+                  {registryLawyers.length > registryDisplayCount && (
+                    <div className="mt-4 text-center">
+                      <Button
+                        variant="outline"
+                        className="rounded-xl border-slate-200 text-slate-500 hover:text-[#0B3979] hover:border-blue-200"
+                        onClick={() => setRegistryDisplayCount(prev => prev + 20)}
+                      >
+                        {t('registry.showMore')} ({registryLawyers.length - registryDisplayCount} remaining)
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>

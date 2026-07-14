@@ -334,7 +334,8 @@
             "andUp": "以上",
             "province": "省份/地区",
             "allProvinces": "所有省份",
-            "searchButton": "筛选搜索"
+            "searchButton": "筛选搜索",
+            "showRegistry": "显示注册律师"
         },
         "card": {
             "verified": "已认证",
@@ -342,6 +343,20 @@
             "newLawyer": "新律师",
             "viewProfile": "查看资料",
             "sendMessage": "发送消息"
+        },
+        "featured": {
+            "badge": "推荐律师",
+            "sectionTitle": "推荐律师"
+        },
+        "registry": {
+            "badge": "注册律师",
+            "sectionTitle": "泰国律师协会注册律师",
+            "sectionDescription": "这些律师持有诉讼执照，但尚未在Lawslane注册",
+            "verifyButton": "验证",
+            "notRegisteredYet": "该律师持有诉讼执照，但尚未在Lawslane平台注册",
+            "licenseLabel": "执照编号",
+            "showMore": "显示更多",
+            "foundCount": "注册处找到 {count} 位"
         },
         "specialties": {
             "smeFraud": "中小企业欺诈案",
@@ -668,7 +683,8 @@
             "help": "帮助中心",
             "guide": "用户指南"
         },
-        "copyright": "© {year} Lawslane. 版权所有。 · v{version}"
+        "copyright": "© {year} Lawslane. 版权所有。 · v{version}",
+        "totalVisitors": "总访问量 {count} 次"
     },
     "ContractsService": {
         "title": "文件起草与审查服务",

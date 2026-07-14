@@ -72,6 +72,18 @@ export interface LawyerProfile {
   };
 }
 
+export interface RegistryLawyer {
+  id: string;
+  prefix: string;
+  firstName: string;
+  lastName: string;
+  licenseNumber: string;
+  licenseType: string;
+  province: string;
+  status: string;
+  source: string;
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';

@@ -4,7 +4,7 @@
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { LawyerProfile } from '@/lib/types';
-import { Mail, Scale, Phone, BadgeCheck } from 'lucide-react';
+import { Mail, Scale, Phone, BadgeCheck, Crown } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -17,9 +17,10 @@ import { getCloudflareVariantUrl } from '@/lib/cloudflare-images';
 
 interface LawyerCardProps {
   lawyer: LawyerProfile;
+  featured?: boolean;
 }
 
-export default function LawyerCard({ lawyer }: LawyerCardProps) {
+export default function LawyerCard({ lawyer, featured }: LawyerCardProps) {
   const router = useRouter();
   const { user } = useUser();
   const t = useTranslations('Lawyers');
@@ -64,7 +65,7 @@ export default function LawyerCard({ lawyer }: LawyerCardProps) {
             <img
               src={getCloudflareVariantUrl(lawyer.imageUrl, 'public')}
               alt={lawyer.name}
-              className="w-full h-full rounded-full object-cover ring-4 ring-white shadow-md group-hover:scale-105 transition-transform duration-300"
+              className={`w-full h-full rounded-full object-cover ring-4 shadow-md group-hover:scale-105 transition-transform duration-300 ${featured ? 'ring-amber-400' : 'ring-blue-400'}`}
               onError={(e) => {
                 e.currentTarget.src = '/images/profile-lawyer.jpg';
               }}
@@ -74,11 +75,15 @@ export default function LawyerCard({ lawyer }: LawyerCardProps) {
               src={profileLawyerImg}
               alt={lawyer.name}
               fill
-              className="rounded-full object-cover ring-4 ring-white shadow-md group-hover:scale-105 transition-transform duration-300"
+              className={`rounded-full object-cover ring-4 shadow-md group-hover:scale-105 transition-transform duration-300 ${featured ? 'ring-amber-400' : 'ring-blue-400'}`}
             />
           )}
           <div className="absolute bottom-0 right-0 bg-white rounded-full p-1 shadow-sm">
-            <BadgeCheck className="w-5 h-5 text-blue-500 fill-blue-50" />
+            {featured ? (
+              <Crown className="w-5 h-5 text-amber-500 fill-amber-100" />
+            ) : (
+              <BadgeCheck className="w-5 h-5 text-blue-500 fill-blue-50" />
+            )}
           </div>
         </div>
         <div className="flex flex-col items-center">
@@ -87,8 +92,17 @@ export default function LawyerCard({ lawyer }: LawyerCardProps) {
               <Scale key={i} className={`w-3.5 h-3.5 ${i < Math.floor(rating) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-200'}`} />
             ))}
           </div>
-          <p className="text-[10px] text-muted-foreground mt-1 font-medium bg-gray-50 px-2 py-0.5 rounded-full">
-            {reviewCount > 0 ? `${reviewCount} ${t('card.reviews')}` : t('card.newLawyer')}
+          <p className={`text-[10px] mt-1 font-medium px-2 py-0.5 rounded-full ${
+            featured && reviewCount === 0
+              ? 'bg-amber-50 text-amber-600'
+              : 'bg-gray-50 text-muted-foreground'
+          }`}>
+            {reviewCount > 0
+              ? `${reviewCount} ${t('card.reviews')}`
+              : featured
+                ? t('featured.badge')
+                : t('card.newLawyer')
+            }
           </p>
         </div>
       </div>

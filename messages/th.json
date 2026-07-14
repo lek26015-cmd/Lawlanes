@@ -346,7 +346,8 @@
             "andUp": "ขึ้นไป",
             "province": "จังหวัด/พื้นที่",
             "allProvinces": "ทุกจังหวัด",
-            "searchButton": "ค้นหาด้วยตัวกรอง"
+            "searchButton": "ค้นหาด้วยตัวกรอง",
+            "showRegistry": "แสดงทนายจากทะเบียน"
         },
         "card": {
             "verified": "ยืนยันตัวตนแล้ว",
@@ -354,6 +355,20 @@
             "newLawyer": "ทนายใหม่",
             "viewProfile": "ดูโปรไฟล์",
             "sendMessage": "ส่งข้อความ"
+        },
+        "featured": {
+            "badge": "ทนายแนะนำ",
+            "sectionTitle": "ทนายแนะนำ"
+        },
+        "registry": {
+            "badge": "ทนายจากทะเบียน",
+            "sectionTitle": "ทนายความจากทะเบียนสภาทนายความ",
+            "sectionDescription": "ทนายเหล่านี้มีเลขอนุญาตให้ว่าความ แต่ยังไม่ได้ลงทะเบียนบน Lawslane",
+            "verifyButton": "ตรวจสอบ",
+            "notRegisteredYet": "ทนายท่านนี้มีเลขใบอนุญาตว่าความ แต่ยังไม่ได้ลงทะเบียนบนแพลตฟอร์ม Lawslane",
+            "licenseLabel": "ใบอนุญาตเลขที่",
+            "showMore": "ดูเพิ่มเติม",
+            "foundCount": "พบ {count} ท่านจากทะเบียน"
         },
         "specialties": {
             "smeFraud": "คดีฉ้อโกง SMEs",
@@ -691,7 +706,8 @@
             "help": "ศูนย์ช่วยเหลือ",
             "guide": "คู่มือการใช้งาน"
         },
-        "copyright": "© {year} Lawslane. สงวนลิขสิทธิ์ · v{version}"
+        "copyright": "© {year} Lawslane. สงวนลิขสิทธิ์ · v{version}",
+        "totalVisitors": "ยอดเข้าชมทั้งหมด {count} ครั้ง"
     },
     "ContractsService": {
         "title": "บริการร่างและตรวจสอบเอกสาร",

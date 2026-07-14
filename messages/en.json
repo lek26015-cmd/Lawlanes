@@ -342,7 +342,8 @@
             "andUp": "and up",
             "province": "Province/Area",
             "allProvinces": "All Provinces",
-            "searchButton": "Search with Filters"
+            "searchButton": "Search with Filters",
+            "showRegistry": "Show Registry Lawyers"
         },
         "card": {
             "verified": "Verified",
@@ -350,6 +351,20 @@
             "newLawyer": "New Lawyer",
             "viewProfile": "View Profile",
             "sendMessage": "Send Message"
+        },
+        "featured": {
+            "badge": "Featured Lawyer",
+            "sectionTitle": "Featured Lawyer"
+        },
+        "registry": {
+            "badge": "Registry Lawyer",
+            "sectionTitle": "Lawyers from Thai Bar Association Registry",
+            "sectionDescription": "These lawyers have a litigation license but have not yet registered on Lawslane",
+            "verifyButton": "Verify",
+            "notRegisteredYet": "This lawyer has a litigation license but has not yet registered on Lawslane platform",
+            "licenseLabel": "License No.",
+            "showMore": "Show More",
+            "foundCount": "Found {count} from registry"
         },
         "specialties": {
             "smeFraud": "SME Fraud Cases",
@@ -667,7 +682,8 @@
             "help": "Help Center",
             "guide": "User Guide"
         },
-        "copyright": "© {year} Lawslane. All rights reserved. · v{version}"
+        "copyright": "© {year} Lawslane. All rights reserved. · v{version}",
+        "totalVisitors": "{count} total visits"
     },
     "ContractsService": {
         "title": "Document Drafting and Review Service",

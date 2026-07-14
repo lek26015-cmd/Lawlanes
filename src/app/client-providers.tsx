@@ -8,6 +8,7 @@ import { CartProvider } from '@/context/cart-context';
 import ClientLayout from '@/components/layout/client-layout';
 import { Toaster } from '@/components/ui/toaster';
 import { ThemeProvider } from 'next-themes';
+import { PageViewTracker } from '@/components/page-view-tracker';
 
 export function ClientProviders({ children, domainType = 'main' }: { children: React.ReactNode; domainType?: string }) {
   React.useEffect(() => {
@@ -23,6 +24,7 @@ export function ClientProviders({ children, domainType = 'main' }: { children: R
       forcedTheme={domainType === 'main' ? 'light' : undefined}
     >
       <FirebaseClientProvider>
+        <PageViewTracker />
         <CartProvider>
           <ChatProvider>
             <ClientLayout domainType={domainType}>{children}</ClientLayout>

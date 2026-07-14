@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import { useState, useEffect } from 'react';
 import { getMainLink, getBusinessLink, getAdminLink } from '@/lib/domain-utils';
+import { MonthlyVisitorBadge } from '@/components/monthly-visitor-badge';
 
 // Helper component to handle absolute vs relative links
 function SafeLink({ href, children, className }: { href: string; children: React.ReactNode; className?: string }) {
@@ -148,8 +149,9 @@ export default function Footer({ userRole, domainType = 'main' }: { userRole: st
 
       {/* Bottom Bar (Clean Style) */}
       <div className="bg-transparent text-slate-500 py-12 border-t border-gray-800/10 mt-12">
-        <div className="container mx-auto px-4 text-center text-[10px] font-bold uppercase tracking-widest opacity-50">
-          <p>{t('copyright', { year: new Date().getFullYear(), version: '4.3.0' })}</p>
+        <div className="container mx-auto px-4 flex flex-col items-center gap-3">
+          <MonthlyVisitorBadge />
+          <p className="text-[10px] font-bold uppercase tracking-widest opacity-50">{t('copyright', { year: new Date().getFullYear(), version: '4.3.0' })}</p>
         </div>
       </div>
     </footer>
