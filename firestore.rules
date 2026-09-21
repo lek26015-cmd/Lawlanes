@@ -278,15 +278,11 @@ service cloud.firestore {
         request.auth.uid == resource.data.lawyerId ||
         isAdmin()
       );
-      allow create: if isSignedIn();
-      allow update: if isSignedIn() && (
-        request.auth.uid == resource.data.client_id ||
-        request.auth.uid == resource.data.userId ||
-        request.auth.uid == resource.data.lawyer_id ||
-        request.auth.uid == resource.data.lawyerId ||
-        isAdmin()
-      );
-      allow delete: if isAdmin();
+      // เดิม `allow create: if isSignedIn()` = ใครก็สร้างใบแจ้งหนี้ยอดเท่าไหร่ก็ได้
+      // และ update ให้คู่กรณีในใบแจ้งหนี้แก้เอกสารตัวเองได้ รวมถึงยอดและสถานะจ่าย
+      // ใบแจ้งหนี้จริงออกจาก server action (Lawslane/src/app/actions/billing-actions.ts)
+      // ด้วย Admin SDK ซึ่งข้ามกฎนี้ ฝั่ง client อ่านอย่างเดียว ตรวจแล้ว 2026-09-22
+      allow create, update, delete: if isAdmin();
     }
 
     // เดิมไม่มี rule ของ collection นี้เลย → ตกไปโดน "default deny" ท้ายไฟล์เสมอ
@@ -359,8 +355,13 @@ service cloud.firestore {
         );
       }
       allow get, list: if canAccessDeal();
-      allow create: if isSignedIn() && (request.resource.data.ownerId == request.auth.uid || request.resource.data.userId == request.auth.uid);
-      allow update, delete: if canAccessDeal();
+      // เขียนได้เฉพาะแอดมิน — ทุก mutation จริงไปทาง Admin SDK อยู่แล้ว
+      // (capdeal: app/actions/finance-actions.ts, api/admin/finance) ซึ่งข้ามกฎนี้
+      // ไม่มี client ตัวไหนเขียน cap-deals เลย ตรวจแล้ว 2026-09-22
+      //
+      // เดิม `allow update, delete: if canAccessDeal()` = เจ้าของดีลแก้ status
+      // การเงินของตัวเองได้ (เช่น ตั้ง status: 'active' เองโดยไม่ต้องจ่าย)
+      allow create, update, delete: if isAdmin();
     }
 
     // `bookOrders` retired 2026-09-21 — collection is empty in production and no app
