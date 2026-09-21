@@ -17,13 +17,10 @@ import { getLawyerScheduleAction, updateLawyerScheduleAction } from '@/app/actio
 
 type DayOfWeek = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
 
-import { useSearchParams } from 'next/navigation';
 
 function LawyerScheduleContent() {
   const { toast } = useToast();
-  const searchParams = useSearchParams();
-  const isAdminView = searchParams.get('view') === 'admin';
-  const dashboardLink = isAdminView ? '/lawyer-dashboard?view=admin' : '/lawyer-dashboard';
+  const dashboardLink = '/lawyer-dashboard';
 
   const [workingHours, setWorkingHours] = useState({ start: '09:00', end: '18:00' });
   const [availableDays, setAvailableDays] = useState({

@@ -158,6 +158,28 @@ const nextConfig: NextConfig = {
       },
     ];
   },
+  async redirects() {
+    // หลังยกหลังบ้านไป admin.lawslane.com แล้ว (แผนรวมหลังบ้าน Module 1)
+    // ลิงก์เก่าที่คนบุ๊กมาร์กไว้ต้องไม่ 404 — permanent: false เผื่อย้ายกลับ/เปลี่ยนปลายทาง
+    return [
+      {
+        source: '/:locale(th|en)/admin/registry-import',
+        destination: 'https://admin.lawslane.com/lawyer-registry/import',
+        permanent: false,
+      },
+      {
+        source: '/:locale(th|en)/admin/:path*',
+        destination: 'https://admin.lawslane.com/:path*',
+        permanent: false,
+      },
+      {
+        // /dev/* เป็นเครื่องมือ dev ที่ ship ขึ้น production มาตลอด ลบทิ้งแล้ว
+        source: '/:locale(th|en)/dev/:path*',
+        destination: '/:locale',
+        permanent: false,
+      },
+    ];
+  },
 };
 
 export default withNextIntl(nextConfig);

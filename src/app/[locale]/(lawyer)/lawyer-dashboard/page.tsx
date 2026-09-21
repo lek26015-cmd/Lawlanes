@@ -29,7 +29,6 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { getLawyerDashboardData, getLawyerStats, getLawyerById } from '@/lib/data';
-import { getAdminLawyerDashboardDataAction } from '@/app/actions/dashboard-actions';
 import type { LawyerCase, LawyerAppointmentRequest, LawyerProfile } from '@/lib/types';
 import { format } from 'date-fns';
 import { th } from 'date-fns/locale';
@@ -96,57 +95,15 @@ export default function LawyerDashboardPage() {
     async function fetchData() {
       setIsLoading(true);
       try {
-        const userDocRef = doc(firestore!, 'users', user!.uid);
-        const userDocSnap = await getDoc(userDocRef);
-        const userData = userDocSnap.data();
-        const isAdmin = userData?.role === 'admin';
+        const data = await getLawyerDashboardData(firestore!, user!.uid);
+        const statsData = await getLawyerStats(firestore!, user!.uid);
+        const profile = await getLawyerById(firestore!, user!.uid);
 
-        if (isAdmin) {
-          const data = await getAdminLawyerDashboardDataAction();
-          const statsData = { incomeThisMonth: 85000, totalIncome: 450000, completedCases: data.completedCases.length, rating: 5.0, responseRate: 100 };
-
-          setRequests(data.newRequests);
-          setActiveCases(data.activeCases);
-          setCompletedCases(data.completedCases);
-          setStats(statsData);
-          setLawyerProfile({
-            id: user!.uid,
-            userId: user!.uid,
-            name: userData?.name || 'Administrator',
-            email: userData?.email || user!.email || '',
-            phone: '',
-            licenseNumber: 'ADMIN',
-            status: 'approved',
-            imageUrl: userData?.photoURL || '',
-            dob: new Date(),
-            gender: 'อื่นๆ',
-            address: 'Headquarters',
-            description: 'System Administrator',
-            education: '',
-            experience: '',
-            bankName: '',
-            bankAccountName: '',
-            bankAccountNumber: '',
-            serviceProvinces: ['All'],
-            specialty: ['System Admin'],
-            imageHint: '',
-            idCardUrl: '',
-            lawyerLicenseUrl: '',
-            createdAt: new Date(),
-            licenseUrl: '',
-            joinedAt: new Date().toISOString(),
-          } as LawyerProfile);
-        } else {
-          const data = await getLawyerDashboardData(firestore!, user!.uid);
-          const statsData = await getLawyerStats(firestore!, user!.uid);
-          const profile = await getLawyerById(firestore!, user!.uid);
-
-          setRequests(data.newRequests);
-          setActiveCases(data.activeCases);
-          setCompletedCases(data.completedCases);
-          setStats(statsData);
-          setLawyerProfile(profile || null);
-        }
+        setRequests(data.newRequests);
+        setActiveCases(data.activeCases);
+        setCompletedCases(data.completedCases);
+        setStats(statsData);
+        setLawyerProfile(profile || null);
       } catch (error) {
         console.error("Error fetching lawyer dashboard data:", error);
       } finally {
@@ -173,8 +130,7 @@ export default function LawyerDashboardPage() {
     router.push(`/chat/${newChatId}?lawyerId=${user.uid}&clientId=...&view=lawyer`);
   };
 
-  const isMockAdmin = lawyerProfile?.licenseNumber === 'ADMIN';
-  const scheduleLink = isMockAdmin ? '/lawyer-schedule?view=admin' : '/lawyer-schedule';
+  const scheduleLink = '/lawyer-schedule';
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">

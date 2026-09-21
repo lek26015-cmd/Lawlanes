@@ -41,12 +41,11 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, RefreshCcw } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import Logo from '@/components/logo';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TurnstileWidget } from '@/components/turnstile-widget';
 import { validateTurnstile } from '@/app/actions/turnstile';
-import { setupTestAccounts } from '@/app/actions/seed-actions';
 import { useTranslations } from 'next-intl';
 
 // schema ต้องสร้างในคอมโพเนนต์เพราะข้อความ error ต้องแปลตาม locale
@@ -610,28 +609,6 @@ function LoginPageContent() {
                                     {t('form.signupHere')}
                                 </Link>
                             </p>
-
-                            {/* Dev Helper Action Button */}
-                            {process.env.NODE_ENV !== 'production' && (
-                                <div className="pt-8 border-t border-slate-100">
-                                    <Button 
-                                        variant="ghost" 
-                                        size="sm" 
-                                        className="text-[10px] text-slate-400 font-bold uppercase transition-all hover:text-blue-600 hover:bg-blue-50"
-                                        onClick={async () => {
-                                            const res = await setupTestAccounts();
-                                            if (res.success) {
-                                                toast({ title: 'Initialize Success', description: 'บัญชีทดสอบใน Firebase Auth/Firestore พร้อมใช้งานแล้ว!' });
-                                            } else {
-                                                toast({ variant: 'destructive', title: 'Initialize Failed', description: res.error });
-                                            }
-                                        }}
-                                    >
-                                        <RefreshCcw className="mr-2 h-3 w-3" />
-                                        Initialize Dev Accounts
-                                    </Button>
-                                </div>
-                            )}
                         </div>
                     </div>
                 </div>

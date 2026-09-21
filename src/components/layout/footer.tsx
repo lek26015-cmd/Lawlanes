@@ -65,7 +65,6 @@ export default function Footer({ userRole, domainType = 'main' }: { userRole: st
 
   if (userRole === 'admin') {
     forLawyersLinks.push({ href: getAdminLink('/', domainType, !isMounted), label: t('forLawyers.adminDashboard') });
-    forLawyersLinks.push({ href: `/lawyer-dashboard?view=admin`, label: t('forLawyers.adminView') });
   }
 
 
