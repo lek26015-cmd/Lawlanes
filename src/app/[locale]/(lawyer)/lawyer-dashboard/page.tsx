@@ -67,9 +67,6 @@ export default function LawyerDashboardPage() {
   const { toast } = useToast();
 
   // Pricing state
-  const [appointmentFee, setAppointmentFee] = useState<string>('3500');
-  const [chatFee, setChatFee] = useState<string>('500');
-  const [isSavingPricing, setIsSavingPricing] = useState(false);
   const [platformGPRate, setPlatformGPRate] = useState<number>(0.15); // Default 15%
 
   // Fetch platform GP rate
@@ -149,10 +146,6 @@ export default function LawyerDashboardPage() {
           setCompletedCases(data.completedCases);
           setStats(statsData);
           setLawyerProfile(profile || null);
-          if (profile?.pricing) {
-            setAppointmentFee(profile.pricing.appointmentFee.toString());
-            setChatFee(profile.pricing.chatFee.toString());
-          }
         }
       } catch (error) {
         console.error("Error fetching lawyer dashboard data:", error);
@@ -445,67 +438,6 @@ export default function LawyerDashboardPage() {
               </CardContent>
             </Card>
 
-            {/* Pricing Settings */}
-            <Card className="rounded-2xl border shadow-sm">
-              <CardHeader className="pb-3 border-b">
-                <CardTitle className="text-sm font-bold flex items-center gap-2">
-                  <DollarSign className="w-4 h-4 text-emerald-600" />
-                  ตั้งค่าค่าบริการของทนายความ
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 space-y-3">
-                <div>
-                  <Label className="text-xs font-semibold">ค่านัดหมายปรึกษา (฿ / ครั้ง)</Label>
-                  <Input
-                    type="number"
-                    value={appointmentFee}
-                    onChange={(e) => setAppointmentFee(e.target.value)}
-                    className="rounded-xl mt-1 text-sm"
-                  />
-                  <p className="text-[11px] text-muted-foreground mt-1">
-                    ยอดสุทธิที่คุณจะได้รับ: <span className="font-bold text-foreground">฿{(parseFloat(appointmentFee || '0') * (1 - platformGPRate)).toLocaleString()}</span> (หัก GP {(platformGPRate * 100).toFixed(0)}%)
-                  </p>
-                </div>
-
-                <div>
-                  <Label className="text-xs font-semibold">ค่าปรึกษาผ่านแชท (฿ / เคส)</Label>
-                  <Input
-                    type="number"
-                    value={chatFee}
-                    onChange={(e) => setChatFee(e.target.value)}
-                    className="rounded-xl mt-1 text-sm"
-                  />
-                  <p className="text-[11px] text-muted-foreground mt-1">
-                    ยอดสุทธิที่คุณจะได้รับ: <span className="font-bold text-foreground">฿{(parseFloat(chatFee || '0') * (1 - platformGPRate)).toLocaleString()}</span>
-                  </p>
-                </div>
-
-                <Button
-                  className="w-full rounded-xl bg-[#002f4b] hover:bg-[#001f35] text-white text-xs mt-2"
-                  disabled={isSavingPricing}
-                  onClick={async () => {
-                    if (!firestore || !user) return;
-                    setIsSavingPricing(true);
-                    try {
-                      const apptFee = parseFloat(appointmentFee || '0');
-                      const chtFee = parseFloat(chatFee || '0');
-                      const { doc, updateDoc } = await import('firebase/firestore');
-                      await updateDoc(doc(firestore, 'lawyerProfiles', user.uid), {
-                        pricing: { appointmentFee: apptFee, chatFee: chtFee, platformFeeRate: platformGPRate }
-                      });
-                      toast({ title: 'บันทึกค่าบริการสำเร็จ' });
-                    } catch (error) {
-                      toast({ variant: 'destructive', title: 'เกิดข้อผิดพลาด' });
-                    } finally {
-                      setIsSavingPricing(false);
-                    }
-                  }}
-                >
-                  {isSavingPricing ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" /> : null}
-                  บันทึกค่าบริการ
-                </Button>
-              </CardContent>
-            </Card>
           </div>
         </div>
       </main>
