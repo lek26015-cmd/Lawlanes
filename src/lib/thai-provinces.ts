@@ -36,3 +36,7 @@ export const THAI_PROVINCES = [
         ]
     }
 ];
+
+// Aliases for backward compatibility (previously in @/data/thai-provinces)
+export const thaiProvinces = THAI_PROVINCES;
+export const allProvinces = THAI_PROVINCES.flatMap(region => region.provinces).sort();

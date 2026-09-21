@@ -46,3 +46,10 @@ docs/backend.json
 # uploads
 public/uploads/*
 !public/uploads/.gitkeep
+
+# python bytecode
+__pycache__/
+*.pyc
+
+# node_modules ของ worker ย่อย (เคยถูก track ไว้โดยไม่ตั้งใจ)
+workers/**/node_modules/

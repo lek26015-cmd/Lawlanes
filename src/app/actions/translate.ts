@@ -2,6 +2,7 @@
 
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { getCachedAIResponse, setCachedAIResponse } from '@/lib/ai-cache';
+import { requireUser } from '@/lib/auth-guard';
 
 export interface TranslationResult {
     english: string;
@@ -11,6 +12,9 @@ export interface TranslationResult {
 export async function translateToMultipleLanguages(
     thaiText: string
 ): Promise<TranslationResult> {
+    // endpoint นี้เรียก LLM ซึ่งมีค่าใช้จ่ายต่อครั้ง — ต้องล็อกอินอยู่จริง
+    await requireUser();
+
     if (!thaiText || thaiText.trim().length === 0) {
         return { english: '', chinese: '' };
     }

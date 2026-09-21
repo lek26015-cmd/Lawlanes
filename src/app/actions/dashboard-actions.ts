@@ -2,9 +2,24 @@
 
 import { initAdmin } from '@/lib/firebase-admin';
 import type { Case, UpcomingAppointment, ReportedTicket, LawyerCase, LawyerAppointmentRequest } from '@/lib/types';
+import { requireUser, requireAdmin, AuthError } from '@/lib/auth-guard';
 
-export async function getUserDashboardData(userId: string) {
-    const adminApp = await initAdmin();
+/** ผู้เรียกเป็นทนายคนนี้เองหรือเป็นแอดมินหรือไม่ (lawyerId เป็น id ของ lawyerProfiles) */
+async function callerIsThisLawyerOrAdmin(lawyerId: string): Promise<boolean> {
+    try {
+        const { uid, token, adminApp } = await requireUser();
+        if (token.admin === true || token.role === 'admin') return true;
+        if (uid === lawyerId) return true;
+        const snap = await adminApp.firestore().collection('lawyerProfiles').doc(lawyerId).get();
+        return snap.exists && snap.data()?.userId === uid;
+    } catch {
+        return false;
+    }
+}
+
+export async function getUserDashboardData() {
+    // uid มาจาก session — เดิมรับ userId เป็น argument จึงดู dashboard ของคนอื่นได้
+    const { uid: userId, adminApp } = await requireUser();
     if (!adminApp) {
         throw new Error('Firebase Admin not initialized. Please check environment variables.');
     }
@@ -15,8 +30,8 @@ export async function getUserDashboardData(userId: string) {
         const chatsRef = db.collection('chats');
 
         // Query by participants
-        const q1 = chatsRef.where('participants', 'array-contains', userId).get();
-        const q2 = chatsRef.where('userId', '==', userId).get();
+        const q1 = chatsRef.where('participants', 'array-contains', userId).limit(200).get();
+        const q2 = chatsRef.where('userId', '==', userId).limit(200).get();
 
         const [pSnap, uSnap] = await Promise.all([q1, q2]);
 
@@ -24,52 +39,78 @@ export async function getUserDashboardData(userId: string) {
         pSnap.docs.forEach(d => chatDocs.set(d.id, d));
         uSnap.docs.forEach(d => chatDocs.set(d.id, d));
 
-        const cases: Case[] = [];
-        const lawyerCache = new Map();
-
-        const getLawyerDetails = async (lawyerIdParam: string | undefined): Promise<any> => {
-            if (!lawyerIdParam) return { id: 'unknown', name: 'Unknown Lawyer', imageUrl: '', imageHint: '' };
-            if (lawyerCache.has(lawyerIdParam)) return lawyerCache.get(lawyerIdParam);
-
-            let lawyerData = { id: lawyerIdParam, name: 'Unknown Lawyer', imageUrl: '', imageHint: '' };
-
-            try {
-                const lawyerDocSnap = await db.collection('lawyerProfiles').doc(lawyerIdParam).get();
-                if (lawyerDocSnap.exists) {
-                    const d = lawyerDocSnap.data();
-                    lawyerData = {
-                        id: lawyerDocSnap.id,
-                        name: d?.name || 'Unknown Lawyer',
-                        imageUrl: d?.imageUrl || '',
-                        imageHint: d?.imageHint || ''
-                    };
-                } else {
-                    const userDocSnap = await db.collection('users').doc(lawyerIdParam).get();
-                    if (userDocSnap.exists) {
-                        const d = userDocSnap.data();
-                        lawyerData = {
-                            id: userDocSnap.id,
-                            name: d?.name || 'Unknown Lawyer',
-                            imageUrl: '',
-                            imageHint: ''
-                        };
-                    }
-                }
-            } catch (err) {
-                // Silently handle missing lawyer details
-            }
-            lawyerCache.set(lawyerIdParam, lawyerData);
-            return lawyerData;
-        };
-
-        for (const d of chatDocs.values()) {
-            const data = d.data();
+        // Resolve each chat's lawyer id up front so lawyer profiles can be
+        // batch-fetched below instead of one Firestore read per chat/appointment
+        // (see LAWSLANE-PLAN-01 2.2).
+        const resolveLawyerId = (data: FirebaseFirestore.DocumentData): string | undefined => {
             let lawyerId = data.lawyerId;
             if (!lawyerId && data.participants && Array.isArray(data.participants)) {
                 lawyerId = data.participants.find((p: string) => p !== userId);
             }
+            return lawyerId;
+        };
 
-            const lawyer = await getLawyerDetails(lawyerId);
+        // 2. Fetch Appointments (queried early so its lawyerIds join the same batch)
+        const appointmentsRef = db.collection('appointments');
+        const aptSnap = await appointmentsRef.where('userId', '==', userId).limit(200).get();
+
+        const lawyerIds = new Set<string>();
+        for (const d of chatDocs.values()) {
+            const id = resolveLawyerId(d.data());
+            if (id) lawyerIds.add(id);
+        }
+        for (const d of aptSnap.docs) {
+            const id = d.data().lawyerId;
+            if (id) lawyerIds.add(id);
+        }
+
+        const DEFAULT_LAWYER = { name: 'Unknown Lawyer', imageUrl: '', imageHint: '' };
+        const lawyerProfileMap: Record<string, { name: string; imageUrl: string; imageHint: string }> = {};
+        if (lawyerIds.size > 0) {
+            const idsArray = Array.from(lawyerIds);
+            const chunks: string[][] = [];
+            for (let i = 0; i < idsArray.length; i += 30) {
+                chunks.push(idsArray.slice(i, i + 30));
+            }
+
+            // Try lawyerProfiles first...
+            const profileSnaps = await Promise.all(chunks.map(chunk =>
+                db.collection('lawyerProfiles').where('__name__', 'in', chunk).get()
+            ));
+            profileSnaps.forEach(snap => snap.docs.forEach(doc => {
+                const d = doc.data();
+                lawyerProfileMap[doc.id] = { name: d?.name || 'Unknown Lawyer', imageUrl: d?.imageUrl || '', imageHint: d?.imageHint || '' };
+            }));
+
+            // ...then fall back to users for any id not found there.
+            const missingIds = idsArray.filter(id => !lawyerProfileMap[id]);
+            if (missingIds.length > 0) {
+                const missingChunks: string[][] = [];
+                for (let i = 0; i < missingIds.length; i += 30) {
+                    missingChunks.push(missingIds.slice(i, i + 30));
+                }
+                const userSnaps = await Promise.all(missingChunks.map(chunk =>
+                    db.collection('users').where('__name__', 'in', chunk).get()
+                ));
+                userSnaps.forEach(snap => snap.docs.forEach(doc => {
+                    const d = doc.data();
+                    lawyerProfileMap[doc.id] = { name: d?.name || 'Unknown Lawyer', imageUrl: '', imageHint: '' };
+                }));
+            }
+        }
+
+        const getLawyerDetails = (lawyerIdParam: string | undefined): any => {
+            if (!lawyerIdParam) return { id: 'unknown', ...DEFAULT_LAWYER };
+            return { id: lawyerIdParam, ...(lawyerProfileMap[lawyerIdParam] || DEFAULT_LAWYER) };
+        };
+
+        const cases: Case[] = [];
+
+        for (const d of chatDocs.values()) {
+            const data = d.data();
+            const lawyerId = resolveLawyerId(data);
+
+            const lawyer = getLawyerDetails(lawyerId);
 
             const lastMessageAt = data.lastMessageAt?.toDate
                 ? data.lastMessageAt.toDate().toISOString()
@@ -111,14 +152,11 @@ export async function getUserDashboardData(userId: string) {
 
         cases.sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
 
-        // 2. Fetch Appointments
-        const appointmentsRef = db.collection('appointments');
-        const aptSnap = await appointmentsRef.where('userId', '==', userId).get();
-
+        // 2. Map Appointments (fetched above, alongside chats, to build the lawyer id batch)
         const appointments: UpcomingAppointment[] = [];
         for (const d of aptSnap.docs) {
             const data = d.data();
-            const lawyer = await getLawyerDetails(data.lawyerId);
+            const lawyer = getLawyerDetails(data.lawyerId);
 
             const date = data.date?.toDate ? data.date.toDate() : new Date();
             const todayStart = new Date();
@@ -138,7 +176,7 @@ export async function getUserDashboardData(userId: string) {
 
         // 3. Fetch Tickets
         const ticketsRef = db.collection('tickets');
-        const ticketSnap = await ticketsRef.where('userId', '==', userId).get();
+        const ticketSnap = await ticketsRef.where('userId', '==', userId).limit(200).get();
 
         const tickets: ReportedTicket[] = ticketSnap.docs.map(d => {
             const data = d.data();
@@ -155,7 +193,7 @@ export async function getUserDashboardData(userId: string) {
 
         // 4. Fetch Cap Deals (Contracts)
         const contractsRef = db.collection('contracts');
-        const contractSnap = await contractsRef.where('userId', '==', userId).get();
+        const contractSnap = await contractsRef.where('userId', '==', userId).limit(200).get();
 
         const capDeals = contractSnap.docs.map(d => {
             const data = d.data();
@@ -168,29 +206,14 @@ export async function getUserDashboardData(userId: string) {
         });
         capDeals.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
-        // 5. Fetch Book Orders
-        const bookOrdersRef = db.collection('bookOrders');
-        const bookOrderSnap = await bookOrdersRef
-            .where('userId', '==', userId)
-            .get();
-
-        const bookOrders = bookOrderSnap.docs
-            .map(d => {
-                const data = d.data();
-                return {
-                    id: d.id,
-                    ...data,
-                    createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : new Date().toISOString(),
-                    updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate().toISOString() : new Date().toISOString(),
-                };
-            })
-            .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-            .slice(0, 5);
-
-        // 6. Fetch Invoices (Billing)
+        // 5. Fetch Invoices (Billing)
+        // Bounded to 200 then sorted+sliced in JS below — an indexed orderBy() would let
+        // Firestore do this directly, but that needs a (userId + createdAt) composite index
+        // that doesn't exist yet; adding orderBy() without it would make this query fail outright.
         const invoicesRef = db.collection('invoices');
         const invoiceSnap = await invoicesRef
             .where('userId', '==', userId)
+            .limit(200)
             .get();
 
         const invoices = invoiceSnap.docs
@@ -206,39 +229,8 @@ export async function getUserDashboardData(userId: string) {
             .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
             .slice(0, 5);
 
-        return { cases, appointments, tickets, capDeals, bookOrders, invoices };
+        return { cases, appointments, tickets, capDeals, invoices };
     } catch (error) {
-        throw new Error('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
-    }
-}
-
-export async function getBookOrders(userId: string, limitCount: number = 50) {
-    const adminApp = await initAdmin();
-    if (!adminApp) throw new Error('Firebase Admin not initialized.');
-    const db = adminApp.firestore();
-
-    try {
-        const bookOrdersRef = db.collection('bookOrders');
-        const bookOrderSnap = await bookOrdersRef
-            .where('userId', '==', userId)
-            .get();
-
-        const bookOrders = bookOrderSnap.docs
-            .map(d => {
-                const data = d.data();
-                return {
-                    id: d.id,
-                    ...data,
-                    createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : new Date().toISOString(),
-                    updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate().toISOString() : new Date().toISOString(),
-                };
-            })
-            .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-            .slice(0, limitCount);
-
-        return bookOrders;
-    } catch (error) {
-        console.error("Error fetching book orders server-side:", error);
         throw new Error('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
     }
 }
@@ -326,9 +318,13 @@ export async function getLawyerStatsAction(lawyerId: string) {
             responseRate = 100;
         }
 
+        // หน้าโปรไฟล์ทนายเป็นหน้าสาธารณะ และเรียก action นี้ด้วย lawyerId ใดก็ได้
+        // → ตัวเลขรายได้ต้องไม่หลุดออกไป เปิดเฉพาะเจ้าตัวกับแอดมิน
+        const canSeeFinancials = await callerIsThisLawyerOrAdmin(lawyerId);
+
         return JSON.parse(JSON.stringify({
-            incomeThisMonth: Number(incomeThisMonth) || 0,
-            totalIncome: Number(totalIncome) || 0,
+            incomeThisMonth: canSeeFinancials ? (Number(incomeThisMonth) || 0) : 0,
+            totalIncome: canSeeFinancials ? (Number(totalIncome) || 0) : 0,
             completedCases: Number(completedCases) || 0,
             rating: Number(rating) || 4.8,
             responseRate: Number(responseRate) || 95
@@ -345,7 +341,9 @@ export async function getLawyerStatsAction(lawyerId: string) {
     }
 }
 
-export async function getLawyerDashboardDataAction(lawyerId: string): Promise<{ newRequests: LawyerAppointmentRequest[], activeCases: LawyerCase[], completedCases: LawyerCase[] }> {
+export async function getLawyerDashboardDataAction(): Promise<{ newRequests: LawyerAppointmentRequest[], activeCases: LawyerCase[], completedCases: LawyerCase[] }> {
+    // uid มาจาก session — เดิมรับ lawyerId เป็น argument
+    const { uid: lawyerId } = await requireUser();
     const adminApp = await initAdmin();
     if (!adminApp) {
         throw new Error('Firebase Admin not initialized.');
@@ -480,6 +478,9 @@ export async function getLawyerDashboardDataAction(lawyerId: string): Promise<{ 
 }
 
 export async function getAdminLawyerDashboardDataAction(): Promise<{ newRequests: LawyerAppointmentRequest[], activeCases: LawyerCase[], completedCases: LawyerCase[] }> {
+    // คืนรายการเคสของทั้งแพลตฟอร์ม — ต้องเป็นแอดมินเท่านั้น
+    // เดิมไม่มี argument และไม่เช็คอะไรเลย
+    await requireAdmin();
     const adminApp = await initAdmin();
     if (!adminApp) throw new Error('Firebase Admin not initialized.');
     const db = adminApp.firestore();
@@ -570,7 +571,9 @@ export async function getAdminLawyerDashboardDataAction(): Promise<{ newRequests
     }
 }
 
-export async function getLawyerFinancialsAction(lawyerId: string) {
+export async function getLawyerFinancialsAction() {
+    // ข้อมูลการเงินของทนาย — uid มาจาก session เท่านั้น
+    const { uid: lawyerId } = await requireUser();
     const adminApp = await initAdmin();
     if (!adminApp) throw new Error('Firebase Admin not initialized.');
     const db = adminApp.firestore();

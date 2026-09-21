@@ -9,7 +9,7 @@ import * as z from 'zod';
 import { createUserWithEmailAndPassword, updateProfile, signOut } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp, addDoc, collection } from 'firebase/firestore';
 import { useFirebase } from '@/firebase';
-import { uploadToFirebasePublic, uploadToFirebaseSecure } from '@/app/actions/upload-secure';
+import { uploadToFirebasePublic, uploadToFirebaseSecure } from '@/app/actions/upload';
 import { motion, AnimatePresence } from 'framer-motion';
 
 import { TurnstileWidget } from '@/components/turnstile-widget';
@@ -297,6 +297,15 @@ export default function ForLawyersPage() {
       // 1. Create user in Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(auth, values.email, values.password);
       const user = userCredential.user;
+
+      // สร้าง session cookie ฝั่ง server ก่อน — การอัปโหลดด้านล่างเป็น server action
+      // ที่ตรวจสิทธิ์จาก session cookie (แบบเดียวกับหน้า lawyer-signup)
+      const idToken = await user.getIdToken();
+      await fetch('/api/auth/session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idToken }),
+      });
 
       // Force token refresh
       await user.getIdToken(true);

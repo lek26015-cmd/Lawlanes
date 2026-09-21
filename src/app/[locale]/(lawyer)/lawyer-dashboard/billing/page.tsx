@@ -24,8 +24,8 @@ export default function LawyerBillingPage() {
       setIsLoading(true);
       try {
         const [invRes, dashRes] = await Promise.all([
-          getLawyerInvoicesAction(user!.uid),
-          getLawyerDashboardDataAction(user!.uid)
+          getLawyerInvoicesAction(),
+          getLawyerDashboardDataAction()
         ]);
 
         if (invRes.success) {
@@ -73,7 +73,7 @@ export default function LawyerBillingPage() {
     if (res.success) {
       toast({ title: "สร้างใบแจ้งหนี้สำเร็จ", description: "ระบบได้ส่งข้อมูลแจ้งหนี้ไปยังลูกความแล้ว" });
       // Refresh list
-      const invRes = await getLawyerInvoicesAction(user.uid);
+      const invRes = await getLawyerInvoicesAction();
       if (invRes.success) setInvoices(invRes.data || []);
     } else {
       toast({ variant: "destructive", title: "เกิดข้อผิดพลาด", description: res.error });

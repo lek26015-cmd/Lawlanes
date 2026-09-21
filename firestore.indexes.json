@@ -1,7 +1,7 @@
 {
     "indexes": [
         {
-            "collectionGroup": "student_exam_results",
+            "collectionGroup": "examResults",
             "queryScope": "COLLECTION",
             "fields": [
                 {
@@ -12,6 +12,139 @@
                     "fieldPath": "createdAt",
                     "order": "DESCENDING"
                 }
+            ]
+        },
+        {
+            "collectionGroup": "chats",
+            "queryScope": "COLLECTION",
+            "fields": [
+                {
+                    "fieldPath": "clientId",
+                    "order": "ASCENDING"
+                },
+                {
+                    "fieldPath": "updatedAt",
+                    "order": "DESCENDING"
+                }
+            ]
+        },
+
+        {
+            "collectionGroup": "tickets",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "reportedAt", "order": "DESCENDING" },
+                { "fieldPath": "__name__", "order": "DESCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "tickets",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "status", "order": "ASCENDING" },
+                { "fieldPath": "reportedAt", "order": "DESCENDING" },
+                { "fieldPath": "__name__", "order": "DESCENDING" }
+            ]
+        },
+
+        {
+            "collectionGroup": "users",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "registeredAt", "order": "DESCENDING" },
+                { "fieldPath": "__name__", "order": "DESCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "users",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "status", "order": "ASCENDING" },
+                { "fieldPath": "registeredAt", "order": "DESCENDING" },
+                { "fieldPath": "__name__", "order": "DESCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "users",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "type", "order": "ASCENDING" },
+                { "fieldPath": "registeredAt", "order": "DESCENDING" },
+                { "fieldPath": "__name__", "order": "DESCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "users",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "status", "order": "ASCENDING" },
+                { "fieldPath": "type", "order": "ASCENDING" },
+                { "fieldPath": "registeredAt", "order": "DESCENDING" },
+                { "fieldPath": "__name__", "order": "DESCENDING" }
+            ]
+        },
+
+        {
+            "collectionGroup": "lawyerProfiles",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "joinedAt", "order": "DESCENDING" },
+                { "fieldPath": "__name__", "order": "DESCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "lawyerProfiles",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "status", "order": "ASCENDING" },
+                { "fieldPath": "joinedAt", "order": "DESCENDING" },
+                { "fieldPath": "__name__", "order": "DESCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "lawyerProfiles",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "specialty", "order": "ASCENDING" },
+                { "fieldPath": "joinedAt", "order": "DESCENDING" },
+                { "fieldPath": "__name__", "order": "DESCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "lawyerProfiles",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "status", "order": "ASCENDING" },
+                { "fieldPath": "specialty", "order": "ASCENDING" },
+                { "fieldPath": "joinedAt", "order": "DESCENDING" },
+                { "fieldPath": "__name__", "order": "DESCENDING" }
+            ]
+        },
+
+        {
+            "collectionGroup": "orders",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "createdAt", "order": "DESCENDING" },
+                { "fieldPath": "__name__", "order": "DESCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "orders",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "status", "order": "ASCENDING" },
+                { "fieldPath": "createdAt", "order": "DESCENDING" },
+                { "fieldPath": "__name__", "order": "DESCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "orders",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "userId", "order": "ASCENDING" },
+                { "fieldPath": "createdAt", "order": "DESCENDING" },
+                { "fieldPath": "__name__", "order": "DESCENDING" }
             ]
         }
     ],

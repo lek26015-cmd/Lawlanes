@@ -30,7 +30,7 @@ export default function LawyerPipelinePage() {
       setIsLoading(true);
       try {
         const [fetchedCases, fetchedMilestones] = await Promise.all([
-          getLawyerLegalCases(user.uid),
+          getLawyerLegalCases(),
           getCaseMilestones(undefined, user.uid)
         ]);
         

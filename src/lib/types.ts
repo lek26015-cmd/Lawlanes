@@ -70,6 +70,24 @@ export interface LawyerProfile {
     chatFee: number;             // Fee for chat consultations
     platformFeeRate: number;     // GP rate (default 0.15 = 15%)
   };
+  schedule?: LawyerSchedule;
+}
+
+// ตารางเวลาของทนาย — บันทึกจาก lawyer-schedule/page.tsx (หน้าเดิมกด "บันทึก" แล้ว
+// แค่ toast โดยไม่เขียนอะไรจริง) แล้วให้หน้าจองของลูกความ (lawyers/[id]/schedule) อ่านค่านี้จริง
+export interface LawyerSchedule {
+  workingHours: { start: string; end: string }; // เช่น "09:00" / "18:00"
+  availableDays: {
+    monday: boolean;
+    tuesday: boolean;
+    wednesday: boolean;
+    thursday: boolean;
+    friday: boolean;
+    saturday: boolean;
+    sunday: boolean;
+  };
+  // วันหยุดพิเศษที่ทนายเพิ่มเอง — เก็บ date เป็น ISO string เพราะ schedule ทั้งก้อนเป็น map ธรรมดาใน Firestore
+  overrides: { date: string; reason: string }[];
 }
 
 export interface RegistryLawyer {

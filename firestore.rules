@@ -13,12 +13,60 @@ service cloud.firestore {
     }
     
     function isAdmin() {
-        return isSignedIn() && request.auth.token.admin == true;
+        // Custom claim is the source of truth (see scripts/set-admin-claim.js).
+        // The hardcoded UIDs/emails are carried over from lawslane-admin's rules
+        // as a safety net during rules consolidation — remove once every admin
+        // account is confirmed to have the custom claim set (see LAWSLANE-PLAN-01 Phase 4).
+        return isSignedIn() && (
+          request.auth.token.admin == true ||
+          request.auth.uid == 'wS9w7ysNYUajNsBYZ6C7n2Afe9H3' ||
+          request.auth.token.email == 'lek.26015@gmail.com' ||
+          request.auth.uid == '6rX3WqjNo9M7lX6iUe5V9r7Dk9z1' ||
+          request.auth.token.email == 'admin@lawslane.com'
+        );
     }
 
     match /users/{userId} {
+      // ฟิลด์ที่ผู้ใช้ห้ามเขียนให้ตัวเอง — เป็นสิทธิ์ / ความเป็นเจ้าของ / สถานะการเงิน
+      // เดิมกฎเป็น `allow write: if isOwner(userId)` เฉยๆ ไม่จำกัดฟิลด์เลย แปลว่า
+      // ใครก็เปิด console แล้ว updateDoc(users/<uid ตัวเอง>, {role:'admin'}) ได้
+      // และตั้ง companyId เป็นของบริษัทอื่นเพื่ออ่าน/แก้สัญญาของบริษัทนั้นได้ด้วย
+      // (ดู canAccessContract() และ canAccessCompliance() ด้านล่าง)
+      function privilegedUserFields() {
+        return [
+          'role', 'superAdmin', 'permissions', 'adminPermissions',
+          'companyId', 'subscription', 'balance', 'credits',
+          'isVerified', 'verified', 'emailVerified'
+        ];
+      }
+
+      // ตอนสมัครสมาชิก ฝั่ง client เขียน role มาด้วย (signup-content.tsx, lawyer-signup)
+      // จึงอนุญาตเฉพาะค่าที่ไม่ใช่สิทธิ์พิเศษ — ห้าม 'admin' เด็ดขาด
+      function createsSafeRole() {
+        return !('role' in request.resource.data.keys())
+          || request.resource.data.role in ['customer', 'lawyer', 'education_student'];
+      }
+
+      function createsNoOtherPrivilegedField() {
+        return !request.resource.data.keys().hasAny(
+          ['superAdmin', 'permissions', 'adminPermissions', 'companyId',
+           'subscription', 'balance', 'credits', 'isVerified', 'verified']
+        );
+      }
+
       allow read: if isSignedIn();
-      allow write: if isOwner(userId) || isAdmin();
+
+      allow create: if isAdmin()
+        || (isOwner(userId) && createsSafeRole() && createsNoOtherPrivilegedField());
+
+      // อัปเดตโปรไฟล์ของตัวเองได้ แต่ห้ามแตะฟิลด์สิทธิ์ — การเปลี่ยน role/companyId
+      // ต้องทำผ่าน Admin SDK ฝั่ง server เท่านั้น
+      allow update: if isAdmin()
+        || (isOwner(userId)
+            && !request.resource.data.diff(resource.data).affectedKeys()
+                 .hasAny(privilegedUserFields()));
+
+      allow delete: if isAdmin();
 
       match /integrations/{integrationId} {
         allow read, write: if isOwner(userId) || isAdmin();
@@ -28,7 +76,10 @@ service cloud.firestore {
     match /lawyerProfiles/{lawyerId} {
       allow read, list: if true;
       allow create: if isOwner(request.resource.data.userId) || isAdmin();
-      allow update: if isOwner(lawyerId) || isAdmin() || (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['averageRating', 'reviewCount']));
+      // averageRating/reviewCount ถูกคำนวณและเขียนโดย submitReviewAction ผ่าน Admin SDK
+      // (ซึ่งข้าม rules อยู่แล้ว) จึงไม่ต้องเปิดช่องให้ client เขียน
+      // เดิมข้อยกเว้นนี้ทำให้ใครที่ล็อกอินก็ปั่นเรตติ้งของทนายคนไหนก็ได้
+      allow update: if isOwner(lawyerId) || isAdmin();
       allow delete: if isOwner(lawyerId) || isAdmin();
     }
 
@@ -58,7 +109,11 @@ service cloud.firestore {
         }
 
         allow get, list: if isChatParticipant() || isAdmin();
-        allow create: if isSignedIn() && request.resource.data.senderId == request.auth.uid;
+        // เดิมเช็คแค่ senderId == uid ของตัวเอง แต่ไม่ได้เรียก isChatParticipant()
+        // (นิยามไว้ข้างบนแต่ใช้แค่ตอนอ่าน) → รู้ chatId ก็แทรกข้อความเข้าแชทคนอื่นได้
+        allow create: if isSignedIn()
+          && request.resource.data.senderId == request.auth.uid
+          && (isChatParticipant() || isAdmin());
         allow update, delete: if false;
       }
     }
@@ -67,7 +122,13 @@ service cloud.firestore {
         allow read: if true;
         allow write: if isAdmin();
     }
-    
+
+    match /articleComments/{commentId} {
+      allow read, list: if true;
+      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
     match /ads/{adId} {
         allow read: if true;
         allow write: if isAdmin();
@@ -96,7 +157,10 @@ service cloud.firestore {
 
         match /messages/{messageId} {
             allow read, list: if isAdmin() || (isSignedIn() && request.auth.uid == get(/databases/$(database)/documents/tickets/$(ticketId)).data.userId);
-            allow create: if isSignedIn();
+            // เดิมเป็น isSignedIn() เฉยๆ → ใครก็ตอบเข้าตั๋วซัพพอร์ตของคนอื่นได้
+            allow create: if isAdmin()
+              || (isSignedIn()
+                  && request.auth.uid == get(/databases/$(database)/documents/tickets/$(ticketId)).data.userId);
         }
     }
 
@@ -170,13 +234,23 @@ service cloud.firestore {
     }
 
     match /coupons/{couponId} {
-      allow read, list: if true;
+      // เดิม `allow read, list: if true` → ใครก็กวาดโค้ดส่วนลดทุกใบพร้อมส่วนลดได้
+      //
+      // หน้า payment ตรวจคูปองฝั่ง client ด้วย
+      //   where('code','==',X) + where('isActive','==',true) + limit(1)
+      // จึงยังต้องให้ query ได้ แต่บังคับ limit <= 1 เพื่อให้ "ต้องรู้โค้ดก่อน"
+      // ไล่ดึงรายการทั้งหมดในทีเดียวไม่ได้อีก
+      allow get: if isSignedIn();
+      allow list: if isAdmin() || (isSignedIn() && request.query.limit <= 1);
       allow create, delete: if isAdmin();
-      allow update: if isAdmin() || (isSignedIn() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['usedCount']));
+      // usedCount ถูกอ่านอย่างเดียวฝั่ง client — การเพิ่มต้องทำผ่าน Admin SDK
+      // เดิมผู้ใช้ที่ล็อกอินเพิ่ม usedCount ของคูปองใบไหนก็ได้ (เผาคูปองทิ้ง)
+      allow update: if isAdmin();
     }
 
     match /gpCoupons/{couponId} {
-      allow read, list: if true;
+      // ใช้งานจากแอป admin เท่านั้น (lawyers/[id], gp-coupons) — เดิมเปิดอ่านสาธารณะ
+      allow read, list: if isAdmin();
       allow create, delete: if isAdmin();
       allow update: if isAdmin();
     }
@@ -213,6 +287,21 @@ service cloud.firestore {
         isAdmin()
       );
       allow delete: if isAdmin();
+    }
+
+    // เดิมไม่มี rule ของ collection นี้เลย → ตกไปโดน "default deny" ท้ายไฟล์เสมอ
+    // ทำให้ getCaseById() (lib/data.ts, อ่านผ่าน client SDK) ยิง permission-denied ทุกครั้ง
+    // แล้วถูก catch เป็น "ไม่พบเคส" (404) ทั้งที่เคสมีอยู่จริง — เพิ่ง noticed ตอนต่อฟีเจอร์
+    // พยานหลักฐาน/พยานบุคคลที่ /lawyer-dashboard/case/[id] ซึ่งอ่านหน้านี้เป็นทางเข้าเดียว
+    // เขียน/แก้ทุกอย่างผ่าน server action เท่านั้น (lawyer-case-actions.ts ใช้ Admin SDK
+    // ซึ่งข้าม rules อยู่แล้ว) จึงปิด create/update/delete จาก client ไปเลย
+    match /legalCases/{caseId} {
+      allow read: if isSignedIn() && (
+        request.auth.uid == resource.data.lawyer_id ||
+        request.auth.uid == resource.data.get('client_id', '') ||
+        isAdmin()
+      );
+      allow create, update, delete: if false;
     }
 
     match /contracts/{contractId} {
@@ -261,17 +350,23 @@ service cloud.firestore {
       allow delete: if isAdmin() || (isSignedIn() && request.auth.uid == resource.data.ownerId);
     }
 
-    match /bookOrders/{orderId} {
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      // Use get and list for more granular control
-      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-      allow list: if isSignedIn() && (
-        (request.query.limit <= 1000 && request.auth.uid in request.query.filters.userId) ||
-        isAdmin()
-      );
-      allow update: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+    match /cap-deals/{dealId} {
+      function canAccessDeal() {
+        return isSignedIn() && (
+          request.auth.uid == resource.data.ownerId ||
+          request.auth.uid == resource.data.userId ||
+          isAdmin()
+        );
+      }
+      allow get, list: if canAccessDeal();
+      allow create: if isSignedIn() && (request.resource.data.ownerId == request.auth.uid || request.resource.data.userId == request.auth.uid);
+      allow update, delete: if canAccessDeal();
     }
 
+    // `bookOrders` retired 2026-09-21 — collection is empty in production and no app
+    // reads/writes it anymore (education writes real store orders to `orders` below;
+    // lawslane-admin and the main dashboard were switched to read `orders` too).
+    // See LAWSLANE-PLAN-03 §A.2.
 
     match /survey_lawyer_responses/{responseId} {
         allow create: if true;
@@ -283,10 +378,86 @@ service cloud.firestore {
         allow read, update, delete: if isAdmin();
     }
 
+    match /unified_surveys/{responseId} {
+        allow create: if true;
+        allow read, update, delete: if isAdmin();
+    }
+
+    match /b2b_survey_responses/{responseId} {
+        allow create: if true;
+        allow read, update, delete: if isAdmin();
+    }
+
+    match /sme_survey_responses/{responseId} {
+        allow create: if true;
+        allow read, update, delete: if isAdmin();
+    }
+
+    // ─── Exam System ──────────────────────────────────────────────
+    match /examSets/{examSetId} {
+        allow read: if isSignedIn();
+        allow create, update, delete: if isAdmin();
+
+        match /questions/{questionId} {
+            allow read: if isSignedIn();
+            allow write: if isAdmin();
+        }
+    }
+
+    match /examAttempts/{attemptId} {
+        allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+        allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+        allow update: if isSignedIn() && resource.data.userId == request.auth.uid;
+        allow delete: if isAdmin();
+    }
+
+    match /courses/{courseId} {
+        allow read: if true;
+        allow write: if isAdmin();
+    }
+
+    match /orders/{orderId} {
+        allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+        allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+        allow list: if isSignedIn() && (
+          (request.query.limit <= 1000 && request.auth.uid in request.query.filters.userId) ||
+          isAdmin()
+        );
+        allow update: if isAdmin();
+    }
+
+    // AI response cache (server-only; hashed keys, no user-identifying data).
+    // Was previously falling through to the default-deny rule below, meaning every
+    // getCachedAIResponse/setCachedAIResponse call silently failed — the AI flows'
+    // caching never actually worked regardless of call ordering. See LAWSLANE-PLAN-01 2.7.
+    match /ai_cache/{cacheKey} {
+        allow read, write: if true;
+    }
+
     // Site statistics (page views)
     match /siteStats/{docId} {
+        // เดิมเป็น `allow read, write: if true` ทั้งเอกสารหลักและ shards
+        // → ใครก็เขียน document อะไรก็ได้ลงไป โดยไม่ต้องล็อกอินด้วยซ้ำ
+        //
+        // การนับ page view เขียนจากฝั่ง client จริง (lib/data.ts incrementPageView)
+        // จึงยังปิดสนิทไม่ได้ แต่จำกัด "รูปร่าง" ของการเขียนให้ทำได้แค่แบบที่ตัวนับใช้
+        // เอกสารแม่ (siteStats/pageViews, siteStats/pageViews_shards) มีแต่การอ่าน
+        // → ปิดการเขียนได้เลย
+        //
+        // TODO: ย้ายการนับไปฝั่ง server แล้วเปลี่ยน shards เป็น write:false
+        //       (ตรงกับ LAWSLANE-PLAN-01 1.5 ที่จะเลิกเขียน Firestore ทุก page view)
         allow read: if true;
-        allow write: if true;
+        allow write: if false;
+
+        match /shards/{shardId} {
+            allow read: if true;
+            // shard ใหม่: มีได้ฟิลด์เดียว (คีย์เดือนปัจจุบัน)
+            allow create: if request.resource.data.keys().size() == 1;
+            // อัปเดต: แตะได้ทีละฟิลด์เดียวเท่านั้น (increment ของเดือนเดียว)
+            // กันการถมฟิลด์ขยะหรือเขียนทับทั้งเอกสารรวดเดียว
+            allow update: if request.resource.data.diff(resource.data).affectedKeys().size() == 1;
+            allow delete: if isAdmin();
+        }
     }
 
     // Default deny at the very end

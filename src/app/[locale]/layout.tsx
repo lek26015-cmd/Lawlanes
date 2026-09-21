@@ -9,7 +9,7 @@ import { ClientProviders } from '../client-providers';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages } from 'next-intl/server';
 import ScrollToTopButton from '@/components/ui/scroll-to-top';
-import { TestAccountsControl } from '@/components/dev/test-accounts-control';
+import TestAccountsControl from '@/components/dev/test-accounts-control-loader';
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));

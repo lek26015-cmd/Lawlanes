@@ -20,7 +20,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { useFirebase } from '@/firebase';
 import { addDoc, collection, doc, serverTimestamp, setDoc, getDoc, query, where, getDocs, updateDoc, limit } from 'firebase/firestore';
 import { errorEmitter, FirestorePermissionError } from '@/firebase';
-import { saveBase64SlipAction } from '@/app/actions/upload-secure';
+import { saveBase64SlipAction } from '@/app/actions/upload';
 import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '@/lib/constants';
 import { compressImageToBase64 } from '@/lib/image-utils';
 import { cn } from '@/lib/utils';

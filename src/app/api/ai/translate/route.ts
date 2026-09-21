@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { requireUser, authErrorResponse } from '@/lib/auth-guard';
 
 const TranslateSchema = z.object({
     title: z.string(),
@@ -11,6 +12,12 @@ const TranslateSchema = z.object({
 
 
 export async function POST(req: NextRequest) {
+    // ต้องล็อกอินอยู่จริง — endpoint นี้เรียก LLM ซึ่งมีค่าใช้จ่ายต่อครั้ง
+    try {
+        await requireUser();
+    } catch (e) {
+        return authErrorResponse(e);
+    }
     try {
         const body = await req.json();
         const { title, description, content, targetLanguage } = TranslateSchema.parse(body);

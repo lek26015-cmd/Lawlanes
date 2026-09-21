@@ -2,6 +2,7 @@
 
 import { initAdmin } from '@/lib/firebase-admin';
 import * as admin from 'firebase-admin';
+import { requireAdmin, authErrorResult } from '@/lib/auth-guard';
 
 /**
  * Approves a pending payment for either a chat case or an appointment.
@@ -14,9 +15,17 @@ export async function approvePaymentSlipAction(params: {
     caseTitle?: string,
     payerName?: string
 }) {
+    // ต้องเป็นแอดมินเท่านั้น — เดิม action นี้ไม่เช็คผู้เรียกเลย และถูกเรียกจาก
+    // หน้า /dev/admin-payments ที่ ship ขึ้น production โดยไม่มีการป้องกัน
+    // → ใครก็กดอนุมัติการชำระเงิน แล้วพลิกเคสเป็น active พร้อมยิงแจ้งเตือนได้
+    let adminApp;
     try {
-        const adminApp = await initAdmin();
-        if (!adminApp) return { success: false, error: 'Firebase Admin not initialized.' };
+        ({ adminApp } = await requireAdmin());
+    } catch (e) {
+        return authErrorResult(e);
+    }
+
+    try {
         const db = adminApp.firestore();
 
         const { type, id, lawyerId, amount, caseTitle, payerName } = params;

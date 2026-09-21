@@ -62,6 +62,12 @@ export async function middleware(request: NextRequest) {
   const roleHint = request.cookies.get('role_hint')?.value || 'customer';
   const isAuthenticated = !!sessionHint;
 
+  // หน้าเครื่องมือภายใต้ /dev ไม่ควรเข้าถึงได้บน production เลย
+  // (/dev/admin-payments เรียก action อนุมัติการชำระเงิน)
+  if (process.env.NODE_ENV === 'production' && route.startsWith('/dev')) {
+      return new NextResponse('Not Found', { status: 404 });
+  }
+
   const loginUrl = new URL(`/${currentLocale}/login`, request.url);
   const clientDashboardUrl = new URL(`/${currentLocale}/dashboard`, request.url);
   const lawyerDashboardUrl = new URL(`/${currentLocale}/lawyer-dashboard`, request.url);

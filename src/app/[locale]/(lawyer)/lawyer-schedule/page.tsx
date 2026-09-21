@@ -1,7 +1,7 @@
 
 'use client'
 
-import { useState, Suspense } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,9 +10,10 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
-import { ArrowLeft, Clock, Calendar as CalendarIcon, PlusCircle, Trash2 } from 'lucide-react';
+import { ArrowLeft, Clock, Calendar as CalendarIcon, PlusCircle, Trash2, Loader2 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Separator } from '@/components/ui/separator';
+import { getLawyerScheduleAction, updateLawyerScheduleAction } from '@/app/actions/lawyer-actions';
 
 type DayOfWeek = 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday';
 
@@ -37,6 +38,22 @@ function LawyerScheduleContent() {
   const [overrideDate, setOverrideDate] = useState<Date | undefined>();
   const [overrideReason, setOverrideReason] = useState('');
   const [overrides, setOverrides] = useState<{ date: Date; reason: string }[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    getLawyerScheduleAction()
+      .then(schedule => {
+        setWorkingHours(schedule.workingHours);
+        setAvailableDays(schedule.availableDays);
+        setOverrides(schedule.overrides.map(ov => ({ date: new Date(ov.date), reason: ov.reason })));
+      })
+      .catch(() => {
+        toast({ variant: 'destructive', title: 'โหลดตารางเวลาไม่สำเร็จ', description: 'กรุณาลองรีเฟรชหน้าใหม่' });
+      })
+      .finally(() => setIsLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const dayLabels: { [key in DayOfWeek]: string } = {
     monday: 'วันจันทร์',
@@ -71,13 +88,36 @@ function LawyerScheduleContent() {
     }
   }
 
-  const handleSaveChanges = () => {
-    console.log({ workingHours, availableDays, overrides });
-    toast({
-      title: "บันทึกข้อมูลสำเร็จ",
-      description: "ตารางเวลาของคุณได้รับการอัปเดตแล้ว",
-    });
+  const handleSaveChanges = async () => {
+    setIsSaving(true);
+    try {
+      const result = await updateLawyerScheduleAction({
+        workingHours,
+        availableDays,
+        overrides: overrides.map(ov => ({ date: ov.date.toISOString(), reason: ov.reason })),
+      });
+      if (result.success) {
+        toast({
+          title: "บันทึกข้อมูลสำเร็จ",
+          description: "ตารางเวลาของคุณได้รับการอัปเดตแล้ว",
+        });
+      } else {
+        toast({ variant: 'destructive', title: 'บันทึกไม่สำเร็จ', description: result.error });
+      }
+    } catch (e: any) {
+      toast({ variant: 'destructive', title: 'เกิดข้อผิดพลาด', description: e.message });
+    } finally {
+      setIsSaving(false);
+    }
   };
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50/50">
@@ -213,7 +253,8 @@ function LawyerScheduleContent() {
           </Card>
 
           <div className="flex justify-end pt-4">
-            <Button size="lg" onClick={handleSaveChanges} className="h-14 px-8 rounded-full text-lg shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all bg-gradient-to-r from-[#0B3979] to-[#1e40af]">
+            <Button size="lg" onClick={handleSaveChanges} disabled={isSaving} className="h-14 px-8 rounded-full text-lg shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all bg-gradient-to-r from-[#0B3979] to-[#1e40af]">
+              {isSaving ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : null}
               บันทึกการเปลี่ยนแปลงทั้งหมด
             </Button>
           </div>

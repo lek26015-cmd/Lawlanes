@@ -21,7 +21,7 @@ import { HomeRecommendedLawyers } from '@/components/home-recommended-lawyers';
 import { HomeServicesSection } from '@/components/home-services-section';
 import { FadeIn } from '@/components/fade-in';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import lawslaneCoverPhoto from '@/pic/lawslane-cover-photo.png';
+import lawslaneCoverPhoto from '@/pic/lawslane-cover-photo.webp';
 import lawslaneHeroCover from '@/pic/Lawlanes-Hero-cover.jpg';
 
 export const dynamic = 'error';
@@ -77,8 +77,6 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                     alt="Lawslane Cover"
                     fill
                     className="object-contain object-left-bottom"
-                    priority
-                    unoptimized
                   />
                 </div>
               </FadeIn>
@@ -93,8 +91,6 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                 alt="Lawslane Cover"
                 fill
                 className="object-cover object-top"
-                priority
-                unoptimized
               />
             </div>
           </FadeIn>

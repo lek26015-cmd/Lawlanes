@@ -4,8 +4,27 @@ import { initializeFirebase } from '@/firebase';
 import { collection, getDocs, query, doc, deleteDoc, writeBatch, getDoc, setDoc, serverTimestamp, where } from 'firebase/firestore';
 import { initAdmin } from '@/lib/firebase-admin';
 import * as admin from 'firebase-admin';
+import { requireAdmin, authErrorResult } from '@/lib/auth-guard';
+
+/**
+ * เครื่องมือ seed/ลบข้อมูลทดสอบ — ห้ามใช้บน production เด็ดขาด
+ * ปุ่มบนหน้า login ถูกซ่อนด้วย NODE_ENV อยู่แล้ว แต่ server action ยังเรียกได้
+ * จากภายนอกเสมอ (เป็น POST endpoint จริง) จึงต้องกันที่ตัว action เอง
+ */
+async function assertSeedingAllowed() {
+    if (process.env.NODE_ENV === 'production') {
+        throw new Error('Seeding tools are disabled in production');
+    }
+    await requireAdmin();
+}
 
 export async function deleteTestData() {
+    try {
+        await assertSeedingAllowed();
+    } catch (e) {
+        return authErrorResult(e);
+    }
+
     const { firestore: db } = initializeFirebase();
     if (!db) {
         return { success: false, error: 'Firebase Firestore not initialized' };
@@ -68,6 +87,12 @@ export async function deleteTestData() {
 }
 
 export async function deleteLawyerById(lawyerId: string) {
+    try {
+        await assertSeedingAllowed();
+    } catch (e) {
+        return authErrorResult(e);
+    }
+
     const { firestore: db } = initializeFirebase();
     if (!db) {
         return { success: false, error: 'Firebase Firestore not initialized' };
@@ -91,6 +116,12 @@ export async function deleteLawyerById(lawyerId: string) {
 }
 
 export async function setupTestAccounts() {
+    try {
+        await assertSeedingAllowed();
+    } catch (e) {
+        return authErrorResult(e);
+    }
+
     const adminApp = await initAdmin();
     if (!adminApp) {
         return { success: false, error: 'Firebase Admin not initialized. Check your environment variables (FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY).' };

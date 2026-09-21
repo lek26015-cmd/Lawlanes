@@ -7,10 +7,9 @@ import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { Button } from '@/components/ui/button';
 import Logo from '@/components/logo';
 import { Input } from '@/components/ui/input';
-import { Search, Menu, User, ChevronDown, LogOut, LayoutDashboard, Camera, ShoppingCart, FileText } from 'lucide-react';
+import { Search, Menu, User, ChevronDown, LogOut, LayoutDashboard, Camera, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
-import { useCart } from '@/context/cart-context';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { useUser as useAuthUser, useFirebase } from '@/firebase';
 import { signOut } from 'firebase/auth';
@@ -153,7 +152,6 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
   const useTransparentHeader = isMounted && isHomePage && !isScrolled && !isMobileMenuOpen;
 
   const { toast } = useToast();
-  const { totalItems, setIsOpen: setIsCartOpen } = useCart();
 
   const handleLogout = async () => {
     if (auth) {
@@ -229,9 +227,6 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
             </a>
             <Link href={getMainLink('/articles', domainType, !isMounted)} className={pathname.startsWith(`/articles`) ? activeNavLinkClasses : navLinkClasses}>
               {t('articles')}
-            </Link>
-            <Link href={getMainLink('/books', domainType, !isMounted)} className={pathname.startsWith(`/books`) ? activeNavLinkClasses : navLinkClasses}>
-              {t('books')}
             </Link>
             <Link href={getMainLink('/for-lawyers', domainType, !isMounted)} className={pathname.startsWith(`/for-lawyers`) ? activeNavLinkClasses : navLinkClasses}>
               {t('forLawyers')}
@@ -317,9 +312,6 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
                   <DropdownMenuItem asChild>
                     <Link href="/account"><User className="mr-2" />{t('manageAccount')}</Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/books/tracking"><FileText className="mr-2" />ติดตามสถานะการสั่งซื้อ</Link>
-                  </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout} className="text-destructive">
                     <LogOut className="mr-2" />{t('logout')}
@@ -360,19 +352,6 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
               </div>
             )}
 
-            {totalItems > 0 && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className={cn("relative ml-2", loginButtonClasses)}
-                onClick={() => setIsCartOpen(true)}
-              >
-                <ShoppingCart className="w-5 h-5" />
-                <span className="absolute -top-1 -right-1 bg-gold text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full border-2 border-white min-w-[18px]">
-                  {totalItems}
-                </span>
-              </Button>
-            )}
           </div>
         </div>
 
@@ -483,9 +462,6 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
                         </Link>
                         <Link href="/account" className="flex items-center gap-2 p-2 hover:bg-muted rounded-md">
                           <User className="w-4 h-4" /> {t('manageAccount')}
-                        </Link>
-                        <Link href="/books/tracking" className="flex items-center gap-2 p-2 hover:bg-muted rounded-md">
-                          <FileText className="w-4 h-4" /> ติตตามสถานะการสั่งซื้อ
                         </Link>
                       </div>
                       <Button onClick={handleLogout} className="w-full mt-2" variant="destructive">{t('logout')}</Button>

@@ -102,7 +102,7 @@ function SupportPageContent() {
             const formData = new FormData();
             formData.append('file', file);
 
-            const { uploadToFirebaseSecure } = await import('@/app/actions/upload-secure');
+            const { uploadToFirebaseSecure } = await import('@/app/actions/upload');
             const filePath = await uploadToFirebaseSecure(formData, `support/${ticketId}`);
 
             const fileData = {

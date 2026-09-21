@@ -3,7 +3,18 @@
 import { Resend } from 'resend';
 import { initAdmin } from '@/lib/firebase-admin';
 import * as admin from 'firebase-admin';
-import { randomBytes } from 'crypto';
+import { randomBytes, createHash } from 'crypto';
+import { checkRateLimit } from '@/lib/security/rate-limiter';
+
+/**
+ * จำกัดอัตราการส่งอีเมลต่อที่อยู่อีเมลหนึ่ง
+ * action เหล่านี้ต้องเรียกได้ตอนยังไม่ล็อกอิน (สมัคร/ลืมรหัสผ่าน) จึงกันด้วยอีเมลแทน uid
+ * ใช้ hash เพื่อไม่ให้อีเมลจริงไปโผล่เป็น document id ใน rate_limits
+ */
+async function limitByEmail(email: string, action: string) {
+    const key = `${action}:${createHash('sha256').update(email.toLowerCase()).digest('hex').slice(0, 32)}`;
+    return checkRateLimit(key, 3, 15 * 60 * 1000);
+}
 
 /** How many days a verification link stays valid */
 const VERIFICATION_LINK_EXPIRY_DAYS = 7;
@@ -64,6 +75,11 @@ function generateEmailHtml(title: string, content: string, buttonText: string, l
 
 export async function sendCustomVerificationEmail(email: string, name: string) {
   try {
+    const limit = await limitByEmail(email, 'verify-email');
+    if (!limit.success) {
+      return { success: false, error: 'ขอส่งอีเมลยืนยันบ่อยเกินไป กรุณารอสักครู่' };
+    }
+
     const app = await initAdmin();
     if (!app) {
       const errorMsg = 'ระบบไม่สามารถเชื่อมต่อ Server ทางเลือกได้ในขณะนี้'
@@ -124,6 +140,15 @@ export async function sendCustomVerificationEmail(email: string, name: string) {
 
 export async function sendCustomPasswordResetEmailV2(email: string) {
   try {
+    if (!email || typeof email !== 'string') {
+      return { success: true };
+    }
+
+    const limit = await limitByEmail(email, 'password-reset');
+    if (!limit.success) {
+      return { success: false, error: 'ขอรีเซ็ตรหัสผ่านบ่อยเกินไป กรุณารอสักครู่' };
+    }
+
     const auth = await initAdmin();
     if (!auth) {
       return { success: false, error: 'ระบบทำงานผิดพลาด กำลังแก้ไขโดยเร็วที่สุด' };
@@ -157,6 +182,10 @@ export async function sendCustomPasswordResetEmailV2(email: string) {
 
     return { success: true };
   } catch (error: any) {
+    // ไม่บอกว่าอีเมลนี้มีบัญชีอยู่จริงหรือไม่ — กันการไล่เดารายชื่อผู้ใช้
+    if (error?.code === 'auth/user-not-found') {
+      return { success: true };
+    }
     console.error('Error in custom password reset:', error);
     return { success: false, error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' };
   }

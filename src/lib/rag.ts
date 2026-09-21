@@ -2,7 +2,7 @@
 // Use environment variable with fallback to the known deployed URL
 const WORKER_URL = process.env.NEXT_PUBLIC_RAG_WORKER_URL || 'https://lawslane-rag-api.lawlanes-app.workers.dev';
 
-export async function retrieveDocuments(query: string, topK: number = 5): Promise<Array<{ source: string, content: string, score: number }>> {
+export async function retrieveDocuments(query: string, topK: number = 5): Promise<Array<{ source: string, content: string, score: number, year?: number }>> {
     const MAX_RETRIES = 2;
     let attempt = 0;
 
@@ -55,10 +55,18 @@ export async function retrieveDocuments(query: string, topK: number = 5): Promis
                 content = content.replace(/\n\s*\n/g, '\n').trim();
                 content = content.replace(/[ ]{2,}/g, ' '); // Remove double spaces
 
+                // ปีของกฎหมายสำคัญมาก: ฐานข้อมูลมีทั้งฉบับเดิมและฉบับแก้ไข
+                // ถ้าไม่ส่งปีไปด้วย ผู้เรียกจะแยกไม่ออกว่าฉบับไหนยังใช้อยู่
+                const rawYear = match.metadata?.year;
+                const year = typeof rawYear === 'number'
+                    ? rawYear
+                    : (typeof rawYear === 'string' && /^\d{4}$/.test(rawYear) ? parseInt(rawYear, 10) : undefined);
+
                 return {
                     source: match.metadata?.source || 'Unknown',
                     content: content,
-                    score: match.score || 0
+                    score: match.score || 0,
+                    year
                 };
             });
 

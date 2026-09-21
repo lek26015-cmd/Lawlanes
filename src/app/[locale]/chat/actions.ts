@@ -10,7 +10,7 @@ export async function uploadFileAction(formData: FormData, idToken: string, chat
         console.log(`[Chat Upload] Securing attachment for chat ${chatId} using Firebase Storage`);
         
         // Store in a scoped path for the chat using Firebase Storage (Secure)
-        const { uploadToFirebaseSecure } = await import('@/app/actions/upload-secure');
+        const { uploadToFirebaseSecure } = await import('@/app/actions/upload');
         const filePath = await uploadToFirebaseSecure(formData, `chats/${chatId}`);
 
         return {

@@ -1,7 +1,14 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
+import { requireUser, authErrorResponse } from '@/lib/auth-guard';
 
 export async function POST(req: Request) {
+    // ต้องล็อกอินอยู่จริง — endpoint นี้เรียก LLM ซึ่งมีค่าใช้จ่ายต่อครั้ง
+    try {
+        await requireUser();
+    } catch (e) {
+        return authErrorResponse(e);
+    }
   try {
     const { image } = await req.json();
 

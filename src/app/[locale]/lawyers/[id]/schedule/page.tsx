@@ -80,6 +80,24 @@ export default function SchedulePage() {
     return notFound();
   }
 
+  // เดิมหน้านี้ปล่อยให้จองวันไหนก็ได้ในช่วง 60 วัน ไม่เคยเช็คตารางเวลาจริงของทนายเลย
+  // ตอนนี้ทนายบันทึกวันทำการ/วันหยุดจริงผ่าน lawyer-schedule แล้ว (lawyerProfiles.schedule)
+  // ให้ปฏิทินฝั่งลูกความปิดวันที่ทนายไม่รับนัดตามข้อมูลจริงแทน
+  const DAY_KEYS: (keyof NonNullable<LawyerProfile['schedule']>['availableDays'])[] =
+    ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+
+  const isDateUnavailable = (day: Date) => {
+    if (day < new Date(new Date().setHours(0, 0, 0, 0)) || day > addDays(new Date(), 60)) return true;
+
+    const schedule = lawyer.schedule;
+    if (!schedule) return false; // ทนายยังไม่ได้ตั้งตารางเวลา — ใช้พฤติกรรมเดิม (เปิดทุกวันในช่วง 60 วัน)
+
+    const dayKey = DAY_KEYS[day.getDay()];
+    if (schedule.availableDays && schedule.availableDays[dayKey] === false) return true;
+
+    return (schedule.overrides || []).some(ov => new Date(ov.date).toDateString() === day.toDateString());
+  };
+
   return (
     <div className="bg-gray-50 min-h-screen">
       <div className="container mx-auto px-4 md:px-6 py-12">
@@ -110,13 +128,11 @@ export default function SchedulePage() {
                                 mode="single"
                                 selected={date}
                                 onSelect={setDate}
-                                disabled={(date) =>
-                                    date < new Date() || date > addDays(new Date(), 60)
-                                }
+                                disabled={isDateUnavailable}
                                 className="rounded-md"
                             />
                         </div>
-                         {date && <p className="text-sm text-center text-muted-foreground">วันที่เลือก: {format(date, 'd MMMM yyyy')}</p>}
+                         {date && <p className="text-sm text-center text-muted-foreground">วันที่เลือก: {format(date, 'd MMMM yyyy')} (เวลาทำการ {lawyer.schedule?.workingHours.start || '09:00'}-{lawyer.schedule?.workingHours.end || '18:00'} น.)</p>}
                     </div>
 
                     <div className="space-y-2">

@@ -57,3 +57,26 @@ export interface Invoice {
   description?: string;  // Description of the service
   createdAt: number;
 }
+
+/**
+ * พยานหลักฐาน — subcollection ของ legalCases/{caseId}/evidence
+ */
+export interface CaseEvidence {
+  id: string;
+  title: string;
+  fact: string;
+  fileUrl: string;
+  fileType: string;
+  uploadedBy: string;
+  createdAt: number;
+}
+
+/**
+ * พยานบุคคล — subcollection ของ legalCases/{caseId}/witnesses
+ */
+export interface CaseWitness {
+  id: string;
+  name: string;
+  role: string;
+  createdAt: number;
+}

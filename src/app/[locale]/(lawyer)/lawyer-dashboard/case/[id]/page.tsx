@@ -46,6 +46,9 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useFirebase } from '@/firebase';
@@ -58,8 +61,13 @@ import { Sparkles, BrainCircuit, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
-import { getCaseMilestones, addCaseMilestoneAction, toggleMilestoneStatusAction, generateCaseStrategicAdviceAction } from '@/app/actions/lawyer-case-actions';
-import { Milestone } from '@/lib/types/billing-types';
+import {
+  getCaseMilestones, addCaseMilestoneAction, toggleMilestoneStatusAction, generateCaseStrategicAdviceAction,
+  getCaseEvidenceAction, addEvidenceAction, updateEvidenceFactAction, deleteEvidenceAction,
+  getCaseWitnessesAction, addWitnessAction, updateWitnessAction, deleteWitnessAction,
+  finalizeWitnessListAction,
+} from '@/app/actions/lawyer-case-actions';
+import { Milestone, CaseEvidence, CaseWitness } from '@/lib/types/billing-types';
 import ReactMarkdown from 'react-markdown';
 
 function CaseDetailPageContent() {
@@ -85,13 +93,23 @@ function CaseDetailPageContent() {
   // New state for full-page subviews
   const [activeSubView, setActiveSubView] = useState<null | 'event' | 'document' | 'evidence' | 'witness'>(null);
   const [witnessStep, setWitnessStep] = useState<0 | 1 | 2 | 3>(0);
-  const [witnessPersons, setWitnessPersons] = useState<{name: string, role: string}[]>([]);
+
+  // พยานหลักฐาน/พยานบุคคล — ข้อมูลจริงจาก legalCases/{id}/evidence และ /witnesses
+  // (เดิมทั้งคู่เป็น React state ล้วนหรือ hardcode ในโค้ด ไม่เคยบันทึกจริง)
+  const [evidenceList, setEvidenceList] = useState<CaseEvidence[]>([]);
+  const [witnessPersons, setWitnessPersons] = useState<CaseWitness[]>([]);
+  const [isLegalCase, setIsLegalCase] = useState(false); // มีแค่คดีจาก legalCases เท่านั้นที่ใช้ฟีเจอร์นี้ได้
+  const [isSubmittingEvidence, setIsSubmittingEvidence] = useState(false);
+  const [newEvidenceTitle, setNewEvidenceTitle] = useState('');
+  const [newEvidenceFact, setNewEvidenceFact] = useState('');
+  const [newEvidenceFile, setNewEvidenceFile] = useState<File | null>(null);
+  const [isFinalizingWitnessList, setIsFinalizingWitnessList] = useState(false);
+
   const [newWitness, setNewWitness] = useState({ name: '', role: '' });
   const [showAddWitnessForm, setShowAddWitnessForm] = useState(false);
-  const [editingWitnessIndex, setEditingWitnessIndex] = useState<number | null>(null);
+  const [editingWitnessId, setEditingWitnessId] = useState<string | null>(null);
   const [editingFactIndex, setEditingFactIndex] = useState<number | null>(null);
   const [tempFact, setTempFact] = useState('');
-  const [selectedEvidenceCategories, setSelectedEvidenceCategories] = useState<string[]>(['docs', 'tech']);
   const [isSigned, setIsSigned] = useState(false);
   const [strategicAdvice, setStrategicAdvice] = useState<string | null>(null);
   const [isGeneratingAdvice, setIsGeneratingAdvice] = useState(false);
@@ -163,6 +181,23 @@ function CaseDetailPageContent() {
         } else {
           setCaseData(data);
           setMilestones(fetchedMilestones);
+
+          // เฉพาะเคสจาก legalCases (มี lawyer_id เป็น string) เท่านั้นที่มีพยานหลักฐาน/พยานบุคคลจริง
+          // — ไม่ใช่เคสที่เป็น chats fallback (มี `lawyer` เป็น object แทน)
+          const legalCase = typeof (data as any).lawyer_id === 'string';
+          setIsLegalCase(legalCase);
+          if (legalCase) {
+            try {
+              const [fetchedEvidence, fetchedWitnesses] = await Promise.all([
+                getCaseEvidenceAction(id),
+                getCaseWitnessesAction(id),
+              ]);
+              setEvidenceList(fetchedEvidence);
+              setWitnessPersons(fetchedWitnesses);
+            } catch (evidenceError) {
+              console.error('Error loading evidence/witnesses:', evidenceError);
+            }
+          }
         }
       } catch (error) {
         console.error("Error loading case details:", error);
@@ -173,6 +208,108 @@ function CaseDetailPageContent() {
     }
     fetchData();
   }, [id, firestore]);
+
+  const refetchEvidence = async () => setEvidenceList(await getCaseEvidenceAction(id));
+  const refetchWitnesses = async () => setWitnessPersons(await getCaseWitnessesAction(id));
+
+  const handleAddEvidence = async () => {
+    if (!newEvidenceTitle.trim() || !newEvidenceFile) {
+      toast({ title: "กรุณากรอกข้อมูลให้ครบถ้วน", description: "ระบุชื่อพยานหลักฐานและเลือกไฟล์", variant: "destructive" });
+      return;
+    }
+    setIsSubmittingEvidence(true);
+    try {
+      const formData = new FormData();
+      formData.set('title', newEvidenceTitle);
+      formData.set('fact', newEvidenceFact);
+      formData.set('file', newEvidenceFile);
+      const result = await addEvidenceAction(id, formData);
+      if (result.success) {
+        toast({ title: "อัปโหลดสำเร็จ", description: "พยานหลักฐานของคุณถูกบันทึกลงในระบบเรียบร้อยแล้ว" });
+        setShowAddEvidence(false);
+        setNewEvidenceTitle('');
+        setNewEvidenceFact('');
+        setNewEvidenceFile(null);
+        await refetchEvidence();
+      } else {
+        toast({ title: "อัปโหลดไม่สำเร็จ", description: result.error, variant: "destructive" });
+      }
+    } finally {
+      setIsSubmittingEvidence(false);
+    }
+  };
+
+  const handleDeleteEvidence = async (evidenceId: string) => {
+    const result = await deleteEvidenceAction(id, evidenceId);
+    if (result.success) {
+      setSelectedEvidence(null);
+      await refetchEvidence();
+    } else {
+      toast({ title: "ลบไม่สำเร็จ", description: result.error, variant: "destructive" });
+    }
+  };
+
+  const handleSaveEvidenceFact = async (evidenceId: string, fact: string) => {
+    const result = await updateEvidenceFactAction(id, evidenceId, fact);
+    if (result.success) {
+      await refetchEvidence();
+      toast({ title: "อัปเดตข้อมูลสำเร็จ" });
+    } else {
+      toast({ title: "บันทึกไม่สำเร็จ", description: result.error, variant: "destructive" });
+    }
+    setEditingFactIndex(null);
+  };
+
+  const handleSaveWitness = async () => {
+    if (!newWitness.name.trim() || !newWitness.role.trim()) {
+      toast({ title: "กรุณากรอกข้อมูลให้ครบถ้วน", variant: "destructive" });
+      return;
+    }
+    const result = editingWitnessId
+      ? await updateWitnessAction(id, editingWitnessId, newWitness.name, newWitness.role)
+      : await addWitnessAction(id, newWitness.name, newWitness.role);
+
+    if (result.success) {
+      await refetchWitnesses();
+      setNewWitness({ name: '', role: '' });
+      setEditingWitnessId(null);
+      setShowAddWitnessForm(false);
+    } else {
+      toast({ title: "บันทึกไม่สำเร็จ", description: result.error, variant: "destructive" });
+    }
+  };
+
+  const handleDeleteWitness = async (witnessId: string) => {
+    const result = await deleteWitnessAction(id, witnessId);
+    if (result.success) {
+      await refetchWitnesses();
+    } else {
+      toast({ title: "ลบไม่สำเร็จ", description: result.error, variant: "destructive" });
+    }
+  };
+
+  const handleFinalizeWitnessList = async () => {
+    setIsFinalizingWitnessList(true);
+    try {
+      const result = await finalizeWitnessListAction(
+        id,
+        evidenceList.map(e => e.id),
+        witnessPersons.map(w => w.id)
+      );
+      if (result.success && result.pdfUrl) {
+        toast({ title: "จัดทำบัญชีพยานสำเร็จ", description: "สร้างเอกสาร PDF เรียบร้อยแล้ว" });
+        window.open(result.pdfUrl, '_blank');
+        setShowWitnessList(false);
+        setWitnessStep(0);
+        setIsSigned(false);
+        setActiveSubView(null);
+      } else {
+        toast({ title: "ไม่สามารถจัดทำบัญชีพยานได้", description: result.error, variant: "destructive" });
+      }
+    } finally {
+      setIsFinalizingWitnessList(false);
+    }
+  };
 
   const completedMilestones = milestones.filter(m => m.status === 'completed').length;
   const totalMilestones = milestones.length;
@@ -474,72 +611,44 @@ function CaseDetailPageContent() {
   }
 
   if (activeSubView === 'evidence' && selectedEvidence) {
+    const ev = selectedEvidence as CaseEvidence;
+    const isImage = ev.fileType?.startsWith('image/');
     return (
       <div className="bg-slate-50 min-h-screen pb-20 animate-in fade-in slide-in-from-bottom-4 duration-500">
-        <div className="container mx-auto max-w-6xl px-4 pt-12 space-y-8">
+        <div className="container mx-auto max-w-3xl px-4 pt-12 space-y-8">
           <div className="flex items-center gap-3">
              <Button variant="ghost" size="sm" onClick={() => setSelectedEvidence(null)} className="text-slate-400 hover:text-slate-900 group">
-                <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" /> คลังพยานหลักฐานหลัก
+                <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" /> ชุดพยานหลักฐาน
              </Button>
-             <div className="w-1 h-1 bg-slate-300 rounded-full"></div>
-             <span className="text-xs text-slate-400 font-bold uppercase tracking-widest">Evidence Asset Repository</span>
           </div>
 
-          <div className="rounded-[3rem] overflow-hidden shadow-2xl bg-white border border-slate-100 flex flex-col min-h-[80vh]">
-              <div className="h-64 bg-slate-900 bg-[url('https://images.unsplash.com/photo-1589829545856-d10d557cf95f?q=80&w=2070')] bg-cover bg-center relative flex items-center px-16 group overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-r from-slate-900 via-slate-900/80 to-transparent"></div>
-                <div className="z-10 flex items-center gap-12">
-                    <div className="w-28 h-28 rounded-[2rem] bg-blue-600 flex items-center justify-center shadow-2xl border-4 border-blue-500/20 group-hover:scale-110 transition-transform duration-700">
-                        <Gavel className="w-12 h-12 text-white" />
-                    </div>
-                    <div className="space-y-2">
-                        <h1 className="text-6xl font-black font-headline text-white tracking-tighter italic">{selectedEvidence.title}</h1>
-                        <div className="flex items-center gap-4">
-                            <Badge className="bg-blue-600 font-black text-xs px-6 py-1 h-8 rounded-full shadow-lg shadow-blue-900/20">{selectedEvidence.count} VERIFIED ASSETS</Badge>
-                            <span className="text-blue-400/60 uppercase text-xs font-black tracking-widest italic">• SECURE STORAGE Lvl. 4 •</span>
-                        </div>
-                    </div>
-                </div>
-              </div>
+          <div className="rounded-[2rem] overflow-hidden shadow-xl bg-white border border-slate-100">
+              {isImage ? (
+                <img src={ev.fileUrl} alt={ev.title} className="w-full max-h-[480px] object-contain bg-slate-900" />
+              ) : (
+                <a href={ev.fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center h-48 bg-slate-900 text-white gap-3 hover:bg-slate-800 transition-colors">
+                  <FileText className="w-8 h-8" /> เปิดไฟล์ ({ev.fileType})
+                </a>
+              )}
 
-              <div className="p-16 flex-1 bg-white space-y-16">
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-                     {[...Array(12)].map((_, i) => (
-                       <div key={i} className="aspect-[3/4] rounded-[2rem] bg-slate-50 border border-slate-100 flex flex-col items-center justify-center group cursor-pointer hover:bg-white hover:border-blue-400 hover:shadow-[0_20px_50px_rgba(59,130,246,0.15)] transition-all relative overflow-hidden">
-                          <div className="absolute top-6 right-6 opacity-0 group-hover:opacity-100 transition-all group-hover:translate-x-0 translate-x-4">
-                             <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white shadow-lg">
-                                <ExternalLink className="w-5 h-5" />
-                             </div>
-                          </div>
-                          <div className="w-16 h-16 rounded-2xl bg-white border border-slate-100 flex items-center justify-center text-slate-200 group-hover:text-blue-500 group-hover:scale-125 transition-all shadow-sm">
-                             <FileText className="w-8 h-8" />
-                          </div>
-                          <div className="mt-8 text-center space-y-1">
-                             <p className="text-[10px] text-slate-400 font-bold uppercase tracking-[0.2em] group-hover:text-blue-400 transition-colors">EVIDENCE_REF</p>
-                             <p className="text-sm font-black text-slate-900 italic tracking-tighter">ASSET_ITEM_{i+1001}</p>
-                          </div>
-                          <div className="absolute inset-x-0 bottom-0 h-1.5 bg-blue-100 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                       </div>
-                     ))}
+              <div className="p-10 space-y-6">
+                  <div>
+                    <h1 className="text-2xl font-black text-slate-900 tracking-tight">{ev.title}</h1>
+                    <p className="text-xs text-slate-400 mt-1">อัปโหลดเมื่อ {new Date(ev.createdAt).toLocaleString('th-TH')}</p>
                   </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-16 pt-16 border-t border-slate-100">
-                      <div className="md:col-span-2 space-y-6">
-                         <h5 className="font-bold text-slate-900 text-2xl flex items-center gap-3">
-                            <Info className="w-8 h-8 text-blue-500 animate-pulse" /> บันทึกวิเคราะห์พยานหลักฐาน (AI Legal Review)
-                         </h5>
-                         <p className="text-slate-500 leading-loose italic text-xl">
-                            "ชุดพยานนี้ถูกจัดลำดับความสำคัญในระดับ High Priority ทางทนายความได้ทำการตรวจสอบความถูกต้องของ Meta Information เรียบร้อยแล้ว พร้อมสำหรับการจัดทำบัญชีระบุพยานเพื่อยื่นต่อศาลในกระบวนการถัดไป..."
-                         </p>
-                      </div>
-                      <div className="flex flex-col justify-end gap-4">
-                         <Button className="rounded-2xl h-16 px-10 font-black bg-slate-900 hover:bg-black text-white shadow-2xl text-lg group">
-                            ยื่นหลักฐานต่อศาลดิจิทัล <Gavel className="w-5 h-5 ml-2 group-hover:rotate-[30deg] transition-transform" />
-                         </Button>
-                         <Button variant="ghost" className="rounded-2xl h-14 px-10 font-bold text-slate-400 hover:text-slate-900" onClick={() => setSelectedEvidence(null)}>
-                            ปิดหน้าต่างพยานหลักฐาน
-                         </Button>
-                      </div>
+                  <div>
+                    <h5 className="font-bold text-slate-700 text-sm mb-2">รายละเอียด / ประเด็นที่ใช้พิสูจน์</h5>
+                    <p className="text-slate-600 text-sm leading-relaxed bg-slate-50 rounded-xl p-4 border border-slate-100">
+                      {ev.fact || 'ยังไม่มีรายละเอียดเพิ่มเติม'}
+                    </p>
+                  </div>
+                  <div className="flex gap-3 pt-4">
+                     <Button variant="outline" className="rounded-xl" asChild>
+                        <a href={ev.fileUrl} target="_blank" rel="noopener noreferrer"><Download className="w-4 h-4 mr-2" /> ดาวน์โหลดไฟล์ต้นฉบับ</a>
+                     </Button>
+                     <Button variant="outline" className="rounded-xl border-red-200 text-red-600 hover:bg-red-50" onClick={() => handleDeleteEvidence(ev.id)}>
+                        <Trash2 className="w-4 h-4 mr-2" /> ลบออกจากชุดพยาน
+                     </Button>
                   </div>
               </div>
           </div>
@@ -627,39 +736,68 @@ function CaseDetailPageContent() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                   {[ 
-                     { label: "พยานเอกสาร", status: "คัดเลือกแล้ว 4 รายการ", color: "text-blue-600", active: true, id: 'docs' },
-                     { label: "พยานบุคคล", status: witnessPersons.length > 0 ? `คัดเลือกแล้ว ${witnessPersons.length} รายการ` : "ยังไม่ได้เลือก", color: witnessPersons.length > 0 ? "text-blue-600" : "text-slate-400", active: witnessPersons.length > 0, id: 'witness' },
-                     { label: "พยานเทคโนโลยี", status: "คัดเลือกแล้ว 2 รายการ", color: "text-green-500", active: true, id: 'tech' },
-                     { label: "วัตถุพยาน", status: "ยังไม่ได้ระบุ", color: "text-slate-400", active: false, id: 'physical' }
-                   ].map((item, i) => (
-                     <div 
-                       key={i} 
-                       className={`p-6 rounded-2xl border-2 transition-all cursor-pointer flex justify-between items-center ${item.active ? 'border-blue-600 bg-white shadow-md' : 'border-white bg-white shadow-sm hover:border-blue-200'}`}
-                       onClick={() => item.id === 'witness' && setShowAddWitnessForm(true)}
-                     >
-                        <div>
-                           <h4 className="font-black text-slate-900 tracking-tighter uppercase italic">{item.label}</h4>
-                           <p className={`text-[10px] font-bold ${item.color} uppercase tracking-wider`}>{item.status}</p>
-                        </div>
-                        <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center ${item.active ? 'bg-blue-600 border-blue-600 shadow-sm' : 'border-slate-100'}`}>
-                           {item.active && <Check className="w-4 h-4 text-white" />}
-                        </div>
-                     </div>
-                   ))}
+                   <div
+                     className={`p-6 rounded-2xl border-2 transition-all cursor-pointer flex justify-between items-center ${evidenceList.length > 0 ? 'border-blue-600 bg-white shadow-md' : 'border-white bg-white shadow-sm hover:border-blue-200'}`}
+                     onClick={() => setShowAddEvidence(true)}
+                   >
+                      <div>
+                         <h4 className="font-black text-slate-900 tracking-tighter uppercase italic">พยานเอกสาร</h4>
+                         <p className={`text-[10px] font-bold uppercase tracking-wider ${evidenceList.length > 0 ? 'text-blue-600' : 'text-slate-400'}`}>
+                            {evidenceList.length > 0 ? `อัปโหลดแล้ว ${evidenceList.length} รายการ` : 'ยังไม่มีการอัปโหลด'}
+                         </p>
+                      </div>
+                      <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center ${evidenceList.length > 0 ? 'bg-blue-600 border-blue-600 shadow-sm' : 'border-slate-100'}`}>
+                         {evidenceList.length > 0 && <Check className="w-4 h-4 text-white" />}
+                      </div>
+                   </div>
+                   <div
+                     className={`p-6 rounded-2xl border-2 transition-all cursor-pointer flex justify-between items-center ${witnessPersons.length > 0 ? 'border-blue-600 bg-white shadow-md' : 'border-white bg-white shadow-sm hover:border-blue-200'}`}
+                     onClick={() => setShowAddWitnessForm(true)}
+                   >
+                      <div>
+                         <h4 className="font-black text-slate-900 tracking-tighter uppercase italic">พยานบุคคล</h4>
+                         <p className={`text-[10px] font-bold uppercase tracking-wider ${witnessPersons.length > 0 ? 'text-blue-600' : 'text-slate-400'}`}>
+                            {witnessPersons.length > 0 ? `คัดเลือกแล้ว ${witnessPersons.length} รายการ` : 'ยังไม่ได้เลือก'}
+                         </p>
+                      </div>
+                      <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center ${witnessPersons.length > 0 ? 'bg-blue-600 border-blue-600 shadow-sm' : 'border-slate-100'}`}>
+                         {witnessPersons.length > 0 && <Check className="w-4 h-4 text-white" />}
+                      </div>
+                   </div>
                 </div>
+
+                {evidenceList.length > 0 && (
+                  <div className="bg-slate-100/50 p-6 rounded-3xl border border-slate-100 space-y-4">
+                     <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest italic">รายการพยานเอกสาร</h4>
+                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        {evidenceList.map((ev) => (
+                          <div key={ev.id} className="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-2xl shadow-sm hover:border-blue-400 transition-all cursor-pointer group" onClick={() => setSelectedEvidence(ev)}>
+                             <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center text-blue-600 shrink-0">
+                                   <FileText className="w-4 h-4" />
+                                </div>
+                                <p className="font-bold text-slate-900 text-sm truncate">{ev.title}</p>
+                             </div>
+                             <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-300 hover:text-red-500 shrink-0" onClick={(e) => { e.stopPropagation(); handleDeleteEvidence(ev.id); }}>
+                                <Trash2 className="w-4 h-4" />
+                             </Button>
+                          </div>
+                        ))}
+                     </div>
+                  </div>
+                )}
 
                 {witnessPersons.length > 0 && (
                   <div className="bg-slate-100/50 p-6 rounded-3xl border border-slate-100 space-y-4">
                      <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest italic">รายชื่อพยานบุคคล</h4>
                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        {witnessPersons.map((wp, idx) => (
-                          <div 
-                            key={idx} 
+                        {witnessPersons.map((wp) => (
+                          <div
+                            key={wp.id}
                             className="flex items-center justify-between p-4 bg-white border border-slate-200 rounded-2xl shadow-sm hover:border-blue-400 transition-all cursor-pointer group"
                             onClick={() => {
-                              setNewWitness(wp);
-                              setEditingWitnessIndex(idx);
+                              setNewWitness({ name: wp.name, role: wp.role });
+                              setEditingWitnessId(wp.id);
                               setShowAddWitnessForm(true);
                             }}
                           >
@@ -672,17 +810,12 @@ function CaseDetailPageContent() {
                                    <p className="text-[9px] text-slate-400 uppercase font-black tracking-widest">{wp.role}</p>
                                 </div>
                              </div>
-                             <div className="flex items-center gap-2">
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-300 group-hover:text-blue-500">
-                                   <FileText className="w-3 h-3" />
-                                </Button>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-300 hover:text-red-500" onClick={(e) => {
-                                   e.stopPropagation();
-                                   setWitnessPersons(prev => prev.filter((_, i) => i !== idx));
-                                }}>
-                                   <Trash2 className="w-4 h-4" />
-                                </Button>
-                             </div>
+                             <Button variant="ghost" size="icon" className="h-8 w-8 text-slate-300 hover:text-red-500" onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteWitness(wp.id);
+                             }}>
+                                <Trash2 className="w-4 h-4" />
+                             </Button>
                           </div>
                         ))}
                      </div>
@@ -719,63 +852,58 @@ function CaseDetailPageContent() {
                 </div>
 
                 <div className="space-y-4">
+                   {evidenceList.length === 0 && witnessPersons.length === 0 && (
+                     <div className="p-10 text-center border border-dashed rounded-2xl text-slate-400 text-sm">
+                       ยังไม่มีพยานเอกสารหรือพยานบุคคล — ย้อนกลับไปเพิ่มในขั้นตอนที่แล้ว
+                     </div>
+                   )}
                    {[
-                     { id: "EV-1021", title: "สัญญาจ้างเหมาก่อสร้างเลขที่ 12/2567", fact: "เพื่อพิสูจน์ว่าจำเลยได้ทำสัญญาจ้างกับโจทก์และได้รับเงินมัดจำไปจริงตามหลักฐานรายการโอนเงิน...", type: 'EVIDENCE' },
-                     { id: "EV-1045", title: "บันทึกสนทนาแอปพลิเคชัน LINE (Screenshot)", fact: "พยานหลักฐานดิจิทัลนี้ใช้พิสูจน์ถึงเจตนาในการเลี่ยงการส่งมอบงานและการขาดการติดต่อสื่อสารที่มีลักษณะทุจริต...", type: 'EVIDENCE' },
-                     ...witnessPersons.map((wp, idx) => ({
-                       id: `WP-${2001 + idx}`,
-                       title: `พยานบุคคล: ${wp.name}`,
-                       fact: `เพื่อพิสูจน์ในประเด็น: ${wp.role} ของพยานในเหตุการณ์ที่มุ่งเน้นความเป็นธรรม...`,
-                       type: 'WITNESS'
-                     }))
+                     ...evidenceList.map(ev => ({ refId: ev.id, idLabel: ev.id.slice(0, 6).toUpperCase(), title: ev.title, fact: ev.fact, type: 'EVIDENCE' as const })),
+                     ...witnessPersons.map(wp => ({ refId: wp.id, idLabel: wp.id.slice(0, 6).toUpperCase(), title: `พยานบุคคล: ${wp.name}`, fact: `บทบาท/ประเด็นที่นำสืบ: ${wp.role}`, type: 'WITNESS' as const })),
                     ].map((fact, i) => (
-                      <div key={i} className="p-6 rounded-3xl bg-white border border-slate-200 flex flex-col gap-4 shadow-sm hover:border-blue-400 transition-all group">
+                      <div key={fact.refId} className="p-6 rounded-3xl bg-white border border-slate-200 flex flex-col gap-4 shadow-sm hover:border-blue-400 transition-all group">
                           <div className="flex items-center justify-between">
                              <div className="flex items-center gap-4">
                                 <div className={`w-12 h-12 rounded-xl flex flex-col items-center justify-center text-white shadow-md ${fact.type === 'WITNESS' ? 'bg-amber-600' : 'bg-slate-900 group-hover:bg-blue-600'}`}>
                                    <p className="text-[7px] uppercase font-bold text-white/50 leading-none mb-0.5">IDREF</p>
-                                   <p className="text-xs font-black italic">{fact.id}</p>
+                                   <p className="text-xs font-black italic">{fact.idLabel}</p>
                                 </div>
                                 <div className="space-y-0.5">
                                    <h5 className="font-black text-slate-900 tracking-tighter italic text-base">{fact.title}</h5>
                                    <span className={`text-[9px] font-bold uppercase tracking-widest italic flex items-center gap-1.5 ${fact.type === 'WITNESS' ? 'text-amber-500' : 'text-blue-500'}`}>
-                                      <ShieldCheck className="w-3 h-3" /> {fact.type === 'WITNESS' ? 'VERIFIED WITNESS' : 'VERIFIED EVIDENCE'}
+                                      <ShieldCheck className="w-3 h-3" /> {fact.type === 'WITNESS' ? 'พยานบุคคล' : 'พยานเอกสาร'}
                                    </span>
                                 </div>
                              </div>
-                             <Button 
-                               variant="ghost" 
-                               size="sm" 
-                               className="h-8 text-[10px] font-black uppercase text-slate-400 hover:text-blue-600 flex items-center gap-2"
-                               onClick={() => {
-                                 setEditingFactIndex(i);
-                                 setTempFact(fact.fact);
-                               }}
-                             >
-                                <FileText className="w-3.5 h-3.5" /> แก้ไขรายละเอียด
-                             </Button>
+                             {fact.type === 'EVIDENCE' && (
+                               <Button
+                                 variant="ghost"
+                                 size="sm"
+                                 className="h-8 text-[10px] font-black uppercase text-slate-400 hover:text-blue-600 flex items-center gap-2"
+                                 onClick={() => {
+                                   setEditingFactIndex(i);
+                                   setTempFact(fact.fact);
+                                 }}
+                               >
+                                  <FileText className="w-3.5 h-3.5" /> แก้ไขรายละเอียด
+                               </Button>
+                             )}
                           </div>
                           <div className="p-5 rounded-2xl bg-slate-50 border border-slate-100 italic text-sm text-slate-500 leading-relaxed relative">
-                             <div className="absolute top-0 right-4 -translate-y-1/2 px-3 py-1 bg-white border border-slate-100 rounded-full flex items-center gap-2 text-[9px] font-black uppercase text-slate-400 tracking-widest italic shadow-sm">
-                                <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" /> AI DRAFT
-                             </div>
                              {editingFactIndex === i ? (
                                <div className="space-y-4">
-                                  <textarea 
+                                  <textarea
                                     className="w-full bg-white p-4 rounded-xl border border-blue-100 text-sm font-medium focus:ring-4 ring-blue-500/5 outline-none min-h-[100px] not-italic"
                                     value={tempFact}
                                     onChange={(e) => setTempFact(e.target.value)}
                                   />
                                   <div className="flex gap-2 justify-end">
                                      <Button variant="ghost" size="sm" onClick={() => setEditingFactIndex(null)}>ยกเลิก</Button>
-                                     <Button size="sm" className="bg-blue-600 text-white" onClick={() => {
-                                        setEditingFactIndex(null);
-                                        toast({ title: "อัปเดตข้อมูลสำเร็จ", description: "ข้อมูลข้อเท็จจริงได้รับการบันทึกแล้ว" });
-                                     }}>บันทึก</Button>
+                                     <Button size="sm" className="bg-blue-600 text-white" onClick={() => handleSaveEvidenceFact(fact.refId, tempFact)}>บันทึก</Button>
                                   </div>
                                </div>
                              ) : (
-                               `"${fact.fact}"`
+                               `"${fact.fact || 'ยังไม่มีรายละเอียดเพิ่มเติม'}"`
                              )}
                           </div>
                       </div>
@@ -809,36 +937,28 @@ function CaseDetailPageContent() {
                  </div>
 
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                    {/* Document Preview Card */}
-                    <div className="p-8 rounded-[2.5rem] bg-white border-2 border-slate-100 shadow-xl space-y-6 relative overflow-hidden group">
-                       <div className="aspect-[1/1.4] bg-slate-50 border border-slate-200 rounded-2xl flex flex-col p-8 space-y-4 relative overflow-hidden">
-                          <div className="absolute inset-0 bg-gradient-to-br from-blue-600/5 to-transparent pointer-events-none" />
-                          <div className="w-full h-4 bg-slate-200/50 rounded-full w-2/3" />
-                          <div className="w-full h-3 bg-slate-100/50 rounded-full" />
-                          <div className="w-full h-3 bg-slate-100/50 rounded-full" />
-                          <div className="w-full h-3 bg-slate-100/50 rounded-full" />
-                          <div className="w-full h-4 bg-slate-200/50 rounded-full w-1/2 pt-8" />
-                          <div className="w-full h-3 bg-slate-100/50 rounded-full ml-8" />
-                          <div className="w-full h-3 bg-slate-100/50 rounded-full ml-8" />
-                          <div className="w-full h-3 bg-slate-100/50 rounded-full ml-12" />
-                          <div className="pt-20 mt-auto flex justify-end">
-                             <div className="w-32 h-12 border-b-2 border-slate-200 relative">
-                                {isSigned && (
-                                   <motion.div 
-                                     initial={{ opacity: 0, scale: 0.5 }} 
-                                     animate={{ opacity: 1, scale: 1 }}
-                                     className="absolute bottom-1 inset-x-0 text-center text-blue-700 italic font-serif text-xl"
-                                   >
-                                     {caseData.lawyerName || 'Krittameth.V'}
-                                   </motion.div>
-                                )}
-                             </div>
-                          </div>
-                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-white/40 backdrop-blur-[2px]">
-                             <Button variant="secondary" size="sm" className="rounded-full shadow-lg font-bold">ขยายดูฉบับร่าง</Button>
-                          </div>
+                    {/* Document Preview Card — สรุปสิ่งที่จะอยู่ใน PDF จริงที่จะสร้างตอนกดยืนยัน */}
+                    <div className="p-8 rounded-[2.5rem] bg-white border-2 border-slate-100 shadow-xl space-y-6">
+                       <div>
+                          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">สรุปเอกสาร บัญชีระบุพยาน</p>
+                          <h4 className="font-bold text-slate-900 mt-1">{caseData?.title}</h4>
                        </div>
-                       <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center italic">PREVIEW: WITNESS_LIST_V2.PDF</p>
+                       <div className="space-y-2">
+                          <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">พยานเอกสาร ({evidenceList.length})</p>
+                          {evidenceList.length === 0 ? (
+                            <p className="text-xs text-slate-400 italic">— ไม่มี —</p>
+                          ) : evidenceList.map(ev => (
+                            <p key={ev.id} className="text-sm text-slate-700 truncate">• {ev.title}</p>
+                          ))}
+                       </div>
+                       <div className="space-y-2 pt-2 border-t border-slate-100">
+                          <p className="text-xs font-bold text-slate-500 uppercase tracking-widest">พยานบุคคล ({witnessPersons.length})</p>
+                          {witnessPersons.length === 0 ? (
+                            <p className="text-xs text-slate-400 italic">— ไม่มี —</p>
+                          ) : witnessPersons.map(wp => (
+                            <p key={wp.id} className="text-sm text-slate-700">• {wp.name} ({wp.role})</p>
+                          ))}
+                       </div>
                     </div>
 
                     {/* Signature Pad Card */}
@@ -849,9 +969,9 @@ function CaseDetailPageContent() {
                        <div className="space-y-6">
                           <div className="flex items-center justify-between">
                              <div className="space-y-1">
-                                <h4 className="text-sm font-black text-slate-900 tracking-tighter uppercase italic">Digital Signature Pad</h4>
+                                <h4 className="text-sm font-black text-slate-900 tracking-tighter uppercase italic">ยืนยันตัวตนผู้จัดทำ</h4>
                                 <p className="text-[10px] text-slate-400 uppercase font-bold tracking-widest flex items-center gap-1.5">
-                                   <ShieldCheck className="w-3 h-3 text-blue-500" /> Secure Encryption Active
+                                   <ShieldCheck className="w-3 h-3 text-blue-500" /> ยืนยันในระบบ Lawslane
                                 </p>
                              </div>
                              {isSigned && <Badge className="bg-green-500 text-[8px] font-black uppercase italic h-5 animate-in zoom-in">SIGNED ✓</Badge>}
@@ -882,9 +1002,6 @@ function CaseDetailPageContent() {
                              )}
                              <div className="absolute inset-x-8 bottom-6 flex justify-between items-center opacity-30">
                                 <span className="text-[10px] font-black italic">X_______________________</span>
-                                {isSigned && (
-                                  <span className="text-[8px] font-mono font-bold">SHA-256: {Math.random().toString(16).substr(2, 6).toUpperCase()}</span>
-                                )}
                              </div>
                           </div>
                           
@@ -895,32 +1012,26 @@ function CaseDetailPageContent() {
                        </div>
 
                        <div className="space-y-4 pt-4">
-                          <Button 
+                          <Button
                              className={cn(
                                 "w-full h-16 rounded-2xl text-lg font-black shadow-2xl transition-all italic uppercase tracking-tighter flex items-center justify-center gap-3",
-                                isSigned 
-                                  ? "bg-slate-900 hover:bg-black text-white shadow-slate-200" 
+                                isSigned
+                                  ? "bg-slate-900 hover:bg-black text-white shadow-slate-200"
                                   : "bg-slate-100 text-slate-400 cursor-not-allowed"
                              )}
-                             disabled={!isSigned}
-                             onClick={() => {
-                               toast({
-                                 title: "จัดทำบัญชีพยานสำเร็จ",
-                                 description: "ระบบกำลังเตรียมเอกสารฉบับลงนาม...",
-                               });
-                               setShowWitnessList(false);
-                               setWitnessStep(0);
-                               setActiveSubView(null);
-                             }}
+                             disabled={!isSigned || isFinalizingWitnessList}
+                             onClick={handleFinalizeWitnessList}
                           >
-                             ยืนยันและประกาศใช้ <Check className="w-6 h-6" />
+                             {isFinalizingWitnessList ? <Loader2 className="w-5 h-5 animate-spin" /> : <Check className="w-6 h-6" />}
+                             {isFinalizingWitnessList ? 'กำลังสร้างเอกสาร PDF...' : 'ยืนยันและสร้างเอกสาร PDF'}
                           </Button>
-                          <Button 
-                             variant="ghost" 
+                          <Button
+                             variant="ghost"
                              className="w-full h-10 rounded-xl font-bold text-slate-400 hover:text-red-500 text-xs transition-colors"
                              onClick={() => setIsSigned(false)}
+                             disabled={isFinalizingWitnessList}
                           >
-                             ล้างลายเซ็นและลงนามใหม่
+                             ยกเลิกการยืนยันตัวตน
                           </Button>
                        </div>
                     </div>
@@ -942,17 +1053,17 @@ function CaseDetailPageContent() {
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/10 backdrop-blur-sm animate-in fade-in duration-300">
              <div className="bg-white w-full max-w-sm rounded-3xl shadow-2xl p-8 space-y-6 animate-in zoom-in-95">
                 <h3 className="text-xl font-black text-slate-900 tracking-tighter uppercase italic text-center">
-                   {editingWitnessIndex !== null ? 'แก้ไขข้อมูลพยาน' : 'เพิ่มพยานบุคคล'}
+                   {editingWitnessId !== null ? 'แก้ไขข้อมูลพยาน' : 'เพิ่มพยานบุคคล'}
                 </h3>
                 <div className="space-y-3">
-                   <input 
-                     className="w-full h-12 px-5 rounded-xl bg-slate-100 border-none text-sm font-bold outline-none ring-blue-500/10 focus:ring-4 transition-all" 
+                   <input
+                     className="w-full h-12 px-5 rounded-xl bg-slate-100 border-none text-sm font-bold outline-none ring-blue-500/10 focus:ring-4 transition-all"
                      placeholder="ชื่อ-นามสกุล พยาน"
                      value={newWitness.name}
                      onChange={(e) => setNewWitness({...newWitness, name: e.target.value})}
                    />
-                   <input 
-                     className="w-full h-12 px-5 rounded-xl bg-slate-100 border-none text-sm font-bold outline-none ring-blue-500/10 focus:ring-4 transition-all" 
+                   <input
+                     className="w-full h-12 px-5 rounded-xl bg-slate-100 border-none text-sm font-bold outline-none ring-blue-500/10 focus:ring-4 transition-all"
                      placeholder="บทบาท (เช่น ประจักษ์พยาน)"
                      value={newWitness.role}
                      onChange={(e) => setNewWitness({...newWitness, role: e.target.value})}
@@ -961,27 +1072,14 @@ function CaseDetailPageContent() {
                 <div className="flex gap-3">
                    <Button variant="ghost" className="flex-1 h-12 rounded-xl font-bold text-slate-400" onClick={() => {
                       setShowAddWitnessForm(false);
-                      setEditingWitnessIndex(null);
+                      setEditingWitnessId(null);
                       setNewWitness({ name: '', role: '' });
                    }}>ยกเลิก</Button>
-                   <Button 
+                   <Button
                      className="flex-1 h-12 rounded-xl bg-blue-600 font-black text-white shadow-md shadow-blue-100"
-                     onClick={() => {
-                        if (newWitness.name && newWitness.role) {
-                          if (editingWitnessIndex !== null) {
-                            const updated = [...witnessPersons];
-                            updated[editingWitnessIndex] = newWitness;
-                            setWitnessPersons(updated);
-                          } else {
-                            setWitnessPersons([...witnessPersons, newWitness]);
-                          }
-                          setNewWitness({ name: '', role: '' });
-                          setEditingWitnessIndex(null);
-                          setShowAddWitnessForm(false);
-                        }
-                     }}
+                     onClick={handleSaveWitness}
                    >
-                     {editingWitnessIndex !== null ? 'บันทึกการแก้ไข' : 'เพิ่มรายการ'}
+                     {editingWitnessId !== null ? 'บันทึกการแก้ไข' : 'เพิ่มรายการ'}
                    </Button>
                 </div>
              </div>
@@ -1379,30 +1477,31 @@ function CaseDetailPageContent() {
                         </Button>
                      </CardHeader>
                      <CardContent>
-                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                         {[
-                           { title: 'ภาพถ่ายความเสียหายหน้างาน', type: 'image', count: 5, date: '18 มี.ค. 67' },
-                           { title: 'บันทึกการพูดคุยทาง LINE', type: 'chat', count: 12, date: '15 มี.ค. 67' },
-                           { title: 'หลักฐานการโอนเงิน (สลิป)', type: 'payment', count: 3, date: '12 มี.ค. 67' },
-                           { title: 'วิดีโอกล้องวงจรปิด', type: 'video', count: 1, date: '10 มี.ค. 67' },
-                         ].map((ev, i) => (
-                           <div 
-                             key={i} 
-                             className="p-4 rounded-2xl border border-slate-100 bg-white hover:border-blue-200 hover:shadow-md transition-all cursor-pointer group"
-                             onClick={() => setSelectedEvidence(ev)}
-                           >
-                             <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center mb-3 group-hover:bg-blue-50 group-hover:text-blue-600 text-slate-400 transition-colors">
-                                <Gavel className="w-5 h-5" />
+                       {evidenceList.length === 0 ? (
+                         <div className="p-10 text-center border border-dashed rounded-2xl text-slate-400 text-sm">
+                           ยังไม่มีพยานหลักฐาน กด "เพิ่มหลักฐาน" เพื่ออัปโหลดไฟล์แรก
+                         </div>
+                       ) : (
+                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                           {evidenceList.map((ev) => (
+                             <div
+                               key={ev.id}
+                               className="p-4 rounded-2xl border border-slate-100 bg-white hover:border-blue-200 hover:shadow-md transition-all cursor-pointer group"
+                               onClick={() => setSelectedEvidence(ev)}
+                             >
+                               <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center mb-3 group-hover:bg-blue-50 group-hover:text-blue-600 text-slate-400 transition-colors">
+                                  <Gavel className="w-5 h-5" />
+                               </div>
+                               <h5 className="font-bold text-sm mb-1 truncate">{ev.title}</h5>
+                               <p className="text-[10px] text-slate-400 uppercase tracking-tight">อัปโหลด {new Date(ev.createdAt).toLocaleDateString('th-TH')}</p>
                              </div>
-                             <h5 className="font-bold text-sm mb-1">{ev.title}</h5>
-                             <p className="text-[10px] text-slate-400 uppercase tracking-tight">{ev.count} รายการ • อัปเดต {ev.date}</p>
-                           </div>
-                         ))}
-                       </div>
+                           ))}
+                         </div>
+                       )}
                      </CardContent>
                    </Card>
                 </div>
-                
+
                 <div className="space-y-6">
                    <Card className="shadow-sm border-slate-200 bg-blue-600 text-white">
                       <CardHeader>
@@ -1411,19 +1510,27 @@ function CaseDetailPageContent() {
                         </CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-4">
-                        <p className="text-sm text-blue-100">ขั้นตอนถัดไปคือการจัดทำ **"บัญชีระบุพยาน"** เพื่อยื่นต่อศาลภายในกำหนด</p>
+                        {caseData?.witnessList?.pdfUrl ? (
+                          <>
+                            <p className="text-sm text-blue-100">จัดทำบัญชีระบุพยานแล้วเมื่อ {new Date(caseData.witnessList.signedAt).toLocaleString('th-TH')}</p>
+                            <Button variant="secondary" className="w-full font-bold text-blue-900 border-none" asChild>
+                               <a href={caseData.witnessList.pdfUrl} target="_blank" rel="noopener noreferrer">เปิดเอกสาร PDF</a>
+                            </Button>
+                          </>
+                        ) : (
+                          <p className="text-sm text-blue-100">ขั้นตอนถัดไปคือการจัดทำ **"บัญชีระบุพยาน"** เพื่อยื่นต่อศาลภายในกำหนด</p>
+                        )}
                         <div className="p-3 rounded-xl bg-blue-700/50 border border-blue-500/50">
                            <p className="text-[10px] uppercase font-bold text-blue-300 mb-1">สถานะปัจจุบัน</p>
-                           <p className="text-sm font-bold">กำลังรวบรวมหลักฐานจากลูกความ</p>
+                           <p className="text-sm font-bold">{evidenceList.length + witnessPersons.length} รายการในบัญชีพยาน</p>
                         </div>
-                                                 <Button 
-                            variant="secondary" 
-                            className="w-full font-bold text-blue-900 border-none transition-all hover:bg-white active:scale-95"
-                            onClick={() => setShowWitnessList(true)}
-                         >
-                            จัดทำบัญชีพยาน →
-                         </Button>
-
+                        <Button
+                           variant="secondary"
+                           className="w-full font-bold text-blue-900 border-none transition-all hover:bg-white active:scale-95"
+                           onClick={() => setShowWitnessList(true)}
+                        >
+                           {caseData?.witnessList?.pdfUrl ? 'จัดทำใหม่อีกครั้ง' : 'จัดทำบัญชีพยาน'} →
+                        </Button>
                       </CardContent>
                    </Card>
                 </div>
@@ -1521,27 +1628,38 @@ function CaseDetailPageContent() {
 
 
 
-      {/* Add Evidence Dialog (Simplified pop-up for quick upload only) */}
-      <Dialog open={showAddEvidence} onOpenChange={setShowAddEvidence}>
-        <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden border-none rounded-3xl shadow-2xl">
-           <div className="p-10 text-center space-y-6">
-              <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center mx-auto text-blue-600">
-                 <Plus className="w-8 h-8" />
-              </div>
+      {/* Add Evidence Dialog — อัปโหลดไฟล์จริงขึ้น R2 (เดิมเป็นแค่ dropzone ตกแต่ง ไม่มี input จริง) */}
+      <Dialog open={showAddEvidence} onOpenChange={(open) => { setShowAddEvidence(open); if (!open) { setNewEvidenceTitle(''); setNewEvidenceFact(''); setNewEvidenceFile(null); } }}>
+        <DialogContent className="sm:max-w-[500px] rounded-3xl">
+           <DialogHeader>
               <DialogTitle className="text-xl font-bold font-headline">อัปโหลดพยานหลักฐานใหม่</DialogTitle>
-              <DialogDescription>
-                 ลากไฟล์มาวางที่นี่ หรือกดปุ่มด้านล่างเพื่อเลือกไฟล์จากคอมพิวเตอร์ของคุณ
-              </DialogDescription>
-              <div className="h-32 border-2 border-dashed border-slate-200 rounded-2xl flex items-center justify-center bg-slate-50/50 hover:bg-white hover:border-blue-300 transition-all cursor-pointer group">
-                 <p className="text-xs font-bold text-slate-400 group-hover:text-blue-500">Drop files here to upload</p>
+              <DialogDescription>รองรับไฟล์รูปภาพและ PDF ขนาดไม่เกิน 15MB</DialogDescription>
+           </DialogHeader>
+           <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                 <Label className="text-xs font-semibold">ชื่อพยานหลักฐาน *</Label>
+                 <Input placeholder="เช่น สัญญาจ้างเหมาก่อสร้างเลขที่ 12/2567" value={newEvidenceTitle} onChange={(e) => setNewEvidenceTitle(e.target.value)} />
               </div>
-              <div className="flex gap-3 pt-4">
-                 <Button variant="outline" className="flex-1 rounded-2xl" onClick={() => setShowAddEvidence(false)}>ยกเลิก</Button>
-                 <Button className="flex-1 rounded-2xl bg-blue-600" onClick={() => {
-                   setShowAddEvidence(false);
-                   toast({ title: "อัปโหลดสำเร็จ", description: "พยานหลักฐานของคุณถูกบันทึกลงในระบบเรียบร้อยแล้ว" });
-                 }}>เลือกไฟล์</Button>
+              <div className="space-y-2">
+                 <Label className="text-xs font-semibold">รายละเอียด / ประเด็นที่ใช้พิสูจน์</Label>
+                 <Textarea placeholder="เพื่อพิสูจน์ว่า..." value={newEvidenceFact} onChange={(e) => setNewEvidenceFact(e.target.value)} rows={3} />
               </div>
+              <div className="space-y-2">
+                 <Label className="text-xs font-semibold">ไฟล์ *</Label>
+                 <input
+                   type="file"
+                   accept="image/jpeg,image/png,image/webp,image/gif,image/heic,application/pdf"
+                   onChange={(e) => setNewEvidenceFile(e.target.files?.[0] || null)}
+                   className="w-full text-sm file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:bg-blue-50 file:text-blue-700 file:font-bold hover:file:bg-blue-100"
+                 />
+              </div>
+           </div>
+           <div className="flex gap-3 pt-2">
+              <Button variant="outline" className="flex-1 rounded-2xl" onClick={() => setShowAddEvidence(false)} disabled={isSubmittingEvidence}>ยกเลิก</Button>
+              <Button className="flex-1 rounded-2xl bg-blue-600" onClick={handleAddEvidence} disabled={isSubmittingEvidence}>
+                {isSubmittingEvidence ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : null}
+                อัปโหลด
+              </Button>
            </div>
         </DialogContent>
       </Dialog>

@@ -3,14 +3,21 @@
 import { initAdmin } from '@/lib/firebase-admin';
 import * as admin from 'firebase-admin';
 import { Invoice, InvoiceStatus } from '@/lib/types/billing-types';
+import { requireUser, requireChatRole, authErrorResult } from '@/lib/auth-guard';
 
 /**
  * Fetches invoices for a specific user (client view).
  */
-export async function getUserInvoicesAction(userId: string) {
+export async function getUserInvoicesAction() {
+    // uid มาจาก session — เดิมรับ userId เป็น argument จึงดึงใบแจ้งหนี้ของคนอื่นได้
+    let userId: string, adminApp;
     try {
-        const adminApp = await initAdmin();
-        if (!adminApp) return { success: false, error: 'Firebase Admin not initialized.' };
+        ({ uid: userId, adminApp } = await requireUser());
+    } catch (e) {
+        return authErrorResult(e);
+    }
+
+    try {
         const db = adminApp.firestore();
 
         const invoicesRef = db.collection('invoices');
@@ -40,10 +47,16 @@ export async function getUserInvoicesAction(userId: string) {
 /**
  * Fetches invoices for a specific lawyer.
  */
-export async function getLawyerInvoicesAction(lawyerId: string) {
+export async function getLawyerInvoicesAction() {
+    // uid มาจาก session — เดิมรับ lawyerId เป็น argument
+    let lawyerId: string, adminApp;
     try {
-        const adminApp = await initAdmin();
-        if (!adminApp) return { success: false, error: 'Firebase Admin not initialized.' };
+        ({ uid: lawyerId, adminApp } = await requireUser());
+    } catch (e) {
+        return authErrorResult(e);
+    }
+
+    try {
         const db = adminApp.firestore();
 
         // In our schema, invoices might be stored with lawyer_id or we might need to find them via cases
@@ -75,14 +88,22 @@ export async function getLawyerInvoicesAction(lawyerId: string) {
  * Creates a new invoice.
  */
 export async function createInvoiceAction(data: Partial<Invoice>) {
+    // ผู้ออกใบแจ้งหนี้ต้องเป็นคนที่ล็อกอินอยู่ และ lawyer_id ถูกบังคับจาก token
+    // เดิมไม่เช็คอะไรเลย → ออกใบแจ้งหนี้ในนามทนายคนไหนก็ได้
+    let callerUid: string, adminApp;
     try {
-        const adminApp = await initAdmin();
-        if (!adminApp) return { success: false, error: 'Firebase Admin not initialized.' };
+        ({ uid: callerUid, adminApp } = await requireUser());
+    } catch (e) {
+        return authErrorResult(e);
+    }
+
+    try {
         const db = adminApp.firestore();
 
         const invoiceData = {
             ...data,
-            status: data.status || 'pending',
+            lawyer_id: callerUid,
+            status: 'pending' as InvoiceStatus,
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
             due_date: data.due_date ? admin.firestore.Timestamp.fromMillis(data.due_date) : admin.firestore.FieldValue.serverTimestamp(),
         };
@@ -99,10 +120,16 @@ export async function createInvoiceAction(data: Partial<Invoice>) {
  * Fetches invoices for a specific chat.
  * Robust search across multiple possible linking fields.
  */
-export async function getInvoicesByChatAction(chatId: string, userId?: string, lawyerId?: string) {
+export async function getInvoicesByChatAction(chatId: string) {
+    // ต้องเป็นคู่กรณีของเคสนี้จริง — เดิมรับ userId/lawyerId จากผู้เรียกแล้วใช้ค้นหาเลย
+    let userId: string, adminApp;
     try {
-        const adminApp = await initAdmin();
-        if (!adminApp) return { success: false, error: 'Firebase Admin not initialized.' };
+        ({ uid: userId, adminApp } = await requireChatRole(chatId));
+    } catch (e) {
+        return authErrorResult(e);
+    }
+
+    try {
         const db = adminApp.firestore();
 
         // 1. Try searching by all possible linking IDs
@@ -153,10 +180,16 @@ export async function getInvoicesByChatAction(chatId: string, userId?: string, l
 /**
  * Fetches contracts for a specific chat.
  */
-export async function getContractsByChatAction(chatId: string, userId?: string) {
+export async function getContractsByChatAction(chatId: string) {
+    // ต้องเป็นคู่กรณีของเคสนี้จริง
+    let userId: string, adminApp;
     try {
-        const adminApp = await initAdmin();
-        if (!adminApp) return { success: false, error: 'Firebase Admin not initialized.' };
+        ({ uid: userId, adminApp } = await requireChatRole(chatId));
+    } catch (e) {
+        return authErrorResult(e);
+    }
+
+    try {
         const db = adminApp.firestore();
 
         const queries = [
@@ -202,10 +235,46 @@ export async function getContractsByChatAction(chatId: string, userId?: string) 
 /**
  * Fetches a specific contract by ID using Admin SDK
  */
+
+/**
+ * เอกสาร (สัญญา/ใบแจ้งหนี้) ใบนี้เป็นของผู้เรียกหรือไม่
+ * ชื่อฟิลด์ในข้อมูลจริงปนกันหลายแบบ จึงต้องเทียบทุกชื่อที่เคยใช้
+ */
+async function callerOwnsBillingDoc(
+    db: admin.firestore.Firestore,
+    data: any,
+    uid: string,
+    isAdmin: boolean
+): Promise<boolean> {
+    if (isAdmin) return true;
+
+    const directIds = [
+        data.userId, data.client_id, data.clientId,
+        data.lawyer_id, data.ownerId,
+    ].filter(Boolean);
+    if (directIds.includes(uid)) return true;
+
+    // lawyerId มักเป็น id ของ lawyerProfiles ไม่ใช่ auth uid จึงต้องตามอีกชั้น
+    if (data.lawyerId) {
+        const snap = await db.collection('lawyerProfiles').doc(data.lawyerId).get();
+        if (snap.exists && snap.data()?.userId === uid) return true;
+    }
+    return false;
+}
+
 export async function getContractByIdAction(contractId: string) {
+    // เดิมไม่เช็คอะไรเลย — รู้ contractId ก็อ่านสัญญาของคนอื่นได้
+    let uid: string, isAdmin: boolean, adminApp;
     try {
-        const adminApp = await initAdmin();
-        if (!adminApp) return { success: false, error: 'Firebase Admin not initialized.' };
+        const session = await requireUser();
+        uid = session.uid;
+        isAdmin = session.token.admin === true || session.token.role === 'admin';
+        adminApp = session.adminApp;
+    } catch (e) {
+        return authErrorResult(e);
+    }
+
+    try {
         const db = adminApp.firestore();
 
         let docSnap: any = await db.collection('contracts').doc(contractId).get();
@@ -235,7 +304,11 @@ export async function getContractByIdAction(contractId: string) {
         }
 
         data = docSnap.data();
-        
+
+        if (!(await callerOwnsBillingDoc(db, data, uid, isAdmin))) {
+            return { success: false, error: 'ไม่มีสิทธิ์เข้าถึงเอกสารนี้' };
+        }
+
         let clientName = data.clientName;
         let lawyerName = data.lawyerName;
 
@@ -283,9 +356,18 @@ export async function getContractByIdAction(contractId: string) {
  * Fetches a specific invoice by ID using Admin SDK
  */
 export async function getInvoiceByIdAction(invoiceId: string) {
+    // เดิมไม่เช็คอะไรเลย — รู้ invoiceId ก็อ่านใบแจ้งหนี้ของคนอื่นได้
+    let uid: string, isAdmin: boolean, adminApp;
     try {
-        const adminApp = await initAdmin();
-        if (!adminApp) return { success: false, error: 'Firebase Admin not initialized.' };
+        const session = await requireUser();
+        uid = session.uid;
+        isAdmin = session.token.admin === true || session.token.role === 'admin';
+        adminApp = session.adminApp;
+    } catch (e) {
+        return authErrorResult(e);
+    }
+
+    try {
         const db = adminApp.firestore();
 
         let docSnap: any = await db.collection('invoices').doc(invoiceId).get();
@@ -315,6 +397,11 @@ export async function getInvoiceByIdAction(invoiceId: string) {
         }
 
         data = docSnap.data();
+
+        if (!(await callerOwnsBillingDoc(db, data, uid, isAdmin))) {
+            return { success: false, error: 'ไม่มีสิทธิ์เข้าถึงเอกสารนี้' };
+        }
+
         const invoice = {
             id: docSnap.id,
             ...data,
@@ -333,10 +420,21 @@ export async function getInvoiceByIdAction(invoiceId: string) {
 /**
  * Signs a contract by chatId and role. Creates a formal contract if missing.
  */
-export async function signContractAction(chatId: string, role: 'client' | 'lawyer', signatureDataUrl?: string) {
+export async function signContractAction(chatId: string, signatureDataUrl?: string) {
+    // บทบาทต้องมาจากข้อมูลเคสจริง ไม่ใช่จากที่ผู้เรียกประกาศเอง
+    // เดิมรับ role: 'client' | 'lawyer' เป็น argument → เซ็นแทนอีกฝ่ายได้
+    let role: 'client' | 'lawyer' | 'admin', adminApp;
     try {
-        const adminApp = await initAdmin();
-        if (!adminApp) return { success: false, error: 'Firebase Admin not initialized.' };
+        ({ role, adminApp } = await requireChatRole(chatId));
+    } catch (e) {
+        return authErrorResult(e);
+    }
+
+    if (role === 'admin') {
+        return { success: false, error: 'ผู้ดูแลระบบลงนามแทนคู่สัญญาไม่ได้' };
+    }
+
+    try {
         const db = adminApp.firestore();
 
         // 1. Search for existing contract for this chat

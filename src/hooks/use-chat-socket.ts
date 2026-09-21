@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { collection, query, orderBy, limitToLast, onSnapshot } from 'firebase/firestore';
 import { useFirebase } from '@/firebase';
 import { HumanChatMessage } from '@/lib/types';
 import * as crypto from '@/lib/crypto-utils';
@@ -21,6 +21,10 @@ export function useChatSocket(chatId: string, userId: string, userName: string) 
   const keysRef = useRef<{ public: CryptoKey | null; private: CryptoKey | null }>({ public: null, private: null });
   const recipientPublicKeyRef = useRef<CryptoKey | null>(null);
   const prevMessageCountRef = useRef<number>(0);
+  // Decrypted text by message id, so the Firestore listener below doesn't re-run
+  // decryption for every message on every snapshot — only messages it hasn't
+  // decrypted before (or whose ciphertext changed) pay that cost. See LAWSLANE-PLAN-01 2.5.
+  const decryptedCacheRef = useRef<Map<string, { ciphertext: string; text: string }>>(new Map());
 
   // Helper for notification sound
   const playNotificationSound = useCallback(() => {
@@ -125,7 +129,10 @@ export function useChatSocket(chatId: string, userId: string, userName: string) 
     if (!chatId || !firestore) return;
 
     const messagesRef = collection(firestore, 'chats', chatId, 'messages');
-    const q = query(messagesRef, orderBy('timestamp', 'asc'));
+    // Bounded to the most recent 50 messages: older history is already in state from
+    // the initial worker fetch above (or arrives via WebSocket), and this listener
+    // only needs to track ongoing changes, not the whole chat history on every fire.
+    const q = query(messagesRef, orderBy('timestamp', 'asc'), limitToLast(50));
 
     const unsubscribe = onSnapshot(q, async (snapshot) => {
       if (snapshot.metadata.hasPendingWrites) return; // Ignore optimistic local updates
@@ -135,11 +142,18 @@ export function useChatSocket(chatId: string, userId: string, userName: string) 
         let text = data.text;
 
         if (text.startsWith("[E2EE-v2]") && privateKey) {
-          try {
-            const encryptedData = text.replace("[E2EE-v2]", "");
-            text = await crypto.decryptHybrid(encryptedData, userId, privateKey);
-          } catch (err) {
-            console.warn("Failed to decrypt Firestore message:", err);
+          const cached = decryptedCacheRef.current.get(doc.id);
+          if (cached && cached.ciphertext === text) {
+            text = cached.text;
+          } else {
+            try {
+              const encryptedData = text.replace("[E2EE-v2]", "");
+              const decrypted = await crypto.decryptHybrid(encryptedData, userId, privateKey);
+              decryptedCacheRef.current.set(doc.id, { ciphertext: data.text, text: decrypted });
+              text = decrypted;
+            } catch (err) {
+              console.warn("Failed to decrypt Firestore message:", err);
+            }
           }
         }
 

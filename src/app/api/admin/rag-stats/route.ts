@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { requireAdmin, authErrorResponse } from '@/lib/auth-guard';
 
 // Simple server-side cache to prevent rate limiting Cloudflare Workers
 // Initializing with last known good count (from 36h logs) to prevent 0% on cold start
@@ -7,6 +8,12 @@ let lastCacheTime = Date.now();
 const CACHE_DURATION = 30000; // 30 seconds to be very safe
 
 export async function GET() {
+    // ต้องเป็นแอดมินที่ล็อกอินอยู่จริง (middleware อ่านแค่ cookie ที่ผู้ใช้แก้เองได้)
+    try {
+        await requireAdmin();
+    } catch (e) {
+        return authErrorResponse(e);
+    }
     try {
         const now = Date.now();
         

@@ -1,6 +1,6 @@
 import { Shield, Award, Heart, Globe, Mail, Phone, MapPin, Scale, ArrowRight } from 'lucide-react';
 import Image from 'next/image';
-import groupPhoto from '@/pic/lawslane-photo-group.png';
+import groupPhoto from '@/pic/lawslane-photo-group.webp';
 import { Link } from '@/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';

@@ -21,6 +21,43 @@ import { ChatListItem } from '@/components/dashboard/chat-list-item';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useFirebase } from '@/firebase';
 
+// Mirrors the per-chat mapping in getUserDashboardData (dashboard-actions.ts) so a
+// realtime update to an existing case can be applied locally instead of re-running
+// the full server action on every chat change — see LAWSLANE-PLAN-01 2.4. Only the
+// fields that can actually change after the case is first loaded are included;
+// `lawyer` is intentionally left out and preserved from existing state.
+function mapChatDocToCasePatch(data: any): Omit<Case, 'id' | 'lawyer'> {
+    const lastMessageAt = data.lastMessageAt?.toDate
+        ? data.lastMessageAt.toDate().toISOString()
+        : new Date().toISOString();
+
+    const updatedAt = data.lastMessageAt?.toDate
+        ? data.lastMessageAt.toDate()
+        : (data.createdAt?.toDate ? data.createdAt.toDate() : new Date());
+
+    const amount = data.amount || 0;
+    const isOfficial = amount > 0 || (data.installments && data.installments.length > 0);
+
+    const ACTIVE_THRESHOLD_MS = 120 * 1000;
+    const lawyerLastSeenAt = data.lawyerLastSeenAt?.toDate?.()?.getTime() || 0;
+    const isOnline = (Date.now() - lawyerLastSeenAt) < ACTIVE_THRESHOLD_MS;
+
+    return {
+        title: data.caseTitle || '',
+        status: data.status || 'active',
+        lastMessage: data.lastMessage || '',
+        lastMessageTimestamp: lastMessageAt,
+        updatedAt,
+        rejectReason: data.rejectReason || '',
+        amount,
+        isOfficial,
+        hasNewMessage: data.hasNewMessage || false,
+        clientReadStatus: data.clientReadStatus || 'read',
+        isWaitingVerification: data.status === 'pending_payment' && !!data.paymentSlipUrl,
+        isOnline,
+    };
+}
+
 export default function DashboardPage() {
     const router = useRouter();
     const { user, isUserLoading } = useUser();
@@ -33,7 +70,6 @@ export default function DashboardPage() {
     const [appointments, setAppointments] = useState<UpcomingAppointment[]>([]);
     const [tickets, setTickets] = useState<ReportedTicket[]>([]);
     const [capDeals, setCapDeals] = useState<any[]>([]);
-    const [bookOrders, setBookOrders] = useState<any[]>([]);
     const [invoices, setInvoices] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
@@ -43,16 +79,13 @@ export default function DashboardPage() {
         if (isInitial) setIsLoading(true);
         if (user?.uid) {
             try {
-                const data = await getUserDashboardData(user.uid);
+                const data = await getUserDashboardData();
                 setCases(data.cases);
                 setAppointments(data.appointments);
                 setTickets(data.tickets);
 
                 if (data.capDeals) {
                     setCapDeals(data.capDeals);
-                }
-                if (data.bookOrders) {
-                    setBookOrders(data.bookOrders);
                 }
                 if (data.invoices) {
                     setInvoices(data.invoices);
@@ -63,7 +96,6 @@ export default function DashboardPage() {
                 setAppointments([]);
                 setTickets([]);
                 setCapDeals([]);
-                setBookOrders([]);
                 setInvoices([]);
             }
         } else {
@@ -71,7 +103,6 @@ export default function DashboardPage() {
             setAppointments([]);
             setTickets([]);
             setCapDeals([]);
-            setBookOrders([]);
             setInvoices([]);
         }
         if (isInitial) setIsLoading(false);
@@ -104,10 +135,37 @@ export default function DashboardPage() {
                 isFirstRun = false;
                 return;
             }
-            
+
             if (!snapshot.metadata.hasPendingWrites) {
-                fetchData(false); // Silent refresh
-                
+                // Apply each changed chat directly to local state instead of
+                // re-running the full dashboard fetch (cases + appointments +
+                // tickets + capDeals + invoices) on every single message.
+                // A brand-new chat this client doesn't have enriched (lawyer)
+                // data for yet still falls back to a full refetch, since that's
+                // rare compared to updates to an already-loaded chat.
+                let needsFullRefetch = false;
+                setCases(prev => {
+                    let next = prev;
+                    for (const change of snapshot.docChanges()) {
+                        if (change.type === 'removed') {
+                            next = next.filter(c => c.id !== change.doc.id);
+                            continue;
+                        }
+                        const existing = next.find(c => c.id === change.doc.id);
+                        if (!existing) {
+                            needsFullRefetch = true;
+                            continue;
+                        }
+                        const patch = mapChatDocToCasePatch(change.doc.data());
+                        next = next.map(c => c.id === change.doc.id ? { ...c, ...patch } : c);
+                    }
+                    return [...next].sort((a, b) => b.updatedAt.getTime() - a.updatedAt.getTime());
+                });
+
+                if (needsFullRefetch) {
+                    fetchData(false); // Silent refresh
+                }
+
                 // Check for new messages directed to the client
                 const hasUnread = snapshot.docs.some((doc) => {
                     const data = doc.data();
@@ -115,7 +173,7 @@ export default function DashboardPage() {
                 });
 
                 if (hasUnread) {
-                    const audio = new Audio("data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZWY1OC43Ni4xMDABABAAAAAAAAAA/+NAAAAAAAAAAAAAAAAAAAAAAABYaW5nAAAADwAAABIAAA7sAAICAgICAgICAgMDAwMDAwMDDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwMDAwLC8vdHh0AExhdmVjNTguNzYAL7Ois6KzoqKioqKis6KzAAD/40AAAsXzB6p9AEUAAAABpAAAAn9Y+Z/Wvmf1P6n9Y+Z/U/qf1j5n9T+p/Wvmf1P6n9Y+S60AsXzBt1pBFAAAAApAAAAn9Y+S60At60AsXzBt1ZBLAAAAApAAAAn9Y+S60At60AsXzBt1pBLAACAAD/40AAAsXzBt1pBLAAAAApAAAAtXzBt1ZBLAAGAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVpBLAAIAAAsXzBtVs=");
+                    const audio = new Audio("/notification.mp3");
                     audio.volume = 0.4;
                     audio.play().catch(() => {});
                 }
@@ -284,64 +342,6 @@ export default function DashboardPage() {
                                                 เริ่มแคปแล้วดีลเลย!
                                             </Button>
                                         </Link>
-                                    </div>
-                                )}
-                            </CardContent>
-                        </Card>
-
-                        {/* Book Orders Section */}
-                        <Card className="rounded-none md:rounded-3xl shadow-none md:shadow-sm border-none">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2 font-bold">
-                                    <FileText className="w-5 h-5" />
-                                    รายการสั่งซื้อหนังสือ
-                                </CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                {bookOrders.length > 0 ? (
-                                    <div className="space-y-3">
-                                        {bookOrders.map((order: any) => (
-                                            <div key={order.id} className="flex items-center justify-between p-4 rounded-3xl bg-slate-50 border border-slate-100">
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="font-semibold text-slate-900 truncate flex items-center gap-2">
-                                                        ออเดอร์ #{order.id.substring(0, 8)}
-                                                        <Badge variant="outline" className={cn(
-                                                            "text-xs",
-                                                            order.status === 'delivered' ? 'text-green-700 border-green-600 bg-green-50' :
-                                                                order.status === 'shipped' ? 'text-blue-700 border-blue-600 bg-blue-50' :
-                                                                    order.status === 'cancelled' ? 'text-red-700 border-red-600 bg-red-50' :
-                                                                        'text-yellow-700 border-yellow-600 bg-yellow-50'
-                                                        )}>
-                                                            {order.status === 'pending' ? 'รอตรวจสอบ' :
-                                                                order.status === 'paid' ? 'ชำระเงินแล้ว' :
-                                                                    order.status === 'shipped' ? 'กำลังจัดส่ง' :
-                                                                        order.status === 'delivered' ? 'ส่งสำเร็จ' :
-                                                                            order.status === 'cancelled' ? 'ยกเลิก' : order.status}
-                                                        </Badge>
-                                                    </p>
-                                                    <p className="text-sm text-slate-500 truncate">
-                                                        {order.items?.length > 0 ? order.items.map((item: any) => item.title).join(', ') : 'ไม่มีรายการพิมพ์'}
-                                                        {` | ยอดรวม: ${Number(order.totalAmount).toLocaleString()} บาท`}
-                                                    </p>
-                                                </div>
-                                                <Button asChild size="sm" className="bg-foreground hover:bg-foreground/90 text-background rounded-full ml-3 shrink-0">
-                                                    <Link href={`/${locale}/books/tracking`}>ติดตามสถานะ</Link>
-                                                </Button>
-                                            </div>
-                                        ))}
-                                        <div className="text-center pt-2">
-                                            <Button variant="link" asChild className="text-primary font-bold">
-                                                <Link href={`/${locale}/books/tracking`}>ดูทั้งหมด</Link>
-                                            </Button>
-                                        </div>
-                                    </div>
-                                ) : (
-                                    <div className="text-center py-8 text-muted-foreground">
-                                        <FileText className="mx-auto h-10 w-10 mb-2" />
-                                        <p>ยังไม่มีประวัติการสั่งซื้อหนังสือ</p>
-                                        <Button asChild className="mt-4 rounded-full">
-                                            <Link href={`/${locale}/books`}>ไปที่ร้านค้า</Link>
-                                        </Button>
                                     </div>
                                 )}
                             </CardContent>

@@ -3,6 +3,7 @@
 import { retrieveDocuments } from '@/lib/rag';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getCachedAIResponse, setCachedAIResponse } from '@/lib/ai-cache';
+import { requireUser } from '@/lib/auth-guard';
 
 export type SearchResult = {
     source: string;
@@ -11,6 +12,9 @@ export type SearchResult = {
 };
 
 export async function searchLaws(query: string, limit: number = 10): Promise<SearchResult[]> {
+    // endpoint นี้เรียก LLM ซึ่งมีค่าใช้จ่ายต่อครั้ง — ต้องล็อกอินอยู่จริง
+    await requireUser();
+
     if (!query || query.trim() === '') return [];
 
     try {

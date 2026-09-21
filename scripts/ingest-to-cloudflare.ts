@@ -14,7 +14,11 @@ async function updateLocalStatus(status: 'active' | 'cooling_down' | 'idle' | 'e
     try {
         const response = await fetch(LOCAL_API_URL, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                // shared secret — route ฝั่ง server ปฏิเสธถ้าไม่ตรง
+                'x-ingestion-secret': process.env.INGESTION_STATUS_SECRET ?? '',
+            },
             body: JSON.stringify({ task: 'pdf_ingestor', status, message, nextRetry })
         });
         if (!response.ok) {

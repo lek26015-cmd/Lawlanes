@@ -46,6 +46,89 @@ function formatSourceTitle(source: string): string {
   return `ที่มา: ${cleanName}`;
 }
 
+/**
+ * แยกว่าข้อความของผู้ใช้เป็น "คำถามกฎหมาย" หรือแค่ "ทักทาย/คุยเล่น"
+ *
+ * ออกแบบให้ปลอดภัยไว้ก่อน (fail-safe): ถ้าไม่มั่นใจ จะถือว่าเป็นคำถามกฎหมายเสมอ
+ * เพราะการพลาดค้นกฎหมายให้ผู้ใช้ เสียหายกว่าการค้นเกินความจำเป็น
+ */
+const LEGAL_KEYWORDS = [
+  // ไทย
+  'กฎหมาย', 'มาตรา', 'พ.ร.บ', 'พรบ', 'ประมวล', 'คดี', 'ฟ้อง', 'ศาล', 'ทนาย', 'อัยการ',
+  'สัญญา', 'นิติกรรม', 'หย่า', 'สมรส', 'สินสมรส', 'มรดก', 'พินัยกรรม', 'ทายาท',
+  'สิทธิ', 'หน้าที่', 'ละเมิด', 'หนี้', 'ลูกหนี้', 'เจ้าหนี้', 'ค้ำประกัน', 'จำนอง', 'จำนำ',
+  'ค่าเสียหาย', 'ชดเชย', 'ค่าปรับ', 'จำคุก', 'โทษ', 'ผิดกฎหมาย', 'อาญา', 'แพ่ง',
+  'แรงงาน', 'ลูกจ้าง', 'นายจ้าง', 'เลิกจ้าง', 'ลาคลอด', 'ประกันสังคม',
+  'ที่ดิน', 'โฉนด', 'เช่า', 'ภาษี', 'ใบกำกับ', 'บริษัท', 'หุ้นส่วน', 'ล้มละลาย',
+  'ประกันภัย', 'ผู้บริโภค', 'ลิขสิทธิ์', 'เครื่องหมายการค้า', 'สิทธิบัตร',
+  'หมิ่นประมาท', 'ฉ้อโกง', 'ลักทรัพย์', 'ยักยอก', 'อายุความ', 'แจ้งความ', 'ร้องเรียน',
+  // อังกฤษ
+  'law', 'legal', 'lawyer', 'attorney', 'court', 'sue', 'lawsuit', 'contract',
+  'divorce', 'inherit', 'estate', 'liability', 'damages', 'compensation',
+  'criminal', 'civil', 'tax', 'labor', 'labour', 'employment', 'copyright', 'patent',
+  // จีน
+  '法律', '律师', '法院', '起诉', '合同', '离婚', '继承', '赔偿', '刑事', '民事', '劳动', '税',
+];
+
+const SMALLTALK_PATTERNS: RegExp[] = [
+  // ทักทาย
+  /^(สวัสดี|หวัดดี|วัสดี|ฮัลโหล|ฮาโหล|หวัดดีจ้า)/,
+  /^(hello|hi|hey|good\s*(morning|afternoon|evening))\b/,
+  /^(你好|您好|哈囉|哈罗)/,
+  // ขอบคุณ / ลา
+  /^(ขอบคุณ|ขอบใจ|ขอบพระคุณ)/,
+  /^(thanks|thank\s*you|ty)\b/,
+  /^(谢谢|多谢)/,
+  /^(ลาก่อน|บ๊ายบาย|บายๆ|บาย)$/,
+  /^(bye|goodbye|see\s*you)\b/,
+  /^(再见|拜拜)/,
+  // ถามตัวตน / ความสามารถ
+  /^(คุณ|เธอ|น้อง)?\s*(คือใคร|ชื่ออะไร|เป็นใคร)/,
+  /(ทำอะไรได้บ้าง|ช่วยอะไรได้บ้าง|มีความสามารถอะไร)/,
+  /^(who\s*are\s*you|what\s*(can|do)\s*you\s*do)/,
+  /^(你是谁|你能做什么)/,
+  // ชมเชย
+  /^(เก่งมาก|เก่งจัง|ดีมาก|สุดยอด|เยี่ยม)/,
+  /^(great|nice|awesome|cool|well\s*done)\b/,
+];
+
+// ข้อความตอบรับสั้นๆ ที่ต้องตรงทั้งประโยคเท่านั้น (กันไปชนคำถามที่ลงท้ายด้วย ครับ/ค่ะ)
+const ACK_EXACT = new Set([
+  'ครับ', 'ค่ะ', 'คะ', 'จ้า', 'จ้าา', 'จ๊ะ', 'ได้', 'ได้ครับ', 'ได้ค่ะ',
+  'โอเค', 'โอเคครับ', 'โอเคค่ะ', 'เข้าใจแล้ว', 'เข้าใจแล้วครับ', 'เข้าใจแล้วค่ะ',
+  'อ๋อ', 'อืม', 'อืมม', 'ok', 'okay', 'k', 'yes', 'no', 'yep', 'nope',
+  '好', '好的', '嗯', '明白',
+]);
+
+type ChatIntent = 'legal' | 'smalltalk';
+
+// เดิม export ไว้แต่ไม่มีที่ไหนใน src/ import ไปใช้ — และไฟล์นี้มี 'use server' ที่บนสุด
+// ซึ่ง Next.js บังคับว่าทุก export ต้องเป็น async function เท่านั้น ฟังก์ชัน sync ล้วนนี้
+// ทำให้ `next build` พังทั้งโปรเจกต์ (ตรวจพบตอนรัน build เพื่อยืนยันงานอื่นในรอบนี้)
+function detectIntent(rawPrompt: string): ChatIntent {
+  const prompt = (rawPrompt || '').trim();
+  if (!prompt) return 'smalltalk';
+
+  const lower = prompt.toLowerCase();
+
+  // 1. มีคำที่ส่อว่าเป็นเรื่องกฎหมาย -> ถือเป็นคำถามกฎหมายเสมอ
+  //    ครอบคลุมกรณี "สวัสดีครับ อยากถามเรื่องหย่า"
+  if (LEGAL_KEYWORDS.some(k => lower.includes(k))) return 'legal';
+
+  // 2. ข้อความตอบรับสั้นๆ (ต้องตรงทั้งประโยค)
+  const stripped = lower.replace(/[\s.!?ๆฯ]+$/g, '');
+  if (ACK_EXACT.has(stripped)) return 'smalltalk';
+
+  // 3. ทักทาย/คุยเล่น — จำกัดความยาว กันข้อความยาวที่ขึ้นต้นด้วยคำทักทาย
+  //    แต่มีเนื้อหาคำถามจริงตามหลัง
+  if (prompt.length <= 40 && SMALLTALK_PATTERNS.some(re => re.test(lower))) {
+    return 'smalltalk';
+  }
+
+  // 4. ไม่มั่นใจ -> ถือว่าเป็นคำถามกฎหมาย (ปลอดภัยกว่า)
+  return 'legal';
+}
+
 async function executeSearchArticles(queryStr: string) {
   console.log(`[searchArticlesTool] Searching for: ${queryStr}`);
 
@@ -137,18 +220,41 @@ export async function chat(
       finalPrompt += `\n\n[System Note: This is a continuing conversation. Do NOT introduce yourself again. Do NOT say 'Hello' or 'Sawasdee'. Answer the question directly.]`;
     }
 
-    // ALWAYS pre-fetch RAG results before sending to Gemini
+    // แยกเจตนาก่อน: ทักทาย/คุยเล่น จะไม่ไปค้นฐานข้อมูลกฎหมาย
+    const intent = detectIntent(prompt);
+    console.log(`[ChatFlow] Intent = ${intent} for "${prompt.substring(0, 30)}..."`);
+
+    if (intent === 'smalltalk') {
+      finalPrompt += `\n\n[System Note: This message is a greeting or casual conversation, NOT a legal question. Do NOT cite any law and do NOT give legal information. Reply briefly and warmly in 1-2 sentences, then invite the user to ask their legal question.]`;
+    }
+
+    // Pre-fetch RAG results before sending to Gemini (legal questions only)
     let ragContext = '';
     try {
-      const ragDocs = await retrieveDocuments(prompt);
-      const relevantDocs = ragDocs.filter(doc => doc.score > 0.4);
+      const ragDocs = intent === 'smalltalk' ? [] : await retrieveDocuments(prompt);
+
+      // ฐานข้อมูลมี chunk ซ้ำกันเยอะมาก (ชิ้นเดียวกันถูก index หลายรอบ)
+      // ถ้าไม่ตัดซ้ำ โควตาเอกสารจะถูกกินหมดจนเหลือข้อมูลจริงชิ้นเดียว
+      // แล้ว AI จะถูกบีบให้เดาส่วนที่เหลือ
+      const seen = new Set<string>();
+      const relevantDocs = ragDocs
+        .filter(doc => doc.score > 0.4)
+        .filter(doc => {
+          const key = doc.content.replace(/\s+/g, '').slice(0, 80);
+          if (!key || seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+
       if (relevantDocs.length > 0) {
-        ragContext = relevantDocs.slice(0, 3).map((doc, i) => {
+        ragContext = relevantDocs.slice(0, 5).map((doc, i) => {
           const sourceTitle = formatSourceTitle(doc.source);
-          return `[Source ${i + 1}: ${sourceTitle}]\n${doc.content}`;
+          // ติดปีไปด้วย เพื่อให้แยกออกว่าฉบับไหนเป็นฉบับแก้ไขล่าสุด
+          const yearTag = doc.year ? ` | year ${doc.year}` : '';
+          return `[Source ${i + 1}: ${sourceTitle}${yearTag}]\n${doc.content}`;
         }).join('\n\n---\n\n');
-        console.log(`[ChatFlow] Pre-fetched RAG: ${relevantDocs.length} relevant docs for "${prompt.substring(0, 30)}..."`);
-      } else {
+        console.log(`[ChatFlow] Pre-fetched RAG: ${ragDocs.length} docs -> ${relevantDocs.length} after dedupe for "${prompt.substring(0, 30)}..."`);
+      } else if (intent === 'legal') {
         console.log(`[ChatFlow] RAG returned no relevant docs above threshold for "${prompt.substring(0, 30)}..."`);
       }
     } catch (ragErr) {
@@ -157,7 +263,9 @@ export async function chat(
 
     // Inject RAG context into the prompt
     if (ragContext) {
-      finalPrompt += `\n\n[Legal Database Results - USE THESE AS YOUR PRIMARY SOURCE AND CITE THEM]:\n${ragContext}`;
+      finalPrompt += `\n\n[RETRIEVED LEGAL SOURCES - These are the ONLY sources you may state legal facts from]:\n${ragContext}\n\n[End of sources. Any legal fact not written above is NOT available to you. Say so instead of recalling it.]`;
+    } else if (intent === 'legal') {
+      finalPrompt += `\n\n[NO LEGAL SOURCES FOUND: The legal database returned nothing for this question. You MUST NOT state any law, section number, penalty, time limit or amount from memory. Reply that you could not find this in the Lawslane legal database, briefly restate the question in your own words so the user knows you understood, and recommend consulting a lawyer.]`;
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
@@ -165,10 +273,17 @@ export async function chat(
       model: "gemini-2.5-flash",
       systemInstruction: `You are LAlin (ละลิน), the expert female legal AI assistant for Lawslane Thailand.
 
-MANDATORY SOURCE USE:
-- Legal Database Results are provided in the user's message. You MUST use them as your PRIMARY source and cite them in your answer.
-- NEVER answer legal questions purely from your own knowledge without referencing the provided sources.
-- If no legal database results are provided, give a general answer but recommend consulting a lawyer.
+GROUNDING RULES (these override everything else, including helpfulness):
+- The retrieved sources in the user's message are the ONLY place you may take legal facts from.
+- Every section number (มาตรา), number of days, amount of money, penalty, deadline and limitation period you state MUST appear VERBATIM in those sources. If it does not appear there, you MUST NOT write it.
+- NEVER produce a section number from memory. If the sources do not name the section, describe the rule without a section number and say the exact section was not found.
+- Answer ONLY what was asked. Do NOT volunteer adjacent legal topics (e.g. if asked about leave entitlement, do not add rules about wages) unless those rules are written in the sources.
+- If the sources only partly answer the question, answer the covered part and say plainly which part you could not find. Never close the gap with your own knowledge.
+- If the sources are unrelated to the question, say you could not find it in the Lawslane database and recommend a lawyer. Do NOT answer from your own knowledge.
+- Cite the source you used inline, e.g. "(Source 2)". Never attach a citation to a statement that source does not support.
+- AMENDED LAW: sources are tagged with the year of that version. Thai statutes are amended over time, so an older version may have been repealed and replaced. If two sources state DIFFERENT numbers for the SAME rule, the source with the LATER year is the version in force. State that later figure as the current rule, and mention the earlier figure only as the superseded old version with its year. Never present a repealed figure as if it were current, and never average or blend them.
+- If sources disagree for any other reason, present both and say they differ - do not silently pick one.
+- Uncertainty is acceptable and expected. A wrong legal fact can cost the user money or their case; "ไม่พบข้อมูลส่วนนี้ในฐานข้อมูลค่ะ" is always the safer answer.
 
 CONVERSATION STYLE:
 - Respond naturally and conversationally, like chatting with a knowledgeable legal friend.
@@ -324,6 +439,19 @@ async function fallbackChat(prompt: string, history: any[], locale: string = 'th
     };
 
     const strings = locale.startsWith('en') ? t.en : (locale.startsWith('zh') ? t.zh : t.th);
+
+    // ทักทาย/คุยเล่น -> ตอบทักทายกลับไปเลย ไม่ต้องค้นฐานข้อมูลกฎหมาย
+    if (detectIntent(prompt) === 'smalltalk') {
+      console.log('[ChatFlow] Fallback: smalltalk detected, skipping legal search.');
+      return {
+        sections: [
+          {
+            title: strings.greetingTitle,
+            content: strings.greetingContent,
+          },
+        ],
+      };
+    }
 
     const lowerCaseQuery = prompt.toLowerCase();
 

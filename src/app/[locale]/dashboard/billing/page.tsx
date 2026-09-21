@@ -22,7 +22,7 @@ export default function ClientBillingPage() {
     async function fetchData() {
       setIsLoading(true);
       try {
-        const res = await getUserInvoicesAction(user!.uid);
+        const res = await getUserInvoicesAction();
         if (res.success) {
           setInvoices(res.data || []);
         }

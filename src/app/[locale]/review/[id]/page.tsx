@@ -89,7 +89,6 @@ function ReviewPageContent() {
       setIsLoading(true);
       await submitReviewAction({
         lawyerId,
-        userId: user.uid,
         author: user.displayName || 'Anonymous',
         avatar: user.photoURL || '',
         rating: Number(rating),

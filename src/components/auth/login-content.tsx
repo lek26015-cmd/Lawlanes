@@ -47,13 +47,16 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { TurnstileWidget } from '@/components/turnstile-widget';
 import { validateTurnstile } from '@/app/actions/turnstile';
 import { setupTestAccounts } from '@/app/actions/seed-actions';
+import { useTranslations } from 'next-intl';
 
-const formSchema = z.object({
-    email: z.string().email({ message: 'รูปแบบอีเมลไม่ถูกต้อง' }),
-    password: z.string().min(1, { message: 'กรุณากรอกรหัสผ่าน' }),
+// schema ต้องสร้างในคอมโพเนนต์เพราะข้อความ error ต้องแปลตาม locale
+const buildFormSchema = (t: (key: string) => string) => z.object({
+    email: z.string().email({ message: t('validation.emailInvalid') }),
+    password: z.string().min(1, { message: t('validation.passwordRequired') }),
 });
 
 function LoginPageContent() {
+    const t = useTranslations('LoginPage');
     const router = useRouter();
     const searchParams = useSearchParams();
     const redirectUrl = searchParams.get('redirect') || searchParams.get('redirectTo');
@@ -86,8 +89,8 @@ function LoginPageContent() {
         if (!resetEmail) {
             toast({
                 variant: 'destructive',
-                title: 'กรุณากรอกอีเมล',
-                description: 'โปรดระบุอีเมลที่ต้องการรีเซ็ตรหัสผ่าน',
+                title: t('validation.emailRequired'),
+                description: t('reset.missingEmail'),
             });
             return;
         }
@@ -98,29 +101,29 @@ function LoginPageContent() {
                 sendCustomPasswordResetEmailV2(resetEmail).then((res) => {
                     if (res.success) {
                         toast({
-                            title: 'ส่งอีเมลรีเซ็ตรหัสผ่านแล้ว',
-                            description: 'กรุณาตรวจสอบกล่องจดหมายของคุณ และอย่าลืมเช็คในโฟลเดอร์ขยะ (Spam/Junk) หากไม่พบอีเมล',
+                            title: t('reset.sentTitle'),
+                            description: t('reset.sentDesc'),
                         });
                         setIsForgotPasswordOpen(false);
                         setResetEmail('');
                     } else {
                         toast({
                             variant: 'destructive',
-                            title: 'เกิดข้อผิดพลาด',
-                            description: res.error || 'ไม่สามารถส่งอีเมลได้',
+                            title: t('error.generic'),
+                            description: res.error || t('error.sendFailed'),
                         });
                     }
                 });
             });
         } catch (error: any) {
             console.error(error);
-            let errorMessage = 'ไม่สามารถส่งลิงก์รีเซ็ตรหัสผ่านได้';
+            let errorMessage = t('reset.failedTitle');
             if (error.code === 'auth/user-not-found') {
-                errorMessage = 'ไม่พบอีเมลนี้ในระบบ';
+                errorMessage = t('reset.notFound');
             }
             toast({
                 variant: 'destructive',
-                title: 'เกิดข้อผิดพลาด',
+                title: t('error.generic'),
                 description: errorMessage,
             });
         } finally {
@@ -128,7 +131,8 @@ function LoginPageContent() {
         }
     };
 
-    const form = useForm<z.infer<typeof formSchema>>({
+    const formSchema = React.useMemo(() => buildFormSchema(t), [t]);
+    const form = useForm<z.infer<ReturnType<typeof buildFormSchema>>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
             email: '',
@@ -136,17 +140,17 @@ function LoginPageContent() {
         },
     });
 
-    async function onSubmit(values: z.infer<typeof formSchema>) {
+    async function onSubmit(values: z.infer<ReturnType<typeof buildFormSchema>>) {
         if (!auth || !firestore) return;
         setIsLoading(true);
         try {
             if (!turnstileToken) {
-                throw new Error('กรุณายืนยันตัวตนผ่าน Cloudflare Turnstile');
+                throw new Error(t('error.turnstileRequired'));
             }
 
             const validation = await validateTurnstile(turnstileToken);
             if (!validation.success) {
-                throw new Error('การยืนยันตัวตนล้มเหลว กรุณาลองใหม่');
+                throw new Error(t('error.turnstileFailed'));
             }
 
             const userCredential = await signInWithEmailAndPassword(auth, values.email, values.password);
@@ -173,15 +177,15 @@ function LoginPageContent() {
             }
         } catch (error: any) {
             console.error(error);
-            let errorMessage = 'เกิดข้อผิดพลาดที่ไม่รู้จัก';
+            let errorMessage = t('error.unknown');
             if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || error.code === 'auth/invalid-credential') {
-                errorMessage = 'อีเมลหรือรหัสผ่านไม่ถูกต้อง';
+                errorMessage = t('error.badCredentials');
             } else if (error.message) {
                 errorMessage = error.message;
             }
             toast({
                 variant: 'destructive',
-                title: 'เข้าสู่ระบบไม่สำเร็จ',
+                title: t('error.loginFailed'),
                 description: errorMessage,
             });
         } finally {
@@ -193,8 +197,8 @@ function LoginPageContent() {
         if (!auth || !firestore) {
             toast({
                 variant: 'destructive',
-                title: 'เกิดข้อผิดพลาด',
-                description: 'ไม่สามารถเชื่อมต่อกับระบบยืนยันตัวตนได้ กรุณารีเฟรชหน้าจอ',
+                title: t('error.generic'),
+                description: t('error.authUnavailable'),
             });
             return;
         }
@@ -221,8 +225,8 @@ function LoginPageContent() {
             const { suggestedRedirect } = await sessionRes.json();
 
             toast({
-                title: 'เข้าสู่ระบบด้วย Google สำเร็จ',
-                description: 'กำลังนำคุณไปยังแดชบอร์ด...',
+                title: t('google.successTitle'),
+                description: t('google.redirecting'),
             });
 
             if (suggestedRedirect.startsWith('http')) {
@@ -233,23 +237,23 @@ function LoginPageContent() {
 
         } catch (error: any) {
             console.error("Google Sign-In Error:", error);
-            let errorMessage = 'เกิดข้อผิดพลาดในการเข้าสู่ระบบด้วย Google';
+            let errorMessage = t('google.errorTitle');
 
             if (error.code === 'auth/popup-blocked') {
-                errorMessage = 'เบราว์เซอร์ของคุณบล็อกป๊อปอัป กรุณาอนุญาตให้แสดงป๊อปอัปสำหรับเว็บไซต์นี้';
+                errorMessage = t('google.popupBlocked');
             } else if (error.code === 'auth/popup-closed-by-user') {
-                errorMessage = 'คุณปิดหน้าต่างป๊อปอัปก่อนการเข้าสู่ระบบจะเสร็จสมบูรณ์';
+                errorMessage = t('google.popupClosed');
             } else if (error.code === 'auth/cancelled-popup-request') {
-                errorMessage = 'มีการร้องขอป๊อปอัปซ้อนกัน กรุณาลองใหม่อีกครั้ง';
+                errorMessage = t('google.popupCancelled');
             } else if (error.code === 'auth/unauthorized-domain') {
-                errorMessage = 'โดเมนนี้ยังไม่ได้รับอนุญาตให้ใช้ Google Sign-In (กรุณาแจ้งผู้ดูแลระบบ)';
+                errorMessage = t('google.unauthorizedDomain');
             } else if (error.message) {
                 errorMessage = `${errorMessage}: ${error.message}`;
             }
 
             toast({
                 variant: 'destructive',
-                title: 'เข้าสู่ระบบด้วย Google ไม่สำเร็จ',
+                title: t('google.failedTitle'),
                 description: errorMessage,
             });
         } finally {
@@ -277,7 +281,7 @@ function LoginPageContent() {
                     console.error("LIFF Init Error:", initErr);
                     let errMsg = initErr.message || '';
                     if (errMsg.includes('fetch') || errMsg.includes('Load failed')) {
-                        throw new Error(`การเชื่อมต่อ LINE ถูกบล็อกโดยเบราว์เซอร์ (${errMsg})`);
+                        throw new Error(`${t('line.blocked')} (${errMsg})`);
                     }
                     throw new Error(`LIFF Init Failed: ${errMsg}`);
                 }
@@ -313,7 +317,7 @@ function LoginPageContent() {
                     });
                 } catch (fetchErr: any) {
                     console.error("Fetch to /api/auth/line failed totally:", fetchErr);
-                    throw new Error(`การเชื่อมต่อเซิร์ฟเวอร์ล้มเหลว (Failed to fetch API): ${fetchErr.message}`);
+                    throw new Error(`${t('line.fetchFailed')}: ${fetchErr.message}`);
                 }
 
                 if (!lineRes.ok) {
@@ -335,7 +339,7 @@ function LoginPageContent() {
                         userCredential = await signInWithCustomToken(auth, customToken);
                     } catch (fbErr: any) {
                         alert("Firebase Auth Error: " + fbErr.message);
-                        throw new Error(`การยืนยันตัวตนล้มเหลว (Firebase Auth): ${fbErr.message}`);
+                        throw new Error(`${t('line.authFailed')}: ${fbErr.message}`);
                     }
 
                     // Create server-side session
@@ -350,14 +354,14 @@ function LoginPageContent() {
                         if (!sessionRes.ok) {
                             const errorData = await sessionRes.json().catch(() => ({}));
                             alert("Session Error: " + (errorData.error || errorData.message || sessionRes.status));
-                            throw new Error(errorData.error || errorData.message || `การสร้างเซสชันล้มเหลว (Status: ${sessionRes.status})`);
+                            throw new Error(errorData.error || errorData.message || `${t('line.sessionFailed')} (Status: ${sessionRes.status})`);
                         }
 
                         const { suggestedRedirect } = await sessionRes.json();
 
                         toast({
-                            title: 'เข้าสู่ระบบด้วย LINE สำเร็จ',
-                            description: 'กำลังนำคุณไปยังแดชบอร์ด...',
+                            title: t('line.successTitle'),
+                            description: t('google.redirecting'),
                         });
 
                         // Ensure we redirect to the correct locale if possible, 
@@ -368,19 +372,19 @@ function LoginPageContent() {
                         }, 800);
                     } catch (sessionErr: any) {
                         console.error("Session creation error:", sessionErr);
-                        throw new Error(`ข้อผิดพลาดทางฝั่งเซิร์ฟเวอร์: ${sessionErr.message}`);
+                        throw new Error(`${t('line.serverError')}: ${sessionErr.message}`);
                     }
                 }
             } else {
                 // No LIFF ID configured
-                throw new Error('LINE Login ยังไม่ได้ตั้งค่า กรุณาติดต่อผู้ดูแลระบบ');
+                throw new Error(t('line.notConfigured'));
             }
         } catch (error: any) {
             console.error('LINE Sign-In Error:', error);
             toast({
                 variant: 'destructive',
-                title: 'เข้าสู่ระบบด้วย LINE ไม่สำเร็จ',
-                description: error.message || 'กรุณาลองใหม่อีกครั้ง',
+                title: t('line.failedTitle'),
+                description: error.message || t('error.tryAgain'),
             });
         } finally {
             setIsLineLoading(false);
@@ -405,7 +409,7 @@ function LoginPageContent() {
                         className="absolute top-8 right-8 z-20 px-6 py-2 bg-white/10 backdrop-blur-md rounded-full border border-white/20 shadow-xl"
                     >
                         <span className="text-xl font-black font-headline tracking-wider text-blue-300">
-                            สำหรับลูกความ
+                            {t('hero.badge')}
                         </span>
                     </motion.div>
 
@@ -440,8 +444,8 @@ function LoginPageContent() {
                                 transition={{ duration: 0.5 }}
                                 className="text-4xl font-black font-headline leading-tight drop-shadow-[0_4px_12px_rgba(0,0,0,0.5)]"
                             >
-                                ปรึกษาทนายความ<br />
-                                <span className="text-blue-300">เข้าถึงง่ายและโปร่งใส</span>
+                                {t('hero.title')}<br />
+                                <span className="text-blue-300">{t('hero.subtitle')}</span>
                             </motion.h1>
                             <motion.p 
                                 initial={{ opacity: 0, y: 20 }}
@@ -449,7 +453,7 @@ function LoginPageContent() {
                                 transition={{ duration: 0.5, delay: 0.1 }}
                                 className="text-blue-50 text-lg leading-relaxed max-w-sm drop-shadow-lg font-medium"
                             >
-                                ลอว์สเลนช่วยให้คุณเริ่มต้นจัดการคดีความได้อย่างมืออาชีพ พร้อมระบบติดตามที่มีประสิทธิภาพ
+                                {t('hero.description')}
                             </motion.p>
                         </div>
                         
@@ -468,20 +472,20 @@ function LoginPageContent() {
 
                         <div className="space-y-2 text-center lg:text-left">
                             <h2 className="text-3xl font-black font-headline text-slate-900">
-                                เข้าสู่ระบบ
+                                {t('form.title')}
                             </h2>
                             <p className="text-slate-500">
-                                ยินดีต้อนรับกลับสู่ Lawslane
+                                {t('form.welcome')}
                             </p>
                         </div>
 
                         <Tabs defaultValue="customer" className="w-full">
                             <TabsList className="grid w-full grid-cols-2 h-12 bg-slate-100 rounded-xl p-1 mb-8">
                                 <TabsTrigger value="customer" asChild className="h-full rounded-lg data-[state=active]:bg-white data-[state=active]:text-[#0B3979] data-[state=active]:shadow-sm font-bold transition-all">
-                                    <Link href={`/login`}>ลูกความ</Link>
+                                    <Link href={`/login`}>{t('form.tabClient')}</Link>
                                 </TabsTrigger>
                                 <TabsTrigger value="lawyer" asChild className="h-full rounded-lg data-[state=active]:bg-white data-[state=active]:text-[#0B3979] data-[state=active]:shadow-sm font-bold transition-all">
-                                    <Link href={`/lawyer-login`}>ทนายความ</Link>
+                                    <Link href={`/lawyer-login`}>{t('form.tabLawyer')}</Link>
                                 </TabsTrigger>
                             </TabsList>
                         </Tabs>
@@ -519,7 +523,7 @@ function LoginPageContent() {
                                 <span className="w-full border-t border-slate-100" />
                             </div>
                             <div className="relative flex justify-center text-xs uppercase tracking-widest text-slate-400">
-                                <span className="bg-white px-4">หรือเข้าสู่ระบบด้วยอีเมล</span>
+                                <span className="bg-white px-4">{t('form.orEmail')}</span>
                             </div>
                         </div>
 
@@ -530,7 +534,7 @@ function LoginPageContent() {
                                     name="email"
                                     render={({ field }) => (
                                         <FormItem className="space-y-2">
-                                            <FormLabel className="text-sm font-bold text-slate-700">อีเมล</FormLabel>
+                                            <FormLabel className="text-sm font-bold text-slate-700">{t('form.email')}</FormLabel>
                                             <FormControl>
                                                 <Input placeholder="name@example.com" {...field} disabled={isLoading || isGoogleLoading} className="h-12 rounded-xl bg-slate-50 border-slate-100 focus:bg-white transition-all text-base" />
                                             </FormControl>
@@ -544,23 +548,23 @@ function LoginPageContent() {
                                     render={({ field }) => (
                                         <FormItem className="space-y-2">
                                             <div className="flex items-center justify-between">
-                                                <FormLabel className="text-sm font-bold text-slate-700">รหัสผ่าน</FormLabel>
+                                                <FormLabel className="text-sm font-bold text-slate-700">{t('form.password')}</FormLabel>
                                                 <Dialog open={isForgotPasswordOpen} onOpenChange={setIsForgotPasswordOpen}>
                                                     <DialogTrigger asChild>
                                                         <Button variant="link" className="p-0 h-auto font-bold text-xs text-slate-400 hover:text-[#0B3979]">
-                                                            ลืมรหัสผ่าน?
+                                                            {t('form.forgotPassword')}
                                                         </Button>
                                                     </DialogTrigger>
                                                     <DialogContent className="rounded-2xl border-none shadow-2xl">
                                                         <DialogHeader>
-                                                            <DialogTitle className="text-2xl font-black font-headline text-[#0B3979]">ลืมรหัสผ่าน?</DialogTitle>
+                                                            <DialogTitle className="text-2xl font-black font-headline text-[#0B3979]">{t('reset.title')}</DialogTitle>
                                                             <DialogDescription className="text-slate-500">
-                                                                กรอกอีเมลของคุณเพื่อรับลิงก์สำหรับตั้งรหัสผ่านใหม่
+                                                                {t('reset.description')}
                                                             </DialogDescription>
                                                         </DialogHeader>
                                                         <div className="py-4">
                                                             <div className="space-y-2">
-                                                                <Label htmlFor="reset-email" className="font-bold">อีเมล</Label>
+                                                                <Label htmlFor="reset-email" className="font-bold">{t('reset.emailLabel')}</Label>
                                                                 <Input
                                                                     id="reset-email"
                                                                     placeholder="name@example.com"
@@ -571,10 +575,10 @@ function LoginPageContent() {
                                                             </div>
                                                         </div>
                                                         <DialogFooter className="gap-3">
-                                                            <Button variant="ghost" onClick={() => setIsForgotPasswordOpen(false)} disabled={isResetting} className="rounded-xl font-bold">ยกเลิก</Button>
+                                                            <Button variant="ghost" onClick={() => setIsForgotPasswordOpen(false)} disabled={isResetting} className="rounded-xl font-bold">{t('reset.cancel')}</Button>
                                                             <Button onClick={handleForgotPassword} disabled={isResetting} className="bg-[#0B3979] hover:bg-slate-900 text-white rounded-xl font-bold px-6">
                                                                 {isResetting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                                                ส่งลิงก์รีเซ็ต
+                                                                {t('reset.submit')}
                               </Button>
                                                         </DialogFooter>
                                                     </DialogContent>
@@ -594,16 +598,16 @@ function LoginPageContent() {
 
                                 <Button type="submit" className="w-full h-14 rounded-xl text-lg font-black bg-[#0B3979] hover:bg-slate-900 shadow-xl shadow-blue-900/10 transition-all active:scale-[0.98] border-none text-white" disabled={isLoading || isGoogleLoading}>
                                     {isLoading && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
-                                    เข้าสู่ระบบ
+                                    {t('form.submit')}
                                 </Button>
                             </form>
                         </Form>
 
                         <div className="text-center pt-4 space-y-4">
                             <p className="text-slate-500 text-sm">
-                                ยังไม่มีบัญชี?{' '}
+                                {t('form.noAccount')}{' '}
                                 <Link href="/signup" className="text-[#0B3979] font-black hover:underline decoration-2 underline-offset-4">
-                                    สมัครสมาชิกที่นี่
+                                    {t('form.signupHere')}
                                 </Link>
                             </p>
 

@@ -1,6 +1,7 @@
 'use server';
 
 import { Resend } from 'resend';
+import { requireUser } from '@/lib/auth-guard';
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -11,6 +12,9 @@ export async function sendLawyerNewCaseEmail(
   caseTitle: string,
   caseLink: string
 ) {
+    // ส่งอีเมลในนามโดเมนเรา — ต้องล็อกอินอยู่จริง
+    await requireUser();
+
   if (!process.env.RESEND_API_KEY) {
     console.warn('RESEND_API_KEY is not set. Skipping email notification.');
     return { success: false, error: 'Missing API Key' };

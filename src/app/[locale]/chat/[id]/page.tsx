@@ -139,8 +139,8 @@ function ChatPageContent() {
         const normalizedChatId = Array.isArray(chatId) ? chatId[0] : (chatId as string);
 
         const [invRes, conRes, msRes] = await Promise.all([
-            getInvoicesByChatAction(normalizedChatId, targetClientId, targetLawyerId),
-            getContractsByChatAction(normalizedChatId, targetClientId),
+            getInvoicesByChatAction(normalizedChatId),
+            getContractsByChatAction(normalizedChatId),
             getCaseMilestones(normalizedChatId)
         ]);
         
@@ -163,7 +163,7 @@ function ChatPageContent() {
             const repairRes = await repairChatDocumentsAction(chatId);
             if (repairRes.success) {
                 // Refresh docs after repair
-                const refreshedInvoices = await getInvoicesByChatAction(chatId, clientId ?? undefined, lawyerId ?? undefined);
+                const refreshedInvoices = await getInvoicesByChatAction(chatId);
                 if (refreshedInvoices.success) setInvoices(refreshedInvoices.data || []);
             }
         }
@@ -604,7 +604,6 @@ function ChatPageContent() {
             setIsLoading(true);
             await submitReviewAction({
                 lawyerId,
-                userId: user.uid,
                 author: client?.name || user.displayName || 'Anonymous',
                 avatar: client?.imageUrl || user.photoURL || '',
                 rating: Number(rating),
@@ -1656,7 +1655,7 @@ function ChatPageContent() {
                             <SignaturePad 
                                 onSave={async (dataUrl) => {
                                     if (!signingRole) return;
-                                    const res = await signContractAction(chatId, signingRole, dataUrl);
+                                    const res = await signContractAction(chatId, dataUrl);
                                     if (res.success) {
                                         toast({ title: 'ลงนามสำเร็จ' });
                                         setShowSignaturePad(false);

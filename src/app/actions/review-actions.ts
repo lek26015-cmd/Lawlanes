@@ -2,24 +2,28 @@
 
 import { initAdmin } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
+import { requireUser } from '@/lib/auth-guard';
 
 export async function submitReviewAction(data: {
     lawyerId: string;
-    userId: string;
     author: string;
     avatar: string;
     rating: number;
     comment: string;
     caseId: string;
 }) {
-    const adminApp = await initAdmin();
-    if (!adminApp) {
-        throw new Error('Firebase Admin not initialized.');
-    }
+    // ผู้รีวิวต้องเป็นคนที่ล็อกอินอยู่จริง — เดิมรับ userId เป็น argument
+    // จึงเขียนรีวิวในนามคนอื่นได้ และปั่นคะแนนเฉลี่ยของทนายได้
+    const { uid: userId, adminApp } = await requireUser();
     const db = adminApp.firestore();
 
+    if (typeof data.rating !== 'number' || data.rating < 1 || data.rating > 5) {
+        throw new Error('Invalid rating');
+    }
+
     try {
-        const { lawyerId, userId, author, avatar, rating, comment, caseId } = data;
+        // userId มาจาก requireUser() ด้านบน ไม่ได้มาจาก data ที่ client ส่งมา
+        const { lawyerId, author, avatar, rating, comment, caseId } = data;
 
         // Check for duplicate review (same user + same case)
         const existingReview = await db.collection('reviews')

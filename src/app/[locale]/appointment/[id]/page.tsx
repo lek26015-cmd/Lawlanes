@@ -61,7 +61,7 @@ export default function AppointmentDetailPage() {
       if (!user) return;
       setIsLoading(true);
       try {
-        const { appointments } = await getUserDashboardData(user.uid);
+        const { appointments } = await getUserDashboardData();
         const currentAppointment = appointments.find((appt: UpcomingAppointment) => appt.id === id);
 
         if (!currentAppointment) {

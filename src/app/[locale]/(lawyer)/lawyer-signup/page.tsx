@@ -9,7 +9,7 @@ import * as z from 'zod';
 import { createUserWithEmailAndPassword, updateProfile, signOut } from 'firebase/auth';
 import { doc, setDoc, serverTimestamp, addDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { useFirebase } from '@/firebase';
-import { uploadToFirebasePublic } from '@/app/actions/upload-secure';
+import { uploadToFirebasePublic } from '@/app/actions/upload';
 import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '@/lib/constants';
 
 import { Button } from '@/components/ui/button';

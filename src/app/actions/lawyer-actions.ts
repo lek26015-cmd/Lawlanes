@@ -2,7 +2,14 @@
 
 import { initAdmin } from '@/lib/firebase-admin';
 import * as admin from 'firebase-admin';
-import type { LawyerProfile } from '@/lib/types';
+import type { LawyerProfile, LawyerSchedule } from '@/lib/types';
+import { requireUser, requireLawyer, requireChatRole, AuthError } from '@/lib/auth-guard';
+
+const DEFAULT_SCHEDULE: LawyerSchedule = {
+    workingHours: { start: '09:00', end: '18:00' },
+    availableDays: { monday: true, tuesday: true, wednesday: true, thursday: true, friday: true, saturday: false, sunday: false },
+    overrides: [],
+};
 
 /**
  * Fetches a lawyer profile by ID using the Admin SDK.
@@ -48,15 +55,14 @@ export async function getLawyerProfileAction(lawyerId: string): Promise<LawyerPr
 /**
  * Updates lawyer pricing settings.
  */
-export async function updateLawyerPricingAction(lawyerId: string, pricing: { 
+export async function updateLawyerPricingAction(pricing: { 
     appointmentFee: number, 
     chatFee: number, 
     platformFeeRate: number 
 }) {
-    const adminApp = await initAdmin();
-    if (!adminApp) {
-        throw new Error('Firebase Admin not initialized.');
-    }
+    // ต้องเป็นทนายเจ้าของโปรไฟล์ — เดิมรับ lawyerId เป็น argument
+    // จึงแก้ค่าบริการของทนายคนอื่นได้
+    const { lawyerProfileId: lawyerId, adminApp } = await requireLawyer();
     const db = adminApp.firestore();
 
     try {
@@ -67,6 +73,52 @@ export async function updateLawyerPricingAction(lawyerId: string, pricing: {
         return { success: true };
     } catch (error: any) {
         console.error("Error updating lawyer pricing action:", error);
+        return { success: false, error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' };
+    }
+}
+
+/**
+ * ดึงตารางเวลาของทนายที่ล็อกอินอยู่ — ใช้เติมค่าเริ่มต้นในหน้า lawyer-schedule
+ */
+export async function getLawyerScheduleAction(): Promise<LawyerSchedule> {
+    const { lawyerProfileId: lawyerId, adminApp } = await requireLawyer();
+    const db = adminApp.firestore();
+
+    const docSnap = await db.collection('lawyerProfiles').doc(lawyerId).get();
+    const schedule = docSnap.data()?.schedule;
+    if (!schedule) return DEFAULT_SCHEDULE;
+
+    return {
+        workingHours: schedule.workingHours || DEFAULT_SCHEDULE.workingHours,
+        availableDays: { ...DEFAULT_SCHEDULE.availableDays, ...(schedule.availableDays || {}) },
+        overrides: Array.isArray(schedule.overrides) ? schedule.overrides : [],
+    };
+}
+
+/**
+ * บันทึกตารางเวลาของทนายที่ล็อกอินอยู่ (หน้าเดิม lawyer-schedule/page.tsx กด "บันทึก" แล้ว
+ * แค่ console.log + toast ไม่เขียน Firestore จริง) — ให้หน้าจองของลูกความอ่านค่านี้ต่อ
+ */
+export async function updateLawyerScheduleAction(schedule: LawyerSchedule) {
+    const { lawyerProfileId: lawyerId, adminApp } = await requireLawyer();
+    const db = adminApp.firestore();
+
+    if (!schedule?.workingHours?.start || !schedule?.workingHours?.end) {
+        return { success: false, error: 'ข้อมูลเวลาทำงานไม่ถูกต้อง' };
+    }
+
+    try {
+        await db.collection('lawyerProfiles').doc(lawyerId).update({
+            schedule: {
+                workingHours: schedule.workingHours,
+                availableDays: schedule.availableDays,
+                overrides: (schedule.overrides || []).map(ov => ({ date: ov.date, reason: ov.reason })),
+            },
+            updatedAt: new Date().toISOString(),
+        });
+        return { success: true };
+    } catch (error) {
+        console.error('Error updating lawyer schedule:', error);
         return { success: false, error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' };
     }
 }
@@ -94,9 +146,9 @@ export async function getPlatformSettingsAction() {
 /**
  * Checks the role of a specific user.
  */
-export async function getUserRoleAction(userId: string) {
-    const adminApp = await initAdmin();
-    if (!adminApp) throw new Error('Firebase Admin not initialized.');
+export async function getUserRoleAction() {
+    // คืน role ของผู้เรียกเองเท่านั้น — เดิมรับ userId เป็น argument
+    const { uid: userId, adminApp } = await requireUser();
     const db = adminApp.firestore();
 
     try {
@@ -117,7 +169,9 @@ export async function addToVerifiedRegistry(data: {
     lastName: string;
     province: string;
 }) {
-    const adminApp = await initAdmin();
+    // เรียกตอนสมัครทนาย (หลัง mint session แล้ว) — ต้องล็อกอินอยู่จริง
+    // เดิมเปิดให้ใครก็เพิ่มรายชื่อเข้าทะเบียนทนายที่ยืนยันแล้วได้
+    const { adminApp } = await requireUser();
     if (!adminApp) throw new Error('Firebase Admin not initialized.');
     const db = adminApp.firestore();
 
@@ -145,7 +199,7 @@ export async function addToVerifiedRegistry(data: {
 /**
  * Creates or updates a manual case (Chat document) for a lawyer.
  */
-export async function createManualCaseAction(lawyerId: string, data: {
+export async function createManualCaseAction(data: {
     title: string;
     description: string;
     category: string;
@@ -156,7 +210,8 @@ export async function createManualCaseAction(lawyerId: string, data: {
     clientId?: string;
     contractText?: string;
 }) {
-    const adminApp = await initAdmin();
+    // ต้องเป็นทนายจริง และเคสถูกผูกกับโปรไฟล์ของผู้เรียกเอง
+    const { lawyerProfileId: lawyerId, adminApp } = await requireLawyer();
     if (!adminApp) throw new Error('Firebase Admin not initialized.');
     const db = adminApp.firestore();
 
@@ -366,9 +421,9 @@ export async function createManualCaseAction(lawyerId: string, data: {
 /**
  * Fetches unique clients who have interacted with a specific lawyer.
  */
-export async function getLawyerClientsAction(lawyerId: string) {
-    const adminApp = await initAdmin();
-    if (!adminApp) throw new Error('Firebase Admin not initialized.');
+export async function getLawyerClientsAction() {
+    // รายชื่อลูกความของทนายคนที่ล็อกอินอยู่เท่านั้น
+    const { uid: lawyerId, adminApp } = await requireLawyer();
     const db = adminApp.firestore();
 
     try {
@@ -422,8 +477,8 @@ export async function getLawyerClientsAction(lawyerId: string) {
  * Creates missing invoices/proposals and posts the link to the chat.
  */
 export async function repairChatDocumentsAction(chatId: string) {
-    const adminApp = await initAdmin();
-    if (!adminApp) throw new Error('Firebase Admin not initialized.');
+    // ต้องเป็นคู่กรณีของแชทนี้
+    const { adminApp } = await requireChatRole(chatId);
     const db = adminApp.firestore();
 
     try {

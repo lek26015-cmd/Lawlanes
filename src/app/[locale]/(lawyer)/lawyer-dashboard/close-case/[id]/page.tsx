@@ -128,7 +128,7 @@ function CloseCasePageContent() {
     setIsCancelling(true);
 
     try {
-      const result = await cancelCaseAction(caseId, lawyerId);
+      const result = await cancelCaseAction(caseId);
 
       if (!result.success) {
         toast({ variant: 'destructive', title: 'เกิดข้อผิดพลาด', description: result.error });

@@ -3,6 +3,7 @@
 import { retrieveDocuments } from '@/lib/rag';
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { getCachedAIResponse, setCachedAIResponse } from '@/lib/ai-cache';
+import { requireUser } from '@/lib/auth-guard';
 
 export type ContractAnalysisResult = {
     summary: string;
@@ -16,6 +17,9 @@ export type ContractAnalysisResult = {
 };
 
 export async function analyzeContract(contractText: string): Promise<ContractAnalysisResult> {
+    // endpoint นี้เรียก LLM ซึ่งมีค่าใช้จ่ายต่อครั้ง — ต้องล็อกอินอยู่จริง
+    await requireUser();
+
     if (!contractText || contractText.trim() === '') {
         throw new Error("Contract text is empty");
     }

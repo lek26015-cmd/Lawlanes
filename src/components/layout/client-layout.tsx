@@ -1,14 +1,17 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
 import { usePathname, useRouter } from 'next/navigation';
 import Header from '@/components/layout/header';
 import Footer from '@/components/layout/footer';
 import FloatingChatButton from '@/components/chat/floating-chat-button';
-import ChatModal from '@/components/chat/chat-modal';
-import CartDrawer from '@/components/books/cart-drawer';
-import CookieBanner from '@/components/cookie-banner';
 import { useUser as useAuthUser, useFirebase } from '@/firebase';
+
+// Both only ever render after client mount (see isMounted below), so there's
+// no SSR benefit to bundling them into every page's initial JS.
+const ChatModal = dynamic(() => import('@/components/chat/chat-modal'), { ssr: false });
+const CookieBanner = dynamic(() => import('@/components/cookie-banner'), { ssr: false });
 import { doc, getDoc } from 'firebase/firestore';
 
 export default function ClientLayout({
@@ -24,11 +27,12 @@ export default function ClientLayout({
   const { user } = useAuthUser();
   const [userRole, setUserRole] = useState<string | null>(null);
   const [isMounted, setIsMounted] = useState(false);
+
   // Synchronously detect the domain type from the pathname
   const getDetectedType = (path: string, hostName?: string) => {
     if (hostName?.includes('admin.') || path.includes('/admin')) return 'admin';
     if (hostName?.includes('business.') || path.includes('/b2b')) return 'business';
-    if (hostName?.includes('lawyer.') || path.includes('/lawyer-dashboard')) return 'lawyer';
+    if (hostName?.includes('lawyer.') || path.includes('/lawyer-dashboard') || path.includes('/lawyer-schedule')) return 'lawyer';
     return 'main';
   };
 
@@ -47,7 +51,7 @@ export default function ClientLayout({
     }
   }, [pathname, activeDomainType]);
 
-  const isLawyerPage = activeDomainType === 'lawyer' || pathname.includes('/lawyer-dashboard');
+  const isLawyerPage = activeDomainType === 'lawyer' || pathname.includes('/lawyer-dashboard') || pathname.includes('/lawyer-schedule');
 
   const isDashboardPage =
     isLawyerPage ||
@@ -57,8 +61,8 @@ export default function ClientLayout({
     pathname.includes('/b2b') ||
     pathname.includes('/rag-status');
 
-  // Early return for non-lawyer dashboards (Admin, Business)
-  if (isDashboardPage && !isLawyerPage) {
+  // Early return for dashboards (Admin, Business, Lawyer) so they render full custom workspace layout
+  if (isDashboardPage) {
     return <>{children}</>;
   }
 
@@ -67,13 +71,13 @@ export default function ClientLayout({
   return (
     <>
       <div className="flex min-h-screen flex-col">
-        {(isLawyerPage || !isDashboardPage) && <Header setUserRole={setUserRole} domainType={activeDomainType} />}
+        {!isDashboardPage && <Header setUserRole={setUserRole} domainType={activeDomainType} />}
         <main className="flex-grow">{children}</main>
-        {(isLawyerPage || !isDashboardPage) && !isChatPage && <Footer userRole={userRole} domainType={activeDomainType} />}
+        {!isDashboardPage && !isChatPage && <Footer userRole={userRole} domainType={activeDomainType} />}
       </div>
       {isMounted && !isDashboardPage && !isChatPage && <FloatingChatButton />}
       {isMounted && !isDashboardPage && !isChatPage && <ChatModal />}
-      {isMounted && !isDashboardPage && <CartDrawer />}
+
       {isMounted && <CookieBanner />}
     </>
   );

@@ -17,6 +17,7 @@ import { format } from 'date-fns';
 import { th } from 'date-fns/locale';
 import Link from 'next/link';
 import Image from 'next/image';
+import LawyerSidebar from '@/components/layout/lawyer-sidebar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 import bblLogo from '@/pic/logo-bank/กรุงเทพ.png';
@@ -141,7 +142,7 @@ function LawyerFinancialsContent() {
         setIsLoading(true);
 
         try {
-            const data = await getLawyerFinancialsAction(user.uid);
+            const data = await getLawyerFinancialsAction();
 
             // Process transactions to handle date formatting (Server action sends ISO strings)
             const formattedTransactions = data.transactions.map((t: any) => ({
@@ -334,14 +335,12 @@ function LawyerFinancialsContent() {
     }
 
     return (
-        <div className="bg-gray-100/50 min-h-screen p-4 md:p-8">
-            <div className="container mx-auto max-w-5xl">
+        <div className="flex h-screen overflow-hidden bg-background">
+        <LawyerSidebar />
+        <main className="flex-1 overflow-y-auto p-4 md:p-8">
+            <div className="max-w-5xl mx-auto">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                     <div>
-                        <Link href={searchParams.get('view') === 'admin' ? "/lawyer-dashboard?view=admin" : "/lawyer-dashboard"} className="text-sm text-muted-foreground hover:text-foreground inline-flex items-center gap-2 mb-2">
-                            <ArrowLeft className="w-4 h-4" />
-                            กลับไปที่แดชบอร์ด
-                        </Link>
                         <h1 className="text-3xl font-bold font-headline">ข้อมูลการเงิน</h1>
                         <p className="text-muted-foreground">จัดการรายได้และการถอนเงินของคุณ</p>
                     </div>
@@ -775,7 +774,8 @@ function LawyerFinancialsContent() {
                     </TabsContent>
                 </Tabs>
             </div>
-        </div >
+        </main>
+        </div>
     );
 }
 

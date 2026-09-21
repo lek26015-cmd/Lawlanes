@@ -2,12 +2,16 @@
 
 import { initAdmin } from '@/lib/firebase-admin';
 import * as admin from 'firebase-admin';
+import { requireChatRole } from '@/lib/auth-guard';
 
 /**
  * Attempts to find a file path in a chat's storage folder if the metadata is missing.
  * This is a "healing" function for when metadata propagation fails.
  */
 export async function discoverFilePathAction(chatId: string, fileName: string, messageTimestamp?: number) {
+    // ต้องเป็นคู่กรณีของแชทนี้ — เดิมใครก็ไล่หาไฟล์ในแชทคนอื่นได้
+    await requireChatRole(chatId);
+
     try {
         const adminApp = await initAdmin();
         if (!adminApp) return { success: false, error: 'Firebase Admin not initialized.' };

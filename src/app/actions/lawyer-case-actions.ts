@@ -1,17 +1,295 @@
 'use server';
 
 import { initAdmin } from '@/lib/firebase-admin';
-import { Case, Milestone, CaseStatus } from '@/lib/types/billing-types';
+import { Case, Milestone, CaseStatus, CaseEvidence, CaseWitness } from '@/lib/types/billing-types';
 import { revalidatePath } from 'next/cache';
 import { callTyphoonAI } from '@/lib/typhoon';
 import { NotificationService } from '@/services/notification-service';
+import { requireUser, requireChatRole, AuthError } from '@/lib/auth-guard';
+import { uploadToR2 } from '@/app/actions/upload';
+import { generateWitnessListPdf } from '@/lib/witness-list-pdf';
+import { v4 as uuidv4 } from 'uuid';
+
+/**
+ * ผู้เรียกต้องเป็นทนายเจ้าของเคสใน legalCases (หรือแอดมิน)
+ * legalCases เก็บเจ้าของไว้ที่ฟิลด์ lawyer_id ซึ่งเป็น auth uid
+ */
+async function requireCaseOwner(caseId: string) {
+    const { uid, token, adminApp } = await requireUser();
+    const db = adminApp.firestore();
+    const isAdmin = token.admin === true || token.role === 'admin';
+
+    const snap = await db.collection('legalCases').doc(caseId).get();
+    if (!snap.exists) {
+        throw new AuthError('Case not found', 404);
+    }
+    const data = snap.data() || {};
+    if (!isAdmin && data.lawyer_id !== uid && data.lawyerId !== uid) {
+        throw new AuthError('Forbidden: not your case', 403);
+    }
+    return { uid, isAdmin, adminApp, db, caseData: data };
+}
+
+// ============================================================================
+// Evidence — เดิม case/[id]/page.tsx โชว์รายการพยานหลักฐานแบบ hardcode ทั้งหมด
+// (ทั้งในแท็บ "พยานหลักฐาน" และในตัวข้อเท็จจริงของวิซาร์ดจัดทำบัญชีพยาน เช่น
+// "EV-1021"/"EV-1045") ไม่เคยมีการอัปโหลดไฟล์จริงเลย ตอนนี้เก็บเป็น subcollection จริง
+// `legalCases/{caseId}/evidence` พร้อมไฟล์จริงบน R2 (โฟลเดอร์ case_evidence/{caseId})
+// ============================================================================
+
+export async function getCaseEvidenceAction(caseId: string): Promise<CaseEvidence[]> {
+    const { db } = await requireCaseOwner(caseId);
+    const snap = await db.collection('legalCases').doc(caseId).collection('evidence')
+        .orderBy('createdAt', 'desc')
+        .get();
+    return JSON.parse(JSON.stringify(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+}
+
+export async function addEvidenceAction(caseId: string, formData: FormData) {
+    const { uid, db } = await requireCaseOwner(caseId);
+
+    const title = String(formData.get('title') || '').trim();
+    const fact = String(formData.get('fact') || '').trim();
+    const file = formData.get('file') as File | null;
+
+    if (!title || !file) {
+        return { success: false, error: 'กรุณาระบุชื่อพยานหลักฐานและเลือกไฟล์' };
+    }
+
+    try {
+        const fileUrl = await uploadToR2(formData, `case_evidence/${caseId}`);
+        const docRef = await db.collection('legalCases').doc(caseId).collection('evidence').add({
+            title,
+            fact,
+            fileUrl,
+            fileType: file.type || 'application/octet-stream',
+            uploadedBy: uid,
+            createdAt: Date.now(),
+        });
+        revalidatePath(`/[locale]/lawyer-dashboard/case/${caseId}`, 'page');
+        return { success: true, id: docRef.id };
+    } catch (error: any) {
+        console.error('Error adding case evidence:', error);
+        return { success: false, error: error.message || 'อัปโหลดไม่สำเร็จ กรุณาลองใหม่อีกครั้ง' };
+    }
+}
+
+export async function updateEvidenceFactAction(caseId: string, evidenceId: string, fact: string) {
+    const { db } = await requireCaseOwner(caseId);
+    try {
+        await db.collection('legalCases').doc(caseId).collection('evidence').doc(evidenceId).update({ fact });
+        revalidatePath(`/[locale]/lawyer-dashboard/case/${caseId}`, 'page');
+        return { success: true };
+    } catch (error) {
+        console.error('Error updating evidence fact:', error);
+        return { success: false, error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' };
+    }
+}
+
+export async function deleteEvidenceAction(caseId: string, evidenceId: string) {
+    const { db } = await requireCaseOwner(caseId);
+    try {
+        // ไม่ลบไฟล์บน R2 ด้วย — เก็บไว้เป็นหลักฐานว่าเคยมีการอัปโหลดจริง แค่ลบออกจากบัญชีที่ใช้งานอยู่
+        await db.collection('legalCases').doc(caseId).collection('evidence').doc(evidenceId).delete();
+        revalidatePath(`/[locale]/lawyer-dashboard/case/${caseId}`, 'page');
+        return { success: true };
+    } catch (error) {
+        console.error('Error deleting case evidence:', error);
+        return { success: false, error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' };
+    }
+}
+
+// ============================================================================
+// Witnesses — เดิมเก็บเป็น React state ล้วนใน case/[id]/page.tsx (`witnessPersons`)
+// รีเฟรชหน้าแล้วหายหมด ตอนนี้เก็บเป็น subcollection จริง `legalCases/{caseId}/witnesses`
+// ============================================================================
+
+export async function getCaseWitnessesAction(caseId: string): Promise<CaseWitness[]> {
+    const { db } = await requireCaseOwner(caseId);
+    const snap = await db.collection('legalCases').doc(caseId).collection('witnesses')
+        .orderBy('createdAt', 'asc')
+        .get();
+    return JSON.parse(JSON.stringify(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
+}
+
+export async function addWitnessAction(caseId: string, name: string, role: string) {
+    const { db } = await requireCaseOwner(caseId);
+    if (!name.trim() || !role.trim()) {
+        return { success: false, error: 'กรุณากรอกชื่อและบทบาทของพยาน' };
+    }
+    try {
+        const docRef = await db.collection('legalCases').doc(caseId).collection('witnesses').add({
+            name: name.trim(),
+            role: role.trim(),
+            createdAt: Date.now(),
+        });
+        revalidatePath(`/[locale]/lawyer-dashboard/case/${caseId}`, 'page');
+        return { success: true, id: docRef.id };
+    } catch (error) {
+        console.error('Error adding witness:', error);
+        return { success: false, error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' };
+    }
+}
+
+export async function updateWitnessAction(caseId: string, witnessId: string, name: string, role: string) {
+    const { db } = await requireCaseOwner(caseId);
+    if (!name.trim() || !role.trim()) {
+        return { success: false, error: 'กรุณากรอกชื่อและบทบาทของพยาน' };
+    }
+    try {
+        await db.collection('legalCases').doc(caseId).collection('witnesses').doc(witnessId).update({
+            name: name.trim(),
+            role: role.trim(),
+        });
+        revalidatePath(`/[locale]/lawyer-dashboard/case/${caseId}`, 'page');
+        return { success: true };
+    } catch (error) {
+        console.error('Error updating witness:', error);
+        return { success: false, error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' };
+    }
+}
+
+export async function deleteWitnessAction(caseId: string, witnessId: string) {
+    const { db } = await requireCaseOwner(caseId);
+    try {
+        await db.collection('legalCases').doc(caseId).collection('witnesses').doc(witnessId).delete();
+        revalidatePath(`/[locale]/lawyer-dashboard/case/${caseId}`, 'page');
+        return { success: true };
+    } catch (error) {
+        console.error('Error deleting witness:', error);
+        return { success: false, error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' };
+    }
+}
+
+// ============================================================================
+// Witness list finalize — เดิมกด "ยืนยันและประกาศใช้" ในขั้นที่ 3 ของวิซาร์ดแล้ว
+// แค่ toast + reset state ไม่เคยสร้างเอกสารจริงหรือบันทึกอะไรเลย ตอนนี้สร้าง PDF จริง
+// (ฟอนต์ Sarabun ผ่าน fontkit เพราะฟอนต์มาตรฐานของ pdf-lib ไม่รองรับภาษาไทย) อัปโหลดขึ้น R2
+// แล้วบันทึกผลไว้ที่ legalCases/{caseId}.witnessList
+// ============================================================================
+
+export async function finalizeWitnessListAction(caseId: string, evidenceIds: string[], witnessIds: string[]) {
+    const { uid, db, caseData } = await requireCaseOwner(caseId);
+
+    try {
+        const [evidenceSnap, witnessSnap, lawyerDoc] = await Promise.all([
+            db.collection('legalCases').doc(caseId).collection('evidence').get(),
+            db.collection('legalCases').doc(caseId).collection('witnesses').get(),
+            db.collection('lawyerProfiles').where('userId', '==', uid).limit(1).get(),
+        ]);
+
+        const evidenceMap = new Map(evidenceSnap.docs.map(d => [d.id, d.data()]));
+        const witnessMap = new Map(witnessSnap.docs.map(d => [d.id, d.data()]));
+        const lawyerName = lawyerDoc.docs[0]?.data()?.name || 'ทนายความผู้รับผิดชอบคดี';
+
+        const selectedEvidence = evidenceIds
+            .map(id => evidenceMap.get(id))
+            .filter((e): e is FirebaseFirestore.DocumentData => !!e)
+            .map(e => ({ title: e.title as string, fact: (e.fact as string) || '' }));
+
+        const selectedWitnesses = witnessIds
+            .map(id => witnessMap.get(id))
+            .filter((w): w is FirebaseFirestore.DocumentData => !!w)
+            .map(w => ({ name: w.name as string, role: w.role as string }));
+
+        const signedAt = new Date();
+        const pdfBuffer = await generateWitnessListPdf({
+            caseTitle: caseData.title || 'เคสไม่มีชื่อ',
+            lawyerName,
+            evidence: selectedEvidence,
+            witnesses: selectedWitnesses,
+            signedAt,
+        });
+
+        const { r2 } = await import('@/lib/r2');
+        const { PutObjectCommand } = await import('@aws-sdk/client-s3');
+        const key = `witness_lists/${caseId}/${uuidv4()}.pdf`;
+        await r2.send(new PutObjectCommand({
+            Bucket: process.env.R2_BUCKET_NAME,
+            Key: key,
+            Body: pdfBuffer,
+            ContentType: 'application/pdf',
+        }));
+        const pdfUrl = `${process.env.R2_PUBLIC_URL}/${key}`;
+
+        await db.collection('legalCases').doc(caseId).update({
+            witnessList: {
+                evidenceIds,
+                witnessIds,
+                pdfUrl,
+                signedAt: signedAt.getTime(),
+                signedBy: uid,
+                signedByName: lawyerName,
+            },
+            updatedAt: Date.now(),
+        });
+
+        revalidatePath(`/[locale]/lawyer-dashboard/case/${caseId}`, 'page');
+        return { success: true, pdfUrl };
+    } catch (error: any) {
+        console.error('Error finalizing witness list:', error);
+        return { success: false, error: error.message || 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' };
+    }
+}
+
+/**
+ * เปิดสำนวนคดีใหม่ลง `legalCases` จริง
+ *
+ * เดิม `lawyer-dashboard/cases/page.tsx` กด "เปิดสำนวนคดีใหม่" แล้วแค่ `setCases([newCase, ...cases])`
+ * ใน React state — ปิด/รีเฟรชหน้าแล้วหายหมด ไม่เคยมี action เขียน Firestore มาก่อน
+ *
+ * ตั้งใจให้เบากว่า `createManualCaseAction` (ที่สร้าง `chats` + สัญญา + ใบแจ้งหนี้เต็มรูปแบบ) —
+ * นี่คือการ "จดสำนวนคดี" อย่างเร็วโดยไม่ผูกกับบัญชีลูกความในระบบ จึงเก็บชื่อลูกความ/ศาล/ค่าจ้าง
+ * ไว้ใน `metadata` (JSON string ตามที่ type `Case.metadata` ออกแบบไว้อยู่แล้ว) แทนที่จะเพิ่ม field ใหม่
+ */
+export async function createLegalCaseAction(data: {
+    title: string;
+    clientName: string;
+    category?: string;
+    court?: string;
+    fee?: number;
+}) {
+    const { uid: lawyerId, adminApp } = await requireUser();
+    const db = adminApp.firestore();
+
+    if (!data.title?.trim() || !data.clientName?.trim()) {
+        return { success: false, error: 'กรุณากรอกชื่อคดีและชื่อลูกความให้ครบถ้วน' };
+    }
+
+    try {
+        const now = Date.now();
+        const metadata = JSON.stringify({
+            clientName: data.clientName.trim(),
+            category: data.category || '',
+            court: data.court || '',
+            fee: Number(data.fee) || 0,
+            paid: 0,
+        });
+
+        const docRef = await db.collection('legalCases').add({
+            lawyer_id: lawyerId,
+            client_id: '',
+            title: data.title.trim(),
+            status: 'pending' as CaseStatus,
+            createdAt: now,
+            updatedAt: now,
+            metadata,
+        });
+
+        revalidatePath('/[locale]/lawyer-dashboard/cases', 'page');
+        return { success: true, id: docRef.id };
+    } catch (error) {
+        console.error('Error creating legal case:', error);
+        return { success: false, error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' };
+    }
+}
 
 /**
  * Fetch all legal cases for a specific lawyer
  */
-export async function getLawyerLegalCases(lawyerId: string): Promise<Case[]> {
-    const adminApp = await initAdmin();
-    if (!adminApp) throw new Error('Firebase Admin not initialized.');
+export async function getLawyerLegalCases(): Promise<Case[]> {
+    // uid มาจาก session — เดิมรับ lawyerId เป็น argument จึงดูเคสของทนายคนอื่นได้
+    const { uid: lawyerId, adminApp } = await requireUser();
     const db = adminApp.firestore();
 
     try {
@@ -62,9 +340,13 @@ export async function getCaseMilestones(caseId?: string, lawyerId?: string): Pro
  * Update case status (e.g., for Kanban drag and drop)
  */
 export async function updateCaseStatusAction(caseId: string, newStatus: CaseStatus) {
-    const adminApp = await initAdmin();
-    if (!adminApp) throw new Error('Firebase Admin not initialized.');
-    const db = adminApp.firestore();
+    // ต้องเป็นทนายเจ้าของเคส — เดิมใครก็เปลี่ยนสถานะเคสไหนก็ได้
+    let db;
+    try {
+        ({ db } = await requireCaseOwner(caseId));
+    } catch (e) {
+        return { success: false, error: e instanceof AuthError ? e.message : 'เกิดข้อผิดพลาด' };
+    }
 
     try {
         await db.collection('legalCases').doc(caseId).update({
@@ -84,9 +366,8 @@ export async function updateCaseStatusAction(caseId: string, newStatus: CaseStat
  * Add a new milestone to a case
  */
 export async function addCaseMilestoneAction(caseId: string, title: string, order: number = 0) {
-    const adminApp = await initAdmin();
-    if (!adminApp) throw new Error('Firebase Admin not initialized.');
-    const db = adminApp.firestore();
+    // ต้องเป็นทนายเจ้าของเคส
+    const { db } = await requireCaseOwner(caseId);
 
     try {
         const newMilestone = {
@@ -114,9 +395,8 @@ export async function addCaseMilestoneAction(caseId: string, title: string, orde
  * Toggle milestone status
  */
 export async function toggleMilestoneStatusAction(milestoneId: string, caseId: string) {
-    const adminApp = await initAdmin();
-    if (!adminApp) throw new Error('Firebase Admin not initialized.');
-    const db = adminApp.firestore();
+    // ต้องเป็นทนายเจ้าของเคสที่ milestone นี้สังกัดอยู่
+    const { db } = await requireCaseOwner(caseId);
 
     try {
         const docRef = db.collection('milestones').doc(milestoneId);
@@ -143,6 +423,13 @@ export async function toggleMilestoneStatusAction(milestoneId: string, caseId: s
  * Generate strategic advice for a case using AI
  */
 export async function generateCaseStrategicAdviceAction(caseId: string, caseTitle: string, milestones: Milestone[]) {
+    // ต้องเป็นทนายเจ้าของเคส — endpoint นี้เรียก LLM ซึ่งมีค่าใช้จ่ายต่อครั้ง
+    try {
+        await requireCaseOwner(caseId);
+    } catch (e) {
+        return { success: false, error: e instanceof AuthError ? e.message : 'เกิดข้อผิดพลาด' };
+    }
+
     try {
         const milestoneSummary = milestones.length > 0 
             ? milestones.map(m => `- ${m.title} (${m.status === 'completed' ? 'เสร็จสิ้น' : 'รอดำเนินการ'})`).join('\n')
@@ -217,7 +504,7 @@ export async function closeCaseAction(caseId: string, data: {
                         await NotificationService.notifyAdditionalFeeFromCloseCase({
                             clientName: clientData?.name || 'ลูกความ',
                             clientEmail: clientData?.email || '',
-                            lawyerName: lawyerDoc.exists ? lawyerDoc.data()?.name : 'ทนายความ',
+                            lawyerName: lawyerDoc?.exists ? lawyerDoc.data()?.name : 'ทนายความ',
                             caseTitle: chatData?.caseTitle || 'เคส',
                             additionalAmount: data.finalFee - data.originalFee,
                             totalAmount: data.finalFee,
@@ -290,9 +577,13 @@ export async function closeCaseAction(caseId: string, data: {
 /**
  * Cancel a case: update chat status and mark refund as pending.
  */
-export async function cancelCaseAction(caseId: string, lawyerId: string) {
-    const adminApp = await initAdmin();
-    if (!adminApp) throw new Error('Firebase Admin not initialized.');
+export async function cancelCaseAction(caseId: string) {
+    // caseId ตรงนี้คือ chatId — ต้องเป็นทนายของเคสนี้จริง
+    // เดิมรับ lawyerId เป็น argument แล้วเชื่อเลย
+    const { uid: actorUid, role, chatData: caseChatData, adminApp } = await requireChatRole(caseId);
+    if (role !== 'lawyer' && role !== 'admin') {
+        return { success: false, error: 'เฉพาะทนายผู้รับผิดชอบเท่านั้นที่ยกเลิกเคสได้' };
+    }
     const db = adminApp.firestore();
 
     try {
@@ -310,7 +601,7 @@ export async function cancelCaseAction(caseId: string, lawyerId: string) {
         batch.update(chatRef, {
             status: 'cancelled',
             cancelledAt: new Date(),
-            cancelledBy: lawyerId,
+            cancelledBy: actorUid,
             refundStatus: paidAmount > 0 ? 'pending_refund' : 'no_refund_needed',
             refundAmount: paidAmount,
             lastMessage: '❌ เคสถูกยกเลิกโดยทนายความ',
@@ -334,13 +625,17 @@ export async function cancelCaseAction(caseId: string, lawyerId: string) {
             const clientId = chatData?.clientId || chatData?.userId;
             if (clientId) {
                 const clientDoc = await db.collection('users').doc(clientId).get();
-                const lawyerDoc = await db.collection('lawyerProfiles').doc(lawyerId).get();
+                // lawyerId ในเอกสารแชทเป็น id ของ lawyerProfiles ไม่ใช่ auth uid
+                const lawyerProfileId = caseChatData?.lawyerId || caseChatData?.lawyer_id || '';
+                const lawyerDoc = lawyerProfileId
+                    ? await db.collection('lawyerProfiles').doc(lawyerProfileId).get()
+                    : null;
                 if (clientDoc.exists) {
                     const clientDocData = clientDoc.data();
                     await NotificationService.notifyCaseCancelled({
                         clientName: clientDocData?.name || 'ลูกความ',
                         clientEmail: clientDocData?.email || '',
-                        lawyerName: lawyerDoc.exists ? lawyerDoc.data()?.name : 'ทนายความ',
+                        lawyerName: lawyerDoc?.exists ? lawyerDoc.data()?.name : 'ทนายความ',
                         caseTitle: chatData?.caseTitle || 'เคส',
                         refundAmount: paidAmount,
                     });
@@ -361,8 +656,8 @@ export async function cancelCaseAction(caseId: string, lawyerId: string) {
  * Fetch case details from chat document for close-case page
  */
 export async function getCaseDetailsAction(caseId: string) {
-    const adminApp = await initAdmin();
-    if (!adminApp) throw new Error('Firebase Admin not initialized.');
+    // ต้องเป็นคู่กรณีของเคสนี้ (caseId คือ chatId)
+    const { adminApp } = await requireChatRole(caseId);
     const db = adminApp.firestore();
 
     try {

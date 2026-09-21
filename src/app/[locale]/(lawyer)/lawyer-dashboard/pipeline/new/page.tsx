@@ -103,7 +103,7 @@ function NewCaseForm() {
     const fetchData = async () => {
       setIsLoadingData(true);
       try {
-        const lawyerClients = await getLawyerClientsAction(user.uid);
+        const lawyerClients = await getLawyerClientsAction();
         setClients(lawyerClients);
 
         const rawClientId = searchParams.get('clientId');
@@ -222,7 +222,7 @@ ${showInstallments ? `โดยแบ่งชำระเป็นดังน�
     try {
       const chatIdParam = searchParams.get('chatId');
       
-      const result = await createManualCaseAction(user.uid, {
+      const result = await createManualCaseAction({
         title: title,
         description: description,
         category: category,

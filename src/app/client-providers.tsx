@@ -4,7 +4,6 @@
 import React from 'react';
 import { FirebaseClientProvider } from '@/firebase/client-provider';
 import { ChatProvider } from '@/context/chat-context';
-import { CartProvider } from '@/context/cart-context';
 import ClientLayout from '@/components/layout/client-layout';
 import { Toaster } from '@/components/ui/toaster';
 import { ThemeProvider } from 'next-themes';
@@ -25,12 +24,10 @@ export function ClientProviders({ children, domainType = 'main' }: { children: R
     >
       <FirebaseClientProvider>
         <PageViewTracker />
-        <CartProvider>
           <ChatProvider>
             <ClientLayout domainType={domainType}>{children}</ClientLayout>
             <Toaster />
           </ChatProvider>
-        </CartProvider>
       </FirebaseClientProvider>
     </ThemeProvider>
   );

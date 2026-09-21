@@ -2,6 +2,7 @@
 
 import { initAdmin } from '@/lib/firebase-admin';
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
+import { requireAdmin } from '@/lib/auth-guard';
 
 export type ExtractedLawyer = {
     prefix: string;     // คำนำหน้า
@@ -17,6 +18,9 @@ export type ExtractedLawyer = {
  * Extract lawyer data from an uploaded image using Gemini Vision.
  */
 export async function extractLawyersFromImage(base64Image: string, mimeType: string): Promise<ExtractedLawyer[]> {
+    // เครื่องมือของแอดมินเท่านั้น
+    await requireAdmin();
+
 
     const apiKey = process.env.GOOGLE_API_KEY || process.env.GOOGLE_GENAI_API_KEY || '';
     if (!apiKey) throw new Error('API Key not found');
@@ -99,6 +103,9 @@ export async function importLawyersToRegistry(lawyers: ExtractedLawyer[]): Promi
     errors: number;
     total: number;
 }> {
+    // เครื่องมือของแอดมินเท่านั้น
+    await requireAdmin();
+
 
     const admin = await initAdmin();
     if (!admin) throw new Error('Server error: Admin SDK not initialized');

@@ -11,6 +11,14 @@ const LegalQaInputSchema = z.object({
 
 export async function generateLegalAdvice(question: string, locale: string = 'th') {
     try {
+        // Check cache before doing any RAG/AI work — keyed on question+locale only
+        // (not on the retrieved context, which previously meant the RAG call always
+        // ran before the cache could even be checked, so a cache hit still paid for
+        // the RAG round-trip every time). See LAWSLANE-PLAN-01 2.7.
+        const cacheInput = `question:${question}|locale:${locale}`;
+        const cached = await getCachedAIResponse<string>(cacheInput, 'legal-qa');
+        if (cached) return cached;
+
         // Retrieve relevant context using RAG
         const context = await retrieveContext(question);
 
@@ -53,11 +61,6 @@ Rules:
         
         const genAI = new GoogleGenerativeAI(apiKey);
         const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-
-        // Try to get from cache first
-        const cacheInput = `question:${question}|context:${context.substring(0, 1000)}`;
-        const cached = await getCachedAIResponse<string>(cacheInput, 'legal-qa');
-        if (cached) return cached;
 
         const result = await model.generateContent(prompt);
         const finalResult = result.response.text();

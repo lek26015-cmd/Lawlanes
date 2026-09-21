@@ -17,6 +17,8 @@ from pathlib import Path
 # Config
 WORKER_URL = "https://lawslane-rag-api.lawlanes-app.workers.dev"
 LOCAL_API_URL = "http://localhost:9002/api/admin/ingestion-status"
+# ส่ง shared secret ไปกับ status update — route ฝั่ง server ปฏิเสธถ้าไม่ตรง
+INGESTION_STATUS_SECRET = os.environ.get("INGESTION_STATUS_SECRET", "")
 CHUNK_SIZE = 1000
 CHUNK_OVERLAP = 200
 DELAY_BETWEEN_CHUNKS = 0.5

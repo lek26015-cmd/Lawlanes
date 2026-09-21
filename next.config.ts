@@ -13,6 +13,8 @@ const nextConfig: NextConfig = {
   },
 
   images: {
+    formats: ['image/avif', 'image/webp'],
+    minimumCacheTTL: 31536000,
     remotePatterns: [
       {
         protocol: 'https',
@@ -97,6 +99,7 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: '50mb',
     },
+    proxyClientMaxBodySize: '60mb',
   },
   async headers() {
     return [
@@ -119,6 +122,13 @@ const nextConfig: NextConfig = {
               frame-ancestors 'none';
               object-src 'none';
             `.replace(/\s{2,}/g, ' ').trim(),
+          },
+          {
+            // Firebase signInWithPopup โพลล์ window.closed ของ popup
+            // ถ้าไม่ตั้งค่านี้ Chrome จะเตือน COOP รัวๆ ใน console
+            // (ค่าเดียวกับที่ capdeal ใช้อยู่แล้ว)
+            key: 'Cross-Origin-Opener-Policy',
+            value: 'same-origin-allow-popups',
           },
           {
             key: 'X-Frame-Options',

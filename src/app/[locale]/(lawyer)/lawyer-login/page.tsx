@@ -226,7 +226,7 @@ function LawyerLoginForm() {
           {/* Background Image */}
           <div className="absolute inset-0 z-0">
             <Image
-              src="/images/login-lawslane.png"
+              src="/images/login-lawslane.webp"
               alt="Lawslane Background"
               fill
               className="object-cover object-center opacity-90"

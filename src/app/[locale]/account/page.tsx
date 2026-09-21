@@ -29,7 +29,7 @@ import { useFirebase, useUser } from '@/firebase';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { updatePassword, updateProfile, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 // Using Firebase Storage for public profile images instead of Cloudflare Images
-import { uploadToFirebasePublic } from '@/app/actions/upload-secure';
+import { uploadToFirebasePublic } from '@/app/actions/upload';
 import { useToast } from '@/hooks/use-toast';
 import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '@/lib/constants';
 import { formatPhoneNumber, formatBankAccount } from '@/lib/utils';
