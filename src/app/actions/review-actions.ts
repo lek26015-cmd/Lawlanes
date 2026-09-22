@@ -21,9 +21,34 @@ export async function submitReviewAction(data: {
         throw new Error('Invalid rating');
     }
 
+    // ผู้รีวิวต้องเป็นลูกความของเคสนี้จริง และเคสต้องปิดแล้ว
+    // เดิมตรวจแค่ว่า login อยู่ + กันรีวิวซ้ำต่อ (userId, caseId) เท่านั้น
+    // ทนายจึงรีวิวเคสของตัวเองได้ และใครก็รีวิวเคสที่ไม่เกี่ยวกับตัวเองได้
+    // — สำคัญมากเพราะ averageRating/reviewCount จะถูกใช้จัดอันดับทนาย
+    const caseSnap = await db.collection('chats').doc(data.caseId).get();
+    if (!caseSnap.exists) {
+        throw new Error('ไม่พบเคสนี้ในระบบ');
+    }
+    const caseData = caseSnap.data() || {};
+    const caseClientId = caseData.clientId || caseData.userId || caseData.client_id || '';
+    if (caseClientId !== userId) {
+        throw new Error('เฉพาะลูกความของเคสนี้เท่านั้นที่รีวิวได้');
+    }
+    if (caseData.status !== 'closed') {
+        throw new Error('รีวิวได้เมื่อเคสปิดเรียบร้อยแล้ว');
+    }
+
+    // lawyerId ต้องมาจากเอกสารเคส ไม่ใช่จาก argument — ไม่งั้นลูกความยิงคะแนน
+    // เข้าโปรไฟล์ทนายคนอื่นได้
+    const caseLawyerId = caseData.lawyerId || caseData.lawyer_id || '';
+    if (caseLawyerId && caseLawyerId !== data.lawyerId) {
+        throw new Error('ทนายความไม่ตรงกับเคสนี้');
+    }
+
     try {
         // userId มาจาก requireUser() ด้านบน ไม่ได้มาจาก data ที่ client ส่งมา
-        const { lawyerId, author, avatar, rating, comment, caseId } = data;
+        const { author, avatar, rating, comment, caseId } = data;
+        const lawyerId = caseLawyerId || data.lawyerId;
 
         // Check for duplicate review (same user + same case)
         const existingReview = await db.collection('reviews')

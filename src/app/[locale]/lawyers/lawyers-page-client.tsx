@@ -45,6 +45,12 @@ export function LawyersPageClient({ initialLawyers, initialRegistryLawyers }: La
   const searchParams = useSearchParams();
   const specialties = searchParams.get('specialties');
   const matchIds = searchParams.get('matchIds');
+  // ตัวกรองจาก LawyerFilterSidebar — เดิมหน้านี้อ่านแค่ specialties/matchIds
+  // ผู้ใช้เลือกคะแนนหรือจังหวัดแล้ว URL เปลี่ยนจริงแต่รายชื่อไม่เคยถูกกรองเลย
+  const minRatingParam = searchParams.get('rating');
+  const provinceParam = searchParams.get('province');
+  // หมายเหตุ: mockup มีตัวกรอง "พร้อมให้คำปรึกษาออนไลน์ทันที" ด้วย แต่
+  // LawyerProfile ไม่มีฟิลด์สถานะออนไลน์ จึงยังทำไม่ได้จนกว่าจะเก็บข้อมูลนั้นก่อน
   const t = useTranslations('Lawyers');
 
   // Data now arrives pre-fetched from the server component (see page.tsx) instead
@@ -155,6 +161,27 @@ export function LawyersPageClient({ initialLawyers, initialRegistryLawyers }: La
     }
   }, [isSorting]);
 
+  /**
+   * กรองตามตัวเลือกใน sidebar หลังจาก AI/specialty จัดอันดับมาแล้ว
+   * ไม่แตะ filteredLawyers โดยตรงเพราะ state นั้นถูก effect ของ AI เขียนทับ
+   */
+  const visibleLawyers = useMemo(() => {
+    let list = filteredLawyers;
+
+    const minRating = minRatingParam ? Number(minRatingParam) : null;
+    if (minRating !== null && !Number.isNaN(minRating)) {
+      list = list.filter(l => (l.averageRating ?? 0) >= minRating);
+    }
+
+    if (provinceParam) {
+      list = list.filter(l =>
+        (l.serviceProvinces || []).some(p => p === provinceParam || p === 'All' || p === 'ทุกจังหวัด')
+      );
+    }
+
+    return list;
+  }, [filteredLawyers, minRatingParam, provinceParam]);
+
   const isAiSearch = !!(matchIds || specialties);
 
   return (
@@ -227,18 +254,18 @@ export function LawyersPageClient({ initialLawyers, initialRegistryLawyers }: La
             )}
 
             <p className="text-muted-foreground mb-4">
-              {t('foundLawyers', { count: filteredLawyers.length })}
+              {t('foundLawyers', { count: visibleLawyers.length })}
             </p>
 
             {/* Featured Lawyers (amber border, shown first) */}
-            {filteredLawyers
+            {visibleLawyers
               .filter(l => FEATURED_LAWYER_NAMES.some(name => l.name?.includes(name)))
               .map((lawyer) => (
                 <FeaturedLawyerCard key={lawyer.id} lawyer={lawyer} />
               ))
             }
 
-            {filteredLawyers
+            {visibleLawyers
               .filter(l => !FEATURED_LAWYER_NAMES.some(name => l.name?.includes(name)))
               .map((lawyer) => (
               <div

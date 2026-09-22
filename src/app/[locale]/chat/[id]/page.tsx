@@ -567,28 +567,18 @@ function ChatPageContent() {
     };
 
     const handleConfirmRelease = async () => {
-        if (!firestore) return;
+        // เดิม handler นี้มีสองปัญหา:
+        //   1. เขียน chats/{id}.status='closed' ตรงจากฝั่ง client ข้าม closeCaseAction
+        //      จึงไม่มีสรุปเคส ไม่มี system message และไม่มีอีเมลแจ้งลูกความ
+        //   2. แล้ว router.push ไปหน้า /review "จากเครื่องทนาย" → คนที่ถูกชวนรีวิว
+        //      คือทนายเอง ไม่ใช่ลูกความ
+        // ตอนนี้ส่งทนายไปหน้าปิดเคสจริงที่มีฟอร์มสรุป ซึ่งเรียก closeCaseAction
+        // (มี auth แล้ว) และ closeCaseAction จะส่งลิงก์รีวิวให้ "ลูกความ" ทางอีเมลเอง
         if (!effectiveIsLawyerView) {
             toast({ variant: "destructive", title: "ไม่มีสิทธิ์", description: "เฉพาะทนายความเท่านั้นที่สามารถปิดเคสได้" });
             return;
         }
-        try {
-            await updateDoc(doc(firestore, 'chats', chatId), {
-                status: 'closed',
-                closedAt: serverTimestamp()
-            });
-            toast({ title: "ดำเนินการสำเร็จ", description: "เคสเสร็จสมบูรณ์แล้ว" });
-            setTimeout(() => {
-                if (lawyerId) {
-                    router.push(`/review/${chatId}?lawyerId=${lawyerId}`);
-                } else {
-                    toast({ variant: "destructive", title: "ข้อผิดพลาด", description: "ไม่พบรหัสประจำตัวทนายความ ไม่สามารถส่งไปยังหน้ารีวิวได้" });
-                    router.push('/dashboard');
-                }
-            }, 1500);
-        } catch (error) {
-            toast({ variant: "destructive", title: "เกิดข้อผิดพลาด", description: "ไม่สามารถปิดเคสได้" });
-        }
+        router.push(`/lawyer-dashboard/close-case/${chatId}`);
     };
 
     const handleSubmitReview = async () => {

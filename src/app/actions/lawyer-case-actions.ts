@@ -311,27 +311,67 @@ export async function getLawyerLegalCases(): Promise<Case[]> {
 /**
  * Fetch all milestones for a lawyer's cases (or specific case)
  */
-export async function getCaseMilestones(caseId?: string, lawyerId?: string): Promise<Milestone[]> {
-    const adminApp = await initAdmin();
-    if (!adminApp) throw new Error('Firebase Admin not initialized.');
-    const db = adminApp.firestore();
-
-    try {
-        let query: FirebaseFirestore.Query = db.collection('milestones');
-        
-        if (caseId) {
-            query = query.where('case_id', '==', caseId).orderBy('order', 'asc');
-        } else if (lawyerId) {
-            // ...
+export async function getCaseMilestones(caseId?: string): Promise<Milestone[]> {
+    // เดิมไม่ตรวจสิทธิ์เลย และมีสองบั๊กซ้อนกัน:
+    //   1. ส่ง caseId ของใครก็อ่าน milestone ของเคสนั้นได้
+    //   2. โหมด lawyerId เป็นสาขาว่าง (`// ...`) → query ตกไปเป็น
+    //      db.collection('milestones') แบบไม่มี where เลย คืน milestone
+    //      ของทนายทุกคนในระบบให้หน้า pipeline
+    // ตอนนี้: ระบุ caseId → ต้องเป็นเจ้าของเคสนั้น · ไม่ระบุ → คืนเฉพาะเคสของตัวเอง
+    // (uid มาจาก session เสมอ ไม่รับ lawyerId เป็น argument อีก)
+    if (caseId) {
+        let db: FirebaseFirestore.Firestore;
+        try {
+            ({ db } = await requireCaseOwner(caseId));
+        } catch (e) {
+            if (e instanceof AuthError) return [];
+            throw e;
         }
 
-        const snap = await query.get();
-        return JSON.parse(JSON.stringify(snap.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data()
-        } as Milestone))));
+        try {
+            const snap = await db.collection('milestones')
+                .where('case_id', '==', caseId)
+                .orderBy('order', 'asc')
+                .get();
+            return JSON.parse(JSON.stringify(snap.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data()
+            } as Milestone))));
+        } catch (error) {
+            console.error("Error fetching milestones:", error);
+            return [];
+        }
+    }
+
+    // โหมด "ทุกเคสของฉัน" — หา legalCases ของตัวเองก่อน แล้วค่อยดึง milestone
+    // ด้วย `in` ทีละ 30 id (เพดานของ Firestore) เพื่อไม่ให้หลุดไปอ่านของคนอื่น
+    try {
+        const { uid, adminApp } = await requireUser();
+        const db = adminApp.firestore();
+
+        const casesSnap = await db.collection('legalCases')
+            .where('lawyer_id', '==', uid)
+            .get();
+        const caseIds = casesSnap.docs.map(d => d.id);
+        if (caseIds.length === 0) return [];
+
+        const chunks: string[][] = [];
+        for (let i = 0; i < caseIds.length; i += 30) {
+            chunks.push(caseIds.slice(i, i + 30));
+        }
+
+        const snaps = await Promise.all(chunks.map(chunk =>
+            db.collection('milestones').where('case_id', 'in', chunk).get()
+        ));
+
+        const milestones = snaps
+            .flatMap(snap => snap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Milestone)))
+            .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
+        return JSON.parse(JSON.stringify(milestones));
     } catch (error) {
-        console.error("Error fetching milestones:", error);
+        if (error instanceof AuthError) return [];
+        console.error("Error fetching lawyer milestones:", error);
         return [];
     }
 }
@@ -458,14 +498,30 @@ export async function generateCaseStrategicAdviceAction(caseId: string, caseTitl
  * If finalFee > originalFee, sends an additional fee request to the client.
  */
 export async function closeCaseAction(caseId: string, data: {
-    lawyerId: string;
+    lawyerId?: string;
     summary: string;
     finalFee: number;
     originalFee: number;
 }) {
-    const adminApp = await initAdmin();
-    if (!adminApp) throw new Error('Firebase Admin not initialized.');
-    const db = adminApp.firestore();
+    // ต้องเป็นคู่กรณีในเคสนี้ และต้องเป็นฝ่ายทนาย (หรือแอดมิน) เท่านั้น
+    // เดิม action นี้ไม่ตรวจสิทธิ์เลย — รับ caseId/lawyerId เป็น argument ตรงๆ แล้วเรียก
+    // initAdmin() ทันที ใครก็ปิดเคสของคนอื่น ตั้ง finalFee เอง และยิงอีเมลขอเงินเพิ่ม
+    // ไปหาลูกความได้ (เพื่อนบ้านในไฟล์นี้ใช้ requireCaseOwner/requireChatRole กันหมดแล้ว)
+    let db: FirebaseFirestore.Firestore;
+    let caseChatData: FirebaseFirestore.DocumentData;
+    try {
+        const session = await requireChatRole(caseId);
+        if (session.role === 'client') {
+            throw new AuthError('Forbidden: only the lawyer can close a case', 403);
+        }
+        db = session.adminApp.firestore();
+        caseChatData = session.chatData;
+    } catch (e) {
+        return { success: false, error: e instanceof AuthError ? e.message : 'เกิดข้อผิดพลาด' };
+    }
+
+    // lawyerId ต้องอ่านจากเอกสารเคส ไม่ใช่เชื่อค่าที่ client ส่งมา
+    const lawyerId = caseChatData.lawyerId || caseChatData.lawyer_id || data.lawyerId || '';
 
     try {
         const chatRef = db.collection('chats').doc(caseId);
@@ -498,7 +554,7 @@ export async function closeCaseAction(caseId: string, data: {
                 const clientId = chatData?.clientId || chatData?.userId;
                 if (clientId) {
                     const clientDoc = await db.collection('users').doc(clientId).get();
-                    const lawyerDoc = await db.collection('lawyerProfiles').doc(data.lawyerId).get();
+                    const lawyerDoc = await db.collection('lawyerProfiles').doc(lawyerId).get();
                     if (clientDoc.exists) {
                         const clientData = clientDoc.data();
                         await NotificationService.notifyAdditionalFeeFromCloseCase({
@@ -548,7 +604,7 @@ export async function closeCaseAction(caseId: string, data: {
                 const clientId = chatData?.clientId || chatData?.userId;
                 if (clientId) {
                     const clientDoc = await db.collection('users').doc(clientId).get();
-                    const lawyerDoc = await db.collection('lawyerProfiles').doc(data.lawyerId).get();
+                    const lawyerDoc = await db.collection('lawyerProfiles').doc(lawyerId).get();
                     if (clientDoc.exists) {
                         const clientData = clientDoc.data();
                         await NotificationService.notifyCaseClosed({
@@ -558,7 +614,7 @@ export async function closeCaseAction(caseId: string, data: {
                             caseTitle: chatData?.caseTitle || 'เคส',
                             summary: data.summary,
                             chatId: caseId,
-                            lawyerId: data.lawyerId,
+                            lawyerId,
                         });
                     }
                 }

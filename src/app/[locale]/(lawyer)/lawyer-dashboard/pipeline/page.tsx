@@ -31,7 +31,7 @@ export default function LawyerPipelinePage() {
       try {
         const [fetchedCases, fetchedMilestones] = await Promise.all([
           getLawyerLegalCases(),
-          getCaseMilestones(undefined, user.uid)
+          getCaseMilestones()
         ]);
         
         setCases(fetchedCases);
