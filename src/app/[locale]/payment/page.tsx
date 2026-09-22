@@ -14,6 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
+import { resolvePaymentAmount, redeemCoupon, type PaymentType, type ResolvedPrice } from '@/app/actions/payment-actions';
 import { useChat } from '@/context/chat-context';
 import { Textarea } from '@/components/ui/textarea';
 import { v4 as uuidv4 } from 'uuid';
@@ -59,21 +60,18 @@ function PaymentPageContent() {
     // Coupon State
     const [couponCode, setCouponCode] = useState('');
     const [appliedCoupon, setAppliedCoupon] = useState<any | null>(null);
-    const [discountAmount, setDiscountAmount] = useState(0);
+    // ยอดทั้งหมดมาจาก server เท่านั้น (resolvePaymentAmount) — ห้ามคำนวณเองฝั่ง client
+    const [serverPrice, setServerPrice] = useState<Extract<ResolvedPrice, { ok: true }> | null>(null);
     const [isCheckingCoupon, setIsCheckingCoupon] = useState(false);
     const [caseData, setCaseData] = useState<any | null>(null);
 
 
-    const appointmentFee = 3500;
-    const chatTicketFee = 500;
-    let fee = paymentType === 'chat' ? chatTicketFee : appointmentFee;
-    if ((paymentType === 'additional' || paymentType === 'case' || paymentType === 'installment') && amountParam) {
-        fee = Number(amountParam);
-    } else if (paymentType === 'case' && caseData) {
-        fee = Number(caseData.amount || 0);
-    }
-
-    const finalFee = Math.max(0, fee - discountAmount);
+    // ค่าบริการและส่วนลดคิดฝั่ง server ทั้งหมด
+    // เดิม fee ของ case/installment/additional อ่านจาก ?amount= ใน URL ตรงๆ
+    // ตั้ง ?amount=1 แล้วจ่าย 1 บาทได้ และส่วนลดก็คำนวณเองฝั่ง client
+    const fee = serverPrice?.baseFee ?? 0;
+    const discountAmount = serverPrice?.discount ?? 0;
+    const finalFee = serverPrice?.finalAmount ?? 0;
 
     // Installment-specific metadata
     const installmentData = (paymentType === 'installment' && installmentIndex !== null && caseData?.installments?.[installmentIndex])
@@ -206,56 +204,45 @@ function PaymentPageContent() {
         }
     };
 
+    useEffect(() => {
+        let cancelled = false;
+        (async () => {
+            const res = await resolvePaymentAmount({
+                paymentType: paymentType as PaymentType,
+                chatId: chatId || undefined,
+                installmentIndex: installmentIndex ?? undefined,
+            });
+            if (!cancelled) setServerPrice(res.ok ? res : null);
+        })();
+        return () => { cancelled = true; };
+    }, [paymentType, chatId, installmentIndex]);
+
     const handleApplyCoupon = async () => {
-        if (!couponCode || !firestore) return;
+        if (!couponCode) return;
         setIsCheckingCoupon(true);
         try {
-            const q = query(
-                collection(firestore, 'coupons'),
-                where('code', '==', couponCode.toUpperCase()),
-                where('isActive', '==', true),
-                limit(1)
-            );
-            const snapshot = await getDocs(q);
+            // ตรวจคูปองและคำนวณยอดฝั่ง server — ของเดิมอ่าน coupons จาก client
+            // แล้วคิดส่วนลดเอง ทำให้แก้ discountAmount ใน devtools ได้
+            const res = await resolvePaymentAmount({
+                paymentType: paymentType as PaymentType,
+                chatId: chatId || undefined,
+                installmentIndex: installmentIndex ?? undefined,
+                couponCode,
+            });
 
-            if (snapshot.empty) {
-                toast({ variant: 'destructive', title: 'ไม่พบคูปอง', description: 'รหัสคูปองไม่ถูกต้องหรือหมดอายุ' });
+            if (!res.ok) {
+                toast({ variant: 'destructive', title: 'ใช้คูปองไม่ได้', description: res.error });
                 setAppliedCoupon(null);
-                setDiscountAmount(0);
-                setIsCheckingCoupon(false);
+                setServerPrice(null);
                 return;
             }
 
-            const couponData = snapshot.docs[0].data();
-            const couponId = snapshot.docs[0].id;
-
-            if (couponData.expiryDate && couponData.expiryDate.toDate() < new Date()) {
-                toast({ variant: 'destructive', title: 'คูปองหมดอายุ', description: 'คูปองนี้หมดอายุแล้ว' });
-                setAppliedCoupon(null);
-                setDiscountAmount(0);
-                setIsCheckingCoupon(false);
-                return;
-            }
-
-            if (couponData.usageLimit && couponData.usedCount >= couponData.usageLimit) {
-                toast({ variant: 'destructive', title: 'คูปองครบจำนวนสิทธิ์แล้ว', description: 'คูปองนี้ถูกใช้จนครบจำนวนสิทธิ์แล้ว' });
-                setAppliedCoupon(null);
-                setDiscountAmount(0);
-                setIsCheckingCoupon(false);
-                return;
-            }
-
-            let discount = 0;
-            if (couponData.type === 'fixed') {
-                discount = couponData.value;
-            } else if (couponData.type === 'percent') {
-                discount = (fee * couponData.value) / 100;
-            }
-
-            setDiscountAmount(discount);
-            setAppliedCoupon({ id: couponId, ...couponData });
-            toast({ title: 'ใช้คูปองสำเร็จ', description: `คุณได้รับส่วนลด ${new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(discount)}` });
-
+            setServerPrice(res);
+            setAppliedCoupon(res.couponId ? { id: res.couponId, code: res.couponLabel } : null);
+            toast({
+                title: 'ใช้คูปองสำเร็จ',
+                description: `คุณได้รับส่วนลด ${new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(res.discount)}`,
+            });
         } catch (error) {
             console.error("Error checking coupon:", error);
             toast({ variant: 'destructive', title: 'เกิดข้อผิดพลาด', description: 'ไม่สามารถตรวจสอบคูปองได้' });
@@ -264,10 +251,16 @@ function PaymentPageContent() {
         }
     };
 
-    const handleRemoveCoupon = () => {
+    const handleRemoveCoupon = async () => {
         setCouponCode('');
         setAppliedCoupon(null);
-        setDiscountAmount(0);
+        // ขอยอดใหม่จาก server แบบไม่มีคูปอง
+        const res = await resolvePaymentAmount({
+            paymentType: paymentType as PaymentType,
+            chatId: chatId || undefined,
+            installmentIndex: installmentIndex ?? undefined,
+        });
+        setServerPrice(res.ok ? res : null);
     };
 
     const processPayment = async () => {
@@ -319,6 +312,13 @@ function PaymentPageContent() {
                 };
 
                 await setDoc(chatRef, chatPayload);
+
+                // ตัดสิทธิ์คูปองฝั่ง server — client เขียน coupons ไม่ได้แล้วตาม
+                // firestore.rules ชุดใหม่ ถ้าไม่ตัดตรงนี้คูปองจะใช้ซ้ำได้ไม่จำกัด
+                if (serverPrice?.couponId) {
+                    const redeemed = await redeemCoupon(serverPrice.couponId);
+                    if (!redeemed.ok) console.error('redeemCoupon failed:', redeemed.error);
+                }
                 const messagesRef = collection(chatRef, 'messages');
                 await addDoc(messagesRef, {
                     text: initialMessage,
