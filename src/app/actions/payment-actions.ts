@@ -170,3 +170,74 @@ export async function redeemCoupon(couponId: string): Promise<{ ok: boolean; err
         return { ok: false, error: e instanceof Error ? e.message : 'ตัดสิทธิ์คูปองไม่สำเร็จ' };
     }
 }
+
+
+/**
+ * สร้างเอกสาร Ticket สนทนาพร้อมยอดชำระ — ต้องทำฝั่ง server
+ *
+ * เดิม client ทำ setDoc(chats/{id}, { amount: finalFee, ... }) เอง
+ * ต่อให้ยอดที่แสดงมาจาก server แล้ว คนที่ตั้งใจโกงก็ยังเปิด console ยิง SDK
+ * เขียน amount เป็นเท่าไรก็ได้ เพราะ firestore.rules ของ chats เป็น
+ * `allow create: if isSignedIn()` ตัวนี้จึงคิดยอดใหม่ฝั่ง server แล้วเขียนเอง
+ * ด้วย Admin SDK ไม่รับยอดจากผู้เรียกเลย
+ */
+export async function createConsultationChat(input: {
+    lawyerId: string;
+    lawyerUserId: string;
+    initialMessage: string;
+    slipUrl?: string | null;
+    slipOkData?: unknown | null;
+    couponCode?: string;
+}): Promise<{ ok: true; chatId: string } | { ok: false; error: string }> {
+    try {
+        const { uid } = await requireUser();
+        const app = await initAdmin();
+        if (!app) return { ok: false, error: 'ระบบยังไม่พร้อม' };
+        const db = app.firestore();
+
+        if (!input.lawyerUserId) return { ok: false, error: 'ไม่พบทนายความปลายทาง' };
+
+        // คิดยอดใหม่ฝั่ง server ไม่รับตัวเลขใดๆ จากผู้เรียก
+        const price = await resolvePaymentAmount({ paymentType: 'chat', couponCode: input.couponCode });
+        if (!price.ok) return { ok: false, error: price.error };
+
+        // สลิปที่ผ่าน SlipOK เท่านั้นที่ถือว่าจ่ายแล้ว ที่เหลือรอแอดมินตรวจ
+        const verified = !!input.slipOkData;
+        const chatRef = db.collection('chats').doc();
+
+        await chatRef.set({
+            participants: [uid, input.lawyerUserId],
+            createdAt: new Date(),
+            caseTitle: `Ticket สนทนา: ${input.initialMessage.substring(0, 30)}...`,
+            status: verified ? 'paid' : 'pending_payment',
+            slipUrl: input.slipUrl ?? null,
+            slipOkData: input.slipOkData ?? null,
+            lawyerId: input.lawyerId,
+            userId: uid,
+            lastMessage: input.initialMessage,
+            lastMessageAt: new Date(),
+            amount: price.finalAmount,
+            originalFee: price.baseFee,
+            discount: price.discount,
+            couponCode: price.couponLabel,
+            hasNewPayment: !verified,
+        });
+
+        await chatRef.collection('messages').add({
+            text: input.initialMessage,
+            senderId: uid,
+            timestamp: new Date(),
+        });
+
+        if (price.couponId) {
+            const redeemed = await redeemCoupon(price.couponId);
+            if (!redeemed.ok) console.error('redeemCoupon failed:', redeemed.error);
+        }
+
+        return { ok: true, chatId: chatRef.id };
+    } catch (e) {
+        if (e instanceof AuthError) return { ok: false, error: e.message };
+        console.error('createConsultationChat failed:', e);
+        return { ok: false, error: 'สร้างรายการไม่สำเร็จ' };
+    }
+}

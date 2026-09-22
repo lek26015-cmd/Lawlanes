@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
-import { resolvePaymentAmount, redeemCoupon, type PaymentType, type ResolvedPrice } from '@/app/actions/payment-actions';
+import { resolvePaymentAmount, redeemCoupon, createConsultationChat, type PaymentType, type ResolvedPrice } from '@/app/actions/payment-actions';
 import { useChat } from '@/context/chat-context';
 import { Textarea } from '@/components/ui/textarea';
 import { v4 as uuidv4 } from 'uuid';
@@ -291,41 +291,26 @@ function PaymentPageContent() {
             const hasNewPayment = !slipOkData; // Flag for Admin to see new slip uploaded
 
             if (paymentType === 'chat') {
-                const newChatId = uuidv4();
-                const chatRef = doc(firestore, 'chats', newChatId);
-                const chatPayload = {
-                    participants: [user.uid, targetLawyerUserId],
-                    createdAt: serverTimestamp(),
-                    caseTitle: `Ticket สนทนา: ${initialMessage.substring(0, 30)}...`,
-                    status: baseStatus,
+                // สร้างเอกสารฝั่ง server ทั้งก้อน — ของเดิม client setDoc เองพร้อม
+                // amount/discount ที่ตัวเองคำนวณ ต่อให้ยอดมาจาก server แล้วก็ยัง
+                // เปิด console ยิง SDK เขียนยอดใหม่ได้ เพราะกฎ chats เป็น
+                // allow create: if isSignedIn()
+                const created = await createConsultationChat({
+                    lawyerId: lawyer.id,
+                    lawyerUserId: targetLawyerUserId ?? '',
+                    initialMessage,
                     slipUrl,
                     slipOkData: slipOkData || null,
-                    lawyerId: lawyer.id,
-                    userId: user.uid,
-                    lastMessage: initialMessage,
-                    lastMessageAt: serverTimestamp(),
-                    amount: finalFee,
-                    originalFee: fee,
-                    discount: discountAmount,
-                    couponCode: appliedCoupon?.code || null,
-                    hasNewPayment,
-                };
-
-                await setDoc(chatRef, chatPayload);
-
-                // ตัดสิทธิ์คูปองฝั่ง server — client เขียน coupons ไม่ได้แล้วตาม
-                // firestore.rules ชุดใหม่ ถ้าไม่ตัดตรงนี้คูปองจะใช้ซ้ำได้ไม่จำกัด
-                if (serverPrice?.couponId) {
-                    const redeemed = await redeemCoupon(serverPrice.couponId);
-                    if (!redeemed.ok) console.error('redeemCoupon failed:', redeemed.error);
-                }
-                const messagesRef = collection(chatRef, 'messages');
-                await addDoc(messagesRef, {
-                    text: initialMessage,
-                    senderId: user.uid,
-                    timestamp: serverTimestamp(),
+                    couponCode: appliedCoupon?.code || undefined,
                 });
 
+                if (!created.ok) {
+                    toast({ variant: 'destructive', title: 'สร้างรายการไม่สำเร็จ', description: created.error });
+                    setIsProcessing(false);
+                    return;
+                }
+
+                const newChatId = created.chatId;
                 setPaymentSuccess(true);
             } else if (paymentType === 'appointment' && dateStr) {
                 const appointmentRef = collection(firestore, 'appointments');
