@@ -4,6 +4,7 @@ import { retrieveDocuments } from '@/lib/rag';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getCachedAIResponse, setCachedAIResponse } from '@/lib/ai-cache';
 import { requireUser } from '@/lib/auth-guard';
+import { limitUserAction } from '@/lib/security/action-rate-limit';
 
 export type SearchResult = {
     source: string;
@@ -13,9 +14,12 @@ export type SearchResult = {
 
 export async function searchLaws(query: string, limit: number = 10): Promise<SearchResult[]> {
     // endpoint นี้เรียก LLM ซึ่งมีค่าใช้จ่ายต่อครั้ง — ต้องล็อกอินอยู่จริง
-    await requireUser();
+    const { uid } = await requireUser();
+    if (!(await limitUserAction('ai-law-search', uid)).success) {
+        throw new Error('Rate limit exceeded. Please wait a moment.');
+    }
 
-    if (!query || query.trim() === '') return [];
+        if (!query || query.trim() === '') return [];
 
     try {
         const results = await retrieveDocuments(query, limit);

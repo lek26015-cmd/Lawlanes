@@ -20,6 +20,15 @@ async function getIpFromHeaders() {
   return 'anonymous';
 }
 
+/**
+ * ฟอร์มสาธารณะสองตัวด้านล่างเปิดให้คนที่ยังไม่ล็อกอินส่งได้โดยตั้งใจ (ด่านคือ rate limit ต่อ IP)
+ * แต่เดิม `...formData` เขียนทุกฟิลด์ที่ผู้เรียกส่งมาลง Firestore — ใส่ฟิลด์แปลกๆ / ข้อความ
+ * ขนาดใหญ่ได้ไม่จำกัด ตอนนี้เก็บเฉพาะฟิลด์ที่ฟอร์มมีจริงและตัดความยาว
+ */
+function str(v: unknown, max: number) {
+  return typeof v === 'string' ? v.trim().slice(0, max) : '';
+}
+
 export async function submitSmeRequestAction(formData: {
   name: string;
   phone: string;
@@ -47,7 +56,12 @@ export async function submitSmeRequestAction(formData: {
     if (!db) throw new Error("Firestore not initialized");
 
     const docRef = await addDoc(collection(db, 'smeRequests'), {
-      ...formData,
+      name: str(formData.name, 200),
+      phone: str(formData.phone, 50),
+      email: str(formData.email, 254),
+      serviceType: str(formData.serviceType, 100),
+      fileUrl: str(formData.fileUrl, 1000),
+      fileName: str(formData.fileName, 300),
       status: 'new',
       createdAt: serverTimestamp(),
       ipAddress: ip, // Save IP for audit/spam tracking
@@ -87,7 +101,12 @@ export async function submitRegistrationRequestAction(formData: {
     if (!db) throw new Error("Firestore not initialized");
 
     const docRef = await addDoc(collection(db, 'registrationRequests'), {
-      ...formData,
+      contactName: str(formData.contactName, 200),
+      companyName: str(formData.companyName, 300),
+      phone: str(formData.phone, 50),
+      email: str(formData.email, 254),
+      registrationType: str(formData.registrationType, 100),
+      details: str(formData.details, 5000),
       status: 'pending',
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
