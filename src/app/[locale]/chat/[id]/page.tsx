@@ -146,7 +146,7 @@ function ChatPageContent() {
     const [description, setDescription] = useState<string>('');
     const [pendingFeeRequest, setPendingFeeRequest] = useState<{ amount: number, reason: string } | null>(null);
     // ฟิลด์การรับเงินของห้อง (ลูกความจ่ายทนายโดยตรง — ดู direct-payment-actions.ts)
-    const [paymentState, setPaymentState] = useState<{ paidAmount: number; settled: boolean; caseNotice: any | null; additionalNotice: any | null; additionalFee: { amount: number; reason: string } | null }>({ paidAmount: 0, settled: false, caseNotice: null, additionalNotice: null, additionalFee: null });
+    const [paymentState, setPaymentState] = useState<{ paidAmount: number; caseBase: number; settled: boolean; caseNotice: any | null; additionalNotice: any | null; additionalFee: { amount: number; reason: string } | null }>({ paidAmount: 0, caseBase: 0, settled: false, caseNotice: null, additionalNotice: null, additionalFee: null });
     const [milestones, setMilestones] = useState<Milestone[]>([]);
     const [invoices, setInvoices] = useState<Invoice[]>([]);
     const [contracts, setContracts] = useState<any[]>([]);
@@ -300,7 +300,10 @@ function ChatPageContent() {
                 setDescription(data.description || '');
                 setPendingFeeRequest(data.pendingFeeRequest || null);
                 {
-                    const amt = Number(data.amount) || 0;
+                    const extrasPaid = (Array.isArray(data.additionalPayments) ? data.additionalPayments : [])
+                        .reduce((sum: number, p: any) => sum + (Number(p?.amount) || 0), 0);
+                    // ค่าบริการหลัก = ยอดรวมลบค่าบริการเพิ่มเติมที่ยืนยันแล้ว (ตรงกับ direct-payment-actions)
+                    const amt = Math.max(0, (Number(data.amount) || 0) - extrasPaid);
                     const paid = Number(data.paidAmount) || 0;
                     const extra = data.pendingFeeRequest?.amount > 0
                         ? { amount: Number(data.pendingFeeRequest.amount), reason: data.pendingFeeRequest.reason || 'ค่าบริการเพิ่มเติม' }
@@ -308,7 +311,8 @@ function ChatPageContent() {
                             ? { amount: Number(data.additionalFeeRequest.amount), reason: data.additionalFeeRequest.reason || 'ค่าบริการเพิ่มเติม' }
                             : null;
                     setPaymentState({
-                        paidAmount: paid,
+                        paidAmount: paid + extrasPaid,
+                        caseBase: amt,
                         settled: !!data.paymentConfirmedAt || !!data.paidAt || (amt > 0 && paid >= amt),
                         caseNotice: data.clientPaymentNotice?.type === 'case' ? data.clientPaymentNotice : null,
                         additionalNotice: data.clientPaymentNotice?.type === 'additional' ? data.clientPaymentNotice : null,
@@ -870,17 +874,17 @@ function ChatPageContent() {
 
                             {/* ค่าบริการก้อนเดียว / ค่าบริการเพิ่มเติม — ทนายยืนยันเองเมื่อเงินเข้าบัญชีตัวเอง */}
                             {!isCompleted && (
-                                (installments.length === 0 && chatAmount > 0 && !paymentState.settled) || paymentState.additionalFee
+                                (installments.length === 0 && paymentState.caseBase > 0 && !paymentState.settled) || paymentState.additionalFee
                             ) && (
                                 <div className="pt-3 mt-3 border-t border-slate-200 dark:border-slate-700 space-y-2">
                                     <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest pl-1">รอยืนยันรับเงิน</p>
-                                    {installments.length === 0 && chatAmount > 0 && !paymentState.settled && (
+                                    {installments.length === 0 && paymentState.caseBase > 0 && !paymentState.settled && (
                                         <PaymentConfirmRow
                                             label="ค่าบริการ"
-                                            amount={chatAmount}
+                                            amount={paymentState.caseBase}
                                             notice={paymentState.caseNotice}
                                             onViewProof={(p) => handleViewFile(p, 'proof_case.jpg')}
-                                            onConfirm={() => handleConfirmReceived('case', chatAmount, 'ค่าบริการ')}
+                                            onConfirm={() => handleConfirmReceived('case', paymentState.caseBase, 'ค่าบริการ')}
                                         />
                                     )}
                                     {paymentState.additionalFee && (
@@ -1150,7 +1154,7 @@ function ChatPageContent() {
                         </Card>
                     ) : (!effectiveIsLawyerView && (
                         installments.some((i: any) => i.status !== 'paid') ||
-                        (installments.length === 0 && chatAmount > 0 && !paymentState.settled) ||
+                        (installments.length === 0 && paymentState.caseBase > 0 && !paymentState.settled) ||
                         !!paymentState.additionalFee
                     )) ? (
                         // เดิมตรงนี้คือ "กำแพง" ของเคสที่ทนายสร้างเอง (status pending_payment) ที่พาไปจ่ายเข้า
@@ -1202,14 +1206,14 @@ function ChatPageContent() {
                                         </div>
                                     );
                                 })}
-                                {installments.length === 0 && chatAmount > 0 && !paymentState.settled && (
+                                {installments.length === 0 && paymentState.caseBase > 0 && !paymentState.settled && (
                                     <div className="p-3 rounded-xl border bg-slate-50 border-slate-100 flex justify-between items-center gap-2">
                                         <div className="min-w-0">
                                             <p className="text-[10px] font-bold text-slate-700 truncate">{caseTitle || 'ค่าบริการ'}</p>
                                             {paymentState.caseNotice && <p className="text-[9px] text-amber-600 font-bold">แจ้งโอนแล้ว — รอทนายยืนยัน</p>}
                                         </div>
                                         <Button size="sm" className="h-7 rounded-lg bg-blue-600 hover:bg-blue-700 text-[10px] font-bold px-3 text-white shrink-0" asChild>
-                                            <Link href={`/payment?chatId=${chatId}&type=case`}>โอน ฿{chatAmount.toLocaleString()}</Link>
+                                            <Link href={`/payment?chatId=${chatId}&type=case`}>โอน ฿{paymentState.caseBase.toLocaleString()}</Link>
                                         </Button>
                                     </div>
                                 )}

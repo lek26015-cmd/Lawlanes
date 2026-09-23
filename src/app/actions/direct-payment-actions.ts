@@ -68,13 +68,27 @@ function isoOrNull(v: any): string | null {
     return null;
 }
 
-/** ค่าเปิดคดีแบบจ่ายก้อนเดียว (เคสไม่มีงวด) ยืนยันแล้วหรือยัง — รองรับข้อมูลรุ่นเก่าที่ปิดผ่านสลิป/แอดมิน */
+/** ค่าบริการเพิ่มเติมที่ทนายยืนยันรับแล้ว (additionalPayments[]) รวมกัน */
+function additionalPaidTotal(chat: FirebaseFirestore.DocumentData): number {
+    const list: any[] = Array.isArray(chat.additionalPayments) ? chat.additionalPayments : [];
+    return list.reduce((s, p) => s + parseAmount(p?.amount), 0);
+}
+
+/**
+ * ค่าบริการหลักของเคสก้อนเดียว = chat.amount ลบค่าบริการเพิ่มเติมที่ยืนยันแล้ว
+ * (ยืนยันค่าเพิ่มเติมจะบวกเข้า chat.amount ให้ยอดรวมที่ UI อื่นแสดงยังถูก)
+ */
+function caseBaseAmount(chat: FirebaseFirestore.DocumentData): number {
+    return Math.max(0, parseAmount(chat.amount) - additionalPaidTotal(chat));
+}
+
+/** ค่าบริการแบบจ่ายก้อนเดียว (เคสไม่มีงวด) ยืนยันแล้วหรือยัง — รองรับข้อมูลรุ่นเก่าที่ปิดผ่านสลิป/แอดมิน */
 function isCaseFeeSettled(chat: FirebaseFirestore.DocumentData): boolean {
     if (chat.paymentConfirmedAt) return true;
     if (chat.paidAt) return true;
-    const amount = parseAmount(chat.amount);
+    const base = caseBaseAmount(chat);
     const paid = parseAmount(chat.paidAmount);
-    return amount > 0 && paid >= amount;
+    return base > 0 && paid >= base;
 }
 
 function listOutstanding(chat: FirebaseFirestore.DocumentData): DirectPaymentDue[] {
@@ -104,11 +118,11 @@ function listOutstanding(chat: FirebaseFirestore.DocumentData): DirectPaymentDue
                 notice: n ? { notifiedAt: n.notifiedAt || '', proofUrl: n.proofUrl ?? null, note: n.note ?? null } : null,
             });
         });
-    } else if (parseAmount(chat.amount) > 0 && !isCaseFeeSettled(chat)) {
+    } else if (caseBaseAmount(chat) > 0 && !isCaseFeeSettled(chat)) {
         const n = chat.clientPaymentNotice?.type === 'case' ? chat.clientPaymentNotice : null;
         out.push({
             type: 'case',
-            amount: parseAmount(chat.amount),
+            amount: caseBaseAmount(chat),
             description: chat.caseTitle || 'ค่าบริการทนายความ',
             notice: n ? { notifiedAt: isoOrNull(n.notifiedAt) || '', proofUrl: n.proofUrl ?? null, note: n.note ?? null } : null,
         });
@@ -385,7 +399,7 @@ export async function confirmDirectPaymentReceivedAction(input: {
                 if (Array.isArray(chat.installments) && chat.installments.length > 0) {
                     throw new DirectPaymentRejected('เคสนี้แบ่งชำระเป็นงวด กรุณายืนยันทีละงวด');
                 }
-                amount = parseAmount(chat.amount);
+                amount = caseBaseAmount(chat);
                 if (amount <= 0) throw new DirectPaymentRejected('เคสนี้ยังไม่มียอดค่าบริการ');
                 if (isCaseFeeSettled(chat)) throw new DirectPaymentRejected('ยืนยันรับเงินรายการนี้ไปแล้ว');
                 update.paidAmount = amount;
@@ -400,13 +414,16 @@ export async function confirmDirectPaymentReceivedAction(input: {
                 const additional = getPendingAdditionalFee(chat);
                 if (!additional) throw new DirectPaymentRejected('ไม่พบคำขอค่าบริการเพิ่มเติมที่ค้างอยู่');
                 amount = additional.amount;
-                // ยอดรวมของเคสและยอดที่ได้รับแล้ว "สะสม" เพิ่ม ไม่เขียนทับ
-                // (เคสรุ่นเก่าที่ไม่มี paidAmount แต่ขอค่าเพิ่มได้ = ค่าเปิดคดีจ่ายครบแล้ว)
-                const baseAmount = parseAmount(chat.amount);
-                const recordedPaid = parseAmount(chat.paidAmount);
-                const basePaid = recordedPaid > 0 ? recordedPaid : (isCaseFeeSettled(chat) ? baseAmount : 0);
-                update.amount = baseAmount + amount;
-                update.paidAmount = basePaid + amount;
+                // ยอดรวมที่เสนอ (chat.amount) บวกเพิ่ม ส่วนที่ได้รับเก็บแยกใน additionalPayments[]
+                // ไม่บวกเข้า paidAmount (= ค่าบริการหลักของเคสก้อนเดียว) — เคสแบ่งงวดจะได้ไม่ถูก
+                // นับว่าจ่ายครบทั้งที่งวดยังค้าง และยอดค่าหลักที่ค้างไม่รวมค่าเพิ่มเติมที่จ่ายแล้ว
+                update.amount = parseAmount(chat.amount) + amount;
+                update.additionalPayments = admin.firestore.FieldValue.arrayUnion({
+                    amount,
+                    reason: chat.pendingFeeRequest?.reason || chat.additionalFeeRequest?.reason || 'ค่าบริการเพิ่มเติม',
+                    paidAt: nowIso,
+                    ...confirmation,
+                });
                 if (additional.source === 'pendingFeeRequest') {
                     update.pendingFeeRequest = null;
                 } else {
