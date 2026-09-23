@@ -181,8 +181,12 @@ service cloud.firestore {
 
     match /reviews/{reviewId} {
       allow read: if true;
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if isOwner(resource.data.userId) || isAdmin();
+      // รีวิวสร้างผ่าน submitReviewAction (Admin SDK) เท่านั้น — action นั้นตรวจว่าผู้รีวิวเป็นลูกความ
+      // ของเคสจริง, เคสจบแล้ว, รีวิวได้ครั้งเดียว แล้วคำนวณ averageRating / reviewCount ใหม่
+      // เดิม client สร้างเองได้แค่ใส่ userId ตัวเอง → ปั่นรีวิว 5 ดาว/1 ดาวให้ทนายคนไหนก็ได้
+      // โดยไม่เคยมีเคส และแก้/ลบรีวิวเองได้ทำให้ตัวเลขเฉลี่ยในโปรไฟล์เพี้ยน
+      // ไล่ดูทุก repo แล้วไม่มี client ตัวไหนเขียน reviews (หน้า chat/[id], review/[id] เรียก action)
+      allow create, update, delete: if isAdmin();
     }
 
     match /chats/{chatId} {
