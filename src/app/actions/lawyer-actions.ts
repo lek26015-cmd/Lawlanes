@@ -586,3 +586,70 @@ export async function repairChatDocumentsAction(chatId: string) {
         return { success: false, error: error.message };
     }
 }
+
+/**
+ * ทนายรับ / ปฏิเสธคำขอนัดหมาย — ต้องทำฝั่ง server
+ *
+ * เดิมหน้า lawyer-dashboard/request/[id] ยิง updateDoc(appointments/{id}) และ
+ * addDoc(chats, {...}) จากเบราว์เซอร์ตรงๆ ซึ่งต้องพึ่ง `allow create: if isSignedIn()`
+ * ของ chats — กฎเดียวกับที่ทำให้ใครก็สร้างเคสพร้อม `amount: 0, status: 'paid'` ได้
+ * ย้ายมาที่นี่เพื่อให้ปิดกฎนั้นได้ และเพื่อยืนยันว่าคนกดรับเป็นทนายเจ้าของคำขอจริง
+ */
+export async function respondToAppointmentRequestAction(input: {
+    appointmentId: string;
+    decision: 'accept' | 'reject';
+}): Promise<{ ok: true; chatId?: string } | { ok: false; error: string }> {
+    try {
+        const { uid, adminApp } = await requireLawyer();
+        const db = adminApp.firestore();
+
+        const apptRef = db.collection('appointments').doc(input.appointmentId);
+        const snap = await apptRef.get();
+        if (!snap.exists) return { ok: false, error: 'ไม่พบคำขอนัดหมายนี้' };
+
+        const appt = snap.data()!;
+        // คำขอนี้เป็นของทนายคนนี้จริงไหม — ห้ามรับเคสแทนคนอื่น
+        if (appt.lawyerId !== uid && appt.lawyerUserId !== uid) {
+            return { ok: false, error: 'คำขอนี้ไม่ใช่ของคุณ' };
+        }
+
+        if (input.decision === 'reject') {
+            await apptRef.update({
+                status: 'cancelled',
+                updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            });
+            return { ok: true };
+        }
+
+        const clientId = appt.userId || appt.clientId;
+        if (!clientId) return { ok: false, error: 'ไม่พบข้อมูลลูกความของคำขอนี้' };
+
+        const chatRef = db.collection('chats').doc();
+        const batch = db.batch();
+        batch.update(apptRef, {
+            status: 'confirmed',
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+            chatId: chatRef.id,
+        });
+        batch.set(chatRef, {
+            participants: [uid, clientId],
+            lawyerId: uid,
+            userId: clientId,
+            caseTitle: appt.caseTitle || appt.description || 'เคสจากคำขอนัดหมาย',
+            status: 'active',
+            // ห้องนี้เกิดจากนัดหมายที่ชำระเงินแล้ว ยอดอยู่ที่เอกสาร appointments
+            // ไม่ตั้ง amount ซ้ำตรงนี้เพื่อไม่ให้ถูกนับรายได้สองรอบ
+            appointmentId: input.appointmentId,
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            lastMessageAt: admin.firestore.FieldValue.serverTimestamp(),
+            lastMessage: 'Case accepted',
+        });
+        await batch.commit();
+
+        return { ok: true, chatId: chatRef.id };
+    } catch (e) {
+        if (e instanceof AuthError) return { ok: false, error: e.message };
+        console.error('respondToAppointmentRequestAction failed:', e);
+        return { ok: false, error: 'ดำเนินการไม่สำเร็จ กรุณาลองใหม่อีกครั้ง' };
+    }
+}

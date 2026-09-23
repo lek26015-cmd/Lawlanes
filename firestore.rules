@@ -94,12 +94,43 @@ service cloud.firestore {
         return isSignedIn() && request.auth.uid in resource.data.participants;
       }
       
+      // ฟิลด์ที่ "แปลว่ามีเงินเข้าแล้ว" — client ห้ามเขียนตอนสร้างเอกสารเด็ดขาด
+      // เดิมกฎเป็น `allow create: if isSignedIn()` เฉยๆ → เปิด console ยิง SDK
+      // สร้างเคสพร้อม `amount: 50000, status: 'paid'` ได้โดยไม่ต้องจ่ายอะไรเลย
+      // ทนายเห็นว่าเคสจ่ายแล้วและลงมือทำงานฟรี
+      function moneyFields() {
+        return [
+          'amount', 'originalFee', 'discount', 'paidAmount', 'totalPaid',
+          'installments', 'paidInstallments', 'paidAt', 'lastPaymentAt',
+          'slipUrl', 'slipOkData', 'pendingPaymentDetails',
+          'couponCode', 'couponId', 'hasNewPayment'
+        ];
+      }
+
+      // สถานะที่ client ตั้งเองได้ตอนสร้างห้อง — ห้ามมี 'paid'/'active' ที่แปลว่าจ่ายแล้ว
+      function createsSafeStatus() {
+        return !('status' in request.resource.data.keys())
+          || request.resource.data.status in ['open', 'pending', 'pending_payment'];
+      }
+
       allow get: if isSignedIn() && (isParticipant() || isAdmin()); 
       allow list: if isSignedIn() && (
         (request.query.limit <= 1000 && request.auth.uid in request.query.filters.participants) || 
         isAdmin()
       ); 
-      allow create: if isSignedIn();
+      // ห้องที่มียอดเงินต้องสร้างผ่าน Admin SDK เท่านั้น (createConsultationChat,
+      // respondToAppointmentRequestAction) ห้องเปล่าๆ ที่ตัวเองเป็นคู่สนทนายังสร้างได้
+      //
+      // ⚠️ ยังไม่ปิดเป็น isAdmin() ล้วนเพราะยังมี client สร้างห้องเปล่าอยู่อีก 6 จุด
+      //    ที่ยังไม่ได้ย้าย: chat-box.tsx (ensureChatExists) ของ capdeal / admin /
+      //    business / business-landing และหน้า lawyer-dashboard/request/[id] ของ
+      //    admin / business / business-landing — ย้ายครบเมื่อไหร่ถึงปิดได้
+      allow create: if isAdmin() || (
+        isSignedIn()
+        && request.auth.uid in request.resource.data.participants
+        && !request.resource.data.keys().hasAny(moneyFields())
+        && createsSafeStatus()
+      );
       allow update: if isParticipant() || isAdmin();
 
       match /messages/{messageId} {
@@ -135,7 +166,15 @@ service cloud.firestore {
     }
 
     match /appointments/{appointmentId} {
-        allow create: if isSignedIn();
+        // เดิม `allow create: if isSignedIn()` → ใครก็เปิด console ยิง SDK สร้าง
+        // นัดหมายพร้อม `amount: 0, status: 'paid'` ได้โดยไม่ต้องผ่านหน้าเว็บ
+        // ทนายก็เห็นว่าจ่ายแล้วและลงมือทำงานฟรี
+        //
+        // ตอนนี้นัดหมายสร้างผ่าน createAppointment() ฝั่ง server ทั้งใน Lawslane
+        // และ lawslane-capdeal ซึ่งคิดยอดใหม่เองและตั้งสถานะจากผลตรวจสลิปจริง
+        // (ไล่ดูแล้วว่าไม่มี client ตัวไหนเหลือสร้าง appointments อีก — repo อื่น
+        //  แตะแค่ update สถานะของนัดหมายที่มีอยู่)
+        allow create: if isAdmin();
         // Allow read if user is involved or admin
         allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || resource.data.lawyerId == request.auth.uid || isAdmin());
         // Allow list only if the query is properly filtered by the user's role/id
@@ -164,14 +203,31 @@ service cloud.firestore {
         }
     }
 
+    // ผลตรวจสลิปจาก SlipOK ที่ server เก็บไว้ (ดู api/verify-slip/route.ts)
+    // เป็นหลักฐานว่า "จ่ายจริงแล้ว" client ห้ามอ่านหรือเขียนทั้งหมด — เขียนและ
+    // ใช้ผ่าน Admin SDK เท่านั้น ไม่งั้นก็ปลอมเอกสารแล้วอ้างว่าจ่ายแล้วได้เหมือนเดิม
+    match /slipVerifications/{verificationId} {
+        allow read, write: if isAdmin();
+    }
+
     match /withdrawals/{withdrawalId} {
-        allow create: if isSignedIn() && request.resource.data.lawyerId == request.auth.uid;
+        // เส้นทางเดียวในระบบที่เงินสดออกจากบริษัทจริง — เขียนผ่าน Admin SDK เท่านั้น
+        //
+        // กฎเดิมคือ `allow create: if isSignedIn() && lawyerId == request.auth.uid`
+        // ซึ่งตรวจแค่ว่าเป็นเจ้าของ **ไม่ตรวจยอดเลย** การตรวจยอดอยู่ในเบราว์เซอร์
+        // (`amount > stats.availableBalance`) อย่างเดียว → ทนายที่มีรายได้ ฿0
+        // เปิด console ยิง SDK ขอถอน ฿500,000 ได้ทันที
+        //
+        // ตอนนี้คำร้องสร้างผ่าน requestWithdrawal() (Lawslane/src/app/actions/
+        // withdrawal-actions.ts) ที่คิดยอดใหม่ฝั่ง server และการอนุมัติผ่าน
+        // processWithdrawal() (lawslane-admin) ที่คิดซ้ำก่อนเปลี่ยนสถานะ
+        // ไม่มี client ตัวไหนต้องเขียนคอลเลกชันนี้อีกแล้ว
+        allow create, update, delete: if isAdmin();
         allow get: if isSignedIn() && (resource.data.lawyerId == request.auth.uid || isAdmin());
         allow list: if isSignedIn() && (
           (request.query.limit <= 1000 && request.auth.uid in request.query.filters.lawyerId) ||
           isAdmin()
         );
-        allow update: if isAdmin(); // Only admins can process withdrawals
     }
 
     match /sme_inquiries/{inquiryId} {

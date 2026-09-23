@@ -1,7 +1,9 @@
 'use server';
 
+import * as admin from 'firebase-admin';
 import { initAdmin } from '@/lib/firebase-admin';
 import { requireUser, AuthError } from '@/lib/auth-guard';
+import { consumeSlipVerification } from '@/lib/slip-verification';
 
 /**
  * คำนวณยอดที่ต้องชำระฝั่ง server — อย่าเชื่อตัวเลขใดๆ จากเบราว์เซอร์
@@ -186,7 +188,7 @@ export async function createConsultationChat(input: {
     lawyerUserId: string;
     initialMessage: string;
     slipUrl?: string | null;
-    slipOkData?: unknown | null;
+    slipVerificationId?: string | null;
     couponCode?: string;
 }): Promise<{ ok: true; chatId: string } | { ok: false; error: string }> {
     try {
@@ -201,8 +203,11 @@ export async function createConsultationChat(input: {
         const price = await resolvePaymentAmount({ paymentType: 'chat', couponCode: input.couponCode });
         if (!price.ok) return { ok: false, error: price.error };
 
-        // สลิปที่ผ่าน SlipOK เท่านั้นที่ถือว่าจ่ายแล้ว ที่เหลือรอแอดมินตรวจ
-        const verified = !!input.slipOkData;
+        // สลิปที่ผ่าน SlipOK จริงเท่านั้นที่ถือว่าจ่ายแล้ว ที่เหลือรอแอดมินตรวจ
+        // เดิมเชื่อ `!!input.slipOkData` ที่ client ส่งมา → ยิง action พร้อมก้อนปลอมก็ผ่าน
+        const { verified, slipData } = await consumeSlipVerification(
+            db, uid, input.slipVerificationId, price.finalAmount
+        );
         const chatRef = db.collection('chats').doc();
 
         await chatRef.set({
@@ -211,7 +216,7 @@ export async function createConsultationChat(input: {
             caseTitle: `Ticket สนทนา: ${input.initialMessage.substring(0, 30)}...`,
             status: verified ? 'paid' : 'pending_payment',
             slipUrl: input.slipUrl ?? null,
-            slipOkData: input.slipOkData ?? null,
+            slipOkData: slipData,
             lawyerId: input.lawyerId,
             userId: uid,
             lastMessage: input.initialMessage,
@@ -239,5 +244,78 @@ export async function createConsultationChat(input: {
         if (e instanceof AuthError) return { ok: false, error: e.message };
         console.error('createConsultationChat failed:', e);
         return { ok: false, error: 'สร้างรายการไม่สำเร็จ' };
+    }
+}
+
+
+/**
+ * สร้างนัดหมายพร้อมยอดชำระ — ต้องทำฝั่ง server
+ *
+ * เดิม client ยิง addDoc(appointments, { amount: finalFee, status, ... }) เอง
+ * และ firestore.rules ของ appointments เป็น `allow create: if isSignedIn()`
+ * แปลว่าใครก็เปิด console สร้างนัดหมายพร้อม `amount: 0, status: 'paid'` ได้
+ * โดยไม่ต้องผ่านหน้าเว็บเลย → ทนายเห็นว่าจ่ายแล้วและลงมือทำงานฟรี
+ */
+export async function createAppointment(input: {
+    lawyerId: string;
+    lawyerUserId: string;
+    appointmentDate: string;
+    description?: string | null;
+    slipUrl?: string | null;
+    slipVerificationId?: string | null;
+    couponCode?: string;
+}): Promise<{ ok: true; appointmentId: string } | { ok: false; error: string }> {
+    try {
+        const { uid } = await requireUser();
+        const app = await initAdmin();
+        if (!app) return { ok: false, error: 'ระบบยังไม่พร้อม' };
+        const db = app.firestore();
+
+        if (!input.lawyerId) return { ok: false, error: 'ไม่พบทนายความปลายทาง' };
+
+        const when = new Date(input.appointmentDate);
+        if (Number.isNaN(when.getTime())) return { ok: false, error: 'วันเวลานัดหมายไม่ถูกต้อง' };
+
+        // คิดยอดใหม่ฝั่ง server ไม่รับตัวเลขใดๆ จากผู้เรียก
+        const price = await resolvePaymentAmount({ paymentType: 'appointment', couponCode: input.couponCode });
+        if (!price.ok) return { ok: false, error: price.error };
+
+        // สลิปที่ผ่าน SlipOK จริงเท่านั้นที่ถือว่าจ่ายแล้ว ที่เหลือรอแอดมินตรวจ
+        const { verified, slipData } = await consumeSlipVerification(
+            db, uid, input.slipVerificationId, price.finalAmount
+        );
+
+        const lawyerSnap = await db.collection('lawyerProfiles').doc(input.lawyerId).get();
+        const lawyer = lawyerSnap.data() ?? {};
+
+        const ref = db.collection('appointments').doc();
+        await ref.set({
+            userId: uid,
+            lawyerId: input.lawyerId,
+            lawyerUserId: lawyer.userId ?? input.lawyerUserId ?? null,
+            lawyerName: lawyer.name ?? '',
+            appointmentDate: when,
+            description: input.description ?? null,
+            status: verified ? 'paid' : 'pending_payment',
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+            slipUrl: input.slipUrl ?? null,
+            slipOkData: slipData,
+            amount: price.finalAmount,
+            originalFee: price.baseFee,
+            discount: price.discount,
+            couponCode: price.couponLabel,
+            hasNewPayment: !verified,
+        });
+
+        if (price.couponId) {
+            const redeemed = await redeemCoupon(price.couponId);
+            if (!redeemed.ok) console.error('redeemCoupon failed:', redeemed.error);
+        }
+
+        return { ok: true, appointmentId: ref.id };
+    } catch (e) {
+        if (e instanceof AuthError) return { ok: false, error: e.message };
+        console.error('createAppointment failed:', e);
+        return { ok: false, error: 'สร้างนัดหมายไม่สำเร็จ' };
     }
 }

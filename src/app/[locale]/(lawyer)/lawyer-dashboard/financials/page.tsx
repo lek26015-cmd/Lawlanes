@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label';
 import Logo from '@/components/logo';
 import { ArrowLeft, DollarSign, TrendingUp, Clock, Loader2, Wallet, History, Briefcase, AlertCircle, Menu, X, PenSquare, Save, Building2, FileText } from 'lucide-react';
 import { getLawyerFinancialsAction } from '@/app/actions/dashboard-actions';
+import { requestWithdrawal } from '@/app/actions/withdrawal-actions';
 import { collection, addDoc, serverTimestamp, doc, updateDoc } from 'firebase/firestore';
 import { format } from 'date-fns';
 import { th } from 'date-fns/locale';
@@ -195,53 +196,23 @@ function LawyerFinancialsContent() {
         }
     }, [isUserLoading, user, fetchFinancials, router]);
 
+    // การตรวจทั้งหมดอยู่ใน requestWithdrawal() ฝั่ง server — ตรงนี้เหลือไว้แค่กัน
+    // ผู้ใช้กดพลาด ไม่ใช่ด่านความปลอดภัย ของเดิมตรวจในเบราว์เซอร์แล้ว addDoc เอง
+    // ซึ่งข้ามได้ด้วยการยิง SDK จาก console (firestore.rules ไม่เคยตรวจยอดเลย)
     const handleWithdraw = async () => {
-        if (!firestore || !user) return;
-
         const amount = parseFloat(withdrawAmount);
         if (isNaN(amount) || amount <= 0) {
             toast({ variant: "destructive", title: "ยอดเงินไม่ถูกต้อง", description: "กรุณาระบุจำนวนเงินที่ถูกต้อง" });
             return;
         }
-        if (amount < 1000) {
-            toast({ variant: "destructive", title: "ยอดเงินขั้นต่ำไม่ถึงเกณฑ์", description: "ต้องถอนเงินขั้นต่ำ 1,000 บาทขึ้นไป" });
-            return;
-        }
-        if (amount > stats.availableBalance) {
-            toast({ variant: "destructive", title: "ยอดเงินไม่เพียงพอ", description: "คุณมียอดเงินที่ถอนได้ไม่เพียงพอ" });
-            return;
-        }
-        if (!bankName || !accountNumber || !accountName) {
-            toast({ variant: "destructive", title: "ข้อมูลไม่ครบถ้วน", description: "กรุณากรอกข้อมูลบัญชีธนาคารให้ครบถ้วน" });
-            return;
-        }
 
         setIsSubmitting(true);
         try {
-            await addDoc(collection(firestore, 'withdrawals'), {
-                lawyerId: user.uid,
-                amount: amount,
-                bankName,
-                accountNumber,
-                accountName,
-                status: 'pending',
-                requestedAt: serverTimestamp(),
-            });
-
-            // Create Admin Notification (In-App)
-            await addDoc(collection(firestore, 'notifications'), {
-                type: 'withdrawal',
-                title: 'คำร้องขอถอนเงินใหม่',
-                message: `มีคำร้องขอถอนเงินจากทนายความ (฿${amount.toLocaleString()})`,
-                createdAt: serverTimestamp(),
-                read: false,
-                recipient: 'admin',
-                link: `/admin/financials`,
-                relatedId: user.uid
-            });
-
-            // Send Email Notification to Admins
-            // We don't await this to prevent blocking the UI response (removed)
+            const result = await requestWithdrawal({ amount });
+            if (!result.ok) {
+                toast({ variant: "destructive", title: "ส่งคำร้องไม่สำเร็จ", description: result.error });
+                return;
+            }
 
             toast({ title: "ส่งคำร้องสำเร็จ", description: "คำร้องขอถอนเงินของคุณถูกส่งเรียบร้อยแล้ว" });
             setIsWithdrawOpen(false);
