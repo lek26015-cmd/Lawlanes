@@ -355,7 +355,10 @@ export async function getLawyerDashboardDataAction(): Promise<{ newRequests: Law
         // 1. Fetch appointments and chats
         const requestsSnap = await db.collection('appointments')
             .where('lawyerId', '==', lawyerId)
-            .where('status', '==', 'pending')
+            // คำขอที่ทนายรับได้คือนัดที่ "จ่ายแล้ว" เท่านั้น (respondToAppointmentRequestAction
+            // ยอมรับเฉพาะ status 'paid') — เดิมดึง 'pending' ซึ่ง createAppointment ไม่เคย
+            // สร้าง คำขอที่ลูกความจ่ายแล้วจึงไม่เคยขึ้นให้ทนายเห็น
+            .where('status', '==', 'paid')
             .limit(50)
             .get();
 
