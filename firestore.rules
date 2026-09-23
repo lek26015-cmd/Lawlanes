@@ -27,44 +27,84 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      // ฟิลด์ที่ผู้ใช้ห้ามเขียนให้ตัวเอง — เป็นสิทธิ์ / ความเป็นเจ้าของ / สถานะการเงิน
-      // เดิมกฎเป็น `allow write: if isOwner(userId)` เฉยๆ ไม่จำกัดฟิลด์เลย แปลว่า
-      // ใครก็เปิด console แล้ว updateDoc(users/<uid ตัวเอง>, {role:'admin'}) ได้
-      // และตั้ง companyId เป็นของบริษัทอื่นเพื่ออ่าน/แก้สัญญาของบริษัทนั้นได้ด้วย
-      // (ดู canAccessContract() และ canAccessCompliance() ด้านล่าง)
-      function privilegedUserFields() {
+      // เดิมเป็น denylist (ห้าม role / companyId / ฯลฯ) แต่ denylist รั่วทุกครั้งที่มีฟิลด์สิทธิ์ใหม่
+      // (เช่น status ที่แอดมินใช้ระงับบัญชี, lineUserId ที่ api/auth/line ใช้หาเจ้าของบัญชีตอนล็อกอิน
+      //  ด้วย LINE, lawyer / admin ที่หน้าตาเหมือน custom claim) จึงกลับด้านเป็น allowlist
+      // เฉพาะฟิลด์ที่ client เขียนจริง
+      //
+      // ไล่ดูทุก repo ที่ใช้ Firebase project นี้แล้ว (Lawslane, admin, capdeal, business,
+      // business-landing, lawlanes-education, lawslane-education) client เขียน users/{ตัวเอง}:
+      //   create — signup-content / login-content (Google) / lawyer-signup / for-lawyers /
+      //            account (กรณีไม่มีเอกสาร) / chat/[id] (auto-repair) / education signup+login:
+      //            uid name email phone role type status avatar termsAccepted termsAcceptedAt
+      //            registeredAt createdAt updatedAt
+      //   update — account: name avatar updatedAt | client-provider heartbeat: lastActive
+      //            capdeal login: avatar updatedAt | chat auto-repair (merge): uid name email
+      //            role status createdAt (ค่าเดิม → ไม่นับเป็นการเปลี่ยน ยกเว้น createdAt)
+      //            business settings/profile: companyName taxId address phone website updatedAt
+      //            business-landing subscribe: plan billingCycle subscriptionStatus paymentMethod
+      //            companyName companyBranch companyAddress taxId updatedAt
+      //            (⚠️ subscriptionStatus คุมการเข้าหน้า B2B แต่หน้า subscribe ยัง "จำลองการจ่ายเงิน"
+      //             ฝั่ง client อยู่ — ถ้าปิดตรงนี้การสมัครแพ็กเกจพังทั้งหมด ค้างไว้เป็น follow-up
+      //             ให้ย้ายไป server พร้อมระบบจ่ายเงินจริง)
+      //
+      // ที่เหลือ — role, status (ระงับบัญชี), companyId, superAdmin/permissions/adminPermissions,
+      // lineUserId/lineDisplayName/linePictureUrl, subscription/balance/credits, verified,
+      // notificationPreferences ฯลฯ — เขียนผ่าน Admin SDK หรือแอดมินเท่านั้น
+      // (admin-notify / admin-notifications อ่าน users where role == 'admin' เพื่อหาผู้รับแจ้งเตือน
+      //  และ canAccessContract() / canAccessCompliance() ด้านล่างเชื่อ companyId)
+      function ownerCreatableUserFields() {
         return [
-          'role', 'superAdmin', 'permissions', 'adminPermissions',
-          'companyId', 'subscription', 'balance', 'credits',
-          'isVerified', 'verified', 'emailVerified'
+          'uid', 'name', 'email', 'phone', 'role', 'type', 'status', 'avatar',
+          'termsAccepted', 'termsAcceptedAt', 'registeredAt', 'createdAt', 'updatedAt'
         ];
       }
 
-      // ตอนสมัครสมาชิก ฝั่ง client เขียน role มาด้วย (signup-content.tsx, lawyer-signup)
+      function ownerUpdatableUserFields() {
+        return [
+          'name', 'avatar', 'phone', 'updatedAt', 'lastActive', 'createdAt',
+          // B2B (lawslane-business settings/profile, business-landing subscribe)
+          'companyName', 'companyBranch', 'companyAddress', 'taxId', 'address', 'website',
+          'plan', 'billingCycle', 'subscriptionStatus', 'paymentMethod'
+        ];
+      }
+
+      // ตอนสมัครสมาชิก ฝั่ง client เขียน role มาด้วย (signup-content.tsx, lawyer-signup, education)
       // จึงอนุญาตเฉพาะค่าที่ไม่ใช่สิทธิ์พิเศษ — ห้าม 'admin' เด็ดขาด
+      // (business-landing subscribe เขียน role: 'admin' ตอนสร้างบัญชี → โดนปฏิเสธมาตั้งแต่รอบก่อน
+      //  ดู follow-up ใน PR)
       function createsSafeRole() {
         return !('role' in request.resource.data.keys())
           || request.resource.data.role in ['customer', 'lawyer', 'education_student'];
       }
 
-      function createsNoOtherPrivilegedField() {
-        return !request.resource.data.keys().hasAny(
-          ['superAdmin', 'permissions', 'adminPermissions', 'companyId',
-           'subscription', 'balance', 'credits', 'isVerified', 'verified']
-        );
+      // status ตอนสร้าง: 'active' (ลูกค้า / for-lawyers / education) หรือ 'pending' (lawyer-signup)
+      // ห้ามสร้างมาเป็น 'approved' เอง — การอนุมัติทนายทำผ่าน Admin SDK
+      function createsSafeStatus() {
+        return !('status' in request.resource.data.keys())
+          || request.resource.data.status in ['active', 'pending'];
+      }
+
+      function createsOwnUid() {
+        return !('uid' in request.resource.data.keys())
+          || request.resource.data.uid == userId;
       }
 
       allow read: if isSignedIn();
 
       allow create: if isAdmin()
-        || (isOwner(userId) && createsSafeRole() && createsNoOtherPrivilegedField());
+        || (isOwner(userId)
+            && request.resource.data.keys().hasOnly(ownerCreatableUserFields())
+            && createsSafeRole()
+            && createsSafeStatus()
+            && createsOwnUid());
 
-      // อัปเดตโปรไฟล์ของตัวเองได้ แต่ห้ามแตะฟิลด์สิทธิ์ — การเปลี่ยน role/companyId
-      // ต้องทำผ่าน Admin SDK ฝั่ง server เท่านั้น
+      // อัปเดตโปรไฟล์ของตัวเองได้เฉพาะฟิลด์ในลิสต์ — การเปลี่ยน role / status / companyId /
+      // lineUserId ต้องทำผ่าน Admin SDK ฝั่ง server หรือแอดมินเท่านั้น
       allow update: if isAdmin()
         || (isOwner(userId)
-            && !request.resource.data.diff(resource.data).affectedKeys()
-                 .hasAny(privilegedUserFields()));
+            && request.resource.data.diff(resource.data).affectedKeys()
+                 .hasOnly(ownerUpdatableUserFields()));
 
       allow delete: if isAdmin();
 
