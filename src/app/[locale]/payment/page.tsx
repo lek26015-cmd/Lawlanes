@@ -26,7 +26,7 @@ import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '@/lib/constants';
 import { compressImageToBase64 } from '@/lib/image-utils';
 import { cn } from '@/lib/utils';
 import jsQR from 'jsqr';
-import { notifyPaymentCompletedAction, markInstallmentPaidAction, markCasePaidAction } from '@/app/actions/chat-actions';
+import { markInstallmentPaidAction, markCasePaidAction } from '@/app/actions/chat-actions';
 
 
 function PaymentPageContent() {
@@ -353,18 +353,8 @@ function PaymentPageContent() {
 
                 setPaymentSuccess(true);
 
-                // Fire email notifications (non-blocking)
-                // ยอดและผลตรวจสลิปใช้ของที่ server ตอบกลับมา — เดิมส่ง finalFee และ
-                // !!slipOkData จากเบราว์เซอร์ อีเมลจึงบอกทนายว่า "ตรวจแล้ว" ได้ทั้งที่
-                // server ตัดสินว่ารอแอดมินตรวจ
-                notifyPaymentCompletedAction({
-                    chatId,
-                    lawyerId: lawyerId || '',
-                    amount: result.amount ?? 0,
-                    caseTitle: `งวดที่ ${installmentIndex + 1}`,
-                    payerName: user?.displayName || 'ลูกความ',
-                    isAutoApproved: result.isAutoApproved === true,
-                }).catch(e => console.error('Installment payment notification failed:', e));
+                // อีเมลแจ้งทนาย/ลูกความ/แอดมิน ส่งจาก server ใน markInstallmentPaidAction แล้ว
+                // (เดิมหน้านี้เรียก notifyPaymentCompletedAction เองพร้อมยอดจากเบราว์เซอร์)
 
             } else if ((paymentType === 'additional' || paymentType === 'case') && chatId) {
                 // ======= FULL CASE / ADDITIONAL PAYMENT =======
@@ -385,14 +375,7 @@ function PaymentPageContent() {
 
                 setPaymentSuccess(true);
 
-                notifyPaymentCompletedAction({
-                    chatId: chatId || '',
-                    lawyerId: lawyerId || '',
-                    amount: result.amount ?? 0,
-                    caseTitle: paymentType === 'case' ? 'ค่าเปิดคดี' : 'ค่าบริการเพิ่มเติม',
-                    payerName: user?.displayName || 'ลูกความ',
-                    isAutoApproved: result.isAutoApproved === true,
-                }).catch(e => console.error('Payment notification failed:', e));
+                // อีเมลแจ้งเตือนส่งจาก server ใน markCasePaidAction แล้ว
             }
         } catch (error) {
             console.error("Payment error:", error);

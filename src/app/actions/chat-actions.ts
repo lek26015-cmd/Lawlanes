@@ -5,81 +5,127 @@ import * as admin from 'firebase-admin';
 import { checkRateLimit } from '@/lib/security/rate-limiter';
 import { createContractFromChat } from '@/lib/contract-service';
 import { requireUser, requireChatRole, AuthError } from '@/lib/auth-guard';
+import type { DecodedIdToken } from 'firebase-admin/auth';
 import { readSlipVerificationInTx } from '@/lib/slip-verification';
 import { redeemCouponInTx, CouponRedeemError } from '@/lib/coupon-server';
 import { getPendingAdditionalFee } from '@/lib/additional-fee';
 import { resolvePaymentAmount } from '@/app/actions/payment-actions';
 
-import { cookies } from 'next/headers';
+import { after } from 'next/server';
 
 /** เหตุผลที่ตั้งใจให้ผู้ใช้เห็นเมื่อ transaction การชำระเงินถูกปฏิเสธ (ไม่ export — ไฟล์ 'use server') */
 class PaymentRejected extends Error {}
 
+/**
+ * ผู้เรียกเป็นใครในห้องนี้ — ตัดสินจากเอกสารห้อง (clientId/userId และ
+ * lawyerProfiles/{lawyerId}.userId) ไม่ใช่จาก participants
+ *
+ * เหตุที่ไม่เชื่อ participants: เดิม ensureChatExistsAction() เปิดโล่งและ
+ * arrayUnion uid อะไรก็ได้ที่ผู้เรียกส่งมาเข้า participants → ใครก็ยัดตัวเองเข้าห้อง
+ * คนอื่นแล้วอ่านแชท/ไฟล์ได้ (firestore.rules ใช้ participants ตัดสินสิทธิ์อ่าน)
+ * participants จึงเป็นแค่ "ผลลัพธ์" ที่ server คำนวณให้ ห้ามใช้เป็นเกณฑ์
+ *
+ * ยกเว้นห้องรุ่นเก่าที่ไม่มีฟิลด์ลูกความเลย (role 'legacy') — ยอมตาม participants
+ * เพื่อไม่ให้ห้องเก่าเปิดไม่ขึ้น แต่ห้ามใช้ role นี้เขียนอะไรที่ขยายสิทธิ์ (ซ่อม participants)
+ */
+type ChatParty = {
+    role: 'client' | 'lawyer' | 'admin' | 'legacy';
+    chatData: FirebaseFirestore.DocumentData;
+    clientUid: string;
+    lawyerUid: string;
+    participants: string[];
+};
+
+async function resolveChatParty(
+    db: FirebaseFirestore.Firestore,
+    chatId: string,
+    uid: string,
+    isAdmin: boolean
+): Promise<ChatParty> {
+    const chatSnap = await db.collection('chats').doc(chatId).get();
+    if (!chatSnap.exists) throw new AuthError('Chat not found.', 404);
+    const chatData = chatSnap.data() || {};
+    const participants: string[] = Array.isArray(chatData.participants) ? chatData.participants : [];
+
+    const clientUid: string = chatData.clientId || chatData.userId || chatData.client_id || '';
+    let lawyerUid: string = '';
+    const lawyerProfileId: string = chatData.lawyerId || chatData.lawyer_id || '';
+    if (lawyerProfileId) {
+        const lp = await db.collection('lawyerProfiles').doc(lawyerProfileId).get();
+        lawyerUid = lp.data()?.userId || '';
+    }
+
+    const base = { chatData, clientUid, lawyerUid, participants };
+    if (isAdmin) return { role: 'admin', ...base };
+    if (clientUid && clientUid === uid) return { role: 'client', ...base };
+    if (lawyerUid && lawyerUid === uid) return { role: 'lawyer', ...base };
+    if (!clientUid && participants.includes(uid)) return { role: 'legacy', ...base };
+    throw new AuthError('Forbidden: not a party to this chat', 403);
+}
+
+/**
+ * uid ที่ควรอยู่ใน participants — คำนวณจากเอกสารห้องเท่านั้น (ลูกความ + ทนายของห้อง)
+ * lawyerId (id โปรไฟล์) ใส่ด้วยตามธรรมเนียมเดิมของ startConsultationAction
+ * — โปรไฟล์ที่สมัครเองมี doc id = uid ของทนาย ส่วนที่แอดมินสร้างเป็น id สุ่มซึ่งไม่ใช่ uid ของใคร
+ */
+function legitParticipants(party: ChatParty): string[] {
+    const out = new Set<string>();
+    if (party.clientUid) out.add(party.clientUid);
+    const lawyerProfileId = party.chatData.lawyerId || party.chatData.lawyer_id;
+    if (lawyerProfileId) out.add(lawyerProfileId);
+    if (party.lawyerUid) out.add(party.lawyerUid);
+    return [...out];
+}
+
+/** เติม participants ที่ขาด — เฉพาะ uid ที่มาจาก legitParticipants() ไม่เคยรับจากผู้เรียก */
+async function repairParticipants(db: FirebaseFirestore.Firestore, chatId: string, party: ChatParty) {
+    if (party.role === 'legacy') return false;
+    const missing = legitParticipants(party).filter(p => !party.participants.includes(p));
+    if (missing.length === 0) return false;
+    await db.collection('chats').doc(chatId).update({
+        participants: admin.firestore.FieldValue.arrayUnion(...missing)
+    });
+    return true;
+}
+
 export async function getChatDetailsAction(chatId: string) {
     try {
-        const adminApp = await initAdmin();
-        if (!adminApp) return { success: false, error: 'Firebase Admin not initialized.' };
+        // ตัวตนจาก session เสมอ (requireUser ตรวจ revoke ด้วย)
+        let uid: string, token: DecodedIdToken, adminApp;
+        try {
+            ({ uid, token, adminApp } = await requireUser());
+        } catch (e) {
+            if (e instanceof AuthError) return { success: false, error: 'Unauthorized: No session found.' };
+            throw e;
+        }
         const db = adminApp.firestore();
+        const isAdminCaller = token.admin === true || token.role === 'admin';
 
-        // AUTH CHECK: Verify requester is a participant OR an admin
-        const cookieStore = await cookies();
-        const sessionCookie = cookieStore.get('session')?.value;
-        if (!sessionCookie) return { success: false, error: 'Unauthorized: No session found.' };
-
-        const decodedToken = await adminApp.auth().verifySessionCookie(sessionCookie);
-        const requesterId = decodedToken.uid;
-        const isRequesterAdmin = decodedToken.admin === true;
-
-        const chatSnap = await db.collection('chats').doc(chatId).get();
-        if (!chatSnap.exists) return { success: false, error: 'Chat not found.' };
-        
-        const data = chatSnap.data();
-        if (!data) return { success: false, error: 'Chat data empty.' };
-        
-        const participants: string[] = data.participants || [];
-
-        // ENHANCED AUTH CHECK: Allow if UID is in participants OR if this is the lawyer for this case
-        let isAuthorizedLawyer = false;
-        const lawyerProfileId = data.lawyerId;
-        
-        if (lawyerProfileId) {
-            const lawyerProfileSnap = await db.collection('lawyerProfiles').doc(lawyerProfileId).get();
-            if (lawyerProfileSnap.exists && lawyerProfileSnap.data()?.userId === requesterId) {
-                isAuthorizedLawyer = true;
+        let party: ChatParty;
+        try {
+            party = await resolveChatParty(db, chatId, uid, isAdminCaller);
+        } catch (e) {
+            if (e instanceof AuthError && e.status === 404) return { success: false, error: 'Chat not found.' };
+            if (e instanceof AuthError) {
+                console.warn(`[Security] Unauthorized access attempt to chat ${chatId} by user ${uid}`);
+                // หน้าแชทเทียบข้อความนี้ตรงๆ เพื่อแสดง "ไม่มีสิทธิ์เข้าถึง"
+                return { success: false, error: 'Unauthorized access.' };
             }
+            throw e;
         }
 
-        if (!participants.includes(requesterId) && !isRequesterAdmin && !isAuthorizedLawyer) {
-            console.warn(`[Security] Unauthorized access attempt to chat ${chatId} by user ${requesterId}`);
-            return { success: false, error: 'Unauthorized access.' };
-        }
+        const data = party.chatData;
+        const isRequesterAdmin = party.role === 'admin';
 
-        // REPAIR: Ensure lawyerId, clientId, and requesterId (if authorized) are in participants
-        const lawyerId = data.lawyerId;
-        const clientIdFromData = data.clientId || data.userId;
-        
-        let needsRepair = false;
-        if (lawyerId && !participants.includes(lawyerId)) {
-            needsRepair = true;
-            participants.push(lawyerId);
-        }
-        if (clientIdFromData && !participants.includes(clientIdFromData)) {
-            needsRepair = true;
-            participants.push(clientIdFromData);
-        }
-        if (isAuthorizedLawyer && !participants.includes(requesterId)) {
-            needsRepair = true;
-            participants.push(requesterId);
-        }
-
-        if (needsRepair) {
+        // REPAIR: เดิมใส่ requesterId และค่าจากห้องลง participants โดยตรวจสิทธิ์จาก
+        // participants เอง (ซึ่งโดนยัดมาได้) — ตอนนี้เติมได้แค่ลูกความ/ทนายของห้องจริงเท่านั้น
+        if (await repairParticipants(db, chatId, party)) {
             console.log(`[getChatDetailsAction] Repairing participants for chat ${chatId}`);
-            await db.collection('chats').doc(chatId).update({
-                participants: admin.firestore.FieldValue.arrayUnion(...participants)
-            });
         }
 
-        const clientId = clientIdFromData || participants.find(p => p !== lawyerId);
+        const lawyerId = data.lawyerId;
+        const participants = party.participants;
+        const clientId = party.clientUid || participants.find(p => p !== lawyerId);
         
         let clientName = data.clientName || 'ลูกความ';
         
@@ -114,23 +160,19 @@ export async function getChatDetailsAction(chatId: string) {
             }
         }
 
-        // ENHANCED: Try to find the lawyer's actual UID for E2EE and dashboard sync
-        let lawyerUserId = data.lawyerUserId || null;
-        if (!lawyerUserId && lawyerId) {
-            const lp = await db.collection('lawyerProfiles').doc(lawyerId).get();
-            lawyerUserId = lp.data()?.userId || null;
-        }
+        // uid จริงของทนาย (ใช้กับ E2EE และ dashboard) — resolveChatParty อ่านมาแล้ว
+        const lawyerUserId = data.lawyerUserId || party.lawyerUid || null;
 
         return {
             success: true,
             isRequesterAdmin,
             data: JSON.parse(JSON.stringify({
-                id: chatSnap.id,
+                id: chatId,
                 ...data,
                 clientName, // Return the recovered name
                 lawyerUserId, // Return the real UID
-                createdAt: data?.createdAt?.toDate(),
-                lastMessageAt: data?.lastMessageAt?.toDate()
+                createdAt: data?.createdAt?.toDate?.(),
+                lastMessageAt: data?.lastMessageAt?.toDate?.()
             }))
         };
     } catch (error: any) {
@@ -140,50 +182,26 @@ export async function getChatDetailsAction(chatId: string) {
 }
 
 /**
- * Ensures a chat document exists between two participants.
+ * ซ่อม participants ของห้องที่มีอยู่แล้ว (หน้าแชทเรียกตอนโหลด)
+ *
+ * เดิม action นี้ไม่มีด่านเลย: ห้องยังไม่มี → สร้างห้อง `status: 'active'` ด้วย
+ * participants ที่ผู้เรียกส่งมา (= ได้เคส active ฟรีโดยไม่ผ่านการชำระเงิน) และห้องมีแล้ว →
+ * arrayUnion uid อะไรก็ได้เข้าไป (= ยัดตัวเองเข้าห้องคนอื่นแล้วอ่านแชท/ไฟล์ได้)
+ *
+ * ตอนนี้: ผู้เรียกต้องเป็นคู่กรณีของห้องอยู่แล้ว · ไม่สร้างห้องใหม่อีก (การสร้างห้อง
+ * ทำฝั่ง server เท่านั้น: createConsultationChat / respondToAppointmentRequestAction /
+ * startConsultationAction / createManualCaseAction) · เติมได้แค่ uid ลูกความและทนาย
+ * ที่อ่านจากเอกสารห้อง — พารามิเตอร์ participants/caseTitle คงไว้เพื่อไม่ให้ผู้เรียกเดิมพัง แต่ไม่ใช้แล้ว
  */
-export async function ensureChatExistsAction(chatId: string, participants: string[], caseTitle: string = 'คดี: มรดก') {
+export async function ensureChatExistsAction(chatId: string, _participants?: string[], _caseTitle?: string) {
     try {
-        const adminApp = await initAdmin();
-        if (!adminApp) return { success: false, error: 'Firebase Admin not initialized.' };
+        const { uid, token, adminApp } = await requireUser();
         const db = adminApp.firestore();
-
-        const chatRef = db.collection('chats').doc(chatId);
-        const chatSnap = await chatRef.get();
-
-        if (!chatSnap.exists) {
-            // NEW: Try to populate names from Auth immediately upon creation
-            let clientName = 'ลูกความ';
-            const clientId = participants.find(p => p.length > 20); // Basic heuristic for UID vs potential other IDs
-            
-            if (clientId) {
-                try {
-                    const userRecord = await adminApp.auth().getUser(clientId);
-                    if (userRecord.displayName) clientName = userRecord.displayName;
-                } catch (e) {}
-            }
-
-            await chatRef.set({
-                participants,
-                createdAt: admin.firestore.FieldValue.serverTimestamp(),
-                caseTitle,
-                clientName,
-                status: 'active'
-            });
-        } else {
-            const data = chatSnap.data();
-            const existingParticipants = data?.participants || [];
-            
-            // Check if participants list needs repair
-            const missingParticipants = participants.filter(p => !existingParticipants.includes(p));
-            if (missingParticipants.length > 0) {
-                await chatRef.update({
-                    participants: admin.firestore.FieldValue.arrayUnion(...missingParticipants)
-                });
-            }
-        }
+        const party = await resolveChatParty(db, chatId, uid, token.admin === true || token.role === 'admin');
+        await repairParticipants(db, chatId, party);
         return { success: true };
     } catch (error: any) {
+        if (error instanceof AuthError) return { success: false, error: error.message };
         console.error("Error ensuring chat exists action:", error);
         return { success: false, error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' };
     }
@@ -205,47 +223,62 @@ export async function sendChatMessageAction(params: {
         if (!adminApp) return { success: false, error: 'Firebase Admin not initialized.' };
         const db = adminApp.firestore();
 
-        const { chatId, text, senderId, senderName, recipientId, isLawyerView, authToken, skipMessageSave, metadata } = params;
+        const { chatId, text, senderId, authToken, skipMessageSave, metadata } = params;
+        const senderName = String(params.senderName || '').slice(0, 100);
 
-        // 0. Auth Verification — verify the caller is who they claim to be
+        // 0. Auth — ตัวตนต้องยืนยันได้เสมอ
+        // เดิมถ้าไม่ส่ง authToken มา จะเชื่อ senderId ที่ส่งมาแล้วเช็คแค่ว่าอยู่ใน participants
+        // → ส่งข้อความในนามคนอื่นได้ และถ้าส่ง token มา ก็ไม่เช็คเลยว่าเป็นคนในห้อง
+        // → ใครที่ล็อกอินก็โพสต์ลงห้องไหนก็ได้ พร้อมยิงแจ้งเตือน/อีเมลไปหา recipientId ที่ตั้งเอง
+        let callerUid: string;
+        let callerIsAdmin = false;
         if (authToken) {
             try {
-                const decodedToken = await adminApp.auth().verifyIdToken(authToken);
-                if (decodedToken.uid !== senderId) {
-                    console.error(`[Auth] Token UID mismatch: token=${decodedToken.uid}, senderId=${senderId}`);
-                    return { success: false, error: 'Unauthorized: sender identity mismatch.' };
-                }
+                const decodedToken = await adminApp.auth().verifyIdToken(authToken, true);
+                callerUid = decodedToken.uid;
+                callerIsAdmin = decodedToken.admin === true || decodedToken.role === 'admin';
             } catch (authErr: any) {
                 console.error('[Auth] Token verification failed:', authErr.message);
                 return { success: false, error: 'Unauthorized: invalid auth token.' };
             }
         } else {
-            // No token provided — verify senderId is a participant or the authorized lawyer
-            const chatSnap = await db.collection('chats').doc(chatId).get();
-            if (!chatSnap.exists) return { success: false, error: 'Chat not found.' };
-            
-            const chatData = chatSnap.data();
-            const participants: string[] = chatData?.participants || [];
-            
-            let isAuthorizedLawyer = false;
-            if (chatData?.lawyerId) {
-                const lpSnap = await db.collection('lawyerProfiles').doc(chatData.lawyerId).get();
-                if (lpSnap.exists && lpSnap.data()?.userId === senderId) {
-                    isAuthorizedLawyer = true;
-                }
-            }
+            const session = await requireUser();
+            callerUid = session.uid;
+            callerIsAdmin = session.token.admin === true || session.token.role === 'admin';
+        }
+        if (callerUid !== senderId) {
+            console.error(`[Auth] Token UID mismatch: token=${callerUid}, senderId=${senderId}`);
+            return { success: false, error: 'Unauthorized: sender identity mismatch.' };
+        }
 
-            if (!participants.includes(senderId) && !isAuthorizedLawyer) {
-                console.error(`[Auth] senderId ${senderId} is not a participant of chat ${chatId}`);
+        let party: ChatParty;
+        try {
+            party = await resolveChatParty(db, chatId, callerUid, callerIsAdmin);
+        } catch (e) {
+            if (e instanceof AuthError && e.status === 404) return { success: false, error: 'Chat not found.' };
+            if (e instanceof AuthError) {
+                console.error(`[Auth] senderId ${senderId} is not a party of chat ${chatId}`);
                 return { success: false, error: 'Unauthorized: not a participant of this chat.' };
             }
+            throw e;
+        }
 
-            // AUTO-REPAIR: If authorized lawyer but not in participants, add them now
-            if (isAuthorizedLawyer && !participants.includes(senderId)) {
-                await db.collection('chats').doc(chatId).update({
-                    participants: admin.firestore.FieldValue.arrayUnion(senderId)
-                });
-            }
+        // AUTO-REPAIR: ทนายของห้องที่ยังไม่อยู่ใน participants (เติมเฉพาะ uid ที่ได้จากเอกสารห้อง)
+        await repairParticipants(db, chatId, party);
+
+        // ฝั่งผู้ส่งและผู้รับมาจากบทบาทจริงในห้อง ไม่ใช่จากค่าที่ส่งมา
+        // (แอดมิน/ห้องรุ่นเก่าไม่รู้ฝั่งแน่ชัด จึงใช้ค่าที่ส่งมา แต่ผู้รับต้องเป็นคนในห้องเท่านั้น)
+        const isLawyerView = party.role === 'lawyer' ? true
+            : party.role === 'client' ? false
+            : params.isLawyerView === true;
+        let recipientId: string;
+        if (party.role === 'lawyer') {
+            recipientId = party.clientUid;
+        } else if (party.role === 'client') {
+            recipientId = party.lawyerUid;
+        } else {
+            const allowed = new Set([party.clientUid, party.lawyerUid, ...party.participants].filter(Boolean));
+            recipientId = allowed.has(params.recipientId) && params.recipientId !== callerUid ? params.recipientId : '';
         }
 
         // 1. Rate Limiting Protection (10 messages per 5 seconds)
@@ -303,8 +336,8 @@ export async function sendChatMessageAction(params: {
              notificationLink = `/chat/${chatId}?view=lawyer`;
         }
 
-        const notificationRef = db.collection('notifications').doc();
-        batch.set(notificationRef, {
+        // ไม่รู้ผู้รับที่แน่ชัด (เช่นห้องที่ยังไม่มีทนาย) = ไม่สร้างแจ้งเตือน ดีกว่าส่งผิดคน
+        if (recipientId) batch.set(db.collection('notifications').doc(), {
             type: metadata?.type === 'file_upload' ? 'file_upload' : 'chat_message',
             title: metadata?.type === 'file_upload' ? `เอกสารใหม่จาก ${senderName}` : `ข้อความใหม่จาก ${senderName}`,
             message: text.length > 50 ? text.substring(0, 50) + '...' : text,
@@ -320,7 +353,7 @@ export async function sendChatMessageAction(params: {
 
         // 5. Trigger Real-time Notification (Email/Push)
         // Background process: we want to start this but not let it block the core success if it's slow
-        try {
+        if (recipientId) try {
             const now = Date.now();
             const ACTIVE_THRESHOLD_MS = 120 * 1000; // Increased to 2 minutes for better UX
 
@@ -426,6 +459,7 @@ export async function sendChatMessageAction(params: {
 
         return { success: true };
     } catch (error: any) {
+        if (error instanceof AuthError) return { success: false, error: error.message };
         console.error("Error sending chat message action:", error);
         return { success: false, error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' };
     }
@@ -434,11 +468,18 @@ export async function sendChatMessageAction(params: {
 /**
  * Marks a chat as read by both lawyer or client.
  */
-export async function markChatAsReadAction(chatId: string, isLawyerView: boolean = true) {
+export async function markChatAsReadAction(chatId: string, isLawyerViewHint: boolean = true) {
     try {
-        const adminApp = await initAdmin();
-        if (!adminApp) return { success: false, error: 'Firebase Admin not initialized.' };
+        // เดิมไม่มีด่านเลย — ใครก็ยิงเปลี่ยนสถานะอ่าน/presence ของห้องไหนก็ได้
+        // (presence ใช้ตัดสินว่าจะส่งอีเมลแจ้งเตือนหรือไม่ = ปิดอีเมลแจ้งเตือนของห้องคนอื่นได้)
+        const { uid, token, adminApp } = await requireUser();
         const db = adminApp.firestore();
+        const party = await resolveChatParty(db, chatId, uid, token.admin === true || token.role === 'admin');
+
+        // ฝั่งมาจากบทบาทจริง — ลูกความตั้ง lawyerReadAt แทนทนายไม่ได้
+        const isLawyerView = party.role === 'lawyer' ? true
+            : party.role === 'client' ? false
+            : isLawyerViewHint === true;
 
         const updateData: any = {};
         if (isLawyerView) {
@@ -456,31 +497,25 @@ export async function markChatAsReadAction(chatId: string, isLawyerView: boolean
 
         // Also mark all in-app notifications for this chat as read
         try {
-            const cookieStore = await cookies();
-            const sessionCookie = cookieStore.get('session')?.value;
-            if (sessionCookie) {
-                const decodedToken = await adminApp.auth().verifySessionCookie(sessionCookie);
-                const userId = decodedToken.uid;
-                
-                const notificationsSnap = await db.collection('notifications')
-                    .where('recipient', '==', userId)
-                    .where('relatedId', '==', chatId)
-                    .where('read', '==', false)
-                    .get();
+            const notificationsSnap = await db.collection('notifications')
+                .where('recipient', '==', uid)
+                .where('relatedId', '==', chatId)
+                .where('read', '==', false)
+                .get();
 
-                if (!notificationsSnap.empty) {
-                    const batch = db.batch();
-                    notificationsSnap.docs.forEach(doc => {
-                        batch.update(doc.ref, { read: true });
-                    });
-                    await batch.commit();
-                }
+            if (!notificationsSnap.empty) {
+                const batch = db.batch();
+                notificationsSnap.docs.forEach(doc => {
+                    batch.update(doc.ref, { read: true });
+                });
+                await batch.commit();
             }
         } catch (notifErr) {
             console.warn("[markChatAsReadAction] Failed to clear notifications:", notifErr);
         }
         return { success: true };
     } catch (error: any) {
+        if (error instanceof AuthError) return { success: false, error: error.message };
         console.error("Error marking chat as read action:", error);
         return { success: false, error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' };
     }
@@ -595,34 +630,34 @@ export async function requestFeeAction(params: {
 }
 
 /**
- * Sends email notifications after a payment is completed.
- * Called from the client-side payment page.
+ * อีเมลแจ้งทนาย / ลูกความ / แอดมิน หลังบันทึกการชำระเงินแล้ว
+ *
+ * เดิมเป็น action ที่เปิดโล่ง (notifyPaymentCompletedAction) ให้หน้า payment เรียกเอง
+ * พร้อม amount / isAutoApproved / lawyerId / payerName จากเบราว์เซอร์ → ใครก็ยิงอีเมล
+ * "ได้รับชำระเงินแล้ว ฿xxx (ตรวจสลิปแล้ว)" ในนาม Lawslane ไปหาทนายคนไหนก็ได้ (ทนาย
+ * อาจเริ่มงานทั้งที่ยังไม่มีเงินเข้า) และยิงซ้ำให้กล่องแอดมินท่วมได้
+ * ตอนนี้ไม่ export แล้ว — markInstallmentPaidAction / markCasePaidAction เรียกเองหลัง
+ * transaction สำเร็จ ด้วยยอดและผลตรวจสลิปของ server และทนายอ่านจากเอกสารห้อง
  */
-export async function notifyPaymentCompletedAction(params: {
+async function sendPaymentCompletedEmails(db: FirebaseFirestore.Firestore, params: {
     chatId: string;
-    lawyerId: string;
+    chatData: FirebaseFirestore.DocumentData;
     amount: number;
     caseTitle: string;
     payerName: string;
     isAutoApproved: boolean;
-    skipAdminNotification?: boolean;
 }) {
     try {
-        const adminApp = await initAdmin();
-        if (!adminApp) return { success: false, error: 'Firebase Admin not initialized.' };
-        const db = adminApp.firestore();
-
-        const { chatId, lawyerId, amount, caseTitle, payerName, isAutoApproved, skipAdminNotification } = params;
+        const { chatId, chatData, amount, caseTitle, payerName, isAutoApproved } = params;
+        const lawyerId: string = chatData.lawyerId || chatData.lawyer_id || '';
 
         // Fetch lawyer info
-        const lawyerDoc = await db.collection('lawyerProfiles').doc(lawyerId).get();
-        const lawyerData = lawyerDoc.exists ? lawyerDoc.data() : null;
+        const lawyerDoc = lawyerId ? await db.collection('lawyerProfiles').doc(lawyerId).get() : null;
+        const lawyerData = lawyerDoc?.exists ? lawyerDoc.data() : null;
         const lawyerEmail = lawyerData?.email;
         const lawyerName = lawyerData?.name || 'ทนายความ';
 
         // Fetch client info from chat
-        const chatDoc = await db.collection('chats').doc(chatId).get();
-        const chatData = chatDoc.exists ? chatDoc.data() : null;
         const clientId = chatData?.clientId || chatData?.userId;
         let clientEmail = '';
         let clientName = payerName;
@@ -640,7 +675,7 @@ export async function notifyPaymentCompletedAction(params: {
 
         // Notify lawyer
         if (lawyerEmail) {
-            console.log(`[notifyPaymentCompletedAction] Sending email to lawyer: ${lawyerEmail}`);
+            console.log(`[sendPaymentCompletedEmails] Sending email to lawyer: ${lawyerEmail}`);
             await NotificationService.notifyPaymentReceived({
                 lawyerName,
                 lawyerEmail,
@@ -651,12 +686,12 @@ export async function notifyPaymentCompletedAction(params: {
                 isAutoApproved,
             });
         } else {
-            console.warn(`[notifyPaymentCompletedAction] No lawyer email found for lawyerId: ${lawyerId}`);
+            console.warn(`[sendPaymentCompletedEmails] No lawyer email found for lawyerId: ${lawyerId}`);
         }
 
         // Confirm to client
         if (clientEmail) {
-            console.log(`[notifyPaymentCompletedAction] Sending email to client: ${clientEmail}`);
+            console.log(`[sendPaymentCompletedEmails] Sending email to client: ${clientEmail}`);
             await NotificationService.notifyClientPaymentConfirmation({
                 clientName,
                 clientEmail,
@@ -668,23 +703,18 @@ export async function notifyPaymentCompletedAction(params: {
             });
         }
 
-        // Notify Admin only if not skipped
-        if (!skipAdminNotification) {
-            console.log(`[notifyPaymentCompletedAction] Sending email to admins`);
-            await NotificationService.notifyAdminPaymentReceived({
-                lawyerName,
-                clientName,
-                amount,
-                caseTitle: caseTitle || chatData?.caseTitle || 'เคส',
-                chatId,
-                isAutoApproved,
-            });
-        }
-
-        return { success: true };
+        console.log(`[sendPaymentCompletedEmails] Sending email to admins`);
+        await NotificationService.notifyAdminPaymentReceived({
+            lawyerName,
+            clientName,
+            amount,
+            caseTitle: caseTitle || chatData?.caseTitle || 'เคส',
+            chatId,
+            isAutoApproved,
+        });
     } catch (error: any) {
-        console.error("Error in notifyPaymentCompletedAction:", error);
-        return { success: false, error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' };
+        // อีเมลล้มต้องไม่ทำให้การชำระเงินที่บันทึกแล้วดูเหมือนล้ม
+        console.error("Error in sendPaymentCompletedEmails:", error);
     }
 }
 
@@ -867,13 +897,22 @@ export async function markInstallmentPaidAction(params: {
             type: 'system_payment'
         });
 
+        // อีเมลแจ้งเตือนส่งหลังตอบกลับแล้ว (after) ด้วยยอด/ผลตรวจของ server
+        after(() => sendPaymentCompletedEmails(db, {
+            chatId: params.chatId,
+            chatData: outcome.chatData,
+            amount,
+            caseTitle: `งวดที่ ${params.installmentIndex + 1}`,
+            payerName: params.payerName || 'ลูกความ',
+            isAutoApproved: outcome.isAutoApproved,
+        }));
+
         return {
             success: true,
             paidInstallments: outcome.paidInstallments,
             totalPaid: outcome.totalPaid,
             allPaid: outcome.allPaid,
             isFirstPayment: outcome.isFirstPayment,
-            // หน้าเว็บใช้สองค่านี้ส่งอีเมลแจ้งเตือน — ต้องเป็นผลจาก server ไม่ใช่ตัวแปรในเบราว์เซอร์
             isAutoApproved: outcome.isAutoApproved,
             amount,
         };
@@ -891,22 +930,22 @@ export async function markInstallmentPaidAction(params: {
  */
 export async function deleteFileAction(chatId: string, fileUrl: string) {
     try {
-        const adminApp = await initAdmin();
-        if (!adminApp) return { success: false, error: 'Firebase Admin not initialized.' };
+        // เดิมไม่มีด่านเลย — ใครก็ลบไฟล์ (หลักฐาน/เอกสารคดี) ออกจากห้องของคนอื่นได้
+        // ตอนนี้: ต้องเป็นคู่กรณีของห้อง และลบได้เฉพาะไฟล์ที่ตัวเองอัป
+        // (ทนายของห้องและแอดมินลบได้ทุกไฟล์ในห้อง)
+        const { uid, token, adminApp } = await requireUser();
         const db = adminApp.firestore();
+        const party = await resolveChatParty(db, chatId, uid, token.admin === true || token.role === 'admin');
 
         const chatRef = db.collection('chats').doc(chatId);
-        const chatSnap = await chatRef.get();
-
-        if (!chatSnap.exists) {
-            return { success: false, error: 'ไม่พบห้องแชท' };
-        }
-
-        const data = chatSnap.data();
-        const files = data?.files || [];
+        const files = party.chatData.files || [];
         const fileToRemove = files.find((f: any) => f.url === fileUrl);
 
         if (fileToRemove) {
+            const canDelete = party.role === 'admin' || party.role === 'lawyer' || fileToRemove.uploadedBy === uid;
+            if (!canDelete) {
+                return { success: false, error: 'ลบได้เฉพาะไฟล์ที่คุณอัปโหลดเอง' };
+            }
             await chatRef.update({
                 files: admin.firestore.FieldValue.arrayRemove(fileToRemove),
                 updatedAt: admin.firestore.FieldValue.serverTimestamp()
@@ -915,32 +954,14 @@ export async function deleteFileAction(chatId: string, fileUrl: string) {
 
         return { success: true };
     } catch (error: any) {
+        if (error instanceof AuthError) return { success: false, error: error.status === 404 ? 'ไม่พบห้องแชท' : error.message };
         console.error("Error in deleteFileAction:", error);
         return { success: false, error: 'เกิดข้อผิดพลาดในการลบไฟล์' };
     }
 }
 
-/**
- * Sends a test email via NotificationService.
- */
-export async function sendEmailAction(chatId: string, to: string, subject: string) {
-    try {
-        const { NotificationService } = await import('@/services/notification-service');
-        const res = await NotificationService.sendEmail(to, subject, `
-            <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
-                <h2 style="color: #2563eb;">Lawslane Notification Test</h2>
-                <p>อีเมลฉบับนี้เป็นการทดสอบระบบแจ้งเตือนจากห้องแชท ID: <b>\${chatId}</b></p>
-                <p>หากท่านได้รับข้อความนี้ แสดงว่าระบบการส่งอีเมลของ Lawslane ทำงานได้ปกติครับ</p>
-                <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
-                <p style="font-size: 12px; color: #666;">ส่งเมื่อ: \${new Date().toLocaleString('th-TH')}</p>
-            </div>
-        `);
-        return res;
-    } catch (error: any) {
-        console.error("Error in sendEmailAction:", error);
-        return { success: false, error: error.message };
-    }
-}
+// sendEmailAction (ส่งอีเมล "ทดสอบ" ไปที่อยู่ใดก็ได้ หัวข้อใดก็ได้ ไม่มีด่านตรวจสิทธิ์
+// = open relay ในนามโดเมนเรา) ถูกลบออกแล้ว — ไม่มีโค้ดส่วนไหนเรียกใช้
 
 /**
  * Marks a full case or additional fee as paid
@@ -1112,7 +1133,15 @@ export async function markCasePaidAction(params: {
             }
         }
 
-        // หน้าเว็บใช้สองค่านี้ส่งอีเมลแจ้งเตือน — ต้องเป็นผลจาก server ไม่ใช่ตัวแปรในเบราว์เซอร์
+        after(() => sendPaymentCompletedEmails(db, {
+            chatId: params.chatId,
+            chatData,
+            amount,
+            caseTitle: params.type === 'case' ? 'ค่าเปิดคดี' : 'ค่าบริการเพิ่มเติม',
+            payerName: params.payerName || 'ลูกความ',
+            isAutoApproved,
+        }));
+
         return { success: true, isAutoApproved, amount };
     } catch (error: any) {
         if (error instanceof AuthError) return { success: false, error: error.message };
