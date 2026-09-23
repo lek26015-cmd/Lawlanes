@@ -4,7 +4,7 @@ import { initAdmin } from '@/lib/firebase-admin';
 import * as admin from 'firebase-admin';
 import { checkRateLimit } from '@/lib/security/rate-limiter';
 import { createContractFromChat } from '@/lib/contract-service';
-import { requireChatRole, AuthError } from '@/lib/auth-guard';
+import { requireUser, requireChatRole, AuthError } from '@/lib/auth-guard';
 import { readSlipVerificationInTx } from '@/lib/slip-verification';
 import { redeemCouponInTx, CouponRedeemError } from '@/lib/coupon-server';
 import { getPendingAdditionalFee } from '@/lib/additional-fee';
@@ -497,6 +497,18 @@ export async function requestFeeAction(params: {
     reason: string;
 }) {
     try {
+        // เดิมไม่มีด่านตรวจสิทธิ์ — และ pendingFeeRequest.amount คือยอดที่
+        // resolvePaymentAmount('additional') ใช้เรียกเก็บ ลูกความจึงยิงตั้งคำขอ
+        // ฿1 ให้ห้องตัวเองแล้วจ่าย ฿1 ได้ ต้องเป็นทนายของห้องนี้ (หรือแอดมิน) เท่านั้น
+        const { role } = await requireChatRole(params.chatId);
+        if (role === 'client') {
+            return { success: false, error: 'เฉพาะทนายความของเคสนี้เท่านั้นที่แจ้งค่าบริการได้' };
+        }
+        const requested = Number(params.amount);
+        if (!Number.isFinite(requested) || requested <= 0 || Math.round(requested * 100) / 100 !== requested) {
+            return { success: false, error: 'จำนวนเงินไม่ถูกต้อง' };
+        }
+
         const adminApp = await initAdmin();
         if (!adminApp) return { success: false, error: 'Firebase Admin not initialized.' };
         const db = adminApp.firestore();
@@ -576,6 +588,7 @@ export async function requestFeeAction(params: {
 
         return { success: true };
     } catch (error: any) {
+        if (error instanceof AuthError) return { success: false, error: error.message };
         console.error("Error in requestFeeAction:", error);
         return { success: false, error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' };
     }
@@ -1085,6 +1098,14 @@ export async function markCasePaidAction(params: {
  */
 export async function approveInstallmentAction(chatId: string, installmentIndex: number) {
     try {
+        // เดิมไม่มีด่านตรวจสิทธิ์ — ลูกความแนบสลิปอะไรก็ได้ (pending_verification)
+        // แล้วยิง action นี้อนุมัติงวดของตัวเองเป็น 'paid' เปิดเคสเป็น 'active' ได้
+        // โดยไม่มีใครตรวจว่าเงินเข้าจริง ต้องเป็นทนายของเคสหรือแอดมินเท่านั้น
+        const { role } = await requireChatRole(chatId);
+        if (role === 'client') {
+            return { success: false, error: 'ลูกความไม่สามารถอนุมัติการชำระเงินของตัวเองได้' };
+        }
+
         const adminApp = await initAdmin();
         if (!adminApp) return { success: false, error: 'Firebase Admin not initialized.' };
         const db = adminApp.firestore();
@@ -1159,6 +1180,7 @@ export async function approveInstallmentAction(chatId: string, installmentIndex:
 
         return { success: true };
     } catch (error: any) {
+        if (error instanceof AuthError) return { success: false, error: error.message };
         console.error("Error approving installment:", error);
         return { success: false, error: error.message };
     }
@@ -1170,32 +1192,31 @@ export async function approveInstallmentAction(chatId: string, installmentIndex:
  */
 export async function startConsultationAction(params: {
     lawyerId: string;
-    clientId: string;
+    /** @deprecated ไม่ใช้แล้ว — ลูกความคือผู้เรียก (อ่านจาก session) */
+    clientId?: string;
     clientName: string;
     initialMessage: string;
     locale: string;
 }) {
-    const { lawyerId, clientId, clientName, initialMessage, locale } = params;
+    const { lawyerId, clientName, initialMessage, locale } = params;
 
     try {
-        const adminApp = await initAdmin();
-        if (!adminApp) return { success: false, error: 'Firebase Admin not initialized.' };
+        // ตัวตนลูกความมาจาก session เท่านั้น — เดิมไม่มีด่านตรวจสิทธิ์เลยและเชื่อ
+        // clientId ที่ส่งมา → ใครก็เปิดห้องแชทในนามคนอื่นได้ (ผู้ใช้คนนั้นกลายเป็น
+        // participant ของห้องที่ตัวเองไม่ได้เปิด พร้อมข้อความที่คนอื่นพิมพ์ในนามเขา)
+        const { uid: clientId, adminApp } = await requireUser();
         const db = adminApp.firestore();
 
-        // 1. Resolve Lawyer Auth UID
-        let lawyerAuthId = lawyerId;
-        let lawyerEmail = '';
-        let lawyerLineId = '';
-        let lawyerName = 'ทนายความ';
-        
+        // 1. Resolve Lawyer Auth UID — ทนายต้องมีโปรไฟล์จริง
+        // เดิมโปรไฟล์ไม่มีก็ fallback ใช้ lawyerId ที่ส่งมาเป็น uid ใส่ participants ตรงๆ
         const lpSnap = await db.collection('lawyerProfiles').doc(lawyerId).get();
-        if (lpSnap.exists) {
-            const lpData = lpSnap.data();
-            lawyerAuthId = lpData?.userId || lawyerId;
-            lawyerEmail = lpData?.email || '';
-            lawyerLineId = lpData?.lineId || '';
-            lawyerName = lpData?.name || lawyerName;
-        }
+        const lpData = lpSnap.exists ? lpSnap.data() : null;
+        if (!lpData?.userId) return { success: false, error: 'ไม่พบทนายความปลายทาง' };
+        const lawyerAuthId: string = lpData.userId;
+        if (lawyerAuthId === clientId) return { success: false, error: 'ไม่สามารถเปิดห้องสนทนากับตัวเองได้' };
+        const lawyerEmail = lpData.email || '';
+        const lawyerLineId = lpData.lineId || '';
+        const lawyerName = lpData.name || 'ทนายความ';
 
         const chatId = db.collection('chats').doc().id;
         const participants = Array.from(new Set([clientId, lawyerId, lawyerAuthId]));
@@ -1270,6 +1291,7 @@ export async function startConsultationAction(params: {
 
         return { success: true, chatId };
     } catch (error: any) {
+        if (error instanceof AuthError) return { success: false, error: error.message };
         console.error("Error in startConsultationAction:", error);
         return { success: false, error: error.message };
     }
