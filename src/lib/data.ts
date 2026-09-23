@@ -118,7 +118,7 @@ export async function getLawyerDashboardData(db: Firestore, lawyerId: string): P
   try {
     // 1. Fetch appointments and chats in parallel
     const appointmentsRef = collection(db, 'appointments');
-    const requestsQuery = query(appointmentsRef, where('lawyerId', '==', lawyerId), where('status', '==', 'paid'), limit(50)); // รับได้เฉพาะนัดที่จ่ายแล้ว — ดู dashboard-actions.ts
+    const requestsQuery = query(appointmentsRef, where('lawyerId', '==', lawyerId), where('status', 'in', ['pending', 'paid']), limit(50)); // คำขอนัดหมายที่รอตอบรับ — ดู dashboard-actions.ts
 
     const chatsRef = collection(db, 'chats');
     const casesQuery = query(chatsRef, where('participants', 'array-contains', lawyerId), limit(100));

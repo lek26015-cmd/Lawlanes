@@ -358,10 +358,9 @@ export async function getLawyerDashboardDataAction(): Promise<{ newRequests: Law
         // 1. Fetch appointments and chats
         const requestsSnap = await db.collection('appointments')
             .where('lawyerId', '==', lawyerProfileId)
-            // คำขอที่ทนายรับได้คือนัดที่ "จ่ายแล้ว" เท่านั้น (respondToAppointmentRequestAction
-            // ยอมรับเฉพาะ status 'paid') — เดิมดึง 'pending' ซึ่ง createAppointment ไม่เคย
-            // สร้าง คำขอที่ลูกความจ่ายแล้วจึงไม่เคยขึ้นให้ทนายเห็น
-            .where('status', '==', 'paid')
+            // คำขอนัดหมายฟรีที่รอตอบรับ (requestAppointmentAction สร้างที่ 'pending')
+            // คำขอรุ่นเก่าที่ค้าง 'paid' (จ่ายผ่านแพลตฟอร์มแล้วแต่ยังไม่มีคนรับ) ก็ต้องขึ้นให้เห็นด้วย
+            .where('status', 'in', ['pending', 'paid'])
             .limit(50)
             .get();
 

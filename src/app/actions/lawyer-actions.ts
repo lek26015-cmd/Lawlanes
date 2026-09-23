@@ -730,10 +730,10 @@ export async function repairChatDocumentsAction(chatId: string) {
  * ของ chats — กฎเดียวกับที่ทำให้ใครก็สร้างเคสพร้อม `amount: 0, status: 'paid'` ได้
  * ย้ายมาที่นี่เพื่อให้ปิดกฎนั้นได้ และเพื่อยืนยันว่าคนกดรับเป็นทนายเจ้าของคำขอจริง
  *
- * รับเคสได้เฉพาะนัดหมายที่ **ชำระเงินแล้ว** ('paid' — ตั้งโดย createAppointment เมื่อ
- * สลิปผ่าน SlipOK หรือโดย approvePaymentSlipAction ของแอดมิน) และยังไม่มีห้องแชท
- * เดิมรับได้ทุกสถานะและไม่เช็คว่าเคยรับแล้วหรือยัง → รับนัดหมายที่ยังไม่จ่าย
- * (pending_payment) ได้เป็นห้อง 'active' และกดรับซ้ำ = ห้องซ้ำหลายห้อง
+ * รับเคสได้เฉพาะคำขอที่ยังรอตอบรับ ('pending' — สร้างโดย requestAppointmentAction ซึ่งฟรี
+ * ไม่ผ่านการชำระเงินของแพลตฟอร์มแล้ว) และยังไม่มีห้องแชท · คำขอรุ่นเก่าที่จ่ายผ่านแพลตฟอร์ม
+ * ('paid') ยังรับได้ · 'pending_payment' รุ่นเก่า (ยังไม่ได้จ่ายตามโมเดลเดิม) ก็รับได้เพราะ
+ * ตอนนี้นัดหมายไม่มีค่าใช้จ่ายผ่านระบบแล้ว · กดรับซ้ำไม่ได้ (chatId / confirmed)
  * อ่าน + เขียนอยู่ใน transaction เดียว กันกดพร้อมกันสองแท็บแล้วได้สองห้อง
  */
 export async function respondToAppointmentRequestAction(input: {
@@ -772,8 +772,8 @@ export async function respondToAppointmentRequestAction(input: {
                 return undefined;
             }
 
-            if (appt.status !== 'paid') {
-                throw new AppointmentRejected('คำขอนี้ยังไม่ได้ชำระเงิน รอให้แอดมินตรวจสอบสลิปก่อน');
+            if (!['pending', 'paid', 'pending_payment'].includes(appt.status ?? 'pending')) {
+                throw new AppointmentRejected('คำขอนี้ไม่อยู่ในสถานะที่รับได้');
             }
 
             const clientId = appt.userId || appt.clientId;
@@ -793,8 +793,8 @@ export async function respondToAppointmentRequestAction(input: {
                 userId: clientId,
                 caseTitle: appt.caseTitle || appt.description || 'เคสจากคำขอนัดหมาย',
                 status: 'active',
-                // ห้องนี้เกิดจากนัดหมายที่ชำระเงินแล้ว ยอดอยู่ที่เอกสาร appointments
-                // ไม่ตั้ง amount ซ้ำตรงนี้เพื่อไม่ให้ถูกนับรายได้สองรอบ
+                // แชทฟรี — ค่าบริการ (ถ้ามี) ทนายเสนอในห้องนี้ภายหลัง และลูกความจ่ายทนายโดยตรง
+                amount: 0,
                 appointmentId: input.appointmentId,
                 createdAt: admin.firestore.FieldValue.serverTimestamp(),
                 lastMessageAt: admin.firestore.FieldValue.serverTimestamp(),
