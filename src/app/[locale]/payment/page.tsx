@@ -1,137 +1,105 @@
-
 'use client'
 
 import React, { useState, useEffect, Suspense, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Link } from '@/navigation';
-import { getPublicLawyerAction, getMyLawyerProfileAction, type PublicLawyer } from '@/app/actions/lawyer-directory-actions';
-import { ArrowLeft, Calendar, User, CheckCircle, MessageSquare, Pencil, Loader2, Landmark, Upload, Copy, AlertCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle, Loader2, Landmark, Upload, Copy, AlertCircle, MessageSquare, Clock } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { format } from 'date-fns';
-import { useToast } from '@/hooks/use-toast';
-import { resolvePaymentAmount, createConsultationChat, createAppointment, type PaymentType, type ResolvedPrice } from '@/app/actions/payment-actions';
-import { useChat } from '@/context/chat-context';
 import { Textarea } from '@/components/ui/textarea';
-import { v4 as uuidv4 } from 'uuid';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { useToast } from '@/hooks/use-toast';
 import { useFirebase } from '@/firebase';
-import { doc, getDoc } from 'firebase/firestore';
-import { errorEmitter, FirestorePermissionError } from '@/firebase';
 import { saveBase64SlipAction } from '@/app/actions/upload';
+import {
+    getDirectPaymentInfoAction,
+    notifyDirectPaymentAction,
+    type DirectPaymentInfo,
+    type DirectPaymentType,
+} from '@/app/actions/direct-payment-actions';
 import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '@/lib/constants';
 import { compressImageToBase64 } from '@/lib/image-utils';
 import { cn } from '@/lib/utils';
-import jsQR from 'jsqr';
-import { markInstallmentPaidAction, markCasePaidAction } from '@/app/actions/chat-actions';
 
+/**
+ * หน้า "โอนให้ทนายโดยตรง"
+ *
+ * เดิมหน้านี้คือหน้าชำระเงินเข้าบัญชีของแพลตฟอร์ม (บัญชี KBank บุคคลที่ hardcode ไว้) สำหรับ
+ * Ticket ฿500 / นัดหมาย ฿3,500 / ค่าเปิดคดี / งวด / ค่าบริการเพิ่มเติม พร้อมตรวจสลิป SlipOK และคูปอง
+ * ตอนนี้ Lawslane ไม่รับและไม่ถือเงินลูกความแล้ว (LAWSLANE-PLAN-05):
+ *   - แชทฟรี นัดหมายฟรี → ไม่มีอะไรต้องจ่ายผ่านหน้านี้
+ *   - ค่าบริการที่ทนายเสนอ → แสดงบัญชีของทนายเจ้าของเคส ลูกความโอนเอง แล้วกดแจ้งทนาย
+ *     (แนบรูปหลักฐานได้) ทนายเป็นคนกดยืนยันรับเงินในห้องแชท
+ *
+ * คง path /payment ไว้เพราะลิงก์ในอีเมล/แจ้งเตือน/ข้อความแชทที่ส่งไปแล้วชี้มาที่นี่
+ * (`?chatId=...&type=case|installment|additional|consultation`) ยอดทั้งหมดอ่านจาก server
+ * ไม่ใช้ `?amount=` ใน URL
+ */
+
+function normalizeType(t: string | null): DirectPaymentType | undefined {
+    if (t === 'case' || t === 'installment' || t === 'additional') return t;
+    // ลิงก์รุ่นเก่าจาก requestFeeAction ใช้ type=consultation กับคำขอค่าบริการ (pendingFeeRequest)
+    if (t === 'consultation') return 'additional';
+    return undefined;
+}
 
 function PaymentPageContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
     const { toast } = useToast();
-    const { setInitialChatMessage } = useChat();
-    const { firestore, user } = useFirebase();
+    const { user, isUserLoading } = useFirebase();
 
-    const paymentType = searchParams.get('type') || 'appointment';
-    const lawyerId = searchParams.get('lawyerId');
     const chatId = searchParams.get('chatId');
-    const amountParam = searchParams.get('amount');
-    const dateStr = searchParams.get('date');
-    const description = searchParams.get('description');
-    const installmentIndexParam = searchParams.get('installmentIndex');
-    const installmentIndex = installmentIndexParam !== null ? parseInt(installmentIndexParam) : null;
+    const wantType = normalizeType(searchParams.get('type'));
+    const idxParam = searchParams.get('installmentIndex');
+    const wantIndex = idxParam !== null && /^\d+$/.test(idxParam) ? parseInt(idxParam, 10) : undefined;
 
-    const [lawyer, setLawyer] = useState<PublicLawyer | null>(null);
+    const [info, setInfo] = useState<DirectPaymentInfo | null>(null);
+    const [loadError, setLoadError] = useState<string | null>(null);
     const [isLoading, setIsLoading] = useState(true);
-    const [isProcessing, setIsProcessing] = useState(false);
-    const [paymentSuccess, setPaymentSuccess] = useState(false);
-    const [initialMessage, setInitialMessage] = useState(description || '');
-    const [slipFile, setSlipFile] = useState<File | null>(null);
-    const [slipPreview, setSlipPreview] = useState<string | null>(null);
-    const [isVerifyingSlip, setIsVerifyingSlip] = useState(false);
-    // ผลตรวจสลิปใช้แค่แสดงผลบนหน้าจอ — ตัวที่ใช้อ้างสิทธิ์จริงคือ slipVerificationId
-    // ที่ /api/verify-slip ออกให้และเก็บผลไว้ฝั่ง server (ดู lib/slip-verification.ts)
-    const [slipOkData, setSlipOkData] = useState<any | null>(null);
-    const [slipVerificationId, setSlipVerificationId] = useState<string | null>(null);
-    const [slipVerificationFailed, setSlipVerificationFailed] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [done, setDone] = useState(false);
+    const [proofFile, setProofFile] = useState<File | null>(null);
+    const [proofPreview, setProofPreview] = useState<string | null>(null);
+    const [note, setNote] = useState('');
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    // Coupon State
-    const [couponCode, setCouponCode] = useState('');
-    const [appliedCoupon, setAppliedCoupon] = useState<any | null>(null);
-    // ยอดทั้งหมดมาจาก server เท่านั้น (resolvePaymentAmount) — ห้ามคำนวณเองฝั่ง client
-    const [serverPrice, setServerPrice] = useState<Extract<ResolvedPrice, { ok: true }> | null>(null);
-    const [isCheckingCoupon, setIsCheckingCoupon] = useState(false);
-    const [caseData, setCaseData] = useState<any | null>(null);
-
-
-    // ค่าบริการและส่วนลดคิดฝั่ง server ทั้งหมด
-    // เดิม fee ของ case/installment/additional อ่านจาก ?amount= ใน URL ตรงๆ
-    // ตั้ง ?amount=1 แล้วจ่าย 1 บาทได้ และส่วนลดก็คำนวณเองฝั่ง client
-    const fee = serverPrice?.baseFee ?? 0;
-    const discountAmount = serverPrice?.discount ?? 0;
-    const finalFee = serverPrice?.finalAmount ?? 0;
-
-    // Installment-specific metadata
-    const installmentData = (paymentType === 'installment' && installmentIndex !== null && caseData?.installments?.[installmentIndex])
-        ? caseData.installments[installmentIndex]
-        : null;
-
-    const title = paymentType === 'installment'
-        ? `ชำระค่าบริการ — งวดที่ ${(installmentIndex ?? 0) + 1}`
-        : paymentType === 'chat' ? 'ยืนยันการเปิด Ticket สนทนา' : (paymentType === 'additional' ? 'ชำระค่าบริการเพิ่มเติม' : (paymentType === 'case' ? 'ชำระค่าบริการเพื่อเริ่มงาน' : 'ยืนยันการนัดหมายและชำระเงิน'));
-    const descriptionText = paymentType === 'installment'
-        ? `ชำระเงินงวดที่ ${(installmentIndex ?? 0) + 1}: ${installmentData?.description || 'ตามแผนการชำระเงิน'}`
-        : paymentType === 'chat' ? 'กรุณาตรวจสอบรายละเอียดและดำเนินการชำระเงินค่าเปิด Ticket' : (paymentType === 'additional' ? 'กรุณาชำระค่าบริการเพิ่มเติมตามที่ทนายความร้องขอ' : (paymentType === 'case' ? 'กรุณาชำระค่าบริการเพื่อเริ่มต้นคดีตามที่คุณได้รับแจ้ง' : 'กรุณาตรวจสอบรายละเอียดและดำเนินการชำระเงินค่าปรึกษา'));
-
     useEffect(() => {
-        async function fetchLawyer() {
-            if (!lawyerId || !firestore) {
-                setIsLoading(false);
-                return;
-            }
-
-            if (user) {
-                // เดิม query ทั้ง collection ด้วย where userId จาก browser — ตอนนี้ถามฝั่ง server
-                // (requireLawyer หาโปรไฟล์จาก userId จริง จึงครอบคลุมโปรไฟล์ที่แอดมินสร้าง
-                // ซึ่ง doc id ไม่ใช่ uid ด้วย ต่างจากการ getDoc ด้วย uid ตรงๆ)
-                const selfLawyerProfile = await getMyLawyerProfileAction();
-                if (selfLawyerProfile) {
-                    toast({
-                        variant: "destructive",
-                        title: "ไม่สามารถทำรายการได้",
-                        description: "บัญชีทนายความไม่สามารถชำระเงินค่าบริการได้"
-                    });
-                    router.push('/lawyer-dashboard');
-                    return;
-                }
-            }
-
+        if (!chatId) { setIsLoading(false); return; }
+        if (isUserLoading) return;
+        if (!user) { setIsLoading(false); setLoadError('กรุณาเข้าสู่ระบบก่อน'); return; }
+        let cancelled = false;
+        (async () => {
             setIsLoading(true);
-            // ใช้แค่ชื่อ/รูป — โปรไฟล์สาธารณะผ่าน server action
-            const lawyerData = await getPublicLawyerAction(lawyerId);
-            setLawyer(lawyerData || null);
-
-            if (chatId && (paymentType === 'case' || paymentType === 'installment')) {
-                const chatSnap = await getDoc(doc(firestore, 'chats', chatId));
-                if (chatSnap.exists()) {
-                    setCaseData(chatSnap.data());
-                }
-            }
+            const res = await getDirectPaymentInfoAction(chatId, { type: wantType, installmentIndex: wantIndex });
+            if (cancelled) return;
+            if (res.ok) setInfo(res.data); else setLoadError(res.error);
             setIsLoading(false);
-        }
-        fetchLawyer();
-    }, [lawyerId, firestore, user, router, toast]);
+        })();
+        return () => { cancelled = true; };
+    }, [chatId, wantType, wantIndex, user, isUserLoading]);
 
-    const uploadSlip = async (file: File) => {
-        let base64Data = '';
+    const copyToClipboard = (text: string) => {
+        navigator.clipboard.writeText(text);
+        toast({ title: 'คัดลอกแล้ว', description: text });
+    };
+
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+        if (file.size > MAX_FILE_SIZE_BYTES) {
+            toast({ variant: 'destructive', title: 'ไฟล์ใหญ่เกินไป', description: `ไม่เกิน ${MAX_FILE_SIZE_MB}MB` });
+            return;
+        }
+        setProofFile(file);
+        setProofPreview(file.type.startsWith('image/') ? URL.createObjectURL(file) : null);
+    };
+
+    const uploadProof = async (file: File) => {
+        let base64Data: string;
         if (file.type.startsWith('image/')) {
             base64Data = await compressImageToBase64(file);
         } else {
-            // For PDFs, just convert to Base64
             base64Data = await new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.readAsDataURL(file);
@@ -142,296 +110,73 @@ function PaymentPageContent() {
         return await saveBase64SlipAction(base64Data);
     };
 
-    const scanSlipQR = (file: File): Promise<string | null> => {
-        return new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onload = (e) => {
-                const image = new Image();
-                image.crossOrigin = "anonymous";
-                image.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    const context = canvas.getContext('2d');
-                    if (!context) {
-                        resolve(null);
-                        return;
-                    }
-                    canvas.width = image.width;
-                    canvas.height = image.height;
-                    context.drawImage(image, 0, 0, image.width, image.height);
-                    const imageData = context.getImageData(0, 0, image.width, image.height);
-                    const code = jsQR(imageData.data, imageData.width, imageData.height);
-                    resolve(code ? code.data : null);
-                };
-                image.src = e.target?.result as string;
-            };
-            reader.readAsDataURL(file);
-        });
-    };
-
-    const verifySlipWithSlipOK = async (qrData: string) => {
-        setIsVerifyingSlip(true);
+    const handleNotify = async () => {
+        if (!info?.due || !chatId) return;
+        setIsSubmitting(true);
         try {
-            const response = await fetch('/api/verify-slip', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ data: qrData }),
-            });
-            const result = await response.json();
-            if (result.success) {
-                setSlipOkData(result.data);
-                setSlipVerificationId(result.verificationId ?? null);
-                setSlipVerificationFailed(false);
-                
-                const slipAmount = result.data.amount;
-                if (Math.abs(slipAmount - finalFee) > 0.01) {
-                    toast({
-                        variant: "destructive",
-                        title: "ยอดเงินไม่ตรง!",
-                        description: `ยอดในสลิปคือ ฿${slipAmount.toLocaleString()} แต่ยอดที่ต้องชำระคือ ฿${finalFee.toLocaleString()}`
-                    });
-                } else {
-                    toast({
-                        title: "ตรวจสอบสลิปเบื้องต้นสำเร็จ",
-                        description: "ยอดเงินถูกต้อง ระบบกำลังนำคุณไปขั้นตอนถัดไป"
-                    });
-                }
-            } else {
-                setSlipVerificationFailed(true);
-                toast({
-                    variant: "destructive",
-                    title: "ตรวจสอบสลิปไม่สำเร็จ",
-                    description: result.message || "ไม่สามารถยืนยันข้อมูลสลิปได้"
-                });
-            }
-        } catch (error) {
-            console.error("SlipOK error:", error);
-        } finally {
-            setIsVerifyingSlip(false);
-        }
-    };
-
-    useEffect(() => {
-        let cancelled = false;
-        (async () => {
-            const res = await resolvePaymentAmount({
-                paymentType: paymentType as PaymentType,
-                chatId: chatId || undefined,
-                installmentIndex: installmentIndex ?? undefined,
-            });
-            if (!cancelled) setServerPrice(res.ok ? res : null);
-        })();
-        return () => { cancelled = true; };
-    }, [paymentType, chatId, installmentIndex]);
-
-    const handleApplyCoupon = async () => {
-        if (!couponCode) return;
-        setIsCheckingCoupon(true);
-        try {
-            // ตรวจคูปองและคำนวณยอดฝั่ง server — ของเดิมอ่าน coupons จาก client
-            // แล้วคิดส่วนลดเอง ทำให้แก้ discountAmount ใน devtools ได้
-            const res = await resolvePaymentAmount({
-                paymentType: paymentType as PaymentType,
-                chatId: chatId || undefined,
-                installmentIndex: installmentIndex ?? undefined,
-                couponCode,
-            });
-
-            if (!res.ok) {
-                toast({ variant: 'destructive', title: 'ใช้คูปองไม่ได้', description: res.error });
-                setAppliedCoupon(null);
-                setServerPrice(null);
-                return;
-            }
-
-            setServerPrice(res);
-            setAppliedCoupon(res.couponId ? { id: res.couponId, code: res.couponLabel } : null);
-            toast({
-                title: 'ใช้คูปองสำเร็จ',
-                description: `คุณได้รับส่วนลด ${new Intl.NumberFormat('th-TH', { style: 'currency', currency: 'THB' }).format(res.discount)}`,
-            });
-        } catch (error) {
-            console.error("Error checking coupon:", error);
-            toast({ variant: 'destructive', title: 'เกิดข้อผิดพลาด', description: 'ไม่สามารถตรวจสอบคูปองได้' });
-        } finally {
-            setIsCheckingCoupon(false);
-        }
-    };
-
-    const handleRemoveCoupon = async () => {
-        setCouponCode('');
-        setAppliedCoupon(null);
-        // ขอยอดใหม่จาก server แบบไม่มีคูปอง
-        const res = await resolvePaymentAmount({
-            paymentType: paymentType as PaymentType,
-            chatId: chatId || undefined,
-            installmentIndex: installmentIndex ?? undefined,
-        });
-        setServerPrice(res.ok ? res : null);
-    };
-
-    const processPayment = async () => {
-        setIsProcessing(true);
-        if (!firestore || !user || !lawyer) {
-            toast({ variant: "destructive", title: "เกิดข้อผิดพลาด", description: "ไม่สามารถเชื่อมต่อฐานข้อมูลได้" });
-            setIsProcessing(false);
-            return;
-        }
-
-        try {
-            let slipUrl = '';
-            if (slipFile) {
+            let proofUrl: string | null = null;
+            if (proofFile) {
                 try {
-                    slipUrl = await uploadSlip(slipFile) as string;
-                } catch (uploadError) {
-                    console.warn("Upload failed:", uploadError);
-                    toast({ variant: "destructive", title: "บันทึกสลิปไม่สำเร็จ", description: "ไฟล์อาจใหญ่เกินไป กรุณาลองใหม่อีกครั้ง" });
-                    setIsProcessing(false);
+                    proofUrl = await uploadProof(proofFile);
+                } catch {
+                    toast({ variant: 'destructive', title: 'อัปโหลดหลักฐานไม่สำเร็จ', description: 'ไฟล์อาจใหญ่เกินไป ลองใหม่ หรือแจ้งโดยไม่แนบรูปก็ได้' });
                     return;
                 }
             }
-
-            // สถานะ paid / pending_payment ตัดสินฝั่ง server จากผลตรวจสลิปที่เก็บไว้
-            // (slipVerificationId) ไม่ใช่จากตัวแปรในเบราว์เซอร์อีกต่อไป
-
-            if (paymentType === 'chat') {
-                // สร้างเอกสารฝั่ง server ทั้งก้อน — ของเดิม client setDoc เองพร้อม
-                // amount/discount ที่ตัวเองคำนวณ ต่อให้ยอดมาจาก server แล้วก็ยัง
-                // เปิด console ยิง SDK เขียนยอดใหม่ได้ เพราะกฎ chats เป็น
-                // allow create: if isSignedIn()
-                const created = await createConsultationChat({
-                    // uid ของทนายอ่านจาก lawyerProfiles ฝั่ง server — ไม่ส่ง lawyerUserId แล้ว
-                    lawyerId: lawyer.id,
-                    initialMessage,
-                    slipUrl,
-                    slipVerificationId,
-                    couponCode: appliedCoupon?.code || undefined,
-                });
-
-                if (!created.ok) {
-                    toast({ variant: 'destructive', title: 'สร้างรายการไม่สำเร็จ', description: created.error });
-                    setIsProcessing(false);
-                    return;
-                }
-
-                const newChatId = created.chatId;
-                setPaymentSuccess(true);
-            } else if (paymentType === 'appointment' && dateStr) {
-                // เขียนเอกสารฝั่ง server ทั้งก้อน — ของเดิม client addDoc(appointments)
-                // เองพร้อม amount/status ที่ตัวเองกำหนด และกฎ appointments เป็น
-                // allow create: if isSignedIn() จึงสร้างนัดหมาย amount:0 status:'paid' ได้
-                const created = await createAppointment({
-                    // uid ของทนายอ่านจาก lawyerProfiles ฝั่ง server — ไม่ส่ง lawyerUserId แล้ว
-                    lawyerId: lawyer.id,
-                    appointmentDate: dateStr,
-                    description,
-                    slipUrl,
-                    slipVerificationId,
-                    couponCode: appliedCoupon?.code || undefined,
-                });
-
-                if (!created.ok) {
-                    toast({ variant: 'destructive', title: 'สร้างนัดหมายไม่สำเร็จ', description: created.error });
-                    setIsProcessing(false);
-                    return;
-                }
-
-                setPaymentSuccess(true);
-            } else if (paymentType === 'installment' && chatId && installmentIndex !== null) {
-                // ======= INSTALLMENT PAYMENT =======
-                const result = await markInstallmentPaidAction({
-                    chatId,
-                    installmentIndex,
-                    slipUrl,
-                    slipVerificationId,
-                    couponCode: appliedCoupon?.code || undefined,
-                    payerName: user?.displayName || 'ลูกความ',
-                });
-
-                if (!result.success) {
-                    toast({ variant: 'destructive', title: 'เกิดข้อผิดพลาด', description: result.error });
-                    setIsProcessing(false);
-                    return;
-                }
-
-                setPaymentSuccess(true);
-
-                // อีเมลแจ้งทนาย/ลูกความ/แอดมิน ส่งจาก server ใน markInstallmentPaidAction แล้ว
-                // (เดิมหน้านี้เรียก notifyPaymentCompletedAction เองพร้อมยอดจากเบราว์เซอร์)
-
-            } else if ((paymentType === 'additional' || paymentType === 'case') && chatId) {
-                // ======= FULL CASE / ADDITIONAL PAYMENT =======
-                const result = await markCasePaidAction({
-                    chatId,
-                    slipUrl,
-                    slipVerificationId,
-                    couponCode: appliedCoupon?.code || undefined,
-                    payerName: user?.displayName || 'ลูกความ',
-                    type: paymentType as 'case' | 'additional',
-                });
-
-                if (!result.success) {
-                    toast({ variant: 'destructive', title: 'เกิดข้อผิดพลาด', description: result.error });
-                    setIsProcessing(false);
-                    return;
-                }
-
-                setPaymentSuccess(true);
-
-                // อีเมลแจ้งเตือนส่งจาก server ใน markCasePaidAction แล้ว
-            }
-        } catch (error) {
-            console.error("Payment error:", error);
-            toast({ variant: "destructive", title: "เกิดข้อผิดพลาด", description: "ไม่สามารถส่งข้อมูลได้" });
-        } finally {
-            setIsProcessing(false);
-        }
-    }
-
-    const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-        if (event.target.files && event.target.files[0]) {
-            const file = event.target.files[0];
-
-            if (file.size > MAX_FILE_SIZE_BYTES) {
-                toast({ variant: "destructive", title: "ไฟล์ใหญ่เกินไป", description: `ไม่เกิน ${MAX_FILE_SIZE_MB}MB` });
+            const res = await notifyDirectPaymentAction({
+                chatId,
+                type: info.due.type,
+                installmentIndex: info.due.installmentIndex,
+                proofUrl,
+                note: note || null,
+            });
+            if (!res.ok) {
+                toast({ variant: 'destructive', title: 'แจ้งโอนไม่สำเร็จ', description: res.error });
                 return;
             }
-
-            setSlipFile(file);
-            setSlipPreview(URL.createObjectURL(file));
-            setSlipOkData(null);
-            setSlipVerificationId(null);
-            setSlipVerificationFailed(false);
-
-            const qrData = await scanSlipQR(file);
-            if (qrData) {
-                verifySlipWithSlipOK(qrData);
-            } else {
-                setSlipVerificationFailed(true);
-                toast({ title: "ไม่พบคิวอาร์โค้ดในสลิป", description: "คุณยังสามารถแจ้งโอนได้ แต่อาจใช้เวลาตรวจสอบนานขึ้น" });
-            }
+            setDone(true);
+        } finally {
+            setIsSubmitting(false);
         }
-    };
-
-    const copyToClipboard = (text: string) => {
-        navigator.clipboard.writeText(text);
-        toast({ title: "คัดลอกแล้ว", description: text });
     };
 
     if (isLoading) return <div className="flex items-center justify-center min-h-[50vh]"><Loader2 className="animate-spin text-blue-600" /></div>;
 
-    if (!lawyer) {
+    // ลิงก์รุ่นเก่า (Ticket ฿500 / นัดหมาย ฿3,500) ที่ไม่มีห้องแชท — ไม่มีอะไรต้องจ่ายแล้ว
+    if (!chatId) {
+        return (
+            <Card className="w-full max-w-xl mx-auto border-none shadow-xl rounded-3xl mt-10">
+                <CardContent className="pt-10 pb-10 text-center space-y-5">
+                    <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center mx-auto">
+                        <MessageSquare className="w-8 h-8 text-blue-600" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-slate-800">ปรึกษาทนายผ่าน Lawslane ฟรี</h2>
+                    <p className="text-slate-500 max-w-md mx-auto">
+                        แชทและขอนัดหมายกับทนายไม่มีค่าใช้จ่ายผ่านระบบ หากทนายเสนอค่าบริการ
+                        คุณจะโอนให้ทนายโดยตรงตามข้อมูลบัญชีในห้องแชท
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                        <Button asChild variant="outline" className="rounded-xl"><Link href="/lawyers">ค้นหาทนาย</Link></Button>
+                        <Button asChild className="rounded-xl bg-[#0B3979] hover:bg-[#082a5a]"><Link href="/dashboard">ไปที่แดชบอร์ด</Link></Button>
+                    </div>
+                </CardContent>
+            </Card>
+        );
+    }
+
+    if (loadError || !info) {
         return (
             <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
                 <AlertCircle className="w-12 h-12 text-red-500" />
-                <h2 className="text-xl font-bold">ไม่พบข้อมูลทนายความ</h2>
-                <Button asChild variant="outline">
-                    <Link href="/lawyers">กลับไปหน้าค้นหา</Link>
-                </Button>
+                <h2 className="text-xl font-bold">{loadError || 'ไม่พบรายการ'}</h2>
+                <Button asChild variant="outline"><Link href="/dashboard">กลับไปที่แดชบอร์ด</Link></Button>
             </div>
         );
     }
 
-    if (paymentSuccess) {
+    const chatLink = `/chat/${chatId}${info.role === 'lawyer' ? '?view=lawyer' : ''}`;
+
+    if (done) {
         return (
             <Card className="w-full max-w-2xl mx-auto border-none shadow-2xl rounded-3xl overflow-hidden mt-10">
                 <div className="h-2 bg-green-500" />
@@ -440,253 +185,194 @@ function PaymentPageContent() {
                         <CheckCircle className="w-10 h-10 text-green-600" />
                     </div>
                     <div>
-                        <h2 className="text-3xl font-bold text-slate-800 mb-2">ส่งสลิปเรียบร้อยแล้ว</h2>
+                        <h2 className="text-3xl font-bold text-slate-800 mb-2">แจ้งทนายเรียบร้อยแล้ว</h2>
                         <p className="text-slate-500 max-w-md mx-auto">
-                            เราได้รับหลักฐานการชำระเงินของคุณแล้ว {slipOkData ? "ระบบตรวจสอบเบื้องต้นผ่านแล้ว " : ""} เจ้าหน้าที่จะทำการอนุมัติในเวลาอันสั้น
+                            ทนายจะตรวจสอบยอดในบัญชีของตัวเองแล้วกดยืนยันรับเงินในห้องแชท
+                            หากมีข้อสงสัยเรื่องการโอน กรุณาคุยกับทนายในแชทโดยตรง
                         </p>
                     </div>
-                    <div className="flex flex-col sm:flex-row gap-3 justify-center">
-                        {chatId && (
-                            <Button asChild variant="outline" className="rounded-xl px-8 h-12 border-blue-200 text-blue-700 hover:bg-blue-50">
-                                <Link href={`/chat/${chatId}?lawyerId=${lawyerId}`}>กลับไปยังห้องแชท</Link>
-                            </Button>
-                        )}
-                        <Button asChild className="rounded-xl px-8 h-12 bg-[#0B3979] hover:bg-[#082a5a]">
-                            <Link href="/dashboard">ไปที่แดชบอร์ด</Link>
-                        </Button>
-                    </div>
+                    <Button asChild className="rounded-xl px-8 h-12 bg-[#0B3979] hover:bg-[#082a5a]">
+                        <Link href={chatLink}>กลับไปยังห้องแชท</Link>
+                    </Button>
                 </CardContent>
             </Card>
-        )
+        );
     }
+
+    const due = info.due;
+    const isClient = info.role === 'client';
 
     return (
         <div className="grid lg:grid-cols-12 gap-8 items-start">
-            <div className="lg:col-span-12 mb-4 flex items-center justify-between">
-               <Button variant="ghost" onClick={() => router.back()} className="text-slate-500 hover:bg-white/50 rounded-xl">
-                  <ArrowLeft className="mr-2 h-4 w-4" /> ย้อนกลับ
-               </Button>
-               <div className="flex items-center gap-2 text-sm text-slate-400 bg-white/50 px-4 py-2 rounded-full border border-slate-100">
-                  <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span>ความปลอดภัยระดับธนาคาร</span>
-               </div>
+            <div className="lg:col-span-12 mb-2">
+                <Button variant="ghost" onClick={() => router.back()} className="text-slate-500 hover:bg-white/50 rounded-xl">
+                    <ArrowLeft className="mr-2 h-4 w-4" /> ย้อนกลับ
+                </Button>
             </div>
 
             <div className="lg:col-span-7 space-y-6">
                 <Card className="border-none shadow-xl rounded-3xl overflow-hidden bg-white">
-                    <CardHeader className="bg-[#0B3979] text-white p-8 md:p-10">
+                    <CardHeader className="bg-[#0B3979] text-white p-8">
                         <div className="flex justify-between items-start mb-2">
-                           <CardTitle className="text-2xl md:text-3xl font-headline tracking-tight">{title}</CardTitle>
-                           <Landmark className="w-8 h-8 opacity-20" />
+                            <CardTitle className="text-2xl font-headline tracking-tight">โอนค่าบริการให้ทนายโดยตรง</CardTitle>
+                            <Landmark className="w-8 h-8 opacity-20" />
                         </div>
-                        <CardDescription className="text-blue-100 text-base opacity-80">{descriptionText}</CardDescription>
+                        <CardDescription className="text-blue-100 text-base opacity-90">
+                            {due ? due.description : 'ไม่มียอดค้างชำระสำหรับเคสนี้'}
+                        </CardDescription>
                     </CardHeader>
-                    <CardContent className="p-8 md:p-10 space-y-10">
-                        <div className="space-y-6">
-                            <h3 className="font-bold text-xl flex items-center gap-3 text-slate-800">
-                                <span className="w-8 h-8 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-sm font-black">1</span>
-                                โอนเงินผ่านมือถือของคุณ
-                            </h3>
-                            <div className="bg-gradient-to-br from-slate-50 to-slate-100 rounded-3xl p-8 border border-slate-200/50 space-y-6 shadow-inner">
-                                <div className="flex justify-between items-center">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-md overflow-hidden bg-white shrink-0 p-0.5 border border-slate-100">
-                                            <img src="/images/logo-bank/กสิกร.png" alt="Kasikornbank" className="w-full h-full object-contain rounded-lg" />
-                                        </div>
-                                         <div>
-                                          <p className="font-bold text-slate-700">KASIKORNBANK</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="flex justify-between items-center group bg-white p-4 rounded-2xl border border-slate-200/50 shadow-sm">
-                                    <div>
-                                        <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest leading-none mb-1">เลขที่บัญชี</p>
-                                        <p className="text-2xl md:text-3xl font-black text-[#0B3979] tracking-tighter">144-3-46310-7</p>
-                                    </div>
-                                    <Button variant="ghost" size="icon" onClick={() => copyToClipboard('144-3-46310-7')} className="h-12 w-12 rounded-xl text-blue-600 hover:bg-blue-50 transition-colors">
-                                        <Copy className="w-5 h-5" />
-                                    </Button>
-                                </div>
-                                <div className="flex justify-between items-center py-2 px-1">
-                                    <div>
-                                        <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest leading-none mb-1">ชื่อบัญชี</p>
-                                        <p className="font-bold text-slate-700 text-lg">วิศรุต บุ่งอุทุม</p>
-                                    </div>
-                                </div>
-                            </div>
+                    <CardContent className="p-8 space-y-8">
+                        <div className="rounded-2xl border-2 border-amber-300 bg-amber-50 p-4 text-amber-900">
+                            <p className="font-black">Lawslane ไม่ได้รับและไม่ได้ถือเงินก้อนนี้ กรุณาโอนให้ทนายโดยตรง</p>
+                            <p className="text-sm mt-1">ตรวจสอบชื่อบัญชีให้ตรงกับทนายของคุณก่อนโอนทุกครั้ง</p>
                         </div>
 
-                        <div className="space-y-6">
-                            <h3 className="font-bold text-xl flex items-center gap-3 text-slate-800">
-                                <span className="w-8 h-8 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-sm font-black">2</span>
-                                แนบสลิปเพื่อแจ้งโอน
-                            </h3>
-                            <div className="space-y-4">
-                               <div
-                                  className={cn(
-                                      "relative flex flex-col items-center justify-center w-full min-h-[200px] py-10 border-2 border-dashed rounded-[2.5rem] transition-all cursor-pointer group",
-                                      slipFile ? "border-green-200 bg-green-50/50" : "border-slate-200 bg-slate-50/30 hover:border-blue-400 hover:bg-blue-50/50"
-                                  )}
-                                  onClick={() => fileInputRef.current?.click()}
-                               >
-                                  {slipPreview ? (
-                                      <div className="absolute inset-4 rounded-[2rem] overflow-hidden shadow-2xl bg-white p-2">
-                                         <img src={slipPreview} alt="Slip" className="w-full h-full object-contain" />
-                                         <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                                            <Button size="lg" className="rounded-2xl bg-white text-slate-800 hover:bg-slate-100 shadow-xl">เปลี่ยนรูปสลิป</Button>
-                                         </div>
-                                      </div>
-                                  ) : (
-                                      <div className="text-center space-y-4">
-                                          <div className="w-20 h-20 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mx-auto transition-transform group-hover:scale-110 duration-300">
-                                              <Upload className="w-10 h-10" />
-                                          </div>
-                                          <div className="space-y-1">
-                                              <p className="font-bold text-xl text-slate-700 font-headline">จุดวางไฟล์สลิป</p>
-                                              <p className="text-sm text-slate-400">คลิกที่นี่เพื่อเลือกรูปจากมือถือหรือคอมพิวเตอร์</p>
-                                          </div>
-                                      </div>
-                                  )}
-                                  <input ref={fileInputRef} type="file" accept="image/*,.pdf" className="hidden" onChange={handleFileChange} />
-                               </div>
-
-                               {isVerifyingSlip && (
-                                   <div className="flex items-center justify-center gap-3 bg-blue-600 text-white p-5 rounded-2xl shadow-lg shadow-blue-200 animate-pulse">
-                                       <Loader2 className="w-5 h-5 animate-spin" />
-                                       <span className="font-bold tracking-wide">ระบบอัจฉริยะกำลังอ่านข้อมุลในสลิป...</span>
-                                   </div>
-                               )}
-
-                               {slipOkData && (
-                                   <div className="flex items-center gap-4 bg-white text-green-700 p-6 rounded-2xl border-2 border-green-500 shadow-xl shadow-green-100">
-                                       <div className="w-12 h-12 bg-green-500 text-white rounded-full flex items-center justify-center shrink-0 shadow-lg shadow-green-200">
-                                          <CheckCircle className="w-6 h-6" />
-                                       </div>
-                                       <div>
-                                           <p className="font-black text-lg leading-tight">ตรวจสอบเบื้องต้นสำเร็จ!</p>
-                                           <p className="text-sm opacity-80 font-medium">พบยอดเงินในสลิป ฿{slipOkData.amount.toLocaleString()} (ถูกต้อง)</p>
-                                       </div>
-                                   </div>
-                               )}
-
-                               {slipVerificationFailed && !isVerifyingSlip && (
-                                   <div className="flex bg-amber-50 rounded-2xl p-4 border border-amber-200 text-amber-800 gap-3 shadow-sm">
-                                       <AlertCircle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
-                                       <div className="text-sm">
-                                           <p className="font-bold mb-1">ไม่สามารถตรวจสอบสลิปอัตโนมัติได้</p>
-                                           <p>แต่คุณยังสามารถกดส่งสลิปนี้ได้ โดยแอดมินจะทำการตรวจสอบความถูกต้องให้คุณอีกครั้ง</p>
-                                       </div>
-                                   </div>
-                               )}
+                        {!due ? (
+                            <div className="text-center py-6 space-y-4">
+                                <CheckCircle className="w-12 h-12 text-green-500 mx-auto" />
+                                <p className="text-slate-600">ทนายยืนยันรับเงินครบทุกรายการแล้ว หรือยังไม่ได้เสนอค่าบริการ</p>
+                                <Button asChild variant="outline" className="rounded-xl"><Link href={chatLink}>กลับไปยังห้องแชท</Link></Button>
                             </div>
-                        </div>
+                        ) : (
+                            <>
+                                <div className="space-y-4">
+                                    <h3 className="font-bold text-lg flex items-center gap-3 text-slate-800">
+                                        <span className="w-8 h-8 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-sm font-black">1</span>
+                                        โอนเข้าบัญชีของทนาย
+                                    </h3>
+                                    {info.hasBankAccount ? (
+                                        <div className="bg-slate-50 rounded-3xl p-6 border border-slate-200/60 space-y-4">
+                                            <p className="font-bold text-slate-700">{info.lawyer.bankName}</p>
+                                            <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-200/50">
+                                                <div>
+                                                    <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest mb-1">เลขที่บัญชี</p>
+                                                    <p className="text-2xl font-black text-[#0B3979] tracking-tight">{info.lawyer.bankAccountNumber}</p>
+                                                </div>
+                                                <Button variant="ghost" size="icon" onClick={() => copyToClipboard(info.lawyer.bankAccountNumber)} className="h-12 w-12 rounded-xl text-blue-600 hover:bg-blue-50" aria-label="คัดลอกเลขบัญชี">
+                                                    <Copy className="w-5 h-5" />
+                                                </Button>
+                                            </div>
+                                            <div>
+                                                <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest mb-1">ชื่อบัญชี</p>
+                                                <p className="font-bold text-slate-700 text-lg">{info.lawyer.bankAccountName || info.lawyer.name}</p>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="flex gap-3 bg-slate-50 rounded-2xl p-4 border border-slate-200 text-slate-700">
+                                            <AlertCircle className="w-5 h-5 text-slate-400 shrink-0 mt-0.5" />
+                                            <p className="text-sm">ทนายยังไม่ได้กรอกข้อมูลบัญชีรับเงิน กรุณาสอบถามช่องทางการชำระเงินกับทนายในห้องแชท</p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {isClient && (
+                                    <div className="space-y-4">
+                                        <h3 className="font-bold text-lg flex items-center gap-3 text-slate-800">
+                                            <span className="w-8 h-8 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-sm font-black">2</span>
+                                            แจ้งทนายว่าโอนแล้ว (แนบหลักฐานได้ ไม่บังคับ)
+                                        </h3>
+                                        {due.notice && (
+                                            <div className="flex gap-3 bg-blue-50 rounded-2xl p-4 border border-blue-200 text-blue-900 text-sm">
+                                                <Clock className="w-5 h-5 shrink-0 mt-0.5" />
+                                                <p>คุณแจ้งโอนรายการนี้ไว้แล้ว{due.notice.notifiedAt ? ` เมื่อ ${new Date(due.notice.notifiedAt).toLocaleString('th-TH')}` : ''} — รอทนายยืนยันรับเงิน แจ้งซ้ำได้หากต้องการแนบหลักฐานใหม่</p>
+                                            </div>
+                                        )}
+                                        <div
+                                            className={cn(
+                                                "relative flex flex-col items-center justify-center w-full min-h-[160px] py-8 border-2 border-dashed rounded-[2rem] transition-all cursor-pointer",
+                                                proofFile ? "border-green-200 bg-green-50/50" : "border-slate-200 bg-slate-50/30 hover:border-blue-400 hover:bg-blue-50/50"
+                                            )}
+                                            onClick={() => fileInputRef.current?.click()}
+                                        >
+                                            {proofPreview ? (
+                                                <img src={proofPreview} alt="หลักฐานการโอน" className="max-h-60 object-contain rounded-xl" />
+                                            ) : proofFile ? (
+                                                <p className="font-bold text-slate-700">{proofFile.name}</p>
+                                            ) : (
+                                                <div className="text-center space-y-2">
+                                                    <Upload className="w-8 h-8 text-blue-500 mx-auto" />
+                                                    <p className="font-bold text-slate-700">แนบรูปหลักฐานการโอน</p>
+                                                    <p className="text-xs text-slate-400">ทนายจะเห็นรูปนี้ในห้องแชท</p>
+                                                </div>
+                                            )}
+                                            <input ref={fileInputRef} type="file" accept="image/*,.pdf" className="hidden" onChange={handleFileChange} />
+                                        </div>
+                                        <Textarea
+                                            placeholder="หมายเหตุถึงทนาย (ถ้ามี) เช่น โอนจากบัญชีชื่อ... เวลา..."
+                                            value={note}
+                                            onChange={(e) => setNote(e.target.value)}
+                                            maxLength={500}
+                                            className="rounded-2xl"
+                                        />
+                                    </div>
+                                )}
+                            </>
+                        )}
                     </CardContent>
-                    <CardFooter className="p-10 bg-slate-50 border-t border-slate-100 flex flex-col gap-4">
-                        <Button
-                            onClick={processPayment}
-                            className={cn(
-                                "w-full h-16 rounded-[1.5rem] text-xl font-black shadow-2xl active:scale-[0.98] transition-all disabled:grayscale disabled:opacity-50",
-                                slipVerificationFailed ? "bg-amber-600 hover:bg-amber-700 shadow-amber-500/30" : "bg-[#0B3979] hover:bg-[#082a5a] shadow-blue-500/30"
+                    {due && (
+                        <CardFooter className="p-8 bg-slate-50 border-t border-slate-100 flex flex-col gap-3">
+                            {isClient ? (
+                                <Button
+                                    onClick={handleNotify}
+                                    className="w-full h-14 rounded-[1.5rem] text-lg font-black bg-[#0B3979] hover:bg-[#082a5a]"
+                                    disabled={isSubmitting}
+                                >
+                                    {isSubmitting ? <><Loader2 className="mr-3 animate-spin w-5 h-5" />กำลังส่ง...</> : 'แจ้งทนายว่าโอนแล้ว'}
+                                </Button>
+                            ) : (
+                                <Button asChild className="w-full h-12 rounded-2xl bg-[#0B3979] hover:bg-[#082a5a]">
+                                    <Link href={chatLink}>ไปยืนยันรับเงินในห้องแชท</Link>
+                                </Button>
                             )}
-                            disabled={isProcessing || !slipFile}
-                        >
-                            {isProcessing ? <><Loader2 className="mr-3 animate-spin w-6 h-6" />กำลังบันทึกข้อมูล...</> : (slipVerificationFailed ? 'ส่งให้เจ้าหน้าที่ตรวจสอบสลิปนี้' : 'ยืนยันแจ้งชำระเงิน')}
-                        </Button>
-                    </CardFooter>
+                            <p className="text-xs text-slate-400 text-center">การแจ้งโอนไม่ถือเป็นการยืนยันการชำระเงิน — ทนายเป็นผู้ยืนยันเมื่อได้รับเงินจริง</p>
+                        </CardFooter>
+                    )}
                 </Card>
             </div>
 
             <div className="lg:col-span-5 space-y-6">
-                <Card className="border-none shadow-xl rounded-[2.5rem] overflow-hidden sticky top-24 bg-white">
-                    <CardHeader className="border-b bg-white p-8">
-                        <CardTitle className="text-xl font-bold text-slate-800">สรุปรายการคำขอ</CardTitle>
+                <Card className="border-none shadow-xl rounded-[2rem] overflow-hidden bg-white">
+                    <CardHeader className="border-b p-6">
+                        <CardTitle className="text-lg font-bold text-slate-800">สรุปรายการ</CardTitle>
                     </CardHeader>
-                    <CardContent className="p-8 space-y-8">
-                        <div className="flex items-center gap-5">
-                            <Avatar className="h-16 w-16 ring-4 ring-slate-50 shadow-md">
-                                <AvatarImage src={lawyer?.imageUrl} />
-                                <AvatarFallback className="bg-[#0B3979] text-white font-bold">{lawyer?.name.charAt(0)}</AvatarFallback>
+                    <CardContent className="p-6 space-y-6">
+                        <div className="flex items-center gap-4">
+                            <Avatar className="h-14 w-14">
+                                <AvatarImage src={info.lawyer.imageUrl} />
+                                <AvatarFallback className="bg-[#0B3979] text-white font-bold">{info.lawyer.name.charAt(0)}</AvatarFallback>
                             </Avatar>
                             <div>
-                                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">{paymentType === 'chat' ? 'Ticket สนทนากับ' : 'นัดนับรับบริการจาก'}</p>
-                                <p className="font-extrabold text-xl text-slate-900 leading-tight">{lawyer?.name}</p>
+                                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">ทนายความ</p>
+                                <p className="font-extrabold text-lg text-slate-900 leading-tight">{info.lawyer.name}</p>
+                                {info.caseTitle && <p className="text-xs text-slate-500">{info.caseTitle}</p>}
                             </div>
                         </div>
-
-                        <div className="space-y-4 pt-6 border-t border-slate-100">
-                            {paymentType === 'appointment' ? (
-                                <div className="flex items-center gap-3 text-slate-600 bg-slate-50 p-4 rounded-2xl">
-                                    <Calendar className="w-5 h-5 text-blue-600" />
-                                    <span className="font-bold text-sm">{dateStr ? format(new Date(dateStr), 'd MMMM yyyy') : ''}</span>
-                                </div>
-                            ) : (
-                                <div className="flex items-start gap-3 text-slate-600 bg-slate-50 p-4 rounded-2xl">
-                                    <MessageSquare className="w-5 h-5 text-blue-600 shrink-0 mt-1" />
-                                    <div className="space-y-1">
-                                        <span className="font-bold text-sm leading-snug block">{paymentType === 'installment' ? (caseData?.caseTitle || 'ชำระค่าบริการตามงวด') : paymentType === 'case' ? (caseData?.caseTitle || 'ดำเนินคดีส่วนตัว') : 'ห้องสนทนาปรึกษากฎหมายส่วนตัว'}</span>
-                                        {paymentType === 'installment' && installmentData && (
-                                            <span className="text-xs text-blue-600 font-bold">งวดที่ {(installmentIndex ?? 0) + 1}: {installmentData.description}</span>
+                        {due && (
+                            <div className="flex justify-between items-baseline pt-4 border-t border-slate-100">
+                                <span className="font-bold text-slate-400">ยอดที่ต้องโอน</span>
+                                <span className="text-3xl font-black tracking-tight text-slate-900">฿{due.amount.toLocaleString()}</span>
+                            </div>
+                        )}
+                        {info.outstanding.length > 1 && (
+                            <div className="pt-4 border-t border-slate-100 space-y-2">
+                                <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">รายการที่ยังไม่ได้ยืนยันรับเงิน</p>
+                                {info.outstanding.map((d) => (
+                                    <Link
+                                        key={`${d.type}-${d.installmentIndex ?? ''}`}
+                                        href={`/payment?chatId=${chatId}&type=${d.type}${d.installmentIndex !== undefined ? `&installmentIndex=${d.installmentIndex}` : ''}`}
+                                        className={cn(
+                                            "flex justify-between text-sm p-2 rounded-lg hover:bg-slate-50",
+                                            due && d.type === due.type && d.installmentIndex === due.installmentIndex && "bg-blue-50"
                                         )}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="space-y-4 pt-6 border-t border-slate-100 text-lg">
-                           <div className="flex justify-between items-center text-slate-500 font-medium">
-                              <span>ค่าธรรมเนียมเดิม</span>
-                              <span className="line-through opacity-50">฿{fee.toLocaleString()}</span>
-                           </div>
-                           {appliedCoupon && (
-                               <div className="flex justify-between items-center text-green-600 font-bold">
-                                  <span>ส่วนลดสิทธิพิเศษ</span>
-                                  <span>-฿{discountAmount.toLocaleString()}</span>
-                               </div>
-                           )}
-                           <div className="flex justify-between items-baseline pt-4 text-slate-900 leading-none">
-                              <span className="font-bold text-slate-400">ยอดสุทธิ</span>
-                              <div className="text-right">
-                                 <span className="text-4xl font-black italic tracking-tighter">฿{finalFee.toLocaleString()}</span>
-                                 <p className="text-[10px] font-black text-slate-300 uppercase mt-1">Total Payable Amount</p>
-                              </div>
-                           </div>
-                        </div>
-
-                        <div className="pt-6">
-                            <div className="relative group">
-                                <Input
-                                    placeholder="ใส่รหัสโปรโมชั่นที่นี่..."
-                                    value={couponCode}
-                                    onChange={(e) => setCouponCode(e.target.value)}
-                                    className="rounded-2xl h-14 pl-12 font-bold border-slate-100 focus:border-blue-400 transition-all bg-slate-50/50"
-                                    disabled={!!appliedCoupon || isCheckingCoupon}
-                                />
-                                <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400">
-                                   <Pencil className="w-4 h-4" />
-                                </div>
-                                <div className="absolute right-2 top-1/2 -translate-y-1/2">
-                                  {appliedCoupon ? (
-                                      <Button variant="ghost" size="sm" onClick={handleRemoveCoupon} className="text-red-500 hover:bg-red-50 rounded-xl">ยกเลิก</Button>
-                                  ) : (
-                                      <Button variant="link" onClick={handleApplyCoupon} disabled={!couponCode || isCheckingCoupon} className="text-[#0B3979] font-black underline decoration-2">
-                                          {isCheckingCoupon ? <Loader2 className="animate-spin" /> : 'ใช้โค้ด'}
-                                      </Button>
-                                  )}
-                                </div>
+                                    >
+                                        <span className="truncate mr-2">{d.description}</span>
+                                        <span className="font-bold whitespace-nowrap">฿{d.amount.toLocaleString()}</span>
+                                    </Link>
+                                ))}
                             </div>
-                        </div>
+                        )}
                     </CardContent>
                 </Card>
-
-                <div className="bg-[#0B3979]/5 rounded-[2.5rem] p-8 border border-blue-100/50 flex gap-4 shadow-sm">
-                   <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shrink-0 shadow-lg shadow-blue-900/5">
-                      <AlertCircle className="w-6 h-6 text-blue-600" />
-                   </div>
-                   <div className="text-sm space-y-2">
-                      <p className="font-black text-slate-800 text-base">การรับประกันโดย Lawslane</p>
-                      <p className="text-slate-500 font-medium leading-relaxed italic">"เงินของท่านจะถูกเก็บรักษาไว้อย่างปลอดภัยในบัญชีส่วนกลาง และจะโอนให้ทนายความเมื่อได้รับบริการครบถ้วนแล้วเท่านั้น"</p>
-                   </div>
-                </div>
             </div>
         </div>
     );

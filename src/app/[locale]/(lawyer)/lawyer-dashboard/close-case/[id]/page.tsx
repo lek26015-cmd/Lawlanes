@@ -140,7 +140,7 @@ function CloseCasePageContent() {
       toast({
         title: 'ยกเลิกเคสสำเร็จ',
         description: result.refundAmount > 0 
-          ? `เคส ${caseId} ถูกยกเลิกแล้ว ระบบจะดำเนินการคืนเงิน ฿${result.refundAmount.toLocaleString()} ให้ลูกความ`
+          ? `เคส ${caseId} ถูกยกเลิกแล้ว — ลูกความชำระให้คุณไปแล้ว ฿${result.refundAmount.toLocaleString()} กรุณาตกลงเรื่องการคืนเงินกับลูกความโดยตรง`
           : `เคส ${caseId} ถูกยกเลิกเรียบร้อยแล้ว`,
       });
       router.push('/lawyer-dashboard');
@@ -259,7 +259,7 @@ function CloseCasePageContent() {
                     ยืนยันการยกเลิกเคส
                   </AlertDialogTitle>
                   <AlertDialogDescription>
-                    การยกเลิกเคสจะไม่สามารถย้อนกลับได้ {originalFee > 0 ? `ระบบจะทำการคืนเงิน ฿${originalFee.toLocaleString()} ให้ลูกความ` : ''} คุณแน่ใจหรือไม่?
+                    การยกเลิกเคสจะไม่สามารถย้อนกลับได้ {originalFee > 0 ? 'หากลูกความโอนค่าบริการให้คุณไปแล้ว การคืนเงินเป็นความรับผิดชอบของคุณโดยตรง (Lawslane ไม่ได้ถือเงิน)' : ''} คุณแน่ใจหรือไม่?
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>

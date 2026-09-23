@@ -13,6 +13,7 @@ import {
     sendChatMessageAction,
     approveInstallmentAction
 } from '@/app/actions/chat-actions';
+import { confirmDirectPaymentReceivedAction } from '@/app/actions/direct-payment-actions';
 import { submitReviewAction } from '@/app/actions/review-actions';
 import { getCaseMilestones, toggleMilestoneStatusAction, addCaseMilestoneAction } from '@/app/actions/lawyer-case-actions';
 import type { Milestone } from '@/lib/types/billing-types';
@@ -91,6 +92,33 @@ import { Badge } from '@/components/ui/badge';
 import { doc, getDoc, updateDoc, arrayUnion, onSnapshot, serverTimestamp, query, collection, where, orderBy } from 'firebase/firestore';
 import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '@/lib/constants';
 
+/** แถว "รอยืนยันรับเงิน" ฝั่งทนาย — แสดงคำแจ้งโอนของลูกความ (ถ้ามี) และปุ่มยืนยัน */
+function PaymentConfirmRow({ label, amount, notice, onViewProof, onConfirm }: {
+    label: string;
+    amount: number;
+    notice: { proofUrl?: string | null; note?: string | null } | null;
+    onViewProof: (path: string) => void;
+    onConfirm: () => void;
+}) {
+    return (
+        <div className={cn("p-3 rounded-xl border flex justify-between items-center gap-2", notice ? "bg-amber-50 border-amber-200" : "bg-slate-50 dark:bg-slate-900 border-slate-100 dark:border-slate-800")}>
+            <div className="flex flex-col gap-0.5 min-w-0">
+                <span className="text-[10px] font-bold text-slate-800 dark:text-slate-200 truncate">{label}</span>
+                {notice && <span className="text-[8px] font-black uppercase text-amber-600">ลูกความแจ้งโอนแล้ว{notice.note ? ` — ${notice.note}` : ''}</span>}
+            </div>
+            <div className="text-right flex flex-col items-end gap-1 shrink-0">
+                <span className="font-black text-blue-600 dark:text-blue-400 text-sm">฿{amount.toLocaleString()}</span>
+                {notice?.proofUrl && (
+                    <button onClick={() => onViewProof(notice.proofUrl!)} className="text-[8px] font-bold text-emerald-600 hover:underline">ดูหลักฐาน</button>
+                )}
+                <Button size="sm" className="h-5 text-[8px] bg-emerald-600 hover:bg-emerald-700 text-white px-1.5 font-black rounded-md" onClick={onConfirm}>
+                    ยืนยันได้รับเงิน
+                </Button>
+            </div>
+        </div>
+    );
+}
+
 function ChatPageContent() {
     const params = useParams();
     const router = useRouter();
@@ -117,6 +145,8 @@ function ChatPageContent() {
     const [caseTitle, setCaseTitle] = useState<string>('');
     const [description, setDescription] = useState<string>('');
     const [pendingFeeRequest, setPendingFeeRequest] = useState<{ amount: number, reason: string } | null>(null);
+    // ฟิลด์การรับเงินของห้อง (ลูกความจ่ายทนายโดยตรง — ดู direct-payment-actions.ts)
+    const [paymentState, setPaymentState] = useState<{ paidAmount: number; settled: boolean; caseNotice: any | null; additionalNotice: any | null; additionalFee: { amount: number; reason: string } | null }>({ paidAmount: 0, settled: false, caseNotice: null, additionalNotice: null, additionalFee: null });
     const [milestones, setMilestones] = useState<Milestone[]>([]);
     const [invoices, setInvoices] = useState<Invoice[]>([]);
     const [contracts, setContracts] = useState<any[]>([]);
@@ -190,10 +220,13 @@ function ChatPageContent() {
 
     const [clientInfo, setClientInfo] = useState<{ name: string, address: string, taxId: string } | null>(null);
     const isOfficial = chatAmount > 0 || (installments && installments.length > 0);
-    const totalPaid = installments.filter(inst => inst.status === 'paid').reduce((sum, inst) => {
-        const amt = inst.amount && !isNaN(parseFloat(String(inst.amount).replace(/,/g, ''))) ? parseFloat(String(inst.amount).replace(/,/g, '')) : 0;
-        return sum + amt;
-    }, 0);
+    // ยอดที่ "ทนายยืนยันรับแล้ว" — เคสแบ่งงวดนับจากงวดที่ยืนยันแล้ว เคสก้อนเดียวใช้ paidAmount
+    const totalPaid = installments.length > 0
+        ? installments.filter(inst => inst.status === 'paid').reduce((sum, inst) => {
+            const amt = inst.amount && !isNaN(parseFloat(String(inst.amount).replace(/,/g, ''))) ? parseFloat(String(inst.amount).replace(/,/g, '')) : 0;
+            return sum + amt;
+        }, 0)
+        : paymentState.paidAmount;
 
     // Compute milestoneSteps and currentStep from real milestones
     // Sort milestones by order to ensure consistency
@@ -266,6 +299,22 @@ function ChatPageContent() {
                 setCaseTitle(data.caseTitle || '');
                 setDescription(data.description || '');
                 setPendingFeeRequest(data.pendingFeeRequest || null);
+                {
+                    const amt = Number(data.amount) || 0;
+                    const paid = Number(data.paidAmount) || 0;
+                    const extra = data.pendingFeeRequest?.amount > 0
+                        ? { amount: Number(data.pendingFeeRequest.amount), reason: data.pendingFeeRequest.reason || 'ค่าบริการเพิ่มเติม' }
+                        : (data.additionalFeeRequest && (data.additionalFeeRequest.status ?? 'pending') === 'pending' && Number(data.additionalFeeRequest.amount) > 0)
+                            ? { amount: Number(data.additionalFeeRequest.amount), reason: data.additionalFeeRequest.reason || 'ค่าบริการเพิ่มเติม' }
+                            : null;
+                    setPaymentState({
+                        paidAmount: paid,
+                        settled: !!data.paymentConfirmedAt || !!data.paidAt || (amt > 0 && paid >= amt),
+                        caseNotice: data.clientPaymentNotice?.type === 'case' ? data.clientPaymentNotice : null,
+                        additionalNotice: data.clientPaymentNotice?.type === 'additional' ? data.clientPaymentNotice : null,
+                        additionalFee: extra,
+                    });
+                }
                 setContractText(data.contractText || null);
                 setClientInfo(data.clientInfo || null);
                 
@@ -574,6 +623,14 @@ function ChatPageContent() {
         }
     };
 
+    // ทนายยืนยันว่าได้รับเงินเข้าบัญชีตัวเองแล้ว (ค่าบริการก้อนเดียว / ค่าบริการเพิ่มเติม)
+    const handleConfirmReceived = async (type: 'case' | 'additional', amount: number, label: string) => {
+        if (!confirm(`ยืนยันว่าได้รับ${label} ฿${amount.toLocaleString()} เข้าบัญชีของคุณแล้ว?`)) return;
+        const res = await confirmDirectPaymentReceivedAction({ chatId, type });
+        if (res.ok) toast({ title: 'บันทึกการรับเงินแล้ว' });
+        else toast({ variant: 'destructive', title: 'บันทึกไม่สำเร็จ', description: res.error });
+    };
+
     const handleConfirmRelease = async () => {
         // เดิม handler นี้มีสองปัญหา:
         //   1. เขียน chats/{id}.status='closed' ตรงจากฝั่ง client ข้าม closeCaseAction
@@ -731,7 +788,7 @@ function ChatPageContent() {
                                 <div className="flex justify-between px-1">
                                     <span className="text-xs text-slate-500 font-medium">สถานะ:</span>
                                     <Badge variant={isCompleted ? "secondary" : (chatStatus === 'pending_payment' ? "destructive" : "default")} className="text-[10px] px-1.5 py-0">
-                                        {isCompleted ? 'เสร็จสิ้น' : (chatStatus === 'pending_payment' ? "รอชำระเงิน" : 'กำลังดำเนินการ')}
+                                        {isCompleted ? 'เสร็จสิ้น' : (chatStatus === 'pending_payment' ? "รอยืนยันรับเงิน" : 'กำลังดำเนินการ')}
                                     </Badge>
                                 </div>
                                 <div className="flex justify-between px-1">
@@ -761,7 +818,9 @@ function ChatPageContent() {
                                                 <div className="space-y-2">
                                                     {installments.map((inst: any, idx: number) => {
                                                         const isPaid = inst.status === 'paid';
-                                                        const isPending = inst.status === 'pending_verification';
+                                                        // ลูกความแจ้งโอนแล้ว (clientNotice) หรือสลิปรุ่นเก่าที่ค้างรอตรวจ — ยังไม่ถือว่าได้รับเงิน
+                                                        const isPending = !isPaid && (!!inst.clientNotice || inst.status === 'pending_verification');
+                                                        const proofPath = inst.clientNotice?.proofUrl || inst.slipUrl;
                                                         const instAmount = inst.amount && !isNaN(parseFloat(inst.amount)) ? parseFloat(String(inst.amount).replace(/,/g, '')) : 0;
                                                         return (
                                                             <div key={idx} className={cn(
@@ -772,36 +831,32 @@ function ChatPageContent() {
                                                                     <div className="flex items-center gap-2">
                                                                         <span className="text-[10px] font-bold text-slate-800 dark:text-slate-200">งวดที่ {idx + 1}</span>
                                                                         {isPaid ? (
-                                                                            <span className="text-[8px] font-black uppercase text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded-md">ชำระแล้ว</span>
+                                                                            <span className="text-[8px] font-black uppercase text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded-md">ได้รับเงินแล้ว</span>
                                                                         ) : isPending ? (
-                                                                            <span className="text-[8px] font-black uppercase text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded-md animate-pulse">รอตรวจสอบ</span>
+                                                                            <span className="text-[8px] font-black uppercase text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded-md animate-pulse">ลูกความแจ้งโอนแล้ว</span>
                                                                         ) : null}
                                                                     </div>
                                                                     <span className="text-[10px] text-slate-500 dark:text-slate-400 line-clamp-1">{inst.description}</span>
                                                                 </div>
                                                                 <div className="text-right flex flex-col items-end gap-1">
                                                                     <span className="font-black text-blue-600 dark:text-blue-400 text-sm">฿{instAmount.toLocaleString()}</span>
-                                                                    {isPaid && inst.slipUrl && (
-                                                                        <button onClick={() => handleViewFile(inst.slipUrl, `slip_installment_${idx}.jpg`)} className="text-[8px] font-bold text-emerald-600 hover:underline">ดูสลิป</button>
+                                                                    {proofPath && (
+                                                                        <button onClick={() => handleViewFile(proofPath, `proof_installment_${idx}.jpg`)} className="text-[8px] font-bold text-emerald-600 hover:underline">ดูหลักฐาน</button>
                                                                     )}
-                                                                    {isPending && inst.slipUrl && (
-                                                                        <div className="flex flex-col items-end gap-1">
-                                                                            <Button variant="outline" size="sm" className="h-5 text-[8px] border-amber-200 text-amber-600 bg-amber-50 px-1 font-bold" onClick={() => handleViewFile(inst.slipUrl, `slip_installment_${idx}.jpg`)}>
-                                                                                ดูสลิป
-                                                                            </Button>
-                                                                            <Button 
-                                                                                size="sm" 
-                                                                                className="h-5 text-[8px] bg-emerald-600 hover:bg-emerald-700 text-white px-1.5 font-black rounded-md"
-                                                                                onClick={async () => {
-                                                                                    if (confirm('ยืนยันการชำระเงินนี้ว่าถูกต้อง?')) {
-                                                                                        const res = await approveInstallmentAction(chatId, idx);
-                                                                                        if (res.success) toast({ title: 'อนุมัติเรียบร้อย' });
-                                                                                    }
-                                                                                }}
-                                                                            >
-                                                                                อนุมัติ
-                                                                            </Button>
-                                                                        </div>
+                                                                    {!isPaid && !isCompleted && (
+                                                                        <Button 
+                                                                            size="sm" 
+                                                                            className="h-5 text-[8px] bg-emerald-600 hover:bg-emerald-700 text-white px-1.5 font-black rounded-md"
+                                                                            onClick={async () => {
+                                                                                if (confirm(`ยืนยันว่าได้รับเงินงวดที่ ${idx + 1} (฿${instAmount.toLocaleString()}) เข้าบัญชีของคุณแล้ว?`)) {
+                                                                                    const res = await approveInstallmentAction(chatId, idx);
+                                                                                    if (res.success) toast({ title: 'บันทึกการรับเงินแล้ว' });
+                                                                                    else toast({ variant: 'destructive', title: 'บันทึกไม่สำเร็จ', description: res.error });
+                                                                                }
+                                                                            }}
+                                                                        >
+                                                                            ยืนยันได้รับเงิน
+                                                                        </Button>
                                                                     )}
                                                                 </div>
                                                             </div>
@@ -810,6 +865,33 @@ function ChatPageContent() {
                                         </div>
                                     </div>
                                 )}
+                                </div>
+                            )}
+
+                            {/* ค่าบริการก้อนเดียว / ค่าบริการเพิ่มเติม — ทนายยืนยันเองเมื่อเงินเข้าบัญชีตัวเอง */}
+                            {!isCompleted && (
+                                (installments.length === 0 && chatAmount > 0 && !paymentState.settled) || paymentState.additionalFee
+                            ) && (
+                                <div className="pt-3 mt-3 border-t border-slate-200 dark:border-slate-700 space-y-2">
+                                    <p className="text-[10px] text-slate-500 font-black uppercase tracking-widest pl-1">รอยืนยันรับเงิน</p>
+                                    {installments.length === 0 && chatAmount > 0 && !paymentState.settled && (
+                                        <PaymentConfirmRow
+                                            label="ค่าบริการ"
+                                            amount={chatAmount}
+                                            notice={paymentState.caseNotice}
+                                            onViewProof={(p) => handleViewFile(p, 'proof_case.jpg')}
+                                            onConfirm={() => handleConfirmReceived('case', chatAmount, 'ค่าบริการ')}
+                                        />
+                                    )}
+                                    {paymentState.additionalFee && (
+                                        <PaymentConfirmRow
+                                            label={paymentState.additionalFee.reason}
+                                            amount={paymentState.additionalFee.amount}
+                                            notice={paymentState.additionalNotice}
+                                            onViewProof={(p) => handleViewFile(p, 'proof_additional.jpg')}
+                                            onConfirm={() => handleConfirmReceived('additional', paymentState.additionalFee!.amount, 'ค่าบริการเพิ่มเติม')}
+                                        />
+                                    )}
                                 </div>
                             )}
 
@@ -904,7 +986,7 @@ function ChatPageContent() {
                                         <div className="flex justify-between px-1">
                                             <span className="text-xs text-slate-500 font-medium">สถานะ:</span>
                                             <Badge variant={isCompleted ? "secondary" : (chatStatus === 'pending_payment' ? "destructive" : "default")} className="text-[10px] px-1.5 py-0">
-                                                {isCompleted ? 'เสร็จสิ้น' : (chatStatus === 'pending_payment' ? "รอชำระเงิน" : 'กำลังดำเนินการ')}
+                                                {isCompleted ? 'เสร็จสิ้น' : (chatStatus === 'pending_payment' ? "รอยืนยันรับเงิน" : 'กำลังดำเนินการ')}
                                             </Badge>
                                         </div>
                                         <div className="flex justify-between px-1">
@@ -991,7 +1073,7 @@ function ChatPageContent() {
                         <Card className="border-none bg-gradient-to-br from-slate-800 to-slate-900 text-white rounded-[2rem] overflow-hidden shadow-lg">
                             <CardHeader className="pb-2 border-b border-white/10">
                                 <CardTitle className="text-xs font-black uppercase tracking-widest flex items-center gap-2 opacity-80">
-                                    <DollarSign className="w-3.5 h-3.5" /> สรุปการชำระเงิน
+                                    <DollarSign className="w-3.5 h-3.5" /> สรุปค่าบริการ (จ่ายทนายโดยตรง)
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="pt-4 space-y-4">
@@ -1001,7 +1083,7 @@ function ChatPageContent() {
                                         <p className="text-2xl font-black">฿{chatAmount.toLocaleString()}</p>
                                     </div>
                                     <div className="text-right">
-                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">ชำระแล้ว</p>
+                                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">ทนายยืนยันรับแล้ว</p>
                                         <p className="text-xl font-black text-emerald-400">฿{totalPaid.toLocaleString()}</p>
                                     </div>
                                 </div>
@@ -1037,7 +1119,7 @@ function ChatPageContent() {
                                     </Avatar>
                                     <div>
                                         <p className="font-bold text-slate-900 dark:text-white leading-tight">{lawyer?.name || 'Lawyer'}</p>
-                                        <p className="text-xs text-slate-500">สถานะ: {chatStatus === 'active' ? 'กำลังดำเนินการ' : 'รอการชำระเงิน'}</p>
+                                        <p className="text-xs text-slate-500">สถานะ: {isCompleted ? 'เสร็จสิ้น' : 'กำลังดำเนินการ'}</p>
                                     </div>
                                 </div>
                                 <Button variant="outline" className="w-full text-xs h-9 rounded-xl border-slate-200" asChild disabled={!lawyer || !lawyerId}>
@@ -1066,113 +1148,72 @@ function ChatPageContent() {
                                 <Button onClick={handleSubmitReview} className="w-full font-bold h-9 text-xs" disabled={rating === 0}>ส่งรีวิว</Button>
                             </CardFooter>
                         </Card>
-                    ) : (isManualCase && chatStatus === 'pending_payment') ? (
-                        <Card className="border-blue-500 shadow-2xl ring-4 ring-blue-500/10 bg-white overflow-hidden animate-in fade-in zoom-in-95 duration-500">
-                            <div className="bg-blue-600 py-1.5 px-3 text-white text-center">
-                                <p className="text-[9px] font-black uppercase tracking-[0.2em] italic">Official Case Proposal</p>
-                            </div>
+                    ) : (!effectiveIsLawyerView && (
+                        installments.some((i: any) => i.status !== 'paid') ||
+                        (installments.length === 0 && chatAmount > 0 && !paymentState.settled) ||
+                        !!paymentState.additionalFee
+                    )) ? (
+                        // เดิมตรงนี้คือ "กำแพง" ของเคสที่ทนายสร้างเอง (status pending_payment) ที่พาไปจ่ายเข้า
+                        // บัญชีแพลตฟอร์มก่อนเริ่มงาน — ตอนนี้แชทใช้ได้ทันทีเสมอ การ์ดนี้แค่บอกยอดที่ทนายเสนอ
+                        // และพาไปดูบัญชีของทนายเพื่อโอนตรง (Lawslane ไม่ถือเงิน)
+                        <Card className="border-blue-200 shadow-xl bg-white overflow-hidden">
                             <CardHeader className="pb-2 pt-4">
                                 <CardTitle className="text-sm font-bold flex items-center gap-2 text-slate-800">
-                                    <Briefcase className="w-5 h-5 text-blue-600" /> {caseTitle || "ข้อเสนอเริ่มดำเนินคดี"}
+                                    <DollarSign className="w-5 h-5 text-blue-600" /> ค่าบริการที่ต้องโอนให้ทนาย
                                 </CardTitle>
+                                <CardDescription className="text-[11px] font-bold text-amber-700">
+                                    Lawslane ไม่ได้รับและไม่ได้ถือเงินก้อนนี้ กรุณาโอนให้ทนายโดยตรง
+                                </CardDescription>
                             </CardHeader>
-                            <CardContent className="space-y-4 text-sm">
-                                <div className="p-3 bg-gradient-to-br from-slate-50 to-slate-100/50 dark:from-slate-800 dark:to-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl text-slate-600 dark:text-slate-300 text-[11px] leading-relaxed shadow-sm">
-                                    <p className="font-bold mb-1.5 uppercase tracking-wider text-[9px] text-blue-600 dark:text-blue-400 flex items-center gap-1.5"><FileText className="w-3 h-3" /> ขอบเขตงาน (Scope of Work)</p>
-                                    <p className="line-clamp-3 text-slate-700 dark:text-slate-200">{description || "ตามที่ระบุในสัญญาจ้างงาน"}</p>
-                                </div>
-                                
-                                {installments && installments.length > 0 ? (
-                                    <div className="space-y-2">
-                                        <p className="text-[9px] font-black uppercase text-slate-400 tracking-widest pl-1">แผนการชำระเงิน ({installments.filter((i: any) => i.status === 'paid').length}/{installments.length} งวด)</p>
-                                        <div className="space-y-2">
-                                            {installments.map((inst: any, idx: number) => {
-                                                const isPaid = inst.status === 'paid';
-                                                const previousAllPaid = installments.slice(0, idx).every((prev: any) => prev.status === 'paid');
-                                                const isNextToPay = !isPaid && previousAllPaid;
-                                                const instAmount = inst.amount && !isNaN(parseFloat(inst.amount)) ? parseFloat(String(inst.amount).replace(/,/g, '')) : 0;
-
-                                                return (
-                                                    <div key={idx} className={cn(
-                                                        "p-3 rounded-xl border transition-all",
-                                                        isPaid 
-                                                            ? "bg-green-50 border-green-200" 
-                                                            : isNextToPay 
-                                                                ? "bg-blue-50 border-blue-300 ring-2 ring-blue-200/50 shadow-sm" 
-                                                                : "bg-slate-50/50 border-slate-100/50 opacity-60"
-                                                    )}>
-                                                        <div className="flex justify-between items-center mb-1.5">
-                                                            <span className={cn("text-[10px] font-bold", isPaid ? "text-green-700" : isNextToPay ? "text-blue-700" : "text-slate-400")}>
-                                                                งวดที่ {idx + 1}
-                                                            </span>
-                                                            {isPaid ? (
-                                                                <span className="text-[9px] font-black uppercase bg-green-100 text-green-700 px-2 py-0.5 rounded-full flex items-center gap-1">
-                                                                    <CheckCircle2 className="w-3 h-3" /> ชำระแล้ว
-                                                                </span>
-                                                            ) : isNextToPay ? (
-                                                                <span className="text-[9px] font-black uppercase bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full animate-pulse">
-                                                                    รอชำระ
-                                                                </span>
-                                                            ) : (
-                                                                <span className="text-[9px] font-bold text-slate-300 uppercase">รอคิว</span>
-                                                            )}
-                                                        </div>
-                                                        <p className="text-[10px] text-slate-500 dark:text-slate-400 font-medium line-clamp-2 leading-tight">{inst.description}</p>
-                                                        <div className="flex justify-between items-center mt-3 pt-2 border-t border-slate-100 dark:border-slate-700/50">
-                                                            <span className="font-black text-slate-800 dark:text-slate-100 text-sm">฿{instAmount.toLocaleString()}</span>
-                                                            {isNextToPay && !effectiveIsLawyerView && (
-                                                                <Button size="sm" className="h-7 rounded-lg bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-[10px] font-bold px-3 transition-colors shadow-md shadow-blue-500/20 whitespace-nowrap overflow-hidden text-ellipsis flex-shrink-0 text-white" asChild>
-                                                                    <Link href={`/payment?chatId=${chatId}&lawyerId=${resolvedLawyerId}&amount=${instAmount}&type=installment&installmentIndex=${idx}`}>
-                                                                        ชำระงวดนี้ <ArrowRight className="ml-1 w-3 h-3" />
-                                                                    </Link>
-                                                                </Button>
-                                                            )}
-                                                            {isNextToPay && effectiveIsLawyerView && (
-                                                                <Button 
-                                                                    size="sm" 
-                                                                    variant="outline"
-                                                                    className="h-7 rounded-lg border-blue-200 text-blue-600 hover:bg-blue-50 text-[10px] font-bold px-3 transition-colors flex-shrink-0"
-                                                                    onClick={() => requestFeeAction({
-                                                                        chatId,
-                                                                        lawyerId: resolvedLawyerId!,
-                                                                        lawyerName: lawyer?.name || 'ทนายความ',
-                                                                        amount: instAmount,
-                                                                        reason: `ชำระเงินงวดที่ ${idx + 1}: ${inst.description}`
-                                                                    }).then(res => {
-                                                                        if (res.success) toast({ title: "ส่งคำขอชำระเงินแล้ว", description: `ส่งคำขอชำระเงินงวดที่ ${idx + 1} ไปยังลูกความแล้ว` });
-                                                                    })}
-                                                                >
-                                                                    <DollarSign className="mr-1 w-3 h-3" /> ส่งคำขอชำระเงิน
-                                                                </Button>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                );
-                                            })}
+                            <CardContent className="space-y-2 text-sm">
+                                {paymentState.additionalFee && (
+                                    <div className="p-3 rounded-xl border bg-blue-50 border-blue-200 flex justify-between items-center gap-2">
+                                        <div className="min-w-0">
+                                            <p className="text-[10px] font-bold text-blue-700 truncate">{paymentState.additionalFee.reason}</p>
+                                            {paymentState.additionalNotice && <p className="text-[9px] text-amber-600 font-bold">แจ้งโอนแล้ว — รอทนายยืนยัน</p>}
                                         </div>
-                                    </div>
-                                ) : (
-                                    <div className="p-4 rounded-2xl border-2 border-blue-100 bg-blue-50/30 text-center shadow-inner">
-                                        <p className="text-[10px] uppercase font-bold text-blue-600 mb-0.5 tracking-tighter">ค่าบริการรวมทั้งสิ้น</p>
-                                        <p className="text-3xl font-black text-slate-900 tracking-tight">฿{chatAmount.toLocaleString()}</p>
+                                        <Button size="sm" className="h-7 rounded-lg bg-blue-600 hover:bg-blue-700 text-[10px] font-bold px-3 text-white shrink-0" asChild>
+                                            <Link href={`/payment?chatId=${chatId}&type=additional`}>โอน ฿{paymentState.additionalFee.amount.toLocaleString()}</Link>
+                                        </Button>
                                     </div>
                                 )}
-
-                                {/* Total summary */}
-                                <div className="p-3 rounded-xl bg-slate-50 border border-slate-100 flex justify-between items-center">
-                                    <span className="text-[10px] font-bold text-slate-400 uppercase">ยอดรวมทั้งหมด</span>
-                                    <span className="text-lg font-black text-slate-900">฿{chatAmount.toLocaleString()}</span>
-                                </div>
+                                {installments.map((inst: any, idx: number) => {
+                                    const isPaid = inst.status === 'paid';
+                                    const notified = !isPaid && (!!inst.clientNotice || inst.status === 'pending_verification');
+                                    const instAmount = inst.amount && !isNaN(parseFloat(inst.amount)) ? parseFloat(String(inst.amount).replace(/,/g, '')) : 0;
+                                    return (
+                                        <div key={idx} className={cn("p-3 rounded-xl border flex justify-between items-center gap-2", isPaid ? "bg-green-50 border-green-200" : "bg-slate-50 border-slate-100")}>
+                                            <div className="min-w-0">
+                                                <p className={cn("text-[10px] font-bold", isPaid ? "text-green-700" : "text-slate-700")}>งวดที่ {idx + 1}</p>
+                                                <p className="text-[10px] text-slate-500 line-clamp-1">{inst.description}</p>
+                                                {notified && <p className="text-[9px] text-amber-600 font-bold">แจ้งโอนแล้ว — รอทนายยืนยัน</p>}
+                                            </div>
+                                            {isPaid ? (
+                                                <span className="text-[9px] font-black uppercase bg-green-100 text-green-700 px-2 py-0.5 rounded-full flex items-center gap-1 shrink-0">
+                                                    <CheckCircle2 className="w-3 h-3" /> ทนายได้รับแล้ว
+                                                </span>
+                                            ) : (
+                                                <Button size="sm" variant={notified ? 'outline' : 'default'} className="h-7 rounded-lg text-[10px] font-bold px-3 shrink-0" asChild>
+                                                    <Link href={`/payment?chatId=${chatId}&type=installment&installmentIndex=${idx}`}>
+                                                        ฿{instAmount.toLocaleString()} <ArrowRight className="ml-1 w-3 h-3" />
+                                                    </Link>
+                                                </Button>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                                {installments.length === 0 && chatAmount > 0 && !paymentState.settled && (
+                                    <div className="p-3 rounded-xl border bg-slate-50 border-slate-100 flex justify-between items-center gap-2">
+                                        <div className="min-w-0">
+                                            <p className="text-[10px] font-bold text-slate-700 truncate">{caseTitle || 'ค่าบริการ'}</p>
+                                            {paymentState.caseNotice && <p className="text-[9px] text-amber-600 font-bold">แจ้งโอนแล้ว — รอทนายยืนยัน</p>}
+                                        </div>
+                                        <Button size="sm" className="h-7 rounded-lg bg-blue-600 hover:bg-blue-700 text-[10px] font-bold px-3 text-white shrink-0" asChild>
+                                            <Link href={`/payment?chatId=${chatId}&type=case`}>โอน ฿{chatAmount.toLocaleString()}</Link>
+                                        </Button>
+                                    </div>
+                                )}
                             </CardContent>
-                            <CardFooter className="flex flex-col gap-2 bg-slate-50/50 border-t border-slate-100 p-5">
-                                {(!installments || installments.length === 0) && (
-                                    <Button className="w-full bg-[#0B3979] hover:bg-[#082a5a] font-black h-12 shadow-xl shadow-blue-500/20 text-white rounded-2xl text-sm" asChild>
-                                        <Link href={`/payment?chatId=${chatId}&lawyerId=${lawyerId}&amount=${chatAmount}&type=case`}>
-                                            ชำระเงินเพื่อเปิดคดี ฿{chatAmount.toLocaleString()}
-                                        </Link>
-                                    </Button>
-                                )}
-                            </CardFooter>
                         </Card>
                     ) : null}
                 </TabsContent>
