@@ -2,7 +2,7 @@
 
 import { initAdmin } from '@/lib/firebase-admin';
 import type { Case, UpcomingAppointment, ReportedTicket, LawyerCase, LawyerAppointmentRequest } from '@/lib/types';
-import { requireUser, requireAdmin, AuthError } from '@/lib/auth-guard';
+import { requireUser, requireAdmin, requireLawyer, AuthError } from '@/lib/auth-guard';
 import { reduceLawyerBalance } from '@/lib/lawyer-balance';
 
 /** ผู้เรียกเป็นทนายคนนี้เองหรือเป็นแอดมินหรือไม่ (lawyerId เป็น id ของ lawyerProfiles) */
@@ -344,7 +344,10 @@ export async function getLawyerStatsAction(lawyerId: string) {
 
 export async function getLawyerDashboardDataAction(): Promise<{ newRequests: LawyerAppointmentRequest[], activeCases: LawyerCase[], completedCases: LawyerCase[] }> {
     // uid มาจาก session — เดิมรับ lawyerId เป็น argument
-    const { uid: lawyerId } = await requireUser();
+    // appointments.lawyerId เก็บ id ของ lawyerProfiles (respondToAppointmentRequestAction
+    // เทียบกับ lawyerProfileId) ซึ่งไม่เท่ากับ uid เสมอไป — โปรไฟล์ที่แอดมินสร้างด้วย addDoc
+    // ได้ doc id สุ่ม ส่วน chats.participants เก็บ uid
+    const { uid: lawyerId, lawyerProfileId } = await requireLawyer();
     const adminApp = await initAdmin();
     if (!adminApp) {
         throw new Error('Firebase Admin not initialized.');
@@ -354,7 +357,7 @@ export async function getLawyerDashboardDataAction(): Promise<{ newRequests: Law
     try {
         // 1. Fetch appointments and chats
         const requestsSnap = await db.collection('appointments')
-            .where('lawyerId', '==', lawyerId)
+            .where('lawyerId', '==', lawyerProfileId)
             // คำขอที่ทนายรับได้คือนัดที่ "จ่ายแล้ว" เท่านั้น (respondToAppointmentRequestAction
             // ยอมรับเฉพาะ status 'paid') — เดิมดึง 'pending' ซึ่ง createAppointment ไม่เคย
             // สร้าง คำขอที่ลูกความจ่ายแล้วจึงไม่เคยขึ้นให้ทนายเห็น

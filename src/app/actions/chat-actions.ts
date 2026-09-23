@@ -989,6 +989,11 @@ export async function markCasePaidAction(params: {
             if (params.type === 'additional' && (!additional || additional.amount !== price.baseFee)) {
                 throw new PaymentRejected('คำขอชำระค่าบริการเพิ่มเติมเปลี่ยนไปแล้ว กรุณาโหลดหน้าใหม่');
             }
+            // ส่งซ้ำระหว่างรอตรวจจะเขียนทับสลิปใบแรกจนหายจากคิวหลังบ้าน และตัดคูปองซ้ำ
+            // (แอดมินกดปฏิเสธแล้วส่งใหม่ได้ เพราะขั้นปฏิเสธล้าง hasNewPayment)
+            if (additional && chatData.hasNewPayment === true && chatData.pendingPaymentDetails?.type === 'additional') {
+                throw new PaymentRejected('มีรายการแจ้งชำระค่าบริการเพิ่มเติมรอตรวจอยู่แล้ว');
+            }
 
             // สลิปที่ผ่าน SlipOK จริงเท่านั้นที่ข้ามด่านแอดมินได้
             const slip = await readSlipVerificationInTx(tx, db, uid, params.slipVerificationId, amount);
@@ -1014,12 +1019,17 @@ export async function markCasePaidAction(params: {
             // ถือว่าจ่ายครบตาม amount เดิมแล้ว เพราะเคสต้อง active ถึงขอค่าเพิ่มได้)
             if (additional && isAutoApproved) {
                 const baseAmount = Number(chatData.amount) || 0;
-                const basePaid = chatData.paidAmount !== undefined && chatData.paidAmount !== null
-                    ? Number(chatData.paidAmount) || 0
-                    : baseAmount;
+                // paidAmount ≤ 0 ถือว่าไม่มีข้อมูลเหมือนกัน — หน้าแจ้งโอนรุ่นเก่าเขียน 0 ไว้ตอนรอตรวจ
+                // และการอนุมัติมือรุ่นเก่าไม่เคยตั้งค่าให้ ทั้งที่เคส active = จ่ายค่าเปิดเคสแล้ว
+                const recordedPaid = Number(chatData.paidAmount) || 0;
+                const basePaid = recordedPaid > 0 ? recordedPaid : baseAmount;
                 updatePayload.amount = baseAmount + amount;
                 updatePayload.paidAmount = basePaid + amount;
-                updatePayload.status = chatData.status;
+                // สถานะเหมือนฝั่งแอดมิน: ยืนยันเงินเข้าแล้ว = active
+                updatePayload.status = 'active';
+                // สลิปรอบก่อนที่ยังรอตรวจ (เช่นอ่าน QR ไม่ได้) ต้องล้างทิ้ง ไม่งั้นรอบหน้าที่
+                // hasNewPayment กลับเป็น true หลังบ้านจะตีความเป็นค่าบริการเพิ่มเติมแล้วบวกยอดซ้ำ
+                updatePayload.pendingPaymentDetails = admin.firestore.FieldValue.delete();
             } else if (additional) {
                 // ยังไม่ผ่าน = รอแอดมิน ห้ามแตะ paidAmount/paidAt — ถ้าเขียน 0 ลงเคสเก่า
                 // ที่ไม่มี paidAmount ฝั่งแอดมินจะเอา 0 เป็นฐานแทน amount
