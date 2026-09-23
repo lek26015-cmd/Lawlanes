@@ -109,25 +109,25 @@ service cloud.firestore {
       // (ensureChatExists ใน chat-box.tsx และหน้ารับเคสของ repo สำเนาถูกถอดแล้ว)
       allow create: if isAdmin();
 
-      // ฟิลด์ที่ "แปลว่ามีเงินเข้าแล้ว" หรือกำหนดว่าต้องจ่ายเท่าไร — client ห้ามแตะ
-      // เดิมกฎเป็น `isParticipant()` เฉยๆ → ปิดทาง create แล้วก็ยังเปิด console
-      // updateDoc(chats/{id}, { status: 'active', paidAmount: 50000 }) กับห้องที่
-      // ตัวเองอยู่ได้อยู่ดี ไล่ดูทุก repo แล้ว client แก้แค่ lastMessage / lastMessageAt /
-      // hasNewMessage / lawyerReadAt / files — ฟิลด์เงินทั้งหมดเขียนผ่าน Admin SDK
-      function moneyFields() {
-        return [
-          'amount', 'originalFee', 'discount', 'quotedAmount',
-          'paidAmount', 'totalPaid', 'installments', 'paidInstallments',
-          'status', 'paidAt', 'lastPaymentAt',
-          'slipUrl', 'slipOkData', 'pendingPaymentDetails', 'pendingFeeRequest',
-          'couponCode', 'couponId', 'hasNewPayment',
-          'participants', 'userId', 'lawyerId'
-        ];
+      // ฟิลด์ที่ participant แก้เองได้ — allowlist ไม่ใช่ denylist
+      // เดิมกฎเป็น `isParticipant()` เฉยๆ → updateDoc(chats/{id}, { status: 'active',
+      // paidAmount: 50000 }) กับห้องที่ตัวเองอยู่ได้ รอบก่อนเปลี่ยนเป็น denylist ฟิลด์เงิน
+      // แต่ denylist รั่วทุกครั้งที่มีคนเพิ่มฟิลด์เงินใหม่ (เช่น additionalFeeRequest,
+      // pendingPaymentDetails_installment_N, isManualCase ไม่อยู่ในลิสต์) จึงกลับด้าน
+      // เป็นอนุญาตเฉพาะที่ client เขียนจริง
+      //
+      // ไล่ดูทุก repo ที่ใช้ Firebase project นี้แล้ว (Lawslane, capdeal, business,
+      // business-landing, admin) client แก้เอกสาร chats แค่:
+      //   - lastMessage / lastMessageAt / hasNewMessage / lawyerReadAt  (chat-box.tsx)
+      //   - files (arrayUnion ตอนอัปโหลดไฟล์ — Lawslane chat/[id]/page.tsx)
+      // ที่เหลือ (สถานะ ยอด งวด คำขอค่าบริการ สลิป ผู้เข้าร่วม) เขียนผ่าน Admin SDK ทั้งหมด
+      function participantWritableChatFields() {
+        return ['lastMessage', 'lastMessageAt', 'hasNewMessage', 'lawyerReadAt', 'files'];
       }
 
       allow update: if isAdmin() || (
         isParticipant()
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(moneyFields())
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(participantWritableChatFields())
       );
 
       match /messages/{messageId} {
@@ -179,7 +179,24 @@ service cloud.firestore {
           (request.query.limit <= 1000 && (request.auth.uid in request.query.filters.userId || request.auth.uid in request.query.filters.lawyerId)) ||
           isAdmin()
         );
-        allow update: if isSignedIn() && (resource.data.userId == request.auth.uid || resource.data.lawyerId == request.auth.uid || isAdmin());
+        // เดิมเจ้าของ/ทนายแก้ได้ทุกฟิลด์ → updateDoc(appointments/{id}, { status: 'paid' })
+        // ข้ามการตรวจสลิป หรือแก้ amount / lawyerId / slipOkData ได้เอง
+        //
+        // ไล่ดูทุก repo แล้ว client เขียน appointments อยู่ที่เดียว: ปุ่ม "ปฏิเสธเคส" ใน
+        // lawyer-dashboard/request/[id] ของ business / business-landing / admin ซึ่งตั้ง
+        // { status: 'cancelled', updatedAt } เท่านั้น — การรับเคส (confirmed + chatId)
+        // และการอนุมัติสลิป (paid) ทำผ่าน Admin SDK (respondToAppointmentRequestAction,
+        // createAppointment, approvePaymentSlipAction)
+        //
+        // จึงเหลือแค่ "ยกเลิก" จากสถานะที่ยังไม่ได้รับเคส — ห้ามยกเลิกนัดที่รับไปแล้ว
+        // (มีห้องแชทผูกอยู่) และห้ามเปลี่ยนเป็นสถานะอื่นใดทั้งสิ้น
+        allow update: if isAdmin() || (
+          isSignedIn()
+          && (resource.data.userId == request.auth.uid || resource.data.lawyerId == request.auth.uid)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'updatedAt'])
+          && request.resource.data.status == 'cancelled'
+          && resource.data.get('status', 'pending') in ['pending', 'pending_payment', 'paid']
+        );
     }
 
     match /tickets/{ticketId} {
@@ -204,6 +221,14 @@ service cloud.firestore {
     // เป็นหลักฐานว่า "จ่ายจริงแล้ว" client ห้ามอ่านหรือเขียนทั้งหมด — เขียนและ
     // ใช้ผ่าน Admin SDK เท่านั้น ไม่งั้นก็ปลอมเอกสารแล้วอ้างว่าจ่ายแล้วได้เหมือนเดิม
     match /slipVerifications/{verificationId} {
+        allow read, write: if isAdmin();
+    }
+
+    // สลิปที่ถูกใช้ชำระเงินไปแล้ว (doc id มาจาก transRef ของ SlipOK) — จองใน
+    // transaction เดียวกับการใช้ตั๋ว (lib/slip-verification.ts) เพื่อให้สลิปโอนจริง
+    // ใบเดียวแลกเป็นรายการ "จ่ายแล้ว" ได้ครั้งเดียว ถ้า client เขียน/ลบได้ก็ปลดล็อก
+    // สลิปเก่ามาใช้ซ้ำได้ จึงเขียนผ่าน Admin SDK เท่านั้น
+    match /slipTransRefs/{transRefId} {
         allow read, write: if isAdmin();
     }
 
