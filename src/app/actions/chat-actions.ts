@@ -1,6 +1,7 @@
 'use server';
 
 import { initAdmin } from '@/lib/firebase-admin';
+import { addCaseEventToBatch, isTelemetryEnabled, logCaseEvent } from '@/lib/telemetry/case-events';
 import * as admin from 'firebase-admin';
 import { checkRateLimit } from '@/lib/security/rate-limiter';
 import { createContractFromChat } from '@/lib/contract-service';
@@ -263,6 +264,10 @@ export async function sendChatMessageAction(params: {
             throw e;
         }
 
+        // เอกสารเคสที่ resolveChatParty อ่านมาแล้ว — ใช้ต่อกับ telemetry ชั้น A
+        // จึงไม่ต้องอ่านซ้ำ (ไม่เพิ่ม read ต่อข้อความ)
+        const chatData = party.chatData;
+
         // AUTO-REPAIR: ทนายของห้องที่ยังไม่อยู่ใน participants (เติมเฉพาะ uid ที่ได้จากเอกสารห้อง)
         await repairParticipants(db, chatId, party);
 
@@ -289,6 +294,34 @@ export async function sendChatMessageAction(params: {
 
         const batch = db.batch();
 
+        // --- Telemetry ชั้น A: counters บนเอกสารเคสเดิม (ดู src/lib/telemetry/case-events.ts) ---
+        // นับข้อความสองฝั่ง + เวลาตอบกลับครั้งแรก เพื่อคำนวณ responsiveness และ
+        // silent-drop ได้ โดยไม่แตะเนื้อข้อความเลย (แชทเป็น E2EE — server เห็นแต่ ciphertext)
+        const telemetryOn = await isTelemetryEnabled(db);
+        const lawyerProfileId: string = chatData.lawyerId || chatData.lawyer_id || '';
+        const firstClientMsgAt = chatData.firstClientMsgAt;
+        const isFirstClientMsg = !isLawyerView && !firstClientMsgAt;
+        const isFirstLawyerReply = isLawyerView && !!firstClientMsgAt && !chatData.firstLawyerReplyAt;
+        const firstReplyLatencyMs = isFirstLawyerReply
+            ? Math.max(0, Date.now() - (firstClientMsgAt?.toMillis?.() ?? Date.now()))
+            : 0;
+
+        const telemetryFields: Record<string, any> = telemetryOn
+            ? {
+                [isLawyerView ? 'msgCountLawyer' : 'msgCountClient']:
+                    admin.firestore.FieldValue.increment(1),
+                ...(isFirstClientMsg
+                    ? { firstClientMsgAt: admin.firestore.FieldValue.serverTimestamp() }
+                    : {}),
+                ...(isFirstLawyerReply
+                    ? {
+                        firstLawyerReplyAt: admin.firestore.FieldValue.serverTimestamp(),
+                        firstReplyLatencyMs,
+                      }
+                    : {}),
+              }
+            : {};
+
         // 2. Add message to subcollection if not skipped
         if (!skipMessageSave) {
             const messageRef = db.collection('chats').doc(chatId).collection('messages').doc();
@@ -304,6 +337,7 @@ export async function sendChatMessageAction(params: {
         //    FIX: When sender writes, clear the RECIPIENT's ReadAt field so UI won't show stale "Read" status.
         const chatRef = db.collection('chats').doc(chatId);
         batch.update(chatRef, {
+            ...telemetryFields,
             lastMessage: text,
             lastMessageAt: admin.firestore.FieldValue.serverTimestamp(),
             hasNewMessage: !isLawyerView,
@@ -348,6 +382,28 @@ export async function sendChatMessageAction(params: {
             relatedId: chatId,
             metadata: metadata || null
         });
+
+        // 4.5 Telemetry ชั้น B — เฉพาะเหตุการณ์สำคัญ ไม่ log ทุกข้อความ
+        //     เกาะไปกับ batch เดิม จึงไม่เพิ่ม round-trip
+        if (telemetryOn && lawyerProfileId) {
+            if (isFirstClientMsg) {
+                addCaseEventToBatch(db, batch, {
+                    caseId: chatId,
+                    lawyerId: lawyerProfileId,
+                    type: 'first_client_message',
+                    actor: 'client',
+                });
+            }
+            if (isFirstLawyerReply) {
+                addCaseEventToBatch(db, batch, {
+                    caseId: chatId,
+                    lawyerId: lawyerProfileId,
+                    type: 'first_lawyer_reply',
+                    actor: 'lawyer',
+                    n: Math.round(firstReplyLatencyMs / 60000), // นาที
+                });
+            }
+        }
 
         await batch.commit();
 
@@ -1280,6 +1336,7 @@ export async function startConsultationAction(params: {
         const chatId = db.collection('chats').doc().id;
         const participants = Array.from(new Set([clientId, lawyerId, lawyerAuthId]));
 
+        const telemetryOn = await isTelemetryEnabled(db);
         const chatPayload = {
             participants,
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -1295,7 +1352,15 @@ export async function startConsultationAction(params: {
             discount: 0,
             hasNewMessage: true,
             lawyerReadStatus: 'unread',
-            clientReadStatus: 'read'
+            clientReadStatus: 'read',
+            // Telemetry ชั้น A — เคสนี้ถูกสร้างพร้อมข้อความแรกของลูกความอยู่แล้ว
+            // จึงต้องตั้งค่าเริ่มต้นตรงนี้ ไม่งั้นข้อความแรกจะไม่ถูกนับ
+            // (มันไม่ได้ผ่าน sendChatMessageAction) — เขียนเฉพาะตอนเปิด telemetry
+            ...(telemetryOn ? {
+                msgCountClient: 1,
+                msgCountLawyer: 0,
+                firstClientMsgAt: admin.firestore.FieldValue.serverTimestamp(),
+            } : {}),
         };
 
         const batch = db.batch();
@@ -1325,6 +1390,16 @@ export async function startConsultationAction(params: {
             link: `/${locale}/chat/${chatId}?view=lawyer`,
             relatedId: chatId
         });
+
+        // Telemetry ชั้น B — เกาะ batch เดิม ไม่เพิ่ม round-trip
+        if (telemetryOn) {
+            addCaseEventToBatch(db, batch, {
+                caseId: chatId, lawyerId, type: 'case_opened', actor: 'client',
+            });
+            addCaseEventToBatch(db, batch, {
+                caseId: chatId, lawyerId, type: 'first_client_message', actor: 'client',
+            });
+        }
 
         await batch.commit();
 

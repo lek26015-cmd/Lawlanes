@@ -563,6 +563,23 @@ service cloud.firestore {
         }
     }
 
+    // Telemetry ของเคส — เขียนได้จาก Admin SDK เท่านั้น (ซึ่งข้าม rules อยู่แล้ว)
+    // ฝั่ง client เขียนไม่ได้เด็ดขาด เพื่อไม่ให้ปั่นตัวเลขที่ใช้จัดอันดับทนาย
+    // เอกสารในนี้ไม่มี PII เลย (ดู src/lib/telemetry/case-events.ts)
+    match /caseEvents/{eventId} {
+      allow get, list: if isAdmin();
+      allow write: if false;
+    }
+
+    // metric สรุปรายทนาย — ทนายต้องดูของตัวเองได้ ไม่งั้น incentive มองไม่เห็น
+    // = กลไกไม่ทำงาน แต่ห้ามดูของคนอื่น และ offPlatformIndex อยู่ในนี้เท่านั้น
+    // ห้าม mirror ขึ้น lawyerProfiles
+    match /lawyerMetrics/{lawyerId} {
+      allow get: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
+      allow list: if isAdmin();
+      allow write: if false;
+    }
+
     // Default deny at the very end
     match /{document=**} {
       allow read, write: if false;

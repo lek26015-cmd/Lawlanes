@@ -3,6 +3,7 @@
 import { initAdmin } from '@/lib/firebase-admin';
 import { FieldValue } from 'firebase-admin/firestore';
 import { requireUser } from '@/lib/auth-guard';
+import { logCaseEvent } from '@/lib/telemetry/case-events';
 
 export async function submitReviewAction(data: {
     lawyerId: string;
@@ -99,6 +100,11 @@ export async function submitReviewAction(data: {
             averageRating: newAverageRating,
             reviewCount: totalReviews
         }, { merge: true });
+
+        // Telemetry ชั้น B — reviewRate เป็นตัวแปรหนึ่งของการจัดอันดับ
+        await logCaseEvent(db, {
+            caseId, lawyerId, type: 'review_submitted', actor: 'client', n: Number(rating),
+        });
 
         return { success: true, reviewId: reviewRef.id };
     } catch (error: any) {
