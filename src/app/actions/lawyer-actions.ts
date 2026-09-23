@@ -80,39 +80,8 @@ export async function getLawyerProfileAction(lawyerId: string): Promise<LawyerPr
     }
 }
 
-/**
- * Updates lawyer pricing settings.
- */
-export async function updateLawyerPricingAction(pricing: { 
-    appointmentFee: number, 
-    chatFee: number, 
-    platformFeeRate: number 
-}) {
-    // ต้องเป็นทนายเจ้าของโปรไฟล์ — เดิมรับ lawyerId เป็น argument
-    // จึงแก้ค่าบริการของทนายคนอื่นได้
-    const { lawyerProfileId: lawyerId, adminApp } = await requireLawyer();
-    const db = adminApp.firestore();
-
-    // platformFeeRate คือส่วนแบ่งของแพลตฟอร์ม (GP) — แอดมินเป็นคนกำหนด ทนายห้ามตั้งเอง
-    // เดิมเขียน pricing ทั้งก้อนที่ส่งมา ทนายจึงตั้ง platformFeeRate: 0 ให้ตัวเองได้
-    const appointmentFee = Number(pricing?.appointmentFee);
-    const chatFee = Number(pricing?.chatFee);
-    if (![appointmentFee, chatFee].every(v => Number.isFinite(v) && v >= 0 && v <= 1_000_000)) {
-        return { success: false, error: 'ค่าบริการไม่ถูกต้อง' };
-    }
-
-    try {
-        await db.collection('lawyerProfiles').doc(lawyerId).update({
-            'pricing.appointmentFee': appointmentFee,
-            'pricing.chatFee': chatFee,
-            updatedAt: new Date().toISOString()
-        });
-        return { success: true };
-    } catch (error: any) {
-        console.error("Error updating lawyer pricing action:", error);
-        return { success: false, error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' };
-    }
-}
+// updateLawyerPricingAction (ค่านัด/ค่าแชทของทนาย + กัน platformFeeRate) ถูกลบ — ไม่มีหน้าไหนเรียก
+// และแชท/นัดหมายไม่มีค่าใช้จ่ายผ่านระบบแล้ว ค่าบริการทนายเสนอในแชทแล้วลูกความจ่ายทนายโดยตรง
 
 /**
  * ดึงตารางเวลาของทนายที่ล็อกอินอยู่ — ใช้เติมค่าเริ่มต้นในหน้า lawyer-schedule
@@ -160,28 +129,7 @@ export async function updateLawyerScheduleAction(schedule: LawyerSchedule) {
     }
 }
 
-/**
- * Fetches global platform settings (like GP rate).
- */
-export async function getPlatformSettingsAction() {
-    const adminApp = await initAdmin();
-    if (!adminApp) throw new Error('Firebase Admin not initialized.');
-    const db = adminApp.firestore();
-
-    try {
-        const settingsDoc = await db.collection('settings').doc('platform').get();
-        if (settingsDoc.exists) {
-            // action นี้ไม่มีด่าน (Admin SDK ข้าม rules ที่ให้อ่านได้เฉพาะคนล็อกอิน) —
-            // คืนเฉพาะค่าที่หน้าเว็บใช้ ไม่คืนเอกสารตั้งค่าทั้งก้อน
-            const rate = Number(settingsDoc.data()?.platformFeeRate);
-            return { platformFeeRate: Number.isFinite(rate) ? rate : 0.15 };
-        }
-        return { platformFeeRate: 0.15 }; // Default fallback
-    } catch (error) {
-        console.error("Error fetching platform settings action:", error);
-        return { platformFeeRate: 0.15 };
-    }
-}
+// getPlatformSettingsAction (อัตรา GP จาก settings/platform) ถูกลบ — ยกเลิก GP แล้ว
 
 /**
  * Checks the role of a specific user.

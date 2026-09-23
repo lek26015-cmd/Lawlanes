@@ -35,8 +35,11 @@ export interface LawyerProfile {
   licenseNumber: string;
   address: string;
   serviceProvinces: string[];
+  // บัญชีรับเงินของทนาย — ลูกความโอนค่าบริการเข้าบัญชีนี้โดยตรง (ส่วนตัว: เปิดให้เฉพาะคู่กรณีของเคส
+  // ผ่าน getDirectPaymentInfoAction และเจ้าของโปรไฟล์)
   bankName: string;
   bankAccountNumber: string;
+  bankAccountName?: string;
   lineId?: string;
   status: 'approved' | 'pending' | 'rejected' | 'suspended';
   rejectionReason?: string;
@@ -65,10 +68,11 @@ export interface LawyerProfile {
   averageRating?: number;
   reviewCount?: number;
   firmId?: string;
+  // ข้อมูลเก่า — แชท/นัดหมายไม่มีค่าใช้จ่ายผ่านระบบแล้ว และ platformFeeRate (GP) ถูกยกเลิก
+  // (ฟิลด์ยังอาจมีอยู่ในเอกสาร prod แต่เว็บหลักไม่อ่านแล้ว)
   pricing?: {
-    appointmentFee: number;     // Fee for in-person appointments
-    chatFee: number;             // Fee for chat consultations
-    platformFeeRate: number;     // GP rate (default 0.15 = 15%)
+    appointmentFee?: number;
+    chatFee?: number;
   };
   schedule?: LawyerSchedule;
 }
@@ -386,28 +390,8 @@ export interface LegalForm {
   createdAt: any;
 }
 
-export interface Coupon {
-  id: string; // The specific coupon code itself or auto-generated
-  code: string;
-  type: 'fixed' | 'percent';
-  value: number;
-  expiryDate: any; // Timestamp
-  usageLimit?: number;
-  usedCount: number;
-  isActive: boolean;
-  createdAt: any;
-}
-
-export interface GpCoupon {
-  id: string;
-  code: string;
-  description?: string;
-  gpRate: number;        // อัตรา GP ใหม่ เช่น 0.10 = 10%
-  assignedTo: string[];  // array ของ lawyerProfile IDs ที่ได้รับคูปองนี้
-  expiryDate?: any;      // Firestore Timestamp
-  isActive: boolean;
-  createdAt: any;
-}
+// Coupon (ส่วนลดค่าบริการของลูกความ) และ GpCoupon (ลดอัตรา GP ของทนาย) ถูกลบ — แพลตฟอร์มไม่เก็บเงิน
+// ลูกความและยกเลิก GP แล้ว คอลเลกชัน coupons / gpCoupons ยังอยู่ใน prod ให้แอดมินอ่านย้อนหลังได้
 
 export interface Book {
   id: string;

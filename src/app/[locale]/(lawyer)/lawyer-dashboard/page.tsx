@@ -36,7 +36,6 @@ import type { LawyerCase, LawyerAppointmentRequest, LawyerProfile } from '@/lib/
 import { format } from 'date-fns';
 import { th } from 'date-fns/locale';
 import profileLawyerImg from '@/pic/profile-lawyer.jpg';
-import { doc, getDoc } from 'firebase/firestore';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -68,24 +67,7 @@ export default function LawyerDashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  // Pricing state
-  const [platformGPRate, setPlatformGPRate] = useState<number>(0.15); // Default 15%
-
-  // Fetch platform GP rate
-  useEffect(() => {
-    if (!firestore) return;
-    const fetchGPRate = async () => {
-      try {
-        const settingsDoc = await getDoc(doc(firestore, 'settings', 'platform'));
-        if (settingsDoc.exists()) {
-          setPlatformGPRate(settingsDoc.data().platformFeeRate || 0.15);
-        }
-      } catch (error) {
-        console.error('Error fetching GP rate:', error);
-      }
-    };
-    fetchGPRate();
-  }, [firestore]);
+  // เลิกอ่าน settings/platform.platformFeeRate (GP 15%) — ยกเลิก GP แล้ว ไม่หักเปอร์เซ็นต์จากทนาย
 
   useEffect(() => {
     if (isUserLoading) return;
@@ -195,7 +177,7 @@ export default function LawyerDashboardPage() {
               ฿{stats.incomeThisMonth.toLocaleString()}
             </p>
             <Link href="/lawyer-dashboard/financials" className="text-[11px] text-blue-600 hover:underline flex items-center gap-1 mt-1">
-              ดูรายละเอียดภาษี/ใบแจ้งหนี้ <ChevronRight className="w-3 h-3" />
+              ยอดที่คุณยืนยันรับแล้ว / บัญชีรับเงิน <ChevronRight className="w-3 h-3" />
             </Link>
           </Card>
 
