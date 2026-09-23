@@ -94,44 +94,41 @@ service cloud.firestore {
         return isSignedIn() && request.auth.uid in resource.data.participants;
       }
       
-      // ฟิลด์ที่ "แปลว่ามีเงินเข้าแล้ว" — client ห้ามเขียนตอนสร้างเอกสารเด็ดขาด
-      // เดิมกฎเป็น `allow create: if isSignedIn()` เฉยๆ → เปิด console ยิง SDK
-      // สร้างเคสพร้อม `amount: 50000, status: 'paid'` ได้โดยไม่ต้องจ่ายอะไรเลย
-      // ทนายเห็นว่าเคสจ่ายแล้วและลงมือทำงานฟรี
-      function moneyFields() {
-        return [
-          'amount', 'originalFee', 'discount', 'paidAmount', 'totalPaid',
-          'installments', 'paidInstallments', 'paidAt', 'lastPaymentAt',
-          'slipUrl', 'slipOkData', 'pendingPaymentDetails',
-          'couponCode', 'couponId', 'hasNewPayment'
-        ];
-      }
-
-      // สถานะที่ client ตั้งเองได้ตอนสร้างห้อง — ห้ามมี 'paid'/'active' ที่แปลว่าจ่ายแล้ว
-      function createsSafeStatus() {
-        return !('status' in request.resource.data.keys())
-          || request.resource.data.status in ['open', 'pending', 'pending_payment'];
-      }
-
       allow get: if isSignedIn() && (isParticipant() || isAdmin()); 
       allow list: if isSignedIn() && (
         (request.query.limit <= 1000 && request.auth.uid in request.query.filters.participants) || 
         isAdmin()
       ); 
-      // ห้องที่มียอดเงินต้องสร้างผ่าน Admin SDK เท่านั้น (createConsultationChat,
-      // respondToAppointmentRequestAction) ห้องเปล่าๆ ที่ตัวเองเป็นคู่สนทนายังสร้างได้
+      // เดิม `allow create: if isSignedIn()` → เปิด console ยิง SDK สร้างเคสพร้อม
+      // `amount: 50000, status: 'paid'` ได้โดยไม่ต้องจ่ายอะไรเลย ทนายเห็นว่าเคส
+      // จ่ายแล้วและลงมือทำงานฟรี
       //
-      // ⚠️ ยังไม่ปิดเป็น isAdmin() ล้วนเพราะยังมี client สร้างห้องเปล่าอยู่อีก 6 จุด
-      //    ที่ยังไม่ได้ย้าย: chat-box.tsx (ensureChatExists) ของ capdeal / admin /
-      //    business / business-landing และหน้า lawyer-dashboard/request/[id] ของ
-      //    admin / business / business-landing — ย้ายครบเมื่อไหร่ถึงปิดได้
-      allow create: if isAdmin() || (
-        isSignedIn()
-        && request.auth.uid in request.resource.data.participants
-        && !request.resource.data.keys().hasAny(moneyFields())
-        && createsSafeStatus()
+      // ตอนนี้ทุกห้องสร้างผ่าน Admin SDK: createConsultationChat() (Lawslane, capdeal)
+      // และ respondToAppointmentRequestAction() (Lawslane) ไล่ดูทุก repo ที่ใช้
+      // Firebase project นี้แล้ว ไม่มี client ตัวไหนสร้าง chats เหลือ
+      // (ensureChatExists ใน chat-box.tsx และหน้ารับเคสของ repo สำเนาถูกถอดแล้ว)
+      allow create: if isAdmin();
+
+      // ฟิลด์ที่ "แปลว่ามีเงินเข้าแล้ว" หรือกำหนดว่าต้องจ่ายเท่าไร — client ห้ามแตะ
+      // เดิมกฎเป็น `isParticipant()` เฉยๆ → ปิดทาง create แล้วก็ยังเปิด console
+      // updateDoc(chats/{id}, { status: 'active', paidAmount: 50000 }) กับห้องที่
+      // ตัวเองอยู่ได้อยู่ดี ไล่ดูทุก repo แล้ว client แก้แค่ lastMessage / lastMessageAt /
+      // hasNewMessage / lawyerReadAt / files — ฟิลด์เงินทั้งหมดเขียนผ่าน Admin SDK
+      function moneyFields() {
+        return [
+          'amount', 'originalFee', 'discount', 'quotedAmount',
+          'paidAmount', 'totalPaid', 'installments', 'paidInstallments',
+          'status', 'paidAt', 'lastPaymentAt',
+          'slipUrl', 'slipOkData', 'pendingPaymentDetails', 'pendingFeeRequest',
+          'couponCode', 'couponId', 'hasNewPayment',
+          'participants', 'userId', 'lawyerId'
+        ];
+      }
+
+      allow update: if isAdmin() || (
+        isParticipant()
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(moneyFields())
       );
-      allow update: if isParticipant() || isAdmin();
 
       match /messages/{messageId} {
         function isChatParticipant() {
