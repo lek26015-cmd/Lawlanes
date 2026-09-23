@@ -52,6 +52,12 @@ export async function requestWithdrawal(input: { amount: number }): Promise<With
         if (!Number.isFinite(amount) || amount <= 0) {
             return { ok: false, error: 'กรุณาระบุจำนวนเงินที่ถูกต้อง' };
         }
+        // ยอดเงินต้องละเอียดไม่เกินสตางค์ — เดิมรับ 1000.004 ได้ แล้วเศษทศนิยมไปสะสม
+        // ในผลรวมของ reduceLawyerBalance (float) จนยอดคงเหลือเพี้ยนและอาจถอนเกินได้
+        // ทีละเศษ ปฏิเสธแทนการปัดเงียบๆ เพื่อไม่ให้ยอดที่บันทึกต่างจากที่ทนายกรอก
+        if (Math.round(amount * 100) / 100 !== amount) {
+            return { ok: false, error: 'จำนวนเงินต้องมีทศนิยมไม่เกิน 2 ตำแหน่ง' };
+        }
         if (amount < MIN_WITHDRAWAL_AMOUNT) {
             return { ok: false, error: `ต้องถอนเงินขั้นต่ำ ${MIN_WITHDRAWAL_AMOUNT.toLocaleString()} บาทขึ้นไป` };
         }
