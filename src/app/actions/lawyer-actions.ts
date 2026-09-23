@@ -15,6 +15,27 @@ const DEFAULT_SCHEDULE: LawyerSchedule = {
  * Fetches a lawyer profile by ID using the Admin SDK.
  * This is used to bypass client-side permission restrictions.
  */
+/**
+ * ฟิลด์ส่วนตัวของทนาย — ให้เห็นเฉพาะเจ้าของโปรไฟล์กับแอดมิน
+ * action นี้อ่านผ่าน Admin SDK และรับ lawyerId ใดก็ได้ (หน้าโปรไฟล์เป็นหน้าสาธารณะ)
+ * เดิมคืนเอกสารทั้งก้อน → เลขบัญชีธนาคาร / ลิงก์บัตรประชาชน-ใบอนุญาต / เบอร์โทร / ที่อยู่ หลุด
+ */
+const PRIVATE_LAWYER_FIELDS = new Set([
+    'email', 'phone', 'dob', 'gender', 'address', 'lineId', 'lineUserId',
+    'bankName', 'bankAccountName', 'bankAccountNumber', 'bankBookUrl',
+    'idCardUrl', 'idCardNumber', 'licenseUrl', 'rejectionReason', 'pricing',
+]);
+const PRIVATE_LAWYER_FIELD_RE = /bank|idcard|citizen|national|taxid|passport/i;
+
+async function callerOwnsLawyerProfile(profileId: string, profileUserId?: string) {
+    try {
+        const { uid, token } = await requireUser();
+        return token.admin === true || token.role === 'admin' || uid === profileUserId || uid === profileId;
+    } catch {
+        return false;
+    }
+}
+
 export async function getLawyerProfileAction(lawyerId: string): Promise<LawyerProfile | null> {
     const adminApp = await initAdmin();
     if (!adminApp) {
@@ -34,6 +55,13 @@ export async function getLawyerProfileAction(lawyerId: string): Promise<LawyerPr
                 }
                 return val;
             };
+
+            const isOwner = await callerOwnsLawyerProfile(docSnap.id, data?.userId);
+            if (!isOwner) {
+                for (const key of Object.keys(data || {})) {
+                    if (PRIVATE_LAWYER_FIELDS.has(key) || PRIVATE_LAWYER_FIELD_RE.test(key)) delete data[key];
+                }
+            }
 
             const result = {
                 id: docSnap.id,
@@ -65,9 +93,18 @@ export async function updateLawyerPricingAction(pricing: {
     const { lawyerProfileId: lawyerId, adminApp } = await requireLawyer();
     const db = adminApp.firestore();
 
+    // platformFeeRate คือส่วนแบ่งของแพลตฟอร์ม (GP) — แอดมินเป็นคนกำหนด ทนายห้ามตั้งเอง
+    // เดิมเขียน pricing ทั้งก้อนที่ส่งมา ทนายจึงตั้ง platformFeeRate: 0 ให้ตัวเองได้
+    const appointmentFee = Number(pricing?.appointmentFee);
+    const chatFee = Number(pricing?.chatFee);
+    if (![appointmentFee, chatFee].every(v => Number.isFinite(v) && v >= 0 && v <= 1_000_000)) {
+        return { success: false, error: 'ค่าบริการไม่ถูกต้อง' };
+    }
+
     try {
         await db.collection('lawyerProfiles').doc(lawyerId).update({
-            pricing: pricing,
+            'pricing.appointmentFee': appointmentFee,
+            'pricing.chatFee': chatFee,
             updatedAt: new Date().toISOString()
         });
         return { success: true };
@@ -134,7 +171,10 @@ export async function getPlatformSettingsAction() {
     try {
         const settingsDoc = await db.collection('settings').doc('platform').get();
         if (settingsDoc.exists) {
-            return JSON.parse(JSON.stringify(settingsDoc.data()));
+            // action นี้ไม่มีด่าน (Admin SDK ข้าม rules ที่ให้อ่านได้เฉพาะคนล็อกอิน) —
+            // คืนเฉพาะค่าที่หน้าเว็บใช้ ไม่คืนเอกสารตั้งค่าทั้งก้อน
+            const rate = Number(settingsDoc.data()?.platformFeeRate);
+            return { platformFeeRate: Number.isFinite(rate) ? rate : 0.15 };
         }
         return { platformFeeRate: 0.15 }; // Default fallback
     } catch (error) {
@@ -177,13 +217,19 @@ export async function addToVerifiedRegistry(data: {
 
     try {
         // Sanitize ID
-        const docId = data.licenseNumber.replace(/\//g, '-');
+        const licenseNumber = String(data?.licenseNumber || '').trim().slice(0, 50);
+        if (!licenseNumber) return { success: false, error: 'กรุณาระบุเลขใบอนุญาต' };
+        const docId = licenseNumber.replace(/\//g, '-');
 
-        await db.collection('verifiedLawyers').doc(docId).set({
-            licenseNumber: data.licenseNumber,
-            firstName: data.firstName,
-            lastName: data.lastName,
-            province: data.province,
+        // create() ไม่ใช่ set() — เดิมเขียนทับได้ทุกครั้ง ใครที่ล็อกอินก็ยิงเลขใบอนุญาต
+        // ของทนายที่ยืนยันแล้ว (status: 'active') ให้กลายเป็น 'pending' พร้อมชื่อใหม่ได้
+        // (ทะเบียนนี้ใช้ auto-approve ตอนสมัคร และแสดงผลในหน้าตรวจสอบทนาย)
+        // มีอยู่แล้ว = ปล่อยไว้ตามเดิม ถือว่าสำเร็จ
+        await db.collection('verifiedLawyers').doc(docId).create({
+            licenseNumber,
+            firstName: String(data.firstName || '').slice(0, 100),
+            lastName: String(data.lastName || '').slice(0, 100),
+            province: String(data.province || '').slice(0, 100),
             status: 'pending',
             registeredDate: new Date().toISOString(),
             updatedAt: new Date().toISOString()
@@ -191,6 +237,8 @@ export async function addToVerifiedRegistry(data: {
 
         return { success: true };
     } catch (error: any) {
+        // ALREADY_EXISTS (gRPC code 6) — มีรายชื่อนี้อยู่แล้ว ไม่แตะของเดิม
+        if (error?.code === 6) return { success: true };
         console.error("Error adding to verified registry action:", error);
         return { success: false, error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' };
     }
@@ -519,7 +567,13 @@ export async function repairChatDocumentsAction(chatId: string) {
                 lawyerId: chatData.lawyerId || 'unknown',
                 title: `สัญญาจ้างทนายความ: ${chatData.caseTitle || 'เคส'}`,
                 amount: chatData.amount || 0,
-                status: chatData.status === 'active' || chatData.status === 'paid' ? 'paid' : 'pending',
+                // ใบแจ้งหนี้ "จ่ายแล้ว" ต่อเมื่อจ่ายครบจริง — ห้อง active แค่แปลว่าจ่ายงวดแรกแล้ว
+                status: (() => {
+                    const insts = chatData.installments || [];
+                    const activeOrPaid = chatData.status === 'active' || chatData.status === 'paid';
+                    if (insts.length > 0) return insts.every((i: any) => i?.status === 'paid') ? 'paid' : 'pending';
+                    return activeOrPaid ? 'paid' : 'pending';
+                })(),
                 type: 'proposal',
                 items: (chatData.installments || []).map((inst: any) => ({
                     description: inst.description,
@@ -530,16 +584,9 @@ export async function repairChatDocumentsAction(chatId: string) {
                 updatedAt: admin.firestore.FieldValue.serverTimestamp(),
             });
 
-            // AUTO-REPAIR: If we just created a 'paid' invoice for a manual case, 
-            // we should also mark the installments in the chat document as paid.
-            if (chatData.status === 'active' || chatData.status === 'paid') {
-                const updatedInstallments = (chatData.installments || []).map((inst: any) => ({
-                    ...inst,
-                    status: 'paid',
-                    paidAt: new Date().toISOString()
-                }));
-                await chatRef.update({ installments: updatedInstallments });
-            }
+            // เดิมตรงนี้ "ซ่อม" ด้วยการตั้งทุกงวดใน chat เป็น 'paid' ถ้าห้อง active อยู่
+            // → ลูกความจ่ายงวดแรก (ห้องกลายเป็น active) แล้วเรียก action นี้ = งวดที่เหลือ
+            // ปิดเป็นจ่ายแล้วทั้งหมดโดยไม่ได้จ่าย สถานะงวดต้องเปลี่ยนผ่านการชำระเงิน/แอดมินเท่านั้น
         } else {
             invoiceId = existingInv.id.trim();
         }
