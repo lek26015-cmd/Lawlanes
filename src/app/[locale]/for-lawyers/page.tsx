@@ -381,19 +381,15 @@ export default function ForLawyersPage() {
 
       // 6. Add to Verified Lawyers Registry (Auto-add)
       try {
-        // Sanitize license number for use as document ID (replace / with -)
-        const docId = values.licenseNumber.replace(/\//g, '-');
-        const verifiedLawyerRef = doc(firestore, 'verifiedLawyers', docId);
-        const verifiedLawyerData = {
+        // verifiedLawyers เขียนได้เฉพาะ Admin SDK (firestore.rules) — เดิม setDoc ตรงจาก client
+        // ซึ่งโดนปฏิเสธเงียบๆ ทุกครั้ง จึงเรียก server action ตัวเดียวกับหน้า lawyer-signup แทน
+        const { addToVerifiedRegistry } = await import('@/app/actions/lawyer-actions');
+        await addToVerifiedRegistry({
           licenseNumber: values.licenseNumber,
           firstName: values.name.split(' ')[0],
           lastName: values.name.split(' ').slice(1).join(' ') || '',
-          status: 'pending',
-          registeredDate: new Date().toISOString(),
           province: values.serviceProvinces.split(',')[0]?.trim() || values.address,
-          updatedAt: serverTimestamp()
-        };
-        await setDoc(verifiedLawyerRef, verifiedLawyerData);
+        });
       } catch (err) {
         console.error("Error adding to verified registry:", err);
         // Don't fail the whole registration if this optional step fails

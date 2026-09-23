@@ -103,6 +103,9 @@ export default function AccountPage() {
 
   // Lawyer specific state
   const [isLawyer, setIsLawyer] = useState(false);
+  // เลขใบอนุญาตแก้ได้เฉพาะตอนยังไม่ผ่านการอนุมัติ (firestore.rules ก็บังคับแบบเดียวกัน)
+  // อนุมัติแล้วเปลี่ยนเลขเองได้ = สวมเลขใบอนุญาตคนอื่นหลังผ่านการตรวจ
+  const [isLicenseLocked, setIsLicenseLocked] = useState(false);
   const [lawyerData, setLawyerData] = useState({
     phone: '',
     licenseNumber: '',
@@ -150,6 +153,7 @@ export default function AccountPage() {
         if (lawyerDoc.exists()) {
           setIsLawyer(true);
           const lData = lawyerDoc.data();
+          setIsLicenseLocked(!['pending', 'rejected'].includes(lData.status || 'pending'));
           setLawyerData({
             phone: lData.phone || '',
             licenseNumber: lData.licenseNumber || '',
@@ -275,7 +279,7 @@ export default function AccountPage() {
         await updateDoc(lawyerDocRef, {
           name: profileData.name, // Sync name
           phone: lawyerData.phone,
-          licenseNumber: lawyerData.licenseNumber,
+          ...(isLicenseLocked ? {} : { licenseNumber: lawyerData.licenseNumber }),
           address: lawyerData.address,
           bankName: lawyerData.bankName,
           bankAccountName: lawyerData.bankAccountName,
@@ -480,7 +484,7 @@ export default function AccountPage() {
                         id="license"
                         value={lawyerData.licenseNumber}
                         onChange={(e) => setLawyerData({ ...lawyerData, licenseNumber: e.target.value })}
-                        disabled={!isEditingProfile || isSaving}
+                        disabled={!isEditingProfile || isSaving || isLicenseLocked}
                         className="rounded-full px-4"
                       />
                     </div>

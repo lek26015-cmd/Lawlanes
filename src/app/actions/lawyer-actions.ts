@@ -245,6 +245,64 @@ export async function addToVerifiedRegistry(data: {
 }
 
 /**
+ * อนุมัติทนายที่เพิ่งสมัครอัตโนมัติ ถ้าเลขใบอนุญาตตรงกับทะเบียนทนายที่ยืนยันแล้ว (verifiedLawyers, status 'active')
+ *
+ * เดิมหน้า lawyer-signup เช็คทะเบียนฝั่ง client แล้วเขียน `status: 'approved'` ลง lawyerProfiles เอง
+ * แปลว่าใครก็ยิง setDoc(lawyerProfiles/<uid>, { status: 'approved' }) อนุมัติตัวเองได้โดยไม่ต้องมี
+ * ใบอนุญาตจริง ตอนนี้ firestore.rules บังคับให้ client สร้างโปรไฟล์ได้แค่ 'pending' และห้ามแตะ status
+ * การยกเป็น 'approved' จึงต้องมาทาง action นี้ (Admin SDK) ซึ่งตรวจทะเบียนเองฝั่ง server
+ *
+ * ไม่รับ argument — อ่านเลขใบอนุญาตจากโปรไฟล์ของผู้เรียกเอง
+ */
+export async function autoApproveLawyerFromRegistryAction(): Promise<{ approved: boolean }> {
+    const { uid, adminApp } = await requireUser();
+    const db = adminApp.firestore();
+
+    try {
+        const profileRef = db.collection('lawyerProfiles').doc(uid);
+        const profileSnap = await profileRef.get();
+        const profile = profileSnap.data();
+        // อนุมัติได้เฉพาะโปรไฟล์ของตัวเองที่ยังรออนุมัติ — ไม่ยกโปรไฟล์ที่ถูกปฏิเสธ/ระงับกลับมา
+        if (!profileSnap.exists || profile?.userId !== uid || profile?.status !== 'pending') {
+            return { approved: false };
+        }
+
+        const licenseNumber = String(profile?.licenseNumber || '').trim();
+        if (!licenseNumber) return { approved: false };
+
+        const registrySnap = await db.collection('verifiedLawyers')
+            .where('licenseNumber', '==', licenseNumber)
+            .where('status', '==', 'active')
+            .limit(1)
+            .get();
+        if (registrySnap.empty) return { approved: false };
+
+        // เลขใบอนุญาตนี้ถูกใช้กับโปรไฟล์ทนายที่อนุมัติแล้วคนอื่นไปแล้ว = อาจเป็นการสวมเลขคนอื่น
+        // ปล่อยให้แอดมินตรวจเอกสารเอง ไม่อนุมัติอัตโนมัติ
+        const dupSnap = await db.collection('lawyerProfiles')
+            .where('licenseNumber', '==', licenseNumber)
+            .where('status', '==', 'approved')
+            .limit(1)
+            .get();
+        if (!dupSnap.empty && dupSnap.docs[0].id !== uid) return { approved: false };
+
+        const batch = db.batch();
+        batch.update(profileRef, {
+            status: 'approved',
+            approvedAt: admin.firestore.FieldValue.serverTimestamp(),
+            approvedBy: 'registry_auto',
+        });
+        batch.set(db.collection('users').doc(uid), { status: 'approved' }, { merge: true });
+        await batch.commit();
+
+        return { approved: true };
+    } catch (error) {
+        console.error('Error auto-approving lawyer from registry:', error);
+        return { approved: false };
+    }
+}
+
+/**
  * Creates or updates a manual case (Chat document) for a lawyer.
  */
 export async function createManualCaseAction(data: {

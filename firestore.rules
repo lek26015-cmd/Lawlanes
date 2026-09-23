@@ -75,11 +75,67 @@ service cloud.firestore {
 
     match /lawyerProfiles/{lawyerId} {
       allow read, list: if true;
-      allow create: if isOwner(request.resource.data.userId) || isAdmin();
-      // averageRating/reviewCount ถูกคำนวณและเขียนโดย submitReviewAction ผ่าน Admin SDK
-      // (ซึ่งข้าม rules อยู่แล้ว) จึงไม่ต้องเปิดช่องให้ client เขียน
-      // เดิมข้อยกเว้นนี้ทำให้ใครที่ล็อกอินก็ปั่นเรตติ้งของทนายคนไหนก็ได้
-      allow update: if isOwner(lawyerId) || isAdmin();
+      // เดิม create เช็คแค่ userId == uid (doc id อะไรก็ได้) และ update ให้เจ้าของแก้ได้ทุกฟิลด์
+      // → ทนายตั้ง status: 'approved' ให้ตัวเอง (อนุมัติตัวเองโดยไม่ผ่านแอดมิน), ตั้ง
+      //   platformFeeRate: 0 / pricing / averageRating / reviewCount / rank ได้เอง
+      // → สร้างโปรไฟล์ที่ doc id ไม่ใช่ uid ตัวเองได้หลายใบ (requireLawyer() หาโปรไฟล์จาก userId)
+      //
+      // ไล่ดูทุก repo แล้ว client สร้างโปรไฟล์ที่ lawyerProfiles/{uid ตัวเอง} จากหน้าสมัครเท่านั้น
+      // (lawyer-signup ใน Lawslane/admin/business/business-landing, for-lawyers ใน Lawslane/
+      //  business-landing) ด้วยฟิลด์ข้างล่าง และสถานะ 'pending' เสมอ — การอนุมัติอัตโนมัติจาก
+      // ทะเบียนทนายย้ายไป autoApproveLawyerFromRegistryAction (Admin SDK) แล้ว
+      function signupLawyerFields() {
+        return [
+          'userId', 'name', 'email', 'phone', 'dob', 'gender', 'education', 'experience',
+          'licenseNumber', 'address', 'serviceProvinces', 'specialty', 'description',
+          'bankName', 'bankAccountName', 'bankAccountNumber', 'lineId',
+          'imageUrl', 'imageHint', 'idCardUrl', 'licenseUrl', 'status', 'joinedAt'
+        ];
+      }
+
+      // ฟิลด์ที่ทนายแก้เองได้จาก client:
+      //   account/page.tsx (Lawslane, capdeal): name phone licenseNumber address bankName
+      //     bankAccountName bankAccountNumber serviceProvinces specialty description updatedAt imageUrl
+      //   lawyer-dashboard/financials (Lawslane, admin, business, business-landing):
+      //     bankName bankAccountNumber bankAccountName corporateName corporateTaxId corporateAddress
+      // ⚠️ บัญชีธนาคารยังแก้จาก client ได้ เพราะหน้า financials ของทุก repo เขียนตรง — ปลายทาง
+      //    เงินถอนผูกกับฟิลด์นี้ ควรย้ายไป server action ที่ยืนยันตัวตนซ้ำ (follow-up)
+      //
+      // ห้ามแตะ: status / approvedAt / approvedBy / rejectionReason (การอนุมัติ), userId,
+      // idCardUrl / licenseUrl (เอกสารที่แอดมินตรวจแล้ว), pricing (updateLawyerPricingAction),
+      // platformFeeRate / gp* (แอดมินกำหนด), averageRating / reviewCount (submitReviewAction),
+      // rank.*, schedule (updateLawyerScheduleAction) — ทั้งหมดเขียนผ่าน Admin SDK
+      function ownerEditableLawyerFields() {
+        return [
+          'name', 'phone', 'address', 'serviceProvinces', 'specialty', 'description',
+          'imageUrl', 'updatedAt',
+          'bankName', 'bankAccountName', 'bankAccountNumber',
+          'corporateName', 'corporateTaxId', 'corporateAddress'
+        ];
+      }
+
+      // เลขใบอนุญาตแก้ได้เฉพาะก่อนผ่านการอนุมัติ (ยังรอตรวจ / ถูกปฏิเสธแล้วแก้ส่งใหม่)
+      // อนุมัติแล้วเปลี่ยนเองได้ = ผ่านการตรวจด้วยเลขจริงแล้วสลับเป็นเลขคนอื่น
+      function licenseStillEditable() {
+        return resource.data.get('status', 'pending') in ['pending', 'rejected'];
+      }
+
+      allow create: if isAdmin() || (
+        isOwner(lawyerId)
+        && request.resource.data.userId == request.auth.uid
+        && request.resource.data.status == 'pending'
+        && request.resource.data.keys().hasOnly(signupLawyerFields())
+      );
+
+      allow update: if isAdmin() || (
+        isOwner(lawyerId)
+        && (
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(ownerEditableLawyerFields())
+          || (licenseStillEditable()
+              && request.resource.data.diff(resource.data).affectedKeys()
+                   .hasOnly(ownerEditableLawyerFields().concat(['licenseNumber'])))
+        )
+      );
       allow delete: if isOwner(lawyerId) || isAdmin();
     }
 
