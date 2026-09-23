@@ -76,7 +76,11 @@ service firebase.storage {
     // Files stored as /chats/{chatId}/{senderUid}/filename
     // Only the sender can upload to their own subfolder; any participant can read
     match /chats/{chatId}/{senderUid}/{allPaths=**} {
-      allow read: if isSignedIn();
+      // เดิม read: isSignedIn() = ใครที่ล็อกอินก็อ่านไฟล์แนบของห้องแชทไหนก็ได้ (เดา path ได้จาก chatId)
+      // ตอนนี้ต้องอยู่ใน participants ของห้องจริง (อ่านจาก Firestore แบบเดียวกับ firestore.rules)
+      // ฝั่งเว็บเปิดไฟล์ผ่าน signed URL จาก server action (Admin SDK) อยู่แล้ว ไม่กระทบ
+      allow read: if isAdmin() || (isSignedIn()
+        && request.auth.uid in firestore.get(/databases/(default)/documents/chats/$(chatId)).data.participants);
       allow write: if isOwner(senderUid) && isValidUpload();
     }
 
@@ -100,7 +104,10 @@ service firebase.storage {
     // Only the uploading member can write to their subfolder
     // Any company member (authenticated) can read; admin can access all
     match /companies/{companyId}/vault/{memberUid}/{allPaths=**} {
-      allow read: if isSignedIn();
+      // เดิม read: isSignedIn() = ผู้ใช้คนไหนก็อ่านเอกสารในคลังของบริษัทไหนก็ได้
+      // ยังไม่มี client ตัวไหนอ่าน path นี้ตรง จึงจำกัดเหลือเจ้าของไฟล์ + แอดมิน
+      // (ถ้าจะให้สมาชิกบริษัทอ่านกันเอง ต้องเช็ค companyId จาก users/{uid} แบบ canAccessContract())
+      allow read: if isOwner(memberUid) || isAdmin();
       allow write: if isOwner(memberUid) && isValidUpload();
       allow delete: if isOwner(memberUid) || isAdmin();
     }
