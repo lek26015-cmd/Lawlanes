@@ -254,7 +254,12 @@ service cloud.firestore {
     match /articleComments/{commentId} {
       allow read, list: if true;
       allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      // แก้ได้แต่ห้ามเปลี่ยน userId (เดิมเปลี่ยนเจ้าของคอมเมนต์เป็นคนอื่นได้ = สวมชื่อ)
+      allow update: if isAdmin() || (
+        isSignedIn() && resource.data.userId == request.auth.uid
+        && request.resource.data.userId == resource.data.userId
+      );
+      allow delete: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
     }
 
     match /ads/{adId} {
@@ -302,20 +307,37 @@ service cloud.firestore {
     }
 
     match /tickets/{ticketId} {
-        allow create: if isSignedIn();
+        // เดิม create: isSignedIn() เฉยๆ → สร้างตั๋วในชื่อ userId คนอื่น หรือสร้างมาเป็น status อะไรก็ได้
+        // และ update ให้เจ้าของแก้ได้ทุกฟิลด์ (เช่น ปิดตั๋ว/เปลี่ยนสถานะที่แอดมินใช้คัดงานเอง)
+        // client เขียน tickets แค่: help/page.tsx (Lawslane, capdeal) สร้างตั๋ว status 'pending'
+        // และ support/[id] (Lawslane) arrayUnion 'files' ตอนแนบไฟล์ — ที่เหลือแอดมินทำ
+        allow create: if isAdmin() || (
+          isSignedIn()
+          && request.resource.data.userId == request.auth.uid
+          && request.resource.data.status == 'pending'
+          && request.resource.data.keys().hasOnly(
+               ['userId', 'caseId', 'problemType', 'description', 'status', 'reportedAt', 'clientName', 'email'])
+        );
         allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
         allow list: if isSignedIn() && (
           (request.query.limit <= 1000 && request.auth.uid in request.query.filters.userId) ||
           isAdmin()
         );
-        allow update: if isOwner(resource.data.userId) || isAdmin();
+        allow update: if isAdmin() || (
+          isOwner(resource.data.userId)
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['files'])
+        );
 
         match /messages/{messageId} {
             allow read, list: if isAdmin() || (isSignedIn() && request.auth.uid == get(/databases/$(database)/documents/tickets/$(ticketId)).data.userId);
             // เดิมเป็น isSignedIn() เฉยๆ → ใครก็ตอบเข้าตั๋วซัพพอร์ตของคนอื่นได้
+            // ผู้ใช้ส่งข้อความในนามตัวเองเท่านั้น และ role ต้องเป็น 'user' — support-chat-box.tsx
+            // แสดงข้อความ role: 'admin' เป็นคำตอบจากทีมงาน เดิมเจ้าของตั๋วใส่ role: 'admin' เองได้
             allow create: if isAdmin()
               || (isSignedIn()
-                  && request.auth.uid == get(/databases/$(database)/documents/tickets/$(ticketId)).data.userId);
+                  && request.auth.uid == get(/databases/$(database)/documents/tickets/$(ticketId)).data.userId
+                  && request.resource.data.senderId == request.auth.uid
+                  && request.resource.data.get('role', 'user') == 'user');
         }
     }
 
@@ -355,7 +377,8 @@ service cloud.firestore {
     }
 
     match /sme_inquiries/{inquiryId} {
-        allow create: if true; // Public contact form
+        // ไม่มี repo ไหนเขียนคอลเลกชันนี้แล้ว (ฟอร์ม SME ไปเขียน smeRequests) — เดิมเปิด create: if true
+        allow create: if isAdmin();
         allow read, update, delete: if isAdmin();
     }
 
@@ -370,7 +393,13 @@ service cloud.firestore {
           (resource.data.recipient == 'admin' && isAdmin()) ||
           isAdmin()
         );
-        allow update: if isSignedIn() && (resource.data.recipient == request.auth.uid || isAdmin());
+        // ผู้รับแก้ได้แค่สถานะอ่านแล้ว (notification-bell / use-notifications เขียน { read: true })
+        // เดิมแก้ได้ทุกฟิลด์ รวมถึง recipient / link / message
+        allow update: if isAdmin() || (
+          isSignedIn()
+          && resource.data.recipient == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read', 'readAt'])
+        );
     }
     match /landingPages/{pageId} {
         allow read: if true;
@@ -387,25 +416,56 @@ service cloud.firestore {
         allow write: if isAdmin();
     }
 
+    // ─── ฟอร์มสาธารณะ ─────────────────────────────────────────────
+    // เดิมทุกตัวเป็น `create: if true` = ไม่ต้องล็อกอิน เขียนเอกสารหน้าตาอะไรก็ได้ ขนาดเท่าไหร่ก็ได้
+    // (ฟอร์มที่มี server action คุม rate limit ก็ถูกข้ามได้ด้วยการยิง SDK ตรง)
+    // ตัวที่มี writer เป็น server action อย่างเดียว → ปิด create (Admin SDK ข้าม rules อยู่แล้ว)
+    // ตัวที่ยังมี repo อื่นเขียนตรงจาก client → allowlist ฟิลด์ + จำกัดขนาด + บังคับสถานะเริ่มต้น
+
+    function isShortString(v, max) {
+      return v is string && v.size() <= max;
+    }
+
+    // ไม่มี client ตัวไหนเขียน (แอดมินอ่าน/เปลี่ยนสถานะอย่างเดียว)
     match /contractRequests/{requestId} {
-        allow create: if true;
+        allow create: if isAdmin();
         allow read, update, delete: if isAdmin();
     }
 
+    // เขียนผ่าน submitRegistrationRequestAction (form-actions.ts, Admin SDK) เท่านั้น
     match /registrationRequests/{requestId} {
-        allow create: if true;
+        allow create: if isAdmin();
         allow read, update, delete: if isAdmin();
     }
 
+    // Lawslane เขียนผ่าน submitSmeRequestAction (Admin SDK) แต่ sme-contact-form.tsx ใน admin /
+    // capdeal / business / business-landing ยัง addDoc ตรงจาก client (ไม่ล็อกอิน) ด้วยฟิลด์
+    // name phone email serviceType fileUrl fileName status:'new' createdAt → เปิดเฉพาะรูปร่างนี้
     match /smeRequests/{requestId} {
-        allow create: if true;
+        allow create: if isAdmin() || (
+          request.resource.data.keys().hasOnly(
+            ['name', 'phone', 'email', 'serviceType', 'fileUrl', 'fileName', 'status', 'createdAt'])
+          && request.resource.data.status == 'new'
+          && request.resource.data.createdAt == request.time
+          && isShortString(request.resource.data.name, 200)
+          && isShortString(request.resource.data.phone, 50)
+          && isShortString(request.resource.data.email, 254)
+          && isShortString(request.resource.data.serviceType, 100)
+          && isShortString(request.resource.data.get('fileUrl', ''), 1000)
+          && isShortString(request.resource.data.get('fileName', ''), 300)
+        );
         allow read, update, delete: if isAdmin();
     }
 
     match /legalForms/{formId} {
       allow read: if true;
       allow create, delete: if isAdmin();
-      allow update: if isAdmin() || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(['downloads']));
+      // ตัวนับดาวน์โหลด (incrementFormDownloads → increment(1)) — เดิมเขียนค่าอะไรก็ได้โดยไม่ต้องล็อกอิน
+      // ตอนนี้บังคับให้เพิ่มทีละ 1 เท่านั้น
+      allow update: if isAdmin() || (
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['downloads'])
+        && request.resource.data.downloads == resource.data.get('downloads', 0) + 1
+      );
     }
 
     match /settings/{docId} {
@@ -443,11 +503,9 @@ service cloud.firestore {
         request.auth.uid in resource.data.get('adminUids', []) ||
         isAdmin()
       );
-      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
-      allow update: if isSignedIn() && (
-        resource.data.get('ownerId', null) == request.auth.uid || 
-        isAdmin()
-      );
+      // ไล่ดูทุก repo แล้วไม่มี client ตัวไหนเขียน companies — เดิมเจ้าของแก้ได้ทุกฟิลด์
+      // (รวม adminUids ที่ใช้ให้สิทธิ์อ่านด้านบน และข้อมูลแพ็กเกจของบริษัท) ปิดเป็นแอดมิน/Admin SDK
+      allow create, update: if isAdmin();
     }
 
     match /invoices/{invoiceId} {
@@ -521,8 +579,9 @@ service cloud.firestore {
       }
 
       allow read: if canAccessCompliance();
-      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
-      allow update: if canAccessCompliance();
+      // ไม่มี client ตัวไหนเขียน (business overview อ่านอย่างเดียว) — เดิม update ได้ทุกฟิลด์
+      // รวมถึง ownerId / companyId ที่ใช้ตัดสินสิทธิ์อ่าน
+      allow create, update: if isAdmin();
       allow delete: if isAdmin() || (isSignedIn() && request.auth.uid == resource.data.ownerId);
     }
 
@@ -549,28 +608,52 @@ service cloud.firestore {
     // lawslane-admin and the main dashboard were switched to read `orders` too).
     // See LAWSLANE-PLAN-03 §A.2.
 
+    // แบบสอบถามสาธารณะ (ไม่ต้องล็อกอินโดยตั้งใจ) — survey-lawyer/page.tsx เขียน
+    // { answers, stoppedEarly, createdAt } เท่านั้น
     match /survey_lawyer_responses/{responseId} {
-        allow create: if true;
+        allow create: if isAdmin() || (
+          request.resource.data.keys().hasOnly(['answers', 'stoppedEarly', 'createdAt'])
+          && request.resource.data.answers is map
+          && request.resource.data.answers.size() <= 100
+          && request.resource.data.createdAt == request.time
+        );
         allow read, update, delete: if isAdmin();
     }
 
+    // survey-public/page.tsx เขียน { answers, createdAt }
     match /survey_public_responses/{responseId} {
-        allow create: if true;
+        allow create: if isAdmin() || (
+          request.resource.data.keys().hasOnly(['answers', 'createdAt'])
+          && request.resource.data.answers is map
+          && request.resource.data.answers.size() <= 100
+          && request.resource.data.createdAt == request.time
+        );
         allow read, update, delete: if isAdmin();
     }
 
+    // unified-survey-form.tsx (business-landing) เขียน { ...values ของ zod schema, createdAt }
     match /unified_surveys/{responseId} {
-        allow create: if true;
+        allow create: if isAdmin() || (
+          request.resource.data.keys().hasOnly([
+            'respondentName', 'role', 'businessType', 'businessTypeOther', 'businessSize',
+            'businessDuration', 'contractVolume', 'challenges', 'challengesOther', 'currentTool',
+            'initialHandling', 'aiExpectation', 'aiTimeSaved', 'aiConcerns', 'preferredChannel',
+            'hiringObstacles', 'confidenceFactor', 'outsourceInterest', 'subscriptionInterest',
+            'consent', 'createdAt'])
+          && request.resource.data.createdAt == request.time
+        );
         allow read, update, delete: if isAdmin();
     }
 
+    // ไม่มี repo ไหนเขียนแล้ว
     match /b2b_survey_responses/{responseId} {
-        allow create: if true;
+        allow create: if isAdmin();
         allow read, update, delete: if isAdmin();
     }
 
+    // ไม่มี repo ไหนเขียนแล้ว
     match /sme_survey_responses/{responseId} {
-        allow create: if true;
+        allow create: if isAdmin();
         allow read, update, delete: if isAdmin();
     }
 
@@ -586,9 +669,10 @@ service cloud.firestore {
     }
 
     match /examAttempts/{attemptId} {
-        allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+        // ไล่ดูทุก repo แล้วไม่มี client ตัวไหนเขียน examAttempts (lawlanes-education อ่านผ่าน
+        // api/education/attempts ด้วย Admin SDK) — เดิมเจ้าของสร้าง/แก้คะแนนของตัวเองได้ทุกฟิลด์
+        allow create, update: if isAdmin();
         allow read: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
-        allow update: if isSignedIn() && resource.data.userId == request.auth.uid;
         allow delete: if isAdmin();
     }
 
@@ -598,7 +682,10 @@ service cloud.firestore {
     }
 
     match /orders/{orderId} {
-        allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
+        // คำสั่งซื้อสร้างผ่าน api/education/orders (Admin SDK) ซึ่งคิดราคาเองฝั่ง server
+        // เดิม client สร้างเองได้แค่ใส่ userId ตัวเอง → ยิง { status: 'paid', total: 0 } แล้ว
+        // my-ebooks (อ่าน orders ที่จ่ายแล้ว) ก็ปลดล็อกหนังสือให้ ไม่มี client ตัวไหนเขียน orders
+        allow create: if isAdmin();
         allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
         allow list: if isSignedIn() && (
           (request.query.limit <= 1000 && request.auth.uid in request.query.filters.userId) ||
@@ -607,12 +694,12 @@ service cloud.firestore {
         allow update: if isAdmin();
     }
 
-    // AI response cache (server-only; hashed keys, no user-identifying data).
-    // Was previously falling through to the default-deny rule below, meaning every
-    // getCachedAIResponse/setCachedAIResponse call silently failed — the AI flows'
-    // caching never actually worked regardless of call ordering. See LAWSLANE-PLAN-01 2.7.
+    // AI response cache — ใช้จาก server เท่านั้น (lib/ai-cache.ts ผ่าน Admin SDK)
+    // เดิม `allow read, write: if true` ให้ client SDK ฝั่ง server ที่ไม่ได้ล็อกอินใช้ได้
+    // → ใครก็เขียนทับ "คำตอบกฎหมาย" ในแคช (key = sha256 ของคำถาม คำนวณเองได้) ให้คนถัดไปเห็น
+    // → ใครก็อ่านได้ ทั้งที่เอกสารเก็บ input 500 ตัวอักษรแรก (เช่น เนื้อหาสัญญาที่ส่งมาวิเคราะห์)
     match /ai_cache/{cacheKey} {
-        allow read, write: if true;
+        allow read, write: if false;
     }
 
     // Site statistics (page views)
