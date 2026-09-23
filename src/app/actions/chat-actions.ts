@@ -1007,6 +1007,26 @@ export async function markCasePaidAction(params: {
                 hasNewPayment: !isAutoApproved,
             };
 
+            // ค่าบริการเพิ่มเติมที่สลิปผ่านจริง: ยอดรวมของเคสและยอดที่จ่ายแล้ว "สะสม"
+            // เพิ่ม ไม่ใช่เขียนทับ — ต้องคิดแบบเดียวกับ approvePaymentSlipAction ของ
+            // lawslane-admin ไม่งั้นเคสเดียวกันได้ยอดต่างกันตามทางที่อนุมัติ
+            // (paidAmount ใช้คิดยอดคืนเงินตอนยกเลิกเคส; เคสเก่าที่ไม่มี paidAmount
+            // ถือว่าจ่ายครบตาม amount เดิมแล้ว เพราะเคสต้อง active ถึงขอค่าเพิ่มได้)
+            if (additional && isAutoApproved) {
+                const baseAmount = Number(chatData.amount) || 0;
+                const basePaid = chatData.paidAmount !== undefined && chatData.paidAmount !== null
+                    ? Number(chatData.paidAmount) || 0
+                    : baseAmount;
+                updatePayload.amount = baseAmount + amount;
+                updatePayload.paidAmount = basePaid + amount;
+                updatePayload.status = chatData.status;
+            } else if (additional) {
+                // ยังไม่ผ่าน = รอแอดมิน ห้ามแตะ paidAmount/paidAt — ถ้าเขียน 0 ลงเคสเก่า
+                // ที่ไม่มี paidAmount ฝั่งแอดมินจะเอา 0 เป็นฐานแทน amount
+                delete updatePayload.paidAmount;
+                delete updatePayload.paidAt;
+            }
+
             if (params.type === 'case') {
                 // Mark all installments as paid if it's a full case payment
                 const installments = chatData.installments || [];
