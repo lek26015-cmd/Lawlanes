@@ -5,10 +5,15 @@ import * as admin from 'firebase-admin';
 import { checkRateLimit } from '@/lib/security/rate-limiter';
 import { createContractFromChat } from '@/lib/contract-service';
 import { requireChatRole, AuthError } from '@/lib/auth-guard';
-import { consumeSlipVerification } from '@/lib/slip-verification';
-import { resolvePaymentAmount, redeemCoupon } from '@/app/actions/payment-actions';
+import { readSlipVerificationInTx } from '@/lib/slip-verification';
+import { redeemCouponInTx, CouponRedeemError } from '@/lib/coupon-server';
+import { getPendingAdditionalFee } from '@/lib/additional-fee';
+import { resolvePaymentAmount } from '@/app/actions/payment-actions';
 
 import { cookies } from 'next/headers';
+
+/** เหตุผลที่ตั้งใจให้ผู้ใช้เห็นเมื่อ transaction การชำระเงินถูกปฏิเสธ (ไม่ export — ไฟล์ 'use server') */
+class PaymentRejected extends Error {}
 
 export async function getChatDetailsAction(chatId: string) {
     try {
@@ -709,152 +714,160 @@ export async function markInstallmentPaidAction(params: {
         const amount = price.finalAmount;
 
         const chatRef = db.collection('chats').doc(params.chatId);
-        const chatSnap = await chatRef.get();
 
-        if (!chatSnap.exists) {
-            return { success: false, error: 'ไม่พบห้องแชทนี้ในระบบ' };
-        }
+        // อ่านงวด + ใช้ตั๋วสลิป + ตัดคูปอง + เขียนงวด ในก้อนเดียว
+        // เดิมใช้ตั๋วสลิปก่อนแล้วค่อยเขียนงวดทีหลัง (เขียนล้ม = เสียสลิปฟรี) และ
+        // คูปองตัดทีหลังแบบ log ทิ้งถ้าไม่สำเร็จ (ยิงพร้อมกันได้ส่วนลดเกิน usageLimit)
+        const outcome = await db.runTransaction(async (tx) => {
+            const chatSnap = await tx.get(chatRef);
+            if (!chatSnap.exists) throw new PaymentRejected('ไม่พบห้องแชทนี้ในระบบ');
 
-        const chatData = chatSnap.data()!;
-        const installments = chatData.installments || [];
+            const chatData = chatSnap.data()!;
+            const installments = chatData.installments || [];
 
-        // Validate index
-        if (params.installmentIndex < 0 || params.installmentIndex >= installments.length) {
-            return { success: false, error: 'หมายเลขงวดไม่ถูกต้อง' };
-        }
-
-        const targetInstallment = installments[params.installmentIndex];
-
-        // Check if already paid
-        if (targetInstallment.status === 'paid') {
-            return { success: false, error: 'งวดนี้ได้รับการชำระเงินแล้ว' };
-        }
-
-        // Enforce sequential payment: all previous installments must be paid
-        for (let i = 0; i < params.installmentIndex; i++) {
-            if (installments[i].status !== 'paid') {
-                return { success: false, error: `กรุณาชำระงวดที่ ${i + 1} ก่อน` };
+            // Validate index
+            if (params.installmentIndex < 0 || params.installmentIndex >= installments.length) {
+                throw new PaymentRejected('หมายเลขงวดไม่ถูกต้อง');
             }
-        }
 
-        // สลิปที่ผ่าน SlipOK จริงเท่านั้น — ตัวเดียวที่ตั้ง 'paid' ได้เองโดยไม่ผ่านแอดมิน
-        const { verified: isAutoApproved, slipData } = await consumeSlipVerification(
-            db, uid, params.slipVerificationId, amount
-        );
+            const targetInstallment = installments[params.installmentIndex];
 
-        // Update the specific installment
-        installments[params.installmentIndex] = {
-            ...targetInstallment,
-            status: isAutoApproved ? 'paid' : 'pending_verification',
-            paidAt: isAutoApproved ? new Date().toISOString() : null,
-            submittedAt: new Date().toISOString(),
-            slipUrl: params.slipUrl,
-            slipOkData: slipData,
-        };
+            // Check if already paid
+            if (targetInstallment.status === 'paid') {
+                throw new PaymentRejected('งวดนี้ได้รับการชำระเงินแล้ว');
+            }
+            // ยอดงวดเปลี่ยนระหว่างคิดราคากับยืนยัน — ห้ามปิดงวดด้วยยอดเก่า
+            if ((Number(targetInstallment.amount) || 0) !== price.baseFee) {
+                throw new PaymentRejected('ยอดงวดนี้เปลี่ยนไปแล้ว กรุณาโหลดหน้าใหม่');
+            }
 
-        // Recalculate totals (only those actually paid)
-        const paidInstallments = installments.filter((inst: any) => inst.status === 'paid').length;
-        const totalPaid = installments
-            .filter((inst: any) => inst.status === 'paid')
-            .reduce((sum: number, inst: any) => {
-                const amt = parseFloat(String(inst.amount).replace(/,/g, ''));
-                return sum + (isNaN(amt) ? 0 : amt);
-            }, 0);
-        
-        // Create contract on first payment regardless of auto-approval status.
-        // - Auto-approved (SlipOK pass): case goes 'active' immediately.
-        // - Pending-verification (no QR): contract is still pre-created so
-        //   both lawyer and client see the Capdeal link while admin reviews the slip.
-        const isFirstPayment = paidInstallments === 1;
-        const hasNewPayment = !isAutoApproved;
+            // Enforce sequential payment: all previous installments must be paid
+            for (let i = 0; i < params.installmentIndex; i++) {
+                if (installments[i].status !== 'paid') {
+                    throw new PaymentRejected(`กรุณาชำระงวดที่ ${i + 1} ก่อน`);
+                }
+            }
 
-        // Build the update payload
-        const updatePayload: any = {
-            installments,
-            paidInstallments,
-            totalPaid,
-            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-            lastMessageAt: admin.firestore.FieldValue.serverTimestamp(),
-        };
+            // สลิปที่ผ่าน SlipOK จริงเท่านั้น — ตัวเดียวที่ตั้ง 'paid' ได้เองโดยไม่ผ่านแอดมิน
+            const slip = await readSlipVerificationInTx(tx, db, uid, params.slipVerificationId, amount);
+            if (price.couponId) await redeemCouponInTx(tx, db, price.couponId);
+            slip.commit();
 
-        if (hasNewPayment) {
-            updatePayload.hasNewPayment = true;
-            updatePayload[`pendingPaymentDetails_installment_${params.installmentIndex}`] = {
-                amount,
-                slipUrl: params.slipUrl,
+            const isAutoApproved = slip.verified;
+            const slipData = slip.slipData;
+
+            // Update the specific installment
+            installments[params.installmentIndex] = {
+                ...targetInstallment,
+                status: isAutoApproved ? 'paid' : 'pending_verification',
+                paidAt: isAutoApproved ? new Date().toISOString() : null,
                 submittedAt: new Date().toISOString(),
-                payerName: params.payerName || 'ลูกความ',
+                slipUrl: params.slipUrl,
+                slipOkData: slipData,
             };
-            updatePayload.lastMessage = `⏳ ลูกความแจ้งชำระเงินงวดที่ ${params.installmentIndex + 1} (฿${amount.toLocaleString()}) รอตรวจสอบสลิป`;
-        } else {
-            updatePayload.lastMessage = `✅ ลูกความชำระเงินงวดที่ ${params.installmentIndex + 1} เรียบร้อยแล้ว (฿${amount.toLocaleString()})`;
-        }
 
-        const allPaid = paidInstallments === installments.length;
+            // Recalculate totals (only those actually paid)
+            const paidInstallments = installments.filter((inst: any) => inst.status === 'paid').length;
+            const totalPaid = installments
+                .filter((inst: any) => inst.status === 'paid')
+                .reduce((sum: number, inst: any) => {
+                    const amt = parseFloat(String(inst.amount).replace(/,/g, ''));
+                    return sum + (isNaN(amt) ? 0 : amt);
+                }, 0);
 
-        // First installment paid → activate the case & Create Capdeal Contract
-        if (isFirstPayment) {
-            updatePayload.status = 'active';
-            updatePayload.paidAt = admin.firestore.FieldValue.serverTimestamp();
+            const isFirstPayment = paidInstallments === 1;
+            const allPaid = paidInstallments === installments.length;
 
-            // CONTRACT CREATION: Create contract document + system message
+            // Build the update payload
+            const updatePayload: any = {
+                installments,
+                paidInstallments,
+                totalPaid,
+                updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                lastMessageAt: admin.firestore.FieldValue.serverTimestamp(),
+                // ไม่ผ่าน = ต้องให้แอดมินตรวจ
+                hasNewPayment: !isAutoApproved,
+                // Store per-installment payment details for admin audit
+                [`pendingPaymentDetails_installment_${params.installmentIndex}`]: {
+                    amount,
+                    slipUrl: params.slipUrl,
+                    slipOkData: slipData,
+                    type: 'installment',
+                    installmentIndex: params.installmentIndex,
+                    submittedAt: new Date().toISOString(),
+                    payerName: params.payerName || 'ลูกความ',
+                },
+            };
+
+            if (!isAutoApproved) {
+                updatePayload.lastMessage = `⏳ ลูกความแจ้งชำระเงินงวดที่ ${params.installmentIndex + 1} (฿${amount.toLocaleString()}) รอตรวจสอบสลิป`;
+            } else if (allPaid) {
+                updatePayload.lastMessage = `🎉 ลูกความชำระเงินครบทุกงวดแล้ว (฿${totalPaid.toLocaleString()})`;
+            } else {
+                updatePayload.lastMessage = `✅ ลูกความชำระเงินงวดที่ ${params.installmentIndex + 1} เรียบร้อยแล้ว (฿${amount.toLocaleString()})`;
+            }
+
+            // First installment paid → activate the case
+            if (isFirstPayment) {
+                updatePayload.status = 'active';
+                updatePayload.paidAt = admin.firestore.FieldValue.serverTimestamp();
+            }
+
+            tx.update(chatRef, updatePayload);
+
+            return {
+                chatData,
+                isAutoApproved,
+                paidInstallments,
+                totalPaid,
+                allPaid,
+                isFirstPayment,
+                lastMessage: updatePayload.lastMessage as string,
+            };
+        });
+
+        const messagesRef = chatRef.collection('messages');
+
+        // CONTRACT CREATION: first installment paid → create Capdeal contract + system message
+        // อยู่นอก transaction เพราะ createContractFromChat อ่าน/เขียนหลายคอลเลกชันเอง
+        // และล้มได้โดยไม่ควรทำให้การชำระเงินที่บันทึกแล้วย้อนกลับ
+        if (outcome.isFirstPayment) {
             try {
                 await createContractFromChat(db, {
                     chatId: params.chatId,
-                    chatData,
+                    chatData: outcome.chatData,
                     amount,
-                    messagesRef: chatRef.collection('messages'),
+                    messagesRef,
                 });
             } catch (contractErr) {
                 console.error("Failed to create contract:", contractErr);
             }
         }
 
-        if (allPaid && isAutoApproved) {
-            updatePayload.lastMessage = `🎉 ลูกความชำระเงินครบทุกงวดแล้ว (฿${totalPaid.toLocaleString()})`;
-        }
-
         // Also post a system message to the chat messages collection
-        const messagesRef = chatRef.collection('messages');
-        const systemMsgRef = messagesRef.doc();
-        await systemMsgRef.set({
+        await messagesRef.doc().set({
             chatId: params.chatId,
-            text: updatePayload.lastMessage,
+            text: outcome.lastMessage,
             senderId: 'system',
             senderName: 'ระบบแจ้งเตือน',
             timestamp: admin.firestore.FieldValue.serverTimestamp(),
             type: 'system_payment'
         });
 
-        // If SlipOK auto-verified, add flag
-        updatePayload.hasNewPayment = !isAutoApproved; // ไม่ผ่าน = ต้องให้แอดมินตรวจ
-
-        // Store per-installment payment details for admin audit
-        updatePayload[`pendingPaymentDetails_installment_${params.installmentIndex}`] = {
-            amount,
-            slipUrl: params.slipUrl,
-            slipOkData: slipData,
-            type: 'installment',
-            installmentIndex: params.installmentIndex,
-            submittedAt: new Date().toISOString(),
-        };
-
-        await chatRef.update(updatePayload);
-
-        if (price.couponId) {
-            const redeemed = await redeemCoupon(price.couponId);
-            if (!redeemed.ok) console.error('redeemCoupon failed:', redeemed.error);
-        }
-
         return {
             success: true,
-            paidInstallments,
-            totalPaid,
-            allPaid,
-            isFirstPayment,
+            paidInstallments: outcome.paidInstallments,
+            totalPaid: outcome.totalPaid,
+            allPaid: outcome.allPaid,
+            isFirstPayment: outcome.isFirstPayment,
+            // หน้าเว็บใช้สองค่านี้ส่งอีเมลแจ้งเตือน — ต้องเป็นผลจาก server ไม่ใช่ตัวแปรในเบราว์เซอร์
+            isAutoApproved: outcome.isAutoApproved,
+            amount,
         };
     } catch (error: any) {
         if (error instanceof AuthError) return { success: false, error: error.message };
+        if (error instanceof PaymentRejected) return { success: false, error: error.message };
+        if (error instanceof CouponRedeemError) return { success: false, error: error.message };
         console.error("Error in markInstallmentPaidAction:", error);
         return { success: false, error: 'เกิดข้อผิดพลาดในการบันทึกการชำระเงิน กรุณาลองใหม่อีกครั้ง' };
     }
@@ -940,6 +953,7 @@ export async function markCasePaidAction(params: {
         const db = adminApp.firestore();
 
         // ยอดต้องมาจากเอกสารใน Firestore ไม่ใช่จาก argument
+        // ('additional' = ยอดของคำขอค่าบริการเพิ่มเติมที่ค้างอยู่ ดู lib/additional-fee.ts)
         const price = await resolvePaymentAmount({
             paymentType: params.type,
             chatId: params.chatId,
@@ -949,64 +963,90 @@ export async function markCasePaidAction(params: {
         const amount = price.finalAmount;
 
         const chatRef = db.collection('chats').doc(params.chatId);
-        const chatSnap = await chatRef.get();
 
-        if (!chatSnap.exists) return { success: false, error: 'ไม่พบห้องแชทนี้ในระบบ' };
-        const chatData = chatSnap.data()!;
+        // อ่านห้อง + ใช้ตั๋วสลิป + ตัดคูปอง + เขียนสถานะ ในก้อนเดียว (เหตุผลเดียวกับ
+        // markInstallmentPaidAction)
+        const { chatData, isAutoApproved, lastMessage } = await db.runTransaction(async (tx) => {
+            const chatSnap = await tx.get(chatRef);
+            if (!chatSnap.exists) throw new PaymentRejected('ไม่พบห้องแชทนี้ในระบบ');
+            const chatData = chatSnap.data()!;
 
-        // สลิปที่ผ่าน SlipOK จริงเท่านั้นที่ข้ามด่านแอดมินได้
-        const { verified: isAutoApproved, slipData } = await consumeSlipVerification(
-            db, uid, params.slipVerificationId, amount
-        );
-        const updatePayload: any = {
-            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-            lastMessageAt: admin.firestore.FieldValue.serverTimestamp(),
-            status: isAutoApproved ? 'active' : (chatData.status === 'active' ? 'active' : 'pending_payment'),
-            paidAt: isAutoApproved ? admin.firestore.FieldValue.serverTimestamp() : (chatData.paidAt || null),
-            paidAmount: isAutoApproved ? amount : (chatData.paidAmount || 0),
-            hasNewPayment: !isAutoApproved,
-        };
+            // คำขอค่าบริการเพิ่มเติมต้องยังค้างอยู่และยอดเท่าเดิมตอนยืนยัน
+            const additional = params.type === 'additional' ? getPendingAdditionalFee(chatData) : null;
+            if (params.type === 'additional' && (!additional || additional.amount !== price.baseFee)) {
+                throw new PaymentRejected('คำขอชำระค่าบริการเพิ่มเติมเปลี่ยนไปแล้ว กรุณาโหลดหน้าใหม่');
+            }
 
-        if (params.type === 'case') {
-            // Mark all installments as paid if it's a full case payment
-            const installments = chatData.installments || [];
-            const updatedInstallments = installments.map((inst: any) => ({
-                ...inst,
-                status: isAutoApproved ? 'paid' : (inst.status || 'pending'),
-                paidAt: (isAutoApproved && !inst.paidAt) ? new Date().toISOString() : (inst.paidAt || null),
-                slipUrl: (isAutoApproved && !inst.slipUrl) ? params.slipUrl : (inst.slipUrl || null),
-            }));
-            updatePayload.installments = updatedInstallments;
-            updatePayload.paidInstallments = updatedInstallments.filter((i: any) => i.status === 'paid').length;
-            updatePayload.totalPaid = updatedInstallments
-                .filter((i: any) => i.status === 'paid')
-                .reduce((sum: number, i: any) => {
-                    const amt = parseFloat(String(i.amount).replace(/,/g, ''));
-                    return sum + (isNaN(amt) ? 0 : amt);
-                }, 0);
-        }
+            // สลิปที่ผ่าน SlipOK จริงเท่านั้นที่ข้ามด่านแอดมินได้
+            const slip = await readSlipVerificationInTx(tx, db, uid, params.slipVerificationId, amount);
+            if (price.couponId) await redeemCouponInTx(tx, db, price.couponId);
+            slip.commit();
 
-        if (!isAutoApproved) {
-            updatePayload.pendingPaymentDetails = {
-                amount,
-                slipUrl: params.slipUrl,
-                slipOkData: slipData,
-                type: params.type,
-                submittedAt: new Date().toISOString(),
-                payerName: params.payerName,
+            const isAutoApproved = slip.verified;
+            const slipData = slip.slipData;
+
+            const updatePayload: any = {
+                updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                lastMessageAt: admin.firestore.FieldValue.serverTimestamp(),
+                status: isAutoApproved ? 'active' : (chatData.status === 'active' ? 'active' : 'pending_payment'),
+                paidAt: isAutoApproved ? admin.firestore.FieldValue.serverTimestamp() : (chatData.paidAt || null),
+                paidAmount: isAutoApproved ? amount : (chatData.paidAmount || 0),
+                hasNewPayment: !isAutoApproved,
             };
-            updatePayload.lastMessage = `⏳ ลูกความแจ้งชำระเงิน${params.type === 'case' ? 'ค่าเปิดคดี' : 'ค่าบริการเพิ่มเติม'} (฿${amount.toLocaleString()}) รอตรวจสอบสลิป`;
-        } else {
-            updatePayload.lastMessage = `✅ ลูกความชำระเงิน${params.type === 'case' ? 'ค่าเปิดคดี' : 'ค่าบริการเพิ่มเติม'} เรียบร้อยแล้ว (฿${amount.toLocaleString()})`;
-        }
 
-        await chatRef.update(updatePayload);
+            if (params.type === 'case') {
+                // Mark all installments as paid if it's a full case payment
+                const installments = chatData.installments || [];
+                const updatedInstallments = installments.map((inst: any) => ({
+                    ...inst,
+                    status: isAutoApproved ? 'paid' : (inst.status || 'pending'),
+                    paidAt: (isAutoApproved && !inst.paidAt) ? new Date().toISOString() : (inst.paidAt || null),
+                    slipUrl: (isAutoApproved && !inst.slipUrl) ? params.slipUrl : (inst.slipUrl || null),
+                }));
+                updatePayload.installments = updatedInstallments;
+                updatePayload.paidInstallments = updatedInstallments.filter((i: any) => i.status === 'paid').length;
+                updatePayload.totalPaid = updatedInstallments
+                    .filter((i: any) => i.status === 'paid')
+                    .reduce((sum: number, i: any) => {
+                        const amt = parseFloat(String(i.amount).replace(/,/g, ''));
+                        return sum + (isNaN(amt) ? 0 : amt);
+                    }, 0);
+            }
+
+            // สลิปผ่านจริงแล้วเท่านั้นถึงปิดคำขอของทนาย — ไม่งั้นคำขอค้างให้จ่ายซ้ำได้
+            // (ยังไม่ผ่าน = คงคำขอไว้ให้ขั้นอนุมัติสลิปฝั่งแอดมินเป็นคนปิด)
+            if (additional && isAutoApproved) {
+                if (additional.source === 'pendingFeeRequest') {
+                    updatePayload.pendingFeeRequest = null;
+                } else {
+                    updatePayload['additionalFeeRequest.status'] = 'paid';
+                    updatePayload['additionalFeeRequest.paidAt'] = admin.firestore.FieldValue.serverTimestamp();
+                }
+            }
+
+            if (!isAutoApproved) {
+                updatePayload.pendingPaymentDetails = {
+                    amount,
+                    slipUrl: params.slipUrl,
+                    slipOkData: slipData,
+                    type: params.type,
+                    submittedAt: new Date().toISOString(),
+                    payerName: params.payerName,
+                };
+                updatePayload.lastMessage = `⏳ ลูกความแจ้งชำระเงิน${params.type === 'case' ? 'ค่าเปิดคดี' : 'ค่าบริการเพิ่มเติม'} (฿${amount.toLocaleString()}) รอตรวจสอบสลิป`;
+            } else {
+                updatePayload.lastMessage = `✅ ลูกความชำระเงิน${params.type === 'case' ? 'ค่าเปิดคดี' : 'ค่าบริการเพิ่มเติม'} เรียบร้อยแล้ว (฿${amount.toLocaleString()})`;
+            }
+
+            tx.update(chatRef, updatePayload);
+            return { chatData, isAutoApproved, lastMessage: updatePayload.lastMessage as string };
+        });
 
         // Post system message
         const messagesRef = chatRef.collection('messages');
         await messagesRef.add({
             chatId: params.chatId,
-            text: updatePayload.lastMessage,
+            text: lastMessage,
             senderId: 'system',
             senderName: 'ระบบแจ้งเตือน',
             timestamp: admin.firestore.FieldValue.serverTimestamp(),
@@ -1029,14 +1069,12 @@ export async function markCasePaidAction(params: {
             }
         }
 
-        if (price.couponId) {
-            const redeemed = await redeemCoupon(price.couponId);
-            if (!redeemed.ok) console.error('redeemCoupon failed:', redeemed.error);
-        }
-
-        return { success: true };
+        // หน้าเว็บใช้สองค่านี้ส่งอีเมลแจ้งเตือน — ต้องเป็นผลจาก server ไม่ใช่ตัวแปรในเบราว์เซอร์
+        return { success: true, isAutoApproved, amount };
     } catch (error: any) {
         if (error instanceof AuthError) return { success: false, error: error.message };
+        if (error instanceof PaymentRejected) return { success: false, error: error.message };
+        if (error instanceof CouponRedeemError) return { success: false, error: error.message };
         console.error("Error in markCasePaidAction:", error);
         return { success: false, error: 'เกิดข้อผิดพลาดในการบันทึกการชำระเงิน กรุณาลองใหม่อีกครั้ง' };
     }

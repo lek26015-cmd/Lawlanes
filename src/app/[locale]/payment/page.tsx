@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
-import { resolvePaymentAmount, redeemCoupon, createConsultationChat, createAppointment, type PaymentType, type ResolvedPrice } from '@/app/actions/payment-actions';
+import { resolvePaymentAmount, createConsultationChat, createAppointment, type PaymentType, type ResolvedPrice } from '@/app/actions/payment-actions';
 import { useChat } from '@/context/chat-context';
 import { Textarea } from '@/components/ui/textarea';
 import { v4 as uuidv4 } from 'uuid';
@@ -268,7 +268,6 @@ function PaymentPageContent() {
     };
 
     const processPayment = async () => {
-        const targetLawyerUserId = lawyer?.userId || lawyer?.id;
         setIsProcessing(true);
         if (!firestore || !user || !lawyer) {
             toast({ variant: "destructive", title: "เกิดข้อผิดพลาด", description: "ไม่สามารถเชื่อมต่อฐานข้อมูลได้" });
@@ -298,8 +297,8 @@ function PaymentPageContent() {
                 // เปิด console ยิง SDK เขียนยอดใหม่ได้ เพราะกฎ chats เป็น
                 // allow create: if isSignedIn()
                 const created = await createConsultationChat({
+                    // uid ของทนายอ่านจาก lawyerProfiles ฝั่ง server — ไม่ส่ง lawyerUserId แล้ว
                     lawyerId: lawyer.id,
-                    lawyerUserId: targetLawyerUserId ?? '',
                     initialMessage,
                     slipUrl,
                     slipVerificationId,
@@ -319,8 +318,8 @@ function PaymentPageContent() {
                 // เองพร้อม amount/status ที่ตัวเองกำหนด และกฎ appointments เป็น
                 // allow create: if isSignedIn() จึงสร้างนัดหมาย amount:0 status:'paid' ได้
                 const created = await createAppointment({
+                    // uid ของทนายอ่านจาก lawyerProfiles ฝั่ง server — ไม่ส่ง lawyerUserId แล้ว
                     lawyerId: lawyer.id,
-                    lawyerUserId: targetLawyerUserId ?? '',
                     appointmentDate: dateStr,
                     description,
                     slipUrl,
@@ -355,13 +354,16 @@ function PaymentPageContent() {
                 setPaymentSuccess(true);
 
                 // Fire email notifications (non-blocking)
+                // ยอดและผลตรวจสลิปใช้ของที่ server ตอบกลับมา — เดิมส่ง finalFee และ
+                // !!slipOkData จากเบราว์เซอร์ อีเมลจึงบอกทนายว่า "ตรวจแล้ว" ได้ทั้งที่
+                // server ตัดสินว่ารอแอดมินตรวจ
                 notifyPaymentCompletedAction({
                     chatId,
                     lawyerId: lawyerId || '',
-                    amount: finalFee,
+                    amount: result.amount ?? 0,
                     caseTitle: `งวดที่ ${installmentIndex + 1}`,
                     payerName: user?.displayName || 'ลูกความ',
-                    isAutoApproved: !!slipOkData,
+                    isAutoApproved: result.isAutoApproved === true,
                 }).catch(e => console.error('Installment payment notification failed:', e));
 
             } else if ((paymentType === 'additional' || paymentType === 'case') && chatId) {
@@ -386,10 +388,10 @@ function PaymentPageContent() {
                 notifyPaymentCompletedAction({
                     chatId: chatId || '',
                     lawyerId: lawyerId || '',
-                    amount: finalFee,
+                    amount: result.amount ?? 0,
                     caseTitle: paymentType === 'case' ? 'ค่าเปิดคดี' : 'ค่าบริการเพิ่มเติม',
                     payerName: user?.displayName || 'ลูกความ',
-                    isAutoApproved: !!slipOkData,
+                    isAutoApproved: result.isAutoApproved === true,
                 }).catch(e => console.error('Payment notification failed:', e));
             }
         } catch (error) {

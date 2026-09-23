@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { FieldValue } from 'firebase-admin/firestore';
 import { initAdmin } from '@/lib/firebase-admin';
 import { requireUser, authErrorResponse } from '@/lib/auth-guard';
+import { slipTransRefDocId } from '@/lib/slip-verification';
 
 /**
  * ตรวจสลิปกับ SlipOK แล้ว **เก็บผลไว้ฝั่ง server**
@@ -12,10 +13,11 @@ import { requireUser, authErrorResponse } from '@/lib/auth-guard';
  *
  * ตอนนี้ผลตรวจถูกเขียนลง `slipVerifications` พร้อม uid ของคนตรวจ และคืนแค่
  * `verificationId` ไปให้ client ถือ — ตอนชำระเงินจริง server จะไปอ่านเอกสารนี้เอง
- * (ดู consumeSlipVerification() ใน payment-actions.ts) client ปลอมอะไรไม่ได้เลย
+ * (ดู readSlipVerificationInTx() ใน lib/slip-verification.ts) client ปลอมอะไรไม่ได้เลย
  *
- * เอกสารแต่ละใบใช้ได้ครั้งเดียว และสลิปที่ transRef ซ้ำกับใบที่ใช้ไปแล้วจะถูก
- * ปฏิเสธตั้งแต่ตรงนี้ — กันเอาสลิปใบเดิมไปจ่ายหลายรายการ
+ * เอกสารแต่ละใบใช้ได้ครั้งเดียว และ transRef หนึ่งค่าถูกจองได้ครั้งเดียว
+ * (slipTransRefs) ตอนใช้ตั๋ว — กันเอาสลิปใบเดิมไปจ่ายหลายรายการ ส่วนการเช็คซ้ำ
+ * ตรงนี้มีไว้บอกผู้ใช้ให้เร็วขึ้นเท่านั้น
  */
 export async function POST(request: Request) {
     // ต้องล็อกอินอยู่จริง — เดิมเปิดให้ทุกคนเรียก จึงเป็น proxy ฟรีที่เผาโควตา SlipOK
@@ -82,15 +84,21 @@ export async function POST(request: Request) {
         }
         const db = adminApp.firestore();
 
-        // สลิปใบเดิมใช้ซ้ำไม่ได้ — SlipOK เองก็กันให้ระดับหนึ่ง แต่บันทึกของเราคือตัวชี้ขาด
-        if (transRef) {
-            const dup = await db
-                .collection('slipVerifications')
-                .where('transRef', '==', transRef)
-                .where('consumed', '==', true)
-                .limit(1)
-                .get();
-            if (!dup.empty) {
+        // สลิปใบเดิมใช้ซ้ำไม่ได้ — ด่านนี้เป็นแค่ UX (บอกผู้ใช้เร็วๆ ก่อนกดชำระ)
+        // ตัวชี้ขาดจริงคือการจอง slipTransRefs ใน transaction ตอนใช้ตั๋ว
+        // (readSlipVerificationInTx) เพราะเช็คตรงนี้ก่อนออกตั๋ว ยิงพร้อมกันก็ผ่านหมด
+        const transRefId = slipTransRefDocId(transRef);
+        if (transRefId) {
+            const [reserved, dup] = await Promise.all([
+                db.collection('slipTransRefs').doc(transRefId).get(),
+                db
+                    .collection('slipVerifications')
+                    .where('transRef', '==', transRef)
+                    .where('consumed', '==', true)
+                    .limit(1)
+                    .get(),
+            ]);
+            if (reserved.exists || !dup.empty) {
                 return NextResponse.json(
                     { success: false, message: 'สลิปใบนี้ถูกใช้ชำระเงินไปแล้ว' },
                     { status: 409 }
