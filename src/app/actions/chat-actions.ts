@@ -1302,7 +1302,7 @@ export async function startConsultationAction(params: {
         // Send Email Notification via Server
         if (lawyerEmail) {
             try {
-                const { sendLawyerNewCaseEmail } = await import('@/app/actions/email');
+                const { sendLawyerNewCaseEmail } = await import('@/lib/lawyer-new-case-email');
                 // Use absolute URL for the link
                 const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'https://lawslane.com';
                 const caseLink = `${baseUrl}/${locale}/chat/${chatId}?lawyerId=${lawyerId}&clientId=${clientId}&view=lawyer`;
