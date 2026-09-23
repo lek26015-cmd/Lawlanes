@@ -74,7 +74,29 @@ service cloud.firestore {
     }
 
     match /lawyerProfiles/{lawyerId} {
-      allow read, list: if true;
+      // เดิมเป็น `allow read, list: if true` — ใครก็ยิง list ครั้งเดียวแล้วได้
+      // phone, email, address, dob, lineId, bankName, bankAccountNumber,
+      // idCardUrl, licenseUrl ของทนาย "ทุกคน" ในระบบ (การ strip ฟิลด์ใน
+      // src/lib/data.ts เป็นแค่เครื่องสำอาง เพราะรันบน client SDK)
+      //
+      // ตอนนี้: ปิดการดึงเป็นชุด — ไดเรกทอรี หน้าแรก หน้าตรวจใบอนุญาต และหน้า
+      // สำนักงานกฎหมาย อ่านผ่าน server action ที่ใช้ Admin SDK + projection
+      // สาธารณะแทน (src/app/actions/lawyer-directory-actions.ts)
+      //
+      // การอ่านทีละคนใน repo นี้ย้ายเป็น server action ครบแล้ว (getPublicLawyerAction /
+      // getChatLawyerAction / getMyLawyerProfileAction) ที่ยังยิง client SDK เหลือแค่
+      // เจ้าของอ่านเอกสารของตัวเองด้วย uid (header, account, financials)
+      //
+      // ⚠️ `get` ยังต้องเปิดสาธารณะไว้ก่อน เพราะ repo อื่นที่ใช้ Firestore ชุดนี้ร่วมกัน
+      // ยัง getDoc โปรไฟล์ทนายคนอื่นจาก browser อยู่ (lawslane-capdeal: invoice/[id],
+      // payment, review ผ่าน getLawyerById) — ปิดตอนนี้หน้าพวกนั้นพังทันที
+      // เป้าหมายหลังย้ายครบ: get ได้เฉพาะเจ้าของ (lawyerId == uid หรือ
+      // resource.data.userId == uid) หรือแอดมิน
+      allow get: if true;
+      // list: แอดมิน หรือ query ที่ผูกกับตัวเองเท่านั้น (where userId == uid)
+      // rules บังคับว่า query ต้องมีเงื่อนไขนี้ จึงไล่ดึงของคนอื่นไม่ได้ — คงไว้ให้
+      // flow "บัญชีนี้เป็นทนายไหม" ใน repo อื่น (เช่น lawslane-capdeal payment) ยังทำงาน
+      allow list: if isAdmin() || (isSignedIn() && resource.data.userId == request.auth.uid);
       allow create: if isOwner(request.resource.data.userId) || isAdmin();
       // averageRating/reviewCount ถูกคำนวณและเขียนโดย submitReviewAction ผ่าน Admin SDK
       // (ซึ่งข้าม rules อยู่แล้ว) จึงไม่ต้องเปิดช่องให้ client เขียน

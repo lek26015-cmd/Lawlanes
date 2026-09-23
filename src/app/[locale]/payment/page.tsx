@@ -4,8 +4,7 @@
 import React, { useState, useEffect, Suspense, useRef } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Link } from '@/navigation';
-import { getLawyerById } from '@/lib/data';
-import type { LawyerProfile } from '@/lib/types';
+import { getPublicLawyerAction, getMyLawyerProfileAction, type PublicLawyer } from '@/app/actions/lawyer-directory-actions';
 import { ArrowLeft, Calendar, User, CheckCircle, MessageSquare, Pencil, Loader2, Landmark, Upload, Copy, AlertCircle } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -19,7 +18,7 @@ import { useChat } from '@/context/chat-context';
 import { Textarea } from '@/components/ui/textarea';
 import { v4 as uuidv4 } from 'uuid';
 import { useFirebase } from '@/firebase';
-import { collection, doc, getDoc, query, where, getDocs, limit } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { errorEmitter, FirestorePermissionError } from '@/firebase';
 import { saveBase64SlipAction } from '@/app/actions/upload';
 import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '@/lib/constants';
@@ -45,7 +44,7 @@ function PaymentPageContent() {
     const installmentIndexParam = searchParams.get('installmentIndex');
     const installmentIndex = installmentIndexParam !== null ? parseInt(installmentIndexParam) : null;
 
-    const [lawyer, setLawyer] = useState<LawyerProfile | null>(null);
+    const [lawyer, setLawyer] = useState<PublicLawyer | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isProcessing, setIsProcessing] = useState(false);
     const [paymentSuccess, setPaymentSuccess] = useState(false);
@@ -96,9 +95,11 @@ function PaymentPageContent() {
             }
 
             if (user) {
-                const q = query(collection(firestore, "lawyerProfiles"), where("userId", "==", user.uid), limit(1));
-                const lawyerSnap = await getDocs(q);
-                if (!lawyerSnap.empty) {
+                // เดิม query ทั้ง collection ด้วย where userId จาก browser — ตอนนี้ถามฝั่ง server
+                // (requireLawyer หาโปรไฟล์จาก userId จริง จึงครอบคลุมโปรไฟล์ที่แอดมินสร้าง
+                // ซึ่ง doc id ไม่ใช่ uid ด้วย ต่างจากการ getDoc ด้วย uid ตรงๆ)
+                const selfLawyerProfile = await getMyLawyerProfileAction();
+                if (selfLawyerProfile) {
                     toast({
                         variant: "destructive",
                         title: "ไม่สามารถทำรายการได้",
@@ -110,7 +111,8 @@ function PaymentPageContent() {
             }
 
             setIsLoading(true);
-            const lawyerData = await getLawyerById(firestore, lawyerId);
+            // ใช้แค่ชื่อ/รูป — โปรไฟล์สาธารณะผ่าน server action
+            const lawyerData = await getPublicLawyerAction(lawyerId);
             setLawyer(lawyerData || null);
 
             if (chatId && (paymentType === 'case' || paymentType === 'installment')) {

@@ -13,7 +13,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import React, { useState, useEffect } from 'react';
-import type { LawyerProfile } from '@/lib/types';
+import type { PublicLawyer } from '@/app/actions/lawyer-directory-actions';
 import { useFirebase } from '@/firebase';
 import { doc, getDoc, setDoc, collection, serverTimestamp, addDoc, query, where, getDocs, limit } from 'firebase/firestore';
 import { v4 as uuidv4 } from 'uuid';
@@ -36,7 +36,8 @@ import { ShareButtons } from '@/components/share-buttons';
 import { getCloudflareVariantUrl } from '@/lib/cloudflare-images';
 
 interface LawyerProfileClientProps {
-    initialLawyer: LawyerProfile;
+    // โปรไฟล์สาธารณะเท่านั้น (allowlist) — หน้านี้เปิดให้คนไม่ล็อกอินดูได้
+    initialLawyer: PublicLawyer;
     id: string;
 }
 
@@ -47,7 +48,7 @@ export default function LawyerProfileClient({ initialLawyer, id }: LawyerProfile
     const tLawyers = useTranslations('Lawyers');
     const locale = useLocale();
 
-    const [lawyer, setLawyer] = useState<LawyerProfile>(initialLawyer);
+    const [lawyer, setLawyer] = useState<PublicLawyer>(initialLawyer);
     const [reviews, setReviews] = useState<any[]>([]);
     const [isLawyer, setIsLawyer] = useState(false);
     const [stats, setStats] = useState({ responseRate: 0, completedCases: 0 });

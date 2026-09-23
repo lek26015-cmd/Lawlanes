@@ -1,6 +1,5 @@
-import { getLawyerById } from '@/lib/data';
 import { notFound } from 'next/navigation';
-import { initializeFirebase } from '@/firebase';
+import { getPublicLawyerAction } from '@/app/actions/lawyer-directory-actions';
 import LawyerProfileClient from './LawyerProfileClient';
 import { Metadata } from 'next';
 
@@ -13,15 +12,9 @@ export async function generateMetadata(
 ): Promise<Metadata> {
     const params = await props.params;
     const { id } = params;
-    const { firestore } = initializeFirebase();
-
-    if (!firestore) {
-        return {
-            title: 'Lawslane - ค้นหาทนายความ',
-        };
-    }
-
-    const lawyer = await getLawyerById(firestore, id);
+    // อ่านผ่าน Admin SDK + projection สาธารณะ — เดิมใช้ client SDK แบบไม่ล็อกอินบน server
+    // ซึ่งดึงเอกสารเต็ม (เบอร์/ที่อยู่/เลขบัญชี) และจะพังทันทีที่ rules ปิด get
+    const lawyer = await getPublicLawyerAction(id);
 
     if (!lawyer) {
         return {
@@ -61,13 +54,8 @@ export async function generateMetadata(
 export default async function LawyerProfilePage(props: Props) {
     const params = await props.params;
     const { id } = params;
-    const { firestore } = initializeFirebase();
-
-    if (!firestore) {
-        notFound();
-    }
-
-    const lawyer = await getLawyerById(firestore, id);
+    // หน้านี้ต้องเปิดดูได้โดยไม่ล็อกอิน (PRD.md) — จึงคืนแค่ PublicLawyer
+    const lawyer = await getPublicLawyerAction(id);
 
     if (!lawyer) {
         notFound();

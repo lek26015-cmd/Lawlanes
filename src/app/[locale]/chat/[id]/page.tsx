@@ -2,8 +2,7 @@
 
 import { useState, useEffect, Suspense, useRef, useCallback } from 'react';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
-import { getLawyerById } from '@/lib/data';
-import type { LawyerProfile } from '@/lib/types';
+import { getChatLawyerAction, getPublicLawyerAction, type ChatLawyer } from '@/app/actions/lawyer-directory-actions';
 import { useFirebase, useUser } from '@/firebase';
 import { ChatBox } from '@/components/chat/chat-box';
 import { uploadFileAction } from '../actions';
@@ -102,7 +101,7 @@ function ChatPageContent() {
     const clientId = searchParams.get('clientId');
     const view = searchParams.get('view');
 
-    const [lawyer, setLawyer] = useState<LawyerProfile | null>(null);
+    const [lawyer, setLawyer] = useState<ChatLawyer | null>(null);
     const [client, setClient] = useState<{ id: string, name: string, imageUrl: string, email?: string } | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [isUploading, setIsUploading] = useState(false);
@@ -337,11 +336,21 @@ function ChatPageContent() {
                 }
 
                 // 2. Fetch Profiles
-                let fetchedLawyer: LawyerProfile | null = null;
+                let fetchedLawyer: ChatLawyer | null = null;
                 if (currentLawyerId) {
-                    fetchedLawyer = await getLawyerById(firestore!, currentLawyerId) || null;
+                    // เดิม getLawyerById ยิง client SDK ได้เอกสารทนายทั้งก้อน (เบอร์/ที่อยู่/เลขบัญชี)
+                    // ตอนนี้: คู่กรณีของห้อง → ได้โปรไฟล์สาธารณะ + uid + อีเมลของทนายประจำห้อง
+                    // (ต้องใช้ระบุผู้รับข้อความและแสดงคู่สัญญา) ถ้ายังไม่มีห้อง/ไม่ใช่คู่กรณี
+                    // → ได้แค่โปรไฟล์สาธารณะ
+                    if (chatData) {
+                        fetchedLawyer = await getChatLawyerAction(chatId);
+                    }
                     if (!fetchedLawyer) {
-                        fetchedLawyer = { id: currentLawyerId, name: '', imageUrl: '', email: '' } as unknown as LawyerProfile;
+                        const publicLawyer = await getPublicLawyerAction(currentLawyerId);
+                        fetchedLawyer = publicLawyer ? { ...publicLawyer, userId: '', email: '' } : null;
+                    }
+                    if (!fetchedLawyer) {
+                        fetchedLawyer = { id: currentLawyerId, name: '', imageUrl: '', email: '', userId: '' } as unknown as ChatLawyer;
                     }
                     try {
                         const lUserSnap = await getDoc(doc(firestore!, 'users', currentLawyerId));

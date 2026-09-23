@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { useParams, notFound } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { getAdById, getApprovedLawyers } from '@/lib/data';
+import { getAdById } from '@/lib/data';
 import type { Ad, LawyerProfile } from '@/lib/types';
 import { ArrowLeft, MapPin, Phone, Mail, Building, Users } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
@@ -37,9 +37,9 @@ export default function LawFirmPage() {
       setFirm(firmData);
 
       // Fetch real lawyers for the firm
-      import('@/lib/data').then(({ getLawyersByFirm }) => {
-        getLawyersByFirm(firestore, id).then(firmLawyers => {
-          setLawyers(firmLawyers);
+      import('@/app/actions/lawyer-directory-actions').then(({ getLawyersByFirmAction }) => {
+        getLawyersByFirmAction(id).then(firmLawyers => {
+          setLawyers(firmLawyers as unknown as LawyerProfile[]);
         });
       });
 

@@ -1,7 +1,9 @@
 import { Suspense } from 'react';
 import { setRequestLocale } from 'next-intl/server';
 import { initializeFirebase } from '@/firebase';
-import { getApprovedLawyers, getRegistryLawyers } from '@/lib/data';
+import { getRegistryLawyers } from '@/lib/data';
+import { getApprovedLawyersAction } from '@/app/actions/lawyer-directory-actions';
+import type { LawyerProfile } from '@/lib/types';
 import { LawyersPageClient } from './lawyers-page-client';
 
 // The approved/registry lawyer lists are identical for every visitor regardless of
@@ -17,7 +19,8 @@ export default async function LawyersPage({ params }: { params: Promise<{ locale
   setRequestLocale(locale);
 
   const { firestore: db } = initializeFirebase();
-  const lawyers = db ? await getApprovedLawyers(db) : [];
+  // อ่านผ่าน Admin SDK + projection สาธารณะ (ดู lawyer-directory-actions.ts)
+  const lawyers = (await getApprovedLawyersAction()) as unknown as LawyerProfile[];
 
   const approvedLicenseNumbers = new Set(
     lawyers.map(l => l.licenseNumber).filter(Boolean)

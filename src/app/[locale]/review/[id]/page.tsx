@@ -4,8 +4,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useParams, useSearchParams, notFound, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { getLawyerById } from '@/lib/data';
-import type { LawyerProfile } from '@/lib/types';
+import { getPublicLawyerAction, type PublicLawyer } from '@/app/actions/lawyer-directory-actions';
 import { ArrowLeft, Scale } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -29,7 +28,7 @@ function ReviewPageContent() {
   const chatId = params.id as string;
   const lawyerId = searchParams.get('lawyerId');
 
-  const [lawyer, setLawyer] = useState<LawyerProfile | null>(null);
+  const [lawyer, setLawyer] = useState<PublicLawyer | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [rating, setRating] = useState(0);
   const [reviewText, setReviewText] = useState("");
@@ -43,7 +42,8 @@ function ReviewPageContent() {
         return;
       }
       setIsLoading(true);
-      const lawyerData = await getLawyerById(firestore, lawyerId);
+      // ใช้แค่ชื่อ/รูป — โปรไฟล์สาธารณะผ่าน server action ไม่ยิง lawyerProfiles จาก browser
+      const lawyerData = await getPublicLawyerAction(lawyerId);
       if (!lawyerData) {
         notFound();
       }

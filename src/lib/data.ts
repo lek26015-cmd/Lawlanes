@@ -24,30 +24,9 @@ export const getImageUrl = (id: string) => PlaceHolderImages.find(img => img.id 
 export const getImageHint = (id: string) => PlaceHolderImages.find(img => img.id === id)?.imageHint ?? '';
 
 // --- Lawyer Functions ---
-export async function getApprovedLawyers(db: Firestore, limitCount: number = 50): Promise<LawyerProfile[]> {
-  if (!db) return [];
-  try {
-    const lawyersRef = collection(db, 'lawyerProfiles');
-    const q = query(lawyersRef, where('status', '==', 'approved'), limit(limitCount));
-    const querySnapshot = await getDocs(q);
-    return querySnapshot.docs.map(doc => {
-      const data = doc.data();
-      // Remove sensitive fields
-      const { licenseUrl, idCardUrl, bankAccountNumber, ...safeData } = data;
-      return {
-        ...safeData,
-        id: doc.id,
-        joinedAt: data.joinedAt?.toDate ? data.joinedAt.toDate().toISOString() : (data.joinedAt || new Date().toISOString()),
-        dob: data.dob?.toDate ? data.dob.toDate().toISOString() : (data.dob || null),
-        updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate().toISOString() : (data.updatedAt || null),
-        createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : (data.createdAt || data.joinedAt?.toDate ? data.joinedAt.toDate().toISOString() : new Date().toISOString()),
-      } as unknown as LawyerProfile;
-    });
-  } catch (error) {
-    console.error("Error fetching approved lawyers:", error);
-    return [];
-  }
-}
+// getApprovedLawyers() ย้ายไปเป็น getApprovedLawyersAction()
+// ใน src/app/actions/lawyer-directory-actions.ts แล้ว (Admin SDK + projection สาธารณะ)
+// เพราะ firestore.rules ปิด `list` ของ lawyerProfiles ไม่ให้ยิงจาก client SDK อีก
 
 /**
  * Fetch registry lawyers (from verifiedLawyers collection) that have a license number
@@ -101,25 +80,11 @@ export async function getRegistryLawyers(
   }
 }
 
-export async function getLawyerById(db: Firestore, id: string): Promise<LawyerProfile | undefined> {
-  if (!db) return undefined;
-  const lawyerRef = doc(db, 'lawyerProfiles', id);
-  const docSnap = await getDoc(lawyerRef);
-  if (docSnap.exists()) {
-    const data = docSnap.data();
-    // Remove sensitive fields
-    const { licenseUrl, idCardUrl, bankAccountNumber, ...safeData } = data;
-    return {
-      ...safeData,
-      id: docSnap.id,
-      joinedAt: data.joinedAt?.toDate ? data.joinedAt.toDate().toISOString() : (data.joinedAt || new Date().toISOString()),
-      dob: data.dob?.toDate ? data.dob.toDate().toISOString() : (data.dob || null),
-      updatedAt: data.updatedAt?.toDate ? data.updatedAt.toDate().toISOString() : (data.updatedAt || null),
-      createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : (data.createdAt || data.joinedAt?.toDate ? data.joinedAt.toDate().toISOString() : new Date().toISOString()),
-    } as unknown as LawyerProfile;
-  }
-  return undefined;
-}
+// getLawyerById() ถูกลบแล้ว — เดิมยิง client SDK ได้เอกสารทนายทั้งก้อนถึง browser
+// (strip ฟิลด์ทีหลังเป็นแค่เครื่องสำอาง) ใช้ตัวใดตัวหนึ่งใน
+// src/app/actions/lawyer-directory-actions.ts แทนตามบริบท:
+//   getPublicLawyerAction (สาธารณะ) / getChatLawyerAction (คู่กรณีของเคส) /
+//   getMyLawyerProfileAction (เจ้าของโปรไฟล์)
 
 // --- Article Functions ---
 export async function getAllArticles(db: Firestore | null): Promise<Article[]> {
@@ -397,12 +362,7 @@ export async function getLawyerStats(db: Firestore, lawyerId: string) {
   };
 }
 
-export async function getLawyersByFirm(db: Firestore, firmId: string): Promise<LawyerProfile[]> {
-  if (!db) return [];
-  const q = query(collection(db, 'lawyerProfiles'), where('firmId', '==', firmId));
-  const snap = await getDocs(q);
-  return snap.docs.map(d => ({ id: d.id, ...d.data() } as unknown as LawyerProfile));
-}
+// getLawyersByFirm() ย้ายไปเป็น getLawyersByFirmAction() ด้วยเหตุผลเดียวกัน
 
 // --- Legal Form Functions ---
 

@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { useParams, notFound, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { getLawyerById } from '@/lib/data';
+import { getPublicLawyerAction, type PublicLawyer } from '@/app/actions/lawyer-directory-actions';
 import type { LawyerProfile } from '@/lib/types';
 import { ArrowLeft, Calendar as CalendarIcon } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
@@ -24,7 +24,7 @@ export default function SchedulePage() {
   const { toast } = useToast();
   const { firestore } = useFirebase();
 
-  const [lawyer, setLawyer] = useState<LawyerProfile | null>(null);
+  const [lawyer, setLawyer] = useState<PublicLawyer | null>(null);
   const [date, setDate] = useState<Date | undefined>();
   const [description, setDescription] = useState('');
   const [isLoading, setIsLoading] = useState(true);
@@ -33,7 +33,8 @@ export default function SchedulePage() {
     async function fetchLawyer() {
       if (!id || !firestore) return;
       setIsLoading(true);
-      const lawyerData = await getLawyerById(firestore, id);
+      // โปรไฟล์สาธารณะ (รวมตารางเวลาแบบไม่มีเหตุผลวันหยุด) ผ่าน server action
+      const lawyerData = await getPublicLawyerAction(id);
       if (!lawyerData) {
         notFound();
       }
