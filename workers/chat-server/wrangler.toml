@@ -1,3 +1,11 @@
+# ⛔ STOP — ห้าม deploy จนกว่าจะใส่ auth
+# worker นี้เชื่อ userId จาก query/body ตรง ๆ + CORS "*" — ใครก็อ่านประวัติแชทห้องไหนก็ได้ (/history/{chatId})
+# และเขียนทับ public key ของคนอื่นได้ (/key) ซึ่งทำให้ดักอ่านข้อความ E2EE ได้
+# ตรวจ 2026-09-24: ไม่ได้ deploy อยู่ที่ไหน (tawanberkfah.workers.dev ไม่ resolve, lawlanes-app = error 1042)
+# แอปยังใช้ Firestore เป็นที่เก็บแชทจริง — ถ้าจะเปิดใช้ต้องตรวจ Firebase ID token ก่อน
+# บรรทัดล่างตั้งใจให้ syntax ผิด เพื่อให้ `wrangler deploy` ล้มทันที
+THIS FILE IS INTENTIONALLY INVALID UNTIL AUTH IS ADDED ===
+
 name = "lawslane-chat-server"
 main = "src/index.ts"
 compatibility_date = "2024-04-05"
