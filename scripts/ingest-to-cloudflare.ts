@@ -6,6 +6,9 @@ const require = createRequire(import.meta.url);
 const { PDFParse } = require('pdf-parse');
 
 const WORKER_URL = 'https://lawslane-rag-api.lawlanes-app.workers.dev';
+// worker ปิด /ingest ถ้าไม่มี key — ตั้งใน shell ก่อนรัน: export RAG_INGEST_KEY=...
+const RAG_INGEST_KEY = process.env.RAG_INGEST_KEY;
+if (!RAG_INGEST_KEY) throw new Error('RAG_INGEST_KEY is not set');
 const LOCAL_API_URL = 'http://localhost:9002/api/admin/ingestion-status';
 const PDF_DIR = path.join(process.cwd(), 'src/data/pdfs');
 const DELAY_BETWEEN_CHUNKS = 500; // ms
@@ -64,7 +67,8 @@ async function ingestChunk(text: string, metadata: any) {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'User-Agent': 'Lawslane-Ingestor/1.1'
+                    'User-Agent': 'Lawslane-Ingestor/1.1',
+                    'Authorization': `Bearer ${RAG_INGEST_KEY}`
                 },
                 body: JSON.stringify({ text, metadata, id: metadata.id })
             });

@@ -16,6 +16,10 @@ from pathlib import Path
 
 # Config
 WORKER_URL = "https://lawslane-rag-api.lawlanes-app.workers.dev"
+# worker ปิด /ingest ถ้าไม่มี key — ตั้งใน shell ก่อนรัน: export RAG_INGEST_KEY=...
+RAG_INGEST_KEY = os.environ.get("RAG_INGEST_KEY", "")
+if not RAG_INGEST_KEY:
+    raise SystemExit("RAG_INGEST_KEY is not set")
 LOCAL_API_URL = "http://localhost:9002/api/admin/ingestion-status"
 # ส่ง shared secret ไปกับ status update — route ฝั่ง server ปฏิเสธถ้าไม่ตรง
 INGESTION_STATUS_SECRET = os.environ.get("INGESTION_STATUS_SECRET", "")
@@ -98,7 +102,7 @@ def ingest_chunk(text: str, metadata: dict) -> bool:
             response = requests.post(
                 f"{WORKER_URL}/ingest",
                 json={"text": text, "metadata": metadata, "id": metadata["id"]},
-                headers={"Content-Type": "application/json"},
+                headers={"Content-Type": "application/json", "Authorization": f"Bearer {RAG_INGEST_KEY}"},
                 timeout=30,
             )
             if response.status_code == 429:
