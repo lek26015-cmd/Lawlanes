@@ -1,7 +1,7 @@
 'use server';
 
-import { initializeFirebase } from '@/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { initAdmin } from '@/lib/firebase-admin';
+import * as admin from 'firebase-admin';
 import { checkUpstashRateLimit, formRateLimiter } from '@/lib/upstash-ratelimit';
 import { headers } from 'next/headers';
 
@@ -24,7 +24,17 @@ async function getIpFromHeaders() {
  * ฟอร์มสาธารณะสองตัวด้านล่างเปิดให้คนที่ยังไม่ล็อกอินส่งได้โดยตั้งใจ (ด่านคือ rate limit ต่อ IP)
  * แต่เดิม `...formData` เขียนทุกฟิลด์ที่ผู้เรียกส่งมาลง Firestore — ใส่ฟิลด์แปลกๆ / ข้อความ
  * ขนาดใหญ่ได้ไม่จำกัด ตอนนี้เก็บเฉพาะฟิลด์ที่ฟอร์มมีจริงและตัดความยาว
+ *
+ * เขียนผ่าน Admin SDK — เดิมใช้ client SDK ฝั่ง server (ไม่ได้ล็อกอิน) ซึ่งทำงานได้ก็เพราะ
+ * firestore.rules เปิด `create: if true` ไว้ แปลว่าใครก็ข้าม action นี้ (และ rate limit / การตัดฟิลด์)
+ * ไปยิง addDoc ตรงได้ ตอนนี้ registrationRequests ปิด create จาก client แล้ว
+ * (smeRequests ยังเปิดแบบ allowlist ให้ฟอร์มของ repo อื่นที่ยังเขียนตรงจาก client)
  */
+async function getAdminDb() {
+  const adminApp = await initAdmin();
+  if (!adminApp) throw new Error('Firebase Admin not initialized');
+  return adminApp.firestore();
+}
 function str(v: unknown, max: number) {
   return typeof v === 'string' ? v.trim().slice(0, max) : '';
 }
@@ -52,10 +62,9 @@ export async function submitSmeRequestAction(formData: {
   }
 
   try {
-    const { firestore: db } = initializeFirebase();
-    if (!db) throw new Error("Firestore not initialized");
+    const db = await getAdminDb();
 
-    const docRef = await addDoc(collection(db, 'smeRequests'), {
+    const docRef = await db.collection('smeRequests').add({
       name: str(formData.name, 200),
       phone: str(formData.phone, 50),
       email: str(formData.email, 254),
@@ -63,7 +72,7 @@ export async function submitSmeRequestAction(formData: {
       fileUrl: str(formData.fileUrl, 1000),
       fileName: str(formData.fileName, 300),
       status: 'new',
-      createdAt: serverTimestamp(),
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
       ipAddress: ip, // Save IP for audit/spam tracking
     });
 
@@ -97,10 +106,9 @@ export async function submitRegistrationRequestAction(formData: {
   }
 
   try {
-    const { firestore: db } = initializeFirebase();
-    if (!db) throw new Error("Firestore not initialized");
+    const db = await getAdminDb();
 
-    const docRef = await addDoc(collection(db, 'registrationRequests'), {
+    const docRef = await db.collection('registrationRequests').add({
       contactName: str(formData.contactName, 200),
       companyName: str(formData.companyName, 300),
       phone: str(formData.phone, 50),
@@ -108,8 +116,8 @@ export async function submitRegistrationRequestAction(formData: {
       registrationType: str(formData.registrationType, 100),
       details: str(formData.details, 5000),
       status: 'pending',
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
+      createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      updatedAt: admin.firestore.FieldValue.serverTimestamp(),
       ipAddress: ip, // Save IP for audit/spam tracking
     });
 

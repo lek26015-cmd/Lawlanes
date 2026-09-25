@@ -7,7 +7,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { createUserWithEmailAndPassword, updateProfile, signOut } from 'firebase/auth';
-import { doc, setDoc, serverTimestamp, addDoc, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, setDoc, serverTimestamp, addDoc, collection } from 'firebase/firestore';
 import { useFirebase } from '@/firebase';
 import { uploadToFirebasePublic } from '@/app/actions/upload';
 import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '@/lib/constants';
@@ -168,21 +168,10 @@ export default function LawyerExpressSignupPage() {
                 profileImageUrl = await uploadToFirebasePublic(formData, 'profile-images');
             }
 
-            // 2.6 Check if license number exists in registry (auto-approve if found)
-            let autoApproved = false;
-            try {
-                const registryQuery = query(
-                    collection(firestore, 'verifiedLawyers'),
-                    where('licenseNumber', '==', values.licenseNumber.trim()),
-                    where('status', '==', 'active')
-                );
-                const registrySnap = await getDocs(registryQuery);
-                autoApproved = !registrySnap.empty;
-            } catch (err) {
-                console.error('Error checking registry:', err);
-            }
-
-            const registrationStatus = autoApproved ? 'approved' : 'pending';
+            // สร้างโปรไฟล์เป็น 'pending' เสมอ — การอนุมัติอัตโนมัติจากทะเบียนทนายย้ายไปทำฝั่ง server
+            // (autoApproveLawyerFromRegistryAction ด้านล่าง) เดิมหน้านี้เช็คทะเบียนเองแล้วเขียน
+            // status: 'approved' ลง Firestore ตรงๆ ซึ่ง firestore.rules ไม่ยอมให้ client ทำแล้ว
+            const registrationStatus = 'pending';
 
             // 3. Create user profile document in Firestore (users collection)
             const userDocRef = doc(firestore, 'users', user.uid);
@@ -230,6 +219,16 @@ export default function LawyerExpressSignupPage() {
             };
 
             await setDoc(lawyerProfileRef, lawyerProfileData);
+
+            // 4.5 ตรวจทะเบียนทนาย + อนุมัติอัตโนมัติฝั่ง server (ต้องทำก่อน addToVerifiedRegistry
+            // ที่เพิ่มรายชื่อ 'pending' — ไม่งั้นจะเช็คเจอแต่รายชื่อที่ตัวเองเพิ่งเพิ่ม)
+            let autoApproved = false;
+            try {
+                const { autoApproveLawyerFromRegistryAction } = await import('@/app/actions/lawyer-actions');
+                autoApproved = (await autoApproveLawyerFromRegistryAction()).approved;
+            } catch (err) {
+                console.error('Error checking registry:', err);
+            }
 
             // 5. Add to Verified Lawyers Registry (Auto-add via Server Action)
             try {
