@@ -3,7 +3,7 @@
 import { retrieveDocuments } from '@/lib/rag';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getCachedAIResponse, setCachedAIResponse } from '@/lib/ai-cache';
-import { requireUser } from '@/lib/auth-guard';
+import { requireUser, requireLawyer } from '@/lib/auth-guard';
 import { limitUserAction } from '@/lib/security/action-rate-limit';
 
 export type SearchResult = {
@@ -11,6 +11,17 @@ export type SearchResult = {
     content: string;
     score: number;
 };
+
+// ค้นเอกสารกฎหมายดิบ (ไม่ผ่าน LLM) สำหรับเครื่องมือค้นคว้าในหน้าเคสของทนาย
+// เดิม component เรียก retrieveDocuments ตรงจาก browser — ส่ง RAG key ไม่ได้และใครก็ยิง worker ได้
+export async function researchLawDocuments(query: string) {
+    const { uid } = await requireLawyer();
+    if (!(await limitUserAction('ai-law-research', uid)).success) {
+        throw new Error('Rate limit exceeded. Please wait a moment.');
+    }
+    if (!query || query.trim() === '' || query.length > 2000) return [];
+    return retrieveDocuments(query.trim());
+}
 
 export async function searchLaws(query: string, limit: number = 10): Promise<SearchResult[]> {
     // endpoint นี้เรียก LLM ซึ่งมีค่าใช้จ่ายต่อครั้ง — ต้องล็อกอินอยู่จริง

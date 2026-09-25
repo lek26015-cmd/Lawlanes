@@ -6,9 +6,10 @@
  */
 
 import { z } from 'zod';
+import { ragAuthHeaders } from '@/lib/rag';
 import { limitPublicAction } from '@/lib/security/action-rate-limit';
 
-const WORKER_URL = process.env.NEXT_PUBLIC_RAG_WORKER_URL || 'https://lawslane-rag-api.lawslane-app.workers.dev';
+const WORKER_URL = process.env.NEXT_PUBLIC_RAG_WORKER_URL || 'https://lawslane-rag-api.lawlanes-app.workers.dev';
 
 const FindLawyersInputSchema = z.object({
   problem: z.string().describe("The user's description of their legal problem."),
@@ -39,7 +40,7 @@ export async function findLawyerSpecialties(input: FindLawyersInput): Promise<Fi
 
     const response = await fetch(`${WORKER_URL}/query`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...ragAuthHeaders() },
       body: JSON.stringify({
         question: input.problem,
         filter: { type: 'lawyer' },

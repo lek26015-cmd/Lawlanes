@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useTranslations } from 'next-intl';
 import { Search, Loader2, BookOpen, ExternalLink, Quote, ChevronDown, ChevronUp, Sparkles } from 'lucide-react';
-import { retrieveDocuments } from '@/lib/rag';
+import { researchLawDocuments } from '@/app/actions/law-search-actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -30,7 +30,7 @@ export function LegalResearchTool({ onCite, className }: LegalResearchToolProps)
 
     setLoading(true);
     try {
-      const docs = await retrieveDocuments(query);
+      const docs = await researchLawDocuments(query);
       setResults(docs);
       if (docs.length === 0) {
         toast({
