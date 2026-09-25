@@ -4,6 +4,7 @@ import { initAdmin } from '@/lib/firebase-admin';
 import * as admin from 'firebase-admin';
 import { Invoice, InvoiceStatus } from '@/lib/types/billing-types';
 import { requireUser, requireLawyer, requireChatRole, authErrorResult } from '@/lib/auth-guard';
+import { logCaseEvent } from '@/lib/telemetry/case-events';
 
 /**
  * Fetches invoices for a specific user (client view).
@@ -92,9 +93,9 @@ export async function createInvoiceAction(data: Partial<Invoice>) {
     // เดิมไม่เช็คอะไรเลย → ออกใบแจ้งหนี้ในนามทนายคนไหนก็ได้ ต่อมาบังคับ lawyer_id
     // จาก token แล้วแต่ยังเป็น requireUser() เฉยๆ → ผู้ใช้ทั่วไปก็ยังยิง action
     // ออกใบแจ้งหนี้ยอดเท่าไรก็ได้ส่งหาใครก็ได้ ตอนนี้ต้องเป็นทนายที่ยืนยันแล้ว
-    let callerUid: string, adminApp;
+    let callerUid: string, callerLawyerProfileId: string, adminApp;
     try {
-        ({ uid: callerUid, adminApp } = await requireLawyer());
+        ({ uid: callerUid, lawyerProfileId: callerLawyerProfileId, adminApp } = await requireLawyer());
     } catch (e) {
         return authErrorResult(e);
     }
@@ -117,6 +118,16 @@ export async function createInvoiceAction(data: Partial<Invoice>) {
         };
 
         const docRef = await db.collection('invoices').add(invoiceData);
+
+        // Telemetry ชั้น B — ป้อน activityDepth (เคสที่มี artifact จริงในระบบ)
+        const invoiceCaseId = data.chatId || data.case_id;
+        if (invoiceCaseId) {
+            await logCaseEvent(db, {
+                caseId: invoiceCaseId, lawyerId: callerLawyerProfileId,
+                type: 'invoice_created', actor: 'lawyer',
+            });
+        }
+
         return { success: true, id: docRef.id };
     } catch (error: any) {
         console.error("Error creating invoice:", error);
@@ -432,8 +443,9 @@ export async function signContractAction(chatId: string, signatureDataUrl?: stri
     // บทบาทต้องมาจากข้อมูลเคสจริง ไม่ใช่จากที่ผู้เรียกประกาศเอง
     // เดิมรับ role: 'client' | 'lawyer' เป็น argument → เซ็นแทนอีกฝ่ายได้
     let role: 'client' | 'lawyer' | 'admin', adminApp;
+    let signChatData: FirebaseFirestore.DocumentData;
     try {
-        ({ role, adminApp } = await requireChatRole(chatId));
+        ({ role, adminApp, chatData: signChatData } = await requireChatRole(chatId));
     } catch (e) {
         return authErrorResult(e);
     }
@@ -483,6 +495,16 @@ export async function signContractAction(chatId: string, signatureDataUrl?: stri
             updateData.status = bothSigned ? 'signed' : 'pending';
             
             await existingContractDoc.ref.update(updateData);
+
+            // Telemetry ชั้น B — นับเฉพาะตอนครบสองลายเซ็น (สัญญามีผลจริง)
+            const signLawyerId = signChatData.lawyerId || signChatData.lawyer_id || '';
+            if (bothSigned && signLawyerId) {
+                await logCaseEvent(db, {
+                    caseId: chatId, lawyerId: signLawyerId,
+                    type: 'contract_signed', actor: 'system',
+                });
+            }
+
             return { success: true, contractId: existingContractDoc.id };
         } else {
             // No contract exists (Bug #7 fix). We need to create one based on chat data.

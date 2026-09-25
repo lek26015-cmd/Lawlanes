@@ -28,7 +28,8 @@ import {
   FolderLock,
   ChevronRight,
 } from 'lucide-react';
-import { getLawyerDashboardData, getLawyerStats, getLawyerById } from '@/lib/data';
+import { getLawyerDashboardData, getLawyerStats } from '@/lib/data';
+import { getMyLawyerProfileAction } from '@/app/actions/lawyer-directory-actions';
 import type { LawyerCase, LawyerAppointmentRequest, LawyerProfile } from '@/lib/types';
 import { format } from 'date-fns';
 import { th } from 'date-fns/locale';
@@ -97,7 +98,9 @@ export default function LawyerDashboardPage() {
       try {
         const data = await getLawyerDashboardData(firestore!, user!.uid);
         const statsData = await getLawyerStats(firestore!, user!.uid);
-        const profile = await getLawyerById(firestore!, user!.uid);
+        // โปรไฟล์ของตัวเองผ่าน server action (ผูกกับ session) — ไม่ยิง lawyerProfiles
+        // จาก browser และรองรับโปรไฟล์ที่แอดมินสร้างซึ่ง doc id ไม่ใช่ uid
+        const profile = await getMyLawyerProfileAction();
 
         setRequests(data.newRequests);
         setActiveCases(data.activeCases);

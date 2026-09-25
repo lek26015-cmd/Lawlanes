@@ -6,7 +6,9 @@ import { Card, CardContent } from '@/components/ui/card';
 import { MessageSquare, Users, ShieldCheck, ArrowRight, Briefcase, UserCheck, FileText, Download, Check, Camera } from 'lucide-react';
 import Image from 'next/image';
 import { Link } from '@/navigation';
-import { getApprovedLawyers, getAllArticles, getAdsByPlacement, getImageUrl, getImageHint } from '@/lib/data';
+import { getAllArticles, getAdsByPlacement, getImageUrl, getImageHint } from '@/lib/data';
+import { getApprovedLawyersAction } from '@/app/actions/lawyer-directory-actions';
+import type { LawyerProfile } from '@/lib/types';
 import LawyerCard from '@/components/lawyer-card';
 import AiConsultButton from '@/components/ai-consult-button';
 import HeroSearchBar from '@/components/hero-search-bar';
@@ -33,7 +35,8 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   const { firestore: db } = initializeFirebase();
 
   // Fetch lawyers on the server for faster loading
-  const initialLawyers = db ? await getApprovedLawyers(db, 6) : [];
+  // อ่านผ่าน Admin SDK + projection สาธารณะ แทน client SDK ที่ดึงทุกฟิลด์มาถึง browser
+  const initialLawyers = (await getApprovedLawyersAction(6)) as unknown as LawyerProfile[];
 
   // ข้อมูล Feature แบบภาษาไทย
   const features = [

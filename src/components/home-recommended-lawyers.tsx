@@ -6,8 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import LawyerCard from '@/components/lawyer-card';
 import FeaturedLawyerCard from '@/components/featured-lawyer-card';
-import { useFirebase } from '@/firebase';
-import { getApprovedLawyers } from '@/lib/data';
+import { getApprovedLawyersAction } from '@/app/actions/lawyer-directory-actions';
 import { LawyerProfile } from '@/lib/types';
 import { EmptyState } from '@/components/ui/empty-state';
 import { FadeIn } from '@/components/fade-in';
@@ -19,7 +18,6 @@ interface HomeRecommendedLawyersProps {
 }
 
 export function HomeRecommendedLawyers({ initialLawyers }: HomeRecommendedLawyersProps) {
-    const { firestore } = useFirebase();
     const [lawyers, setLawyers] = useState<LawyerProfile[]>(initialLawyers || []);
     const [loading, setLoading] = useState(!initialLawyers);
     const t = useTranslations('HomePage.recommendedLawyers');
@@ -42,10 +40,10 @@ export function HomeRecommendedLawyers({ initialLawyers }: HomeRecommendedLawyer
         }
 
         async function fetchLawyers() {
-            if (!firestore) return;
             try {
-                const fetchedLawyers = await getApprovedLawyers(firestore);
-                setLawyers(sortFeaturedFirst(fetchedLawyers.slice(0, 10)));
+                // ผ่าน server action + Admin SDK — ไม่ยิง lawyerProfiles จาก browser อีก
+                const fetchedLawyers = await getApprovedLawyersAction(10);
+                setLawyers(sortFeaturedFirst(fetchedLawyers as unknown as LawyerProfile[]));
             } catch (error) {
                 console.error("Error fetching lawyers:", error);
             } finally {
@@ -54,7 +52,7 @@ export function HomeRecommendedLawyers({ initialLawyers }: HomeRecommendedLawyer
         }
 
         fetchLawyers();
-    }, [firestore]);
+    }, [initialLawyers]);
 
     if (loading) {
         return (

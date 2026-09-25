@@ -7,6 +7,7 @@ import { callTyphoonAI } from '@/lib/typhoon';
 import { NotificationService } from '@/services/notification-service';
 import { requireUser, requireChatRole, AuthError } from '@/lib/auth-guard';
 import { checkRateLimit } from '@/lib/security/rate-limiter';
+import { addCaseEventToBatch, isTelemetryEnabled, logCaseEvent, resolveLawyerProfileId } from '@/lib/telemetry/case-events';
 import { uploadToR2 } from '@/app/actions/upload';
 import { generateWitnessListPdf } from '@/lib/witness-list-pdf';
 import { v4 as uuidv4 } from 'uuid';
@@ -437,7 +438,7 @@ export async function addCaseMilestoneAction(caseId: string, title: string, orde
  */
 export async function toggleMilestoneStatusAction(milestoneId: string, caseId: string) {
     // ต้องเป็นทนายเจ้าของเคสที่ milestone นี้สังกัดอยู่
-    const { db } = await requireCaseOwner(caseId);
+    const { db, uid } = await requireCaseOwner(caseId);
 
     try {
         const docRef = db.collection('milestones').doc(milestoneId);
@@ -451,6 +452,18 @@ export async function toggleMilestoneStatusAction(milestoneId: string, caseId: s
         const newStatus = currentStatus === 'completed' ? 'pending' : 'completed';
         
         await docRef.update({ status: newStatus });
+
+        // Telemetry ชั้น B — ป้อน activityDepth (เคสที่มีงานจริงเกิดขึ้นในระบบ)
+        // เช็คสวิตช์ก่อน — ไม่งั้นต้องเสีย query หา lawyerProfileId ทุกครั้งแม้ telemetry ปิดอยู่
+        if (newStatus === 'completed' && await isTelemetryEnabled(db)) {
+            const lawyerProfileId = await resolveLawyerProfileId(db, uid);
+            if (lawyerProfileId) {
+                await logCaseEvent(db, {
+                    caseId, caseKind: 'legal', lawyerId: lawyerProfileId,
+                    type: 'milestone_completed', actor: 'lawyer',
+                });
+            }
+        }
         
         revalidatePath('/[locale]/lawyer-dashboard/pipeline', 'page');
         revalidatePath(`/[locale]/lawyer-dashboard/case/${caseId}`, 'page');
@@ -600,6 +613,13 @@ export async function closeCaseAction(caseId: string, data: {
                 timestamp: new Date(),
                 type: 'case_summary'
             });
+
+            // Telemetry ชั้น B — "ปิดเคสในระบบ" คือตัวแปรหลักของการจัดอันดับ
+            if (lawyerId && await isTelemetryEnabled(db)) {
+                addCaseEventToBatch(db, batch, {
+                    caseId, lawyerId, type: 'case_closed', actor: 'lawyer',
+                });
+            }
 
             await batch.commit();
 

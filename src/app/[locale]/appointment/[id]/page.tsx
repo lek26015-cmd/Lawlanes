@@ -4,9 +4,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, notFound, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { getLawyerById } from '@/lib/data';
+import { getPublicLawyerAction, type PublicLawyer } from '@/app/actions/lawyer-directory-actions';
 import { getUserDashboardData } from '@/app/actions/dashboard-actions';
-import type { UpcomingAppointment, LawyerProfile, Case } from '@/lib/types';
+import type { UpcomingAppointment, Case } from '@/lib/types';
 import {
   ArrowLeft,
   Calendar,
@@ -53,7 +53,7 @@ export default function AppointmentDetailPage() {
   const [appointment, setAppointment] = useState<UpcomingAppointment | null>(
     null
   );
-  const [lawyer, setLawyer] = useState<LawyerProfile | null>(null);
+  const [lawyer, setLawyer] = useState<PublicLawyer | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -70,9 +70,10 @@ export default function AppointmentDetailPage() {
         }
         setAppointment(currentAppointment);
 
-        // Fetch full lawyer profile for specialty
+        // หน้านี้ใช้แค่ชื่อ/รูป/ความเชี่ยวชาญ — อ่านโปรไฟล์สาธารณะผ่าน server action
+        // (เดิม getLawyerById ยิง client SDK แล้วได้เอกสารทนายทั้งก้อน)
         const lawyerId = currentAppointment.lawyer.id;
-        const lawyerData = await getLawyerById(firestore!, lawyerId);
+        const lawyerData = await getPublicLawyerAction(lawyerId);
         setLawyer(lawyerData || null);
       } catch (error) {
         console.error("Error fetching appointment data:", error);
