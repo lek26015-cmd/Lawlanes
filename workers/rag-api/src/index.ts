@@ -116,6 +116,22 @@ export default {
             }
         }
 
+        if (request.method === 'POST' && url.pathname === '/get') {
+            // อ่าน metadata ตาม id (ไม่เกิน 20) — ใช้หาชื่อกฎหมายจาก chunk แรกของแต่ละไฟล์
+            // เปิดเผยข้อมูลไม่เกินที่ /query ให้อยู่แล้ว จึงใช้ key เดียวกับ /query
+            const denied = await requireKey(request, env.RAG_QUERY_KEY, false);
+            if (denied) return denied;
+            try {
+                const { ids } = await request.json() as any;
+                if (!Array.isArray(ids) || ids.length === 0) return new Response("Missing ids", { status: 400 });
+                const clean = ids.filter((id: unknown) => typeof id === 'string' && id.length <= 64).slice(0, 20);
+                const vectors = await env.VECTORIZE_INDEX.getByIds(clean);
+                return json(vectors.map((v: any) => ({ id: v.id, metadata: v.metadata || {} })));
+            } catch (e: any) {
+                return new Response(`Error: ${e.message}`, { status: 500 });
+            }
+        }
+
         if (request.method === 'GET' && url.pathname === '/stats') {
             const denied = await requireKey(request, env.RAG_QUERY_KEY, false);
             if (denied) return denied;

@@ -7,7 +7,7 @@ import { limitPublicAction } from '@/lib/security/action-rate-limit';
 
 import { z } from 'zod';
 import { initializeFirebase } from '@/firebase';
-import { retrieveDocuments } from '@/lib/rag';
+import { retrieveDocuments, resolveLawTitles } from '@/lib/rag';
 import { callTyphoonAI } from '@/lib/typhoon';
 import { GoogleGenerativeAI, FunctionDeclaration, SchemaType as GenAISchemaType, Content } from '@google/generative-ai';
 import { collection, getDocs, limit, query } from 'firebase/firestore';
@@ -312,8 +312,12 @@ export async function chat(
         });
 
       if (relevantDocs.length > 0) {
-        ragContext = relevantDocs.slice(0, 8).map((doc, i) => {
-          const sourceTitle = formatSourceTitle(doc.source);
+        const topDocs = relevantDocs.slice(0, 8);
+        // ชื่อกฎหมายจริงแทนชื่อไฟล์ ("ประมวลกฎหมายที่ดิน" แทน "สำนักงานคณะกรรมการกฤษฎีกา")
+        // ไม่งั้นโมเดลอ้างอิงผิดกฎหมาย
+        const lawTitles = await resolveLawTitles(topDocs.map(d => d.source));
+        ragContext = topDocs.map((doc, i) => {
+          const sourceTitle = lawTitles.get(doc.source) || formatSourceTitle(doc.source);
           // ติดปีไปด้วย เพื่อให้แยกออกว่าฉบับไหนเป็นฉบับแก้ไขล่าสุด
           const yearTag = doc.year ? ` | year ${doc.year}` : '';
           return `[Source ${i + 1}: ${sourceTitle}${yearTag}]\n${doc.content}`;
