@@ -54,7 +54,7 @@
     },
     "verifyStatus": {
       "title": "Verify Lawyer Status",
-      "description": "For maximum confidence, you can instantly verify the license of every lawyer in our system via the Lawyers Council database.",
+      "description": "For peace of mind, you can check the license number of lawyers in our system.",
       "button": "Verify Lawyer Status"
     },
     "smeSolution": {
@@ -285,7 +285,7 @@
     },
     "card": {
       "onLawslane": "Registered on Lawslane",
-      "registryOnly": "Data from Bar Association Registry",
+      "registryOnly": "Data from the registry compiled by Lawslane",
       "notRegisteredMessage": "This lawyer has not registered with Lawslane yet, so there is no contact channel available through the system.",
       "notRegisteredCta": "If you are this lawyer, you can register to add your contact information and receive clients through Lawslane.",
       "registerButton": "Register as a Lawyer",
@@ -364,7 +364,7 @@
     },
     "registry": {
       "badge": "Registry Lawyer",
-      "sectionTitle": "Lawyers from Thai Bar Association Registry",
+      "sectionTitle": "Lawyers in the Lawslane registry",
       "sectionDescription": "These lawyers have a litigation license but have not yet registered on Lawslane",
       "verifyButton": "Verify",
       "notRegisteredYet": "This lawyer has a litigation license but has not yet registered on Lawslane platform",
