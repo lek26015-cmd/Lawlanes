@@ -23,7 +23,7 @@ export async function retrieveDocuments(query: string, topK: number = 5): Promis
             const response = await fetch(`${WORKER_URL}/query`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', ...ragAuthHeaders() },
-                body: JSON.stringify({ question: query }),
+                body: JSON.stringify({ question: query, topK }),
                 signal: controller.signal
             });
             
