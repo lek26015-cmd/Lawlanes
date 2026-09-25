@@ -308,7 +308,7 @@ function LawyerFinancialsContent() {
     return (
         <div className="flex h-screen overflow-hidden bg-background">
         <LawyerSidebar />
-        <main className="flex-1 overflow-y-auto p-4 md:p-8">
+        <main className="flex-1 min-w-0 overflow-y-auto p-4 md:p-8 pt-20 md:pt-24 lg:pt-8">
             <div className="max-w-5xl mx-auto">
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
                     <div>
