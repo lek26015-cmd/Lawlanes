@@ -54,7 +54,7 @@
     },
     "verifyStatus": {
       "title": "验证律师身份",
-      "description": "为了最大程度的信心，您可以立即通过律师委员会数据库验证系统中每位律师的执照。",
+      "description": "为让您安心，您可以查询系统中律师的执照号码。",
       "button": "验证律师身份"
     },
     "smeSolution": {
@@ -284,7 +284,7 @@
     },
     "card": {
       "onLawslane": "已注册 Lawslane",
-      "registryOnly": "来自律师协会注册数据",
+      "registryOnly": "数据来自 Lawslane 整理的名录",
       "notRegisteredMessage": "该律师尚未注册 Lawslane，因此无法通过系统联系。",
       "notRegisteredCta": "如果您是该律师，可以注册以添加联系方式并通过 Lawslane 接收客户。",
       "registerButton": "注册成为律师",
@@ -364,7 +364,7 @@
     },
     "registry": {
       "badge": "注册律师",
-      "sectionTitle": "泰国律师协会注册律师",
+      "sectionTitle": "Lawslane 名录中的律师",
       "sectionDescription": "这些律师持有诉讼执照，但尚未在Lawslane注册",
       "verifyButton": "验证",
       "notRegisteredYet": "该律师持有诉讼执照，但尚未在Lawslane平台注册",
