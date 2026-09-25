@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache';
 import { callTyphoonAI } from '@/lib/typhoon';
 import { NotificationService } from '@/services/notification-service';
 import { requireUser, requireChatRole, AuthError } from '@/lib/auth-guard';
+import { checkRateLimit } from '@/lib/security/rate-limiter';
 import { uploadToR2 } from '@/app/actions/upload';
 import { generateWitnessListPdf } from '@/lib/witness-list-pdf';
 import { v4 as uuidv4 } from 'uuid';
@@ -442,7 +443,9 @@ export async function toggleMilestoneStatusAction(milestoneId: string, caseId: s
         const docRef = db.collection('milestones').doc(milestoneId);
         const doc = await docRef.get();
         
-        if (!doc.exists) throw new Error('Milestone not found');
+        // milestone ต้องสังกัดเคสที่ผ่านด่านข้างบนจริง — เดิมเช็คสิทธิ์กับ caseId แต่แก้
+        // milestoneId อะไรก็ได้ → ทนายเจ้าของเคสหนึ่งสลับสถานะ milestone ของเคสคนอื่นได้
+        if (!doc.exists || doc.data()?.case_id !== caseId) throw new Error('Milestone not found');
         
         const currentStatus = doc.data()?.status;
         const newStatus = currentStatus === 'completed' ? 'pending' : 'completed';
@@ -465,7 +468,9 @@ export async function toggleMilestoneStatusAction(milestoneId: string, caseId: s
 export async function generateCaseStrategicAdviceAction(caseId: string, caseTitle: string, milestones: Milestone[]) {
     // ต้องเป็นทนายเจ้าของเคส — endpoint นี้เรียก LLM ซึ่งมีค่าใช้จ่ายต่อครั้ง
     try {
-        await requireCaseOwner(caseId);
+        const { uid } = await requireCaseOwner(caseId);
+        const limit = await checkRateLimit(`ai-case-advice:${uid}`, 10, 10 * 60 * 1000);
+        if (!limit.success) return { success: false, error: 'เรียกใช้บ่อยเกินไป กรุณารอสักครู่' };
     } catch (e) {
         return { success: false, error: e instanceof AuthError ? e.message : 'เกิดข้อผิดพลาด' };
     }

@@ -1,4 +1,6 @@
 'use server';
+
+import { limitPublicAction } from '@/lib/security/action-rate-limit';
 /**
  * @fileOverview A simple chat flow that uses the Gemini model with RAG.
  */
@@ -193,6 +195,13 @@ export async function chat(
   request: z.infer<typeof ChatRequestSchema>
 ): Promise<ChatResponse> {
   const { history, prompt, locale = 'th' } = request;
+
+  // เปิดให้คนที่ยังไม่ล็อกอินใช้ได้โดยตั้งใจ (แชทบอทหน้าแรก) แต่ทุกครั้งเผาโควตา Gemini/Typhoon
+  // เดิมไม่มีด่านอะไรเลย → จำกัดความถี่ต่อ IP
+  const rl = await limitPublicAction('ai-chat');
+  if (!rl.success) {
+    return { sections: [{ title: '', content: locale.startsWith('en') ? 'Too many requests. Please wait a moment and try again.' : 'มีการใช้งานถี่เกินไป กรุณารอสักครู่แล้วลองใหม่' }] };
+  }
 
   try {
     const apiKey = process.env.GOOGLE_API_KEY || process.env.GOOGLE_GENAI_API_KEY || '';

@@ -5,6 +5,20 @@ import { initAdmin } from '@/lib/firebase-admin';
 // NOTE: We are intentionally avoiding 'firebase-admin' here because it is not compatible with the Edge Runtime.
 // This is a "Lightweight Session" implementation for Cloudflare Pages.
 
+function isSafeRedirect(target: string): boolean {
+    // path ภายใน — ห้าม '//' และ '/\\' ที่เบราว์เซอร์ตีความเป็นโดเมนอื่น
+    if (target.startsWith('/')) return !target.startsWith('//') && !target.startsWith('/\\');
+    try {
+        const url = new URL(target);
+        const root = process.env.NEXT_PUBLIC_ROOT_DOMAIN || 'lawslane.com';
+        if (url.protocol === 'https:' && (url.hostname === root || url.hostname.endsWith(`.${root}`))) return true;
+        if (process.env.NODE_ENV !== 'production' && (url.hostname === 'localhost' || url.hostname.endsWith('.localhost'))) return true;
+    } catch {
+        // ไม่ใช่ URL ที่ถูกต้อง
+    }
+    return false;
+}
+
 export async function POST(request: Request) {
     try {
         const body = await request.json().catch(() => ({}));
@@ -89,7 +103,10 @@ export async function POST(request: Request) {
         // Calculate a safe suggested redirect
         let suggestedRedirect = role === 'lawyer' ? '/lawyer-dashboard' : '/dashboard';
         
-        if (requestedRedirect && typeof requestedRedirect === 'string') {
+        // รับเฉพาะ path ภายในเว็บ หรือ URL เต็มที่เป็นโดเมนของเราเอง (หน้า login ส่งต่อข้าม
+        // subdomain ได้) — เดิมคืนค่าที่ส่งมาตรงๆ = open redirect: ลิงก์ login?redirect=https://evil
+        // พาผู้ใช้ที่เพิ่งล็อกอินไปหน้าเว็บปลอมได้ทันที
+        if (requestedRedirect && typeof requestedRedirect === 'string' && isSafeRedirect(requestedRedirect)) {
             suggestedRedirect = requestedRedirect;
         }
 

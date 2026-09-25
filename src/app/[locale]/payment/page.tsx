@@ -14,19 +14,19 @@ import { Label } from '@/components/ui/label';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { format } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
-import { resolvePaymentAmount, redeemCoupon, createConsultationChat, type PaymentType, type ResolvedPrice } from '@/app/actions/payment-actions';
+import { resolvePaymentAmount, createConsultationChat, createAppointment, type PaymentType, type ResolvedPrice } from '@/app/actions/payment-actions';
 import { useChat } from '@/context/chat-context';
 import { Textarea } from '@/components/ui/textarea';
 import { v4 as uuidv4 } from 'uuid';
 import { useFirebase } from '@/firebase';
-import { addDoc, collection, doc, serverTimestamp, setDoc, getDoc, query, where, getDocs, updateDoc, limit } from 'firebase/firestore';
+import { collection, doc, getDoc, query, where, getDocs, limit } from 'firebase/firestore';
 import { errorEmitter, FirestorePermissionError } from '@/firebase';
 import { saveBase64SlipAction } from '@/app/actions/upload';
 import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '@/lib/constants';
 import { compressImageToBase64 } from '@/lib/image-utils';
 import { cn } from '@/lib/utils';
 import jsQR from 'jsqr';
-import { notifyPaymentCompletedAction, markInstallmentPaidAction, markCasePaidAction } from '@/app/actions/chat-actions';
+import { markInstallmentPaidAction, markCasePaidAction } from '@/app/actions/chat-actions';
 
 
 function PaymentPageContent() {
@@ -53,7 +53,10 @@ function PaymentPageContent() {
     const [slipFile, setSlipFile] = useState<File | null>(null);
     const [slipPreview, setSlipPreview] = useState<string | null>(null);
     const [isVerifyingSlip, setIsVerifyingSlip] = useState(false);
+    // ผลตรวจสลิปใช้แค่แสดงผลบนหน้าจอ — ตัวที่ใช้อ้างสิทธิ์จริงคือ slipVerificationId
+    // ที่ /api/verify-slip ออกให้และเก็บผลไว้ฝั่ง server (ดู lib/slip-verification.ts)
     const [slipOkData, setSlipOkData] = useState<any | null>(null);
+    const [slipVerificationId, setSlipVerificationId] = useState<string | null>(null);
     const [slipVerificationFailed, setSlipVerificationFailed] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -174,6 +177,7 @@ function PaymentPageContent() {
             const result = await response.json();
             if (result.success) {
                 setSlipOkData(result.data);
+                setSlipVerificationId(result.verificationId ?? null);
                 setSlipVerificationFailed(false);
                 
                 const slipAmount = result.data.amount;
@@ -264,7 +268,6 @@ function PaymentPageContent() {
     };
 
     const processPayment = async () => {
-        const targetLawyerUserId = lawyer?.userId || lawyer?.id;
         setIsProcessing(true);
         if (!firestore || !user || !lawyer) {
             toast({ variant: "destructive", title: "เกิดข้อผิดพลาด", description: "ไม่สามารถเชื่อมต่อฐานข้อมูลได้" });
@@ -285,10 +288,8 @@ function PaymentPageContent() {
                 }
             }
 
-            // If SlipOK verified: mark as 'paid' (auto-approved)
-            // If no SlipOK: keep 'pending_payment' with hasNewPayment flag for Admin to review
-            const baseStatus = slipOkData ? 'paid' : 'pending_payment';
-            const hasNewPayment = !slipOkData; // Flag for Admin to see new slip uploaded
+            // สถานะ paid / pending_payment ตัดสินฝั่ง server จากผลตรวจสลิปที่เก็บไว้
+            // (slipVerificationId) ไม่ใช่จากตัวแปรในเบราว์เซอร์อีกต่อไป
 
             if (paymentType === 'chat') {
                 // สร้างเอกสารฝั่ง server ทั้งก้อน — ของเดิม client setDoc เองพร้อม
@@ -296,11 +297,11 @@ function PaymentPageContent() {
                 // เปิด console ยิง SDK เขียนยอดใหม่ได้ เพราะกฎ chats เป็น
                 // allow create: if isSignedIn()
                 const created = await createConsultationChat({
+                    // uid ของทนายอ่านจาก lawyerProfiles ฝั่ง server — ไม่ส่ง lawyerUserId แล้ว
                     lawyerId: lawyer.id,
-                    lawyerUserId: targetLawyerUserId ?? '',
                     initialMessage,
                     slipUrl,
-                    slipOkData: slipOkData || null,
+                    slipVerificationId,
                     couponCode: appliedCoupon?.code || undefined,
                 });
 
@@ -313,25 +314,25 @@ function PaymentPageContent() {
                 const newChatId = created.chatId;
                 setPaymentSuccess(true);
             } else if (paymentType === 'appointment' && dateStr) {
-                const appointmentRef = collection(firestore, 'appointments');
-                const appointmentPayload = {
-                    userId: user.uid,
+                // เขียนเอกสารฝั่ง server ทั้งก้อน — ของเดิม client addDoc(appointments)
+                // เองพร้อม amount/status ที่ตัวเองกำหนด และกฎ appointments เป็น
+                // allow create: if isSignedIn() จึงสร้างนัดหมาย amount:0 status:'paid' ได้
+                const created = await createAppointment({
+                    // uid ของทนายอ่านจาก lawyerProfiles ฝั่ง server — ไม่ส่ง lawyerUserId แล้ว
                     lawyerId: lawyer.id,
-                    lawyerUserId: targetLawyerUserId,
-                    lawyerName: lawyer.name,
-                    appointmentDate: new Date(dateStr),
-                    description: description,
-                    status: baseStatus,
-                    createdAt: serverTimestamp(),
+                    appointmentDate: dateStr,
+                    description,
                     slipUrl,
-                    slipOkData: slipOkData || null,
-                    amount: finalFee,
-                    originalFee: fee,
-                    discount: discountAmount,
-                    hasNewPayment,
-                };
+                    slipVerificationId,
+                    couponCode: appliedCoupon?.code || undefined,
+                });
 
-                await addDoc(appointmentRef, appointmentPayload);
+                if (!created.ok) {
+                    toast({ variant: 'destructive', title: 'สร้างนัดหมายไม่สำเร็จ', description: created.error });
+                    setIsProcessing(false);
+                    return;
+                }
+
                 setPaymentSuccess(true);
             } else if (paymentType === 'installment' && chatId && installmentIndex !== null) {
                 // ======= INSTALLMENT PAYMENT =======
@@ -339,8 +340,8 @@ function PaymentPageContent() {
                     chatId,
                     installmentIndex,
                     slipUrl,
-                    slipOkData: slipOkData || null,
-                    amount: finalFee,
+                    slipVerificationId,
+                    couponCode: appliedCoupon?.code || undefined,
                     payerName: user?.displayName || 'ลูกความ',
                 });
 
@@ -352,23 +353,16 @@ function PaymentPageContent() {
 
                 setPaymentSuccess(true);
 
-                // Fire email notifications (non-blocking)
-                notifyPaymentCompletedAction({
-                    chatId,
-                    lawyerId: lawyerId || '',
-                    amount: finalFee,
-                    caseTitle: `งวดที่ ${installmentIndex + 1}`,
-                    payerName: user?.displayName || 'ลูกความ',
-                    isAutoApproved: !!slipOkData,
-                }).catch(e => console.error('Installment payment notification failed:', e));
+                // อีเมลแจ้งทนาย/ลูกความ/แอดมิน ส่งจาก server ใน markInstallmentPaidAction แล้ว
+                // (เดิมหน้านี้เรียก notifyPaymentCompletedAction เองพร้อมยอดจากเบราว์เซอร์)
 
             } else if ((paymentType === 'additional' || paymentType === 'case') && chatId) {
                 // ======= FULL CASE / ADDITIONAL PAYMENT =======
                 const result = await markCasePaidAction({
                     chatId,
-                    amount: finalFee,
                     slipUrl,
-                    slipOkData: slipOkData || null,
+                    slipVerificationId,
+                    couponCode: appliedCoupon?.code || undefined,
                     payerName: user?.displayName || 'ลูกความ',
                     type: paymentType as 'case' | 'additional',
                 });
@@ -381,14 +375,7 @@ function PaymentPageContent() {
 
                 setPaymentSuccess(true);
 
-                notifyPaymentCompletedAction({
-                    chatId: chatId || '',
-                    lawyerId: lawyerId || '',
-                    amount: finalFee,
-                    caseTitle: paymentType === 'case' ? 'ค่าเปิดคดี' : 'ค่าบริการเพิ่มเติม',
-                    payerName: user?.displayName || 'ลูกความ',
-                    isAutoApproved: !!slipOkData,
-                }).catch(e => console.error('Payment notification failed:', e));
+                // อีเมลแจ้งเตือนส่งจาก server ใน markCasePaidAction แล้ว
             }
         } catch (error) {
             console.error("Payment error:", error);
@@ -410,6 +397,7 @@ function PaymentPageContent() {
             setSlipFile(file);
             setSlipPreview(URL.createObjectURL(file));
             setSlipOkData(null);
+            setSlipVerificationId(null);
             setSlipVerificationFailed(false);
 
             const qrData = await scanSlipQR(file);

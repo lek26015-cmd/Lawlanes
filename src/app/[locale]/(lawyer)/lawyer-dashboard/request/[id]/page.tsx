@@ -32,7 +32,7 @@ import { th } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
 import { v4 as uuidv4 } from 'uuid';
 import { useFirebase } from '@/firebase';
-import { doc, updateDoc, collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { respondToAppointmentRequestAction } from '@/app/actions/lawyer-actions';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -52,7 +52,7 @@ function RequestDetailPageContent() {
   const { toast } = useToast();
   const id = params.id as string;
 
-  const { firestore, user } = useFirebase();
+  const { firestore } = useFirebase();
   const [request, setRequest] = useState<LawyerAppointmentRequest | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -72,35 +72,25 @@ function RequestDetailPageContent() {
     fetchRequestData();
   }, [id, firestore]);
 
+  // การรับเคสสร้างห้องแชทใหม่ ซึ่งเดิมทำด้วย addDoc ฝั่ง client (ต้องพึ่งกฎ
+  // `chats: allow create: if isSignedIn()` ที่เปิดให้ใครก็สร้างเคสพร้อมยอดเองได้)
+  // ย้ายไป server action แล้ว — ดู respondToAppointmentRequestAction()
   const handleAcceptCase = async () => {
-    if (!request || !firestore) return;
+    if (!request) return;
 
     try {
-      // 1. Update appointment status to 'confirmed'
-      const appointmentRef = doc(firestore, 'appointments', id);
-      await updateDoc(appointmentRef, {
-        status: 'confirmed',
-        updatedAt: serverTimestamp()
-      });
-
-      // 2. Create a new chat room
-      const chatsCollection = collection(firestore, 'chats');
-
-      const newChatRef = await addDoc(chatsCollection, {
-        participants: [user?.uid, request.userId],
-        caseTitle: request.caseTitle,
-        status: 'active',
-        createdAt: serverTimestamp(),
-        lastMessageAt: serverTimestamp(),
-        lastMessage: 'Case accepted'
-      });
+      const result = await respondToAppointmentRequestAction({ appointmentId: id, decision: 'accept' });
+      if (!result.ok) {
+        toast({ variant: "destructive", title: "เกิดข้อผิดพลาด", description: result.error });
+        return;
+      }
 
       toast({
         title: 'รับเคสสำเร็จ!',
         description: `เคส "${request.caseTitle}" ได้ถูกเพิ่มในรายการเคสที่กำลังดำเนินการ`,
       });
 
-      router.push(`/chat/${newChatRef.id}`);
+      router.push(`/chat/${result.chatId}`);
     } catch (error) {
       console.error("Error accepting case:", error);
       toast({
@@ -112,14 +102,14 @@ function RequestDetailPageContent() {
   };
 
   const handleRejectCase = async () => {
-    if (!request || !firestore) return;
+    if (!request) return;
 
     try {
-      const appointmentRef = doc(firestore, 'appointments', id);
-      await updateDoc(appointmentRef, {
-        status: 'cancelled', // or 'rejected'
-        updatedAt: serverTimestamp()
-      });
+      const result = await respondToAppointmentRequestAction({ appointmentId: id, decision: 'reject' });
+      if (!result.ok) {
+        toast({ variant: "destructive", title: "เกิดข้อผิดพลาด", description: result.error });
+        return;
+      }
 
       toast({
         title: 'ปฏิเสธเคสสำเร็จ',

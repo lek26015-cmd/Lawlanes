@@ -2,6 +2,7 @@
 
 import { initAdmin } from '@/lib/firebase-admin';
 import { requireLawyer } from '@/lib/auth-guard';
+import { checkRateLimit } from '@/lib/security/rate-limiter';
 import { uploadToR2 } from '@/app/actions/upload';
 import { v4 as uuidv4 } from 'uuid';
 import { randomBytes, scryptSync, timingSafeEqual } from 'crypto';
@@ -156,6 +157,12 @@ export async function updateVaultDocShareAction(docId: string, opts: { shareEnab
  * ถ้าตั้งรหัสผ่านไว้ ต้องส่ง password มาถูกต้องก่อนถึงจะได้ fileUrl กลับไป
  */
 export async function getSharedVaultDocAction(token: string, password?: string) {
+    // เปิดสาธารณะโดยตั้งใจ (ลูกความเปิดจากลิงก์โดยไม่ต้องล็อกอิน) — ด่านคือ shareToken
+    // (uuid v4) + รหัสผ่าน ถ้ามี
+    if (typeof token !== 'string' || !/^[0-9a-f-]{36}$/i.test(token)) {
+        return { success: false, error: 'ไม่พบเอกสาร หรือลิงก์นี้ถูกยกเลิกการแชร์แล้ว' };
+    }
+
     const adminApp = await initAdmin();
     if (!adminApp) return { success: false, error: 'Internal Server Error' };
     const db = adminApp.firestore();
@@ -171,7 +178,15 @@ export async function getSharedVaultDocAction(token: string, password?: string) 
     }
 
     if (data.passwordHash) {
-        if (!password || !verifyPassword(password, data.passwordHash)) {
+        // เดิมเดารหัสผ่านได้ไม่จำกัดครั้ง (ลิงก์หลุดไปแล้ว = รหัสสั้นๆ โดน brute force)
+        // จำกัดจำนวนครั้งที่ลองต่อลิงก์ — นับเฉพาะครั้งที่ส่งรหัสมา
+        if (password) {
+            const limit = await checkRateLimit(`vault-share-pw:${token}`, 10, 15 * 60 * 1000);
+            if (!limit.success) {
+                return { success: false, requiresPassword: true, error: 'ลองรหัสผ่านบ่อยเกินไป กรุณารอสักครู่' };
+            }
+        }
+        if (!password || typeof password !== 'string' || !verifyPassword(password, data.passwordHash)) {
             return { success: false, requiresPassword: true, error: password ? 'รหัสผ่านไม่ถูกต้อง' : undefined };
         }
     }

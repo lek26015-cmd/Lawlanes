@@ -1,4 +1,6 @@
-'use server';
+// เดิมไฟล์นี้ขึ้นต้นด้วย 'use server' → ทุก export (รวม getAdminDb / getAdminApp) กลายเป็น
+// server action ที่ client เรียกได้ถ้ามีใครเผลอ import จากฝั่ง client — ไฟล์นี้เป็นแค่ utility
+import 'server-only';
 
 import { initAdmin } from '@/lib/firebase-admin';
 import * as admin from 'firebase-admin';

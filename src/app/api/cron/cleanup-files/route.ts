@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { createHash, timingSafeEqual } from 'crypto';
 import { initAdmin } from '@/lib/firebase-admin';
 import { r2 } from '@/lib/r2';
 import { ListObjectsV2Command, DeleteObjectsCommand, ObjectIdentifier } from '@aws-sdk/client-s3';
@@ -12,11 +13,21 @@ const getPardonThreshold = () => {
 
 export async function GET(request: Request) {
     // 1. CRON_SECRET Verification
-    const authHeader = request.headers.get('authorization');
+    // เดิมตรวจ secret เฉพาะเมื่อ NODE_ENV === 'production' และตั้ง CRON_SECRET ไว้
+    // → env หายเมื่อไร (หรือ build ที่ไม่ใช่ production) ใครก็ GET ?execute=true
+    // สั่งลบไฟล์ใน R2 ทั้งบัคเก็ตได้ ต้อง fail closed เสมอ + เทียบแบบเวลาคงที่
+    const authHeader = request.headers.get('authorization') || '';
     const cronSecret = process.env.CRON_SECRET;
-    
-    if (process.env.NODE_ENV === 'production' && cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!cronSecret) {
+        console.error('[Cron] CRON_SECRET is not configured — refusing request.');
+        return NextResponse.json({ error: 'Cron not configured' }, { status: 503 });
+    }
+    {
+        const a = createHash('sha256').update(authHeader).digest();
+        const b = createHash('sha256').update(`Bearer ${cronSecret}`).digest();
+        if (!timingSafeEqual(a, b)) {
+            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        }
     }
 
     // Safety: dryRun query parameter (default acts as dry run unless ?execute=true)

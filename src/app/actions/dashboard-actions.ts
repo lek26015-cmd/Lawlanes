@@ -2,7 +2,8 @@
 
 import { initAdmin } from '@/lib/firebase-admin';
 import type { Case, UpcomingAppointment, ReportedTicket, LawyerCase, LawyerAppointmentRequest } from '@/lib/types';
-import { requireUser, requireAdmin, AuthError } from '@/lib/auth-guard';
+import { requireUser, requireAdmin, requireLawyer, AuthError } from '@/lib/auth-guard';
+import { reduceLawyerBalance } from '@/lib/lawyer-balance';
 
 /** ผู้เรียกเป็นทนายคนนี้เองหรือเป็นแอดมินหรือไม่ (lawyerId เป็น id ของ lawyerProfiles) */
 async function callerIsThisLawyerOrAdmin(lawyerId: string): Promise<boolean> {
@@ -343,7 +344,10 @@ export async function getLawyerStatsAction(lawyerId: string) {
 
 export async function getLawyerDashboardDataAction(): Promise<{ newRequests: LawyerAppointmentRequest[], activeCases: LawyerCase[], completedCases: LawyerCase[] }> {
     // uid มาจาก session — เดิมรับ lawyerId เป็น argument
-    const { uid: lawyerId } = await requireUser();
+    // appointments.lawyerId เก็บ id ของ lawyerProfiles (respondToAppointmentRequestAction
+    // เทียบกับ lawyerProfileId) ซึ่งไม่เท่ากับ uid เสมอไป — โปรไฟล์ที่แอดมินสร้างด้วย addDoc
+    // ได้ doc id สุ่ม ส่วน chats.participants เก็บ uid
+    const { uid: lawyerId, lawyerProfileId } = await requireLawyer();
     const adminApp = await initAdmin();
     if (!adminApp) {
         throw new Error('Firebase Admin not initialized.');
@@ -353,8 +357,11 @@ export async function getLawyerDashboardDataAction(): Promise<{ newRequests: Law
     try {
         // 1. Fetch appointments and chats
         const requestsSnap = await db.collection('appointments')
-            .where('lawyerId', '==', lawyerId)
-            .where('status', '==', 'pending')
+            .where('lawyerId', '==', lawyerProfileId)
+            // คำขอที่ทนายรับได้คือนัดที่ "จ่ายแล้ว" เท่านั้น (respondToAppointmentRequestAction
+            // ยอมรับเฉพาะ status 'paid') — เดิมดึง 'pending' ซึ่ง createAppointment ไม่เคย
+            // สร้าง คำขอที่ลูกความจ่ายแล้วจึงไม่เคยขึ้นให้ทนายเห็น
+            .where('status', '==', 'paid')
             .limit(50)
             .get();
 
@@ -519,8 +526,6 @@ export async function getLawyerFinancialsAction() {
         }
 
         const allTransactions: any[] = [];
-        let total = 0;
-        let pending = 0;
         let thisMonth = 0;
         const now = new Date();
 
@@ -532,13 +537,8 @@ export async function getLawyerFinancialsAction() {
             const isCompleted = data.status === 'completed';
 
             const date = data.createdAt?.toDate ? data.createdAt.toDate() : new Date();
-            if (isCompleted) {
-                total += netAmount;
-                if (date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()) {
-                    thisMonth += netAmount;
-                }
-            } else {
-                pending += netAmount;
+            if (isCompleted && date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()) {
+                thisMonth += netAmount;
             }
 
             // Derive description from id (e.g. "apt_xxx" -> "นัดหมายปรึกษา", "chat_xxx" -> "ปรึกษาผ่านแชท")
@@ -558,9 +558,11 @@ export async function getLawyerFinancialsAction() {
             });
         });
 
+        // ยอดรวมทั้งหมดคิดด้วยสูตรกลาง (lib/lawyer-balance) ตัวเดียวกับที่ด่านขอถอน
+        // และหน้าอนุมัติของแอดมินใช้ — ห้ามคิดซ้ำเองตรงนี้ ไม่งั้นตัวเลขจะเพี้ยนกันได้
+        const balance = reduceLawyerBalance(transactionsSnapshot.docs, withdrawSnapshot.docs);
+
         const withdrawals: any[] = [];
-        let totalWithdrawn = 0;
-        let pendingWithdrawal = 0;
 
         withdrawSnapshot.docs.forEach(doc => {
             const data = doc.data();
@@ -573,12 +575,6 @@ export async function getLawyerFinancialsAction() {
                 accountNumber: data.accountNumber,
                 rawDateValue: data.requestedAt?.toDate ? data.requestedAt.toDate().getTime() : 0
             });
-
-            if (data.status === 'approved') {
-                totalWithdrawn += data.amount;
-            } else if (data.status === 'pending') {
-                pendingWithdrawal += data.amount;
-            }
         });
 
         allTransactions.sort((a, b) => b.rawDateValue - a.rawDateValue);
@@ -588,11 +584,11 @@ export async function getLawyerFinancialsAction() {
             transactions: allTransactions,
             withdrawals: withdrawals,
             stats: {
-                totalIncome: total,
-                pendingIncome: pending,
+                totalIncome: balance.totalIncome,
+                pendingIncome: balance.pendingIncome,
                 incomeThisMonth: thisMonth,
-                withdrawnAmount: totalWithdrawn,
-                availableBalance: total - totalWithdrawn - pendingWithdrawal
+                withdrawnAmount: balance.withdrawnAmount,
+                availableBalance: balance.availableBalance
             },
             profile: {
                 bankName: lawyerProfile?.bankName || '',

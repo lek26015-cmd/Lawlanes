@@ -5,6 +5,11 @@ import { initAdmin } from '@/lib/firebase-admin';
 import * as admin from 'firebase-admin';
 import { randomBytes, createHash } from 'crypto';
 import { checkRateLimit } from '@/lib/security/rate-limiter';
+import { requireUser, AuthError } from '@/lib/auth-guard';
+
+function escapeHtml(v: string) {
+  return v.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
+}
 
 /**
  * จำกัดอัตราการส่งอีเมลต่อที่อยู่อีเมลหนึ่ง
@@ -75,6 +80,18 @@ function generateEmailHtml(title: string, content: string, buttonText: string, l
 
 export async function sendCustomVerificationEmail(email: string, name: string) {
   try {
+    // เดิมไม่มีด่าน และรับทั้ง email และ name จากผู้เรียก → ใครก็ยิงให้ระบบส่งอีเมล
+    // หน้าตาเป็นทางการจาก contact@lawslane.com ไปหาผู้ใช้คนไหนก็ได้ พร้อมแทรก HTML ผ่าน name
+    // (ทำ phishing ในนาม Lawslane) และ getUserByEmail ที่ล้มก็บอกได้ว่าอีเมลไหนมีบัญชี
+    // ทุกหน้าที่เรียก (สมัครสมาชิก / สมัครทนาย) สร้าง session ก่อนแล้ว จึงบังคับให้ล็อกอิน
+    // และส่งได้เฉพาะอีเมลของบัญชีตัวเอง (แบบเดียวกับ lawslane-admin)
+    const { uid, token: idToken } = await requireUser();
+    if (!idToken.email || idToken.email.toLowerCase() !== String(email || '').trim().toLowerCase()) {
+      return { success: false, error: 'ส่งอีเมลยืนยันได้เฉพาะอีเมลของบัญชีที่ล็อกอินอยู่' };
+    }
+    email = idToken.email;
+    name = escapeHtml(String(name || '').slice(0, 100));
+
     const limit = await limitByEmail(email, 'verify-email');
     if (!limit.success) {
       return { success: false, error: 'ขอส่งอีเมลยืนยันบ่อยเกินไป กรุณารอสักครู่' };
@@ -87,9 +104,6 @@ export async function sendCustomVerificationEmail(email: string, name: string) {
       return { success: false, error: errorMsg };
     }
 
-    // Look up the user by email to get their UID
-    const userRecord = await admin.auth().getUserByEmail(email);
-
     // Generate a secure random token
     const token = randomBytes(32).toString('hex');
 
@@ -100,7 +114,7 @@ export async function sendCustomVerificationEmail(email: string, name: string) {
     // Store the token in Firestore
     const db = admin.firestore();
     await db.collection('email_verification_tokens').doc(token).set({
-      uid: userRecord.uid,
+      uid,
       email,
       name,
       expiresAt: admin.firestore.Timestamp.fromDate(expiresAt),
@@ -133,6 +147,7 @@ export async function sendCustomVerificationEmail(email: string, name: string) {
 
     return { success: true };
   } catch (error: any) {
+    if (error instanceof AuthError) return { success: false, error: error.message };
     console.error('Error creating custom verification email:', error);
     return { success: false, error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' };
   }
@@ -183,7 +198,8 @@ export async function sendCustomPasswordResetEmailV2(email: string) {
     return { success: true };
   } catch (error: any) {
     // ไม่บอกว่าอีเมลนี้มีบัญชีอยู่จริงหรือไม่ — กันการไล่เดารายชื่อผู้ใช้
-    if (error?.code === 'auth/user-not-found') {
+    // (Admin SDK รุ่นใหม่ใช้โค้ด auth/email-not-found — ต้องเช็คทั้งสองแบบ)
+    if (error?.code === 'auth/user-not-found' || error?.code === 'auth/email-not-found') {
       return { success: true };
     }
     console.error('Error in custom password reset:', error);

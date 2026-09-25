@@ -3,7 +3,7 @@
 import { initAdmin } from '@/lib/firebase-admin';
 import * as admin from 'firebase-admin';
 import { Invoice, InvoiceStatus } from '@/lib/types/billing-types';
-import { requireUser, requireChatRole, authErrorResult } from '@/lib/auth-guard';
+import { requireUser, requireLawyer, requireChatRole, authErrorResult } from '@/lib/auth-guard';
 
 /**
  * Fetches invoices for a specific user (client view).
@@ -88,11 +88,13 @@ export async function getLawyerInvoicesAction() {
  * Creates a new invoice.
  */
 export async function createInvoiceAction(data: Partial<Invoice>) {
-    // ผู้ออกใบแจ้งหนี้ต้องเป็นคนที่ล็อกอินอยู่ และ lawyer_id ถูกบังคับจาก token
-    // เดิมไม่เช็คอะไรเลย → ออกใบแจ้งหนี้ในนามทนายคนไหนก็ได้
+    // ผู้ออกใบแจ้งหนี้ต้องเป็นทนายจริง และ lawyer_id ถูกบังคับจาก token
+    // เดิมไม่เช็คอะไรเลย → ออกใบแจ้งหนี้ในนามทนายคนไหนก็ได้ ต่อมาบังคับ lawyer_id
+    // จาก token แล้วแต่ยังเป็น requireUser() เฉยๆ → ผู้ใช้ทั่วไปก็ยังยิง action
+    // ออกใบแจ้งหนี้ยอดเท่าไรก็ได้ส่งหาใครก็ได้ ตอนนี้ต้องเป็นทนายที่ยืนยันแล้ว
     let callerUid: string, adminApp;
     try {
-        ({ uid: callerUid, adminApp } = await requireUser());
+        ({ uid: callerUid, adminApp } = await requireLawyer());
     } catch (e) {
         return authErrorResult(e);
     }
@@ -100,8 +102,14 @@ export async function createInvoiceAction(data: Partial<Invoice>) {
     try {
         const db = adminApp.firestore();
 
+        const amount = Number(data.amount);
+        if (!Number.isFinite(amount) || amount <= 0) {
+            return { success: false, error: 'ยอดใบแจ้งหนี้ไม่ถูกต้อง' };
+        }
+
         const invoiceData = {
             ...data,
+            amount,
             lawyer_id: callerUid,
             status: 'pending' as InvoiceStatus,
             createdAt: admin.firestore.FieldValue.serverTimestamp(),
