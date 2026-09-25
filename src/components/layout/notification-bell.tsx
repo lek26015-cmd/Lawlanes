@@ -148,9 +148,12 @@ export default function NotificationBell({ isAdmin = false }: { isAdmin?: boolea
         }
     };
 
+    // modal={false}: แบบ modal จะล็อกการเลื่อนด้วย overflow:hidden บน body ซึ่งรวมกับ
+    // overflow-x: clip ใน globals.css ทำให้ navbar หลุด sticky — เลื่อนลงมาแล้วกดเปิดเมนู
+    // navbar กับเมนูจะหายขึ้นไปนอกจอ (dropdown อื่นใน header ตั้งแบบนี้อยู่แล้ว)
     return (
         <>
-        <DropdownMenu>
+        <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
                 <Button variant="ghost" size="icon" className="relative h-10 w-10 rounded-full hover:bg-slate-100 transition-colors">
                     <Bell className="h-5 w-5 text-slate-600" />
