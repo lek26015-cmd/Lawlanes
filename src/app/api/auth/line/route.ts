@@ -12,14 +12,23 @@ export async function POST(req: NextRequest) {
     try {
         const { accessToken, idToken } = await req.json();
 
-        if (!accessToken) {
+        if (!accessToken || typeof accessToken !== 'string') {
             return NextResponse.json({ error: 'Missing accessToken' }, { status: 400 });
+        }
+
+        // ต้องรู้ว่า token เป็นของ channel เราเท่านั้น — เดิมถ้าไม่ได้ตั้ง LINE_LOGIN_CHANNEL_ID
+        // ก็ข้ามการเช็ค client_id ไปเลย → access token ของแอป LINE ตัวไหนก็ได้ (รวมแอปของ
+        // ผู้โจมตีที่หลอกเหยื่อให้ล็อกอิน) แลกเป็น custom token เข้าบัญชีเหยื่อที่นี่ได้
+        const expectedChannelId = process.env.LINE_LOGIN_CHANNEL_ID;
+        if (!expectedChannelId) {
+            console.error('[LINE Auth] LINE_LOGIN_CHANNEL_ID is not configured — refusing request.');
+            return NextResponse.json({ error: 'LINE login is not configured' }, { status: 503 });
         }
 
         // 1. Verify the LINE access token and get user profile
         let verifyRes;
         try {
-            verifyRes = await fetch(`https://api.line.me/oauth2/v2.1/verify?access_token=${accessToken}`, {
+            verifyRes = await fetch(`https://api.line.me/oauth2/v2.1/verify?access_token=${encodeURIComponent(accessToken)}`, {
                 method: 'GET',
             });
         } catch (err: any) {
@@ -35,8 +44,7 @@ export async function POST(req: NextRequest) {
         const tokenInfo = await verifyRes.json();
 
         // Verify the token belongs to our LINE Login channel
-        const expectedChannelId = process.env.LINE_LOGIN_CHANNEL_ID;
-        if (expectedChannelId && tokenInfo.client_id !== expectedChannelId) {
+        if (tokenInfo.client_id !== expectedChannelId) {
             return NextResponse.json({ error: 'Token not for this channel' }, { status: 401 });
         }
 
@@ -69,12 +77,18 @@ export async function POST(req: NextRequest) {
                     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                     body: new URLSearchParams({
                         id_token: idToken,
-                        client_id: process.env.LINE_LOGIN_CHANNEL_ID || '',
+                        client_id: expectedChannelId,
                     }).toString(),
                 });
                 if (idTokenRes.ok) {
                     const idTokenData = await idTokenRes.json();
-                    email = idTokenData.email;
+                    // id token ต้องเป็นของคนเดียวกับ access token — เดิมไม่เช็ค จึงเอา access token
+                    // ของตัวเองคู่กับ id token (ที่มีอีเมลคนอื่น) มาผูกบัญชีตามอีเมลนั้นได้
+                    if (idTokenData.sub === lineUserId) {
+                        email = idTokenData.email;
+                    } else {
+                        console.warn('[LINE Auth] id_token sub does not match access token user — ignoring email');
+                    }
                 }
             } catch (err) {
                 console.warn('[LINE Auth] ID token verification failed, continuing without email:', err);
@@ -104,8 +118,17 @@ export async function POST(req: NextRequest) {
             firebaseUid = lineUserQuery.docs[0].id;
         } else if (email) {
             // Try to find by email (to link existing account)
+            let existingUser: Awaited<ReturnType<typeof adminAuth.getUserByEmail>> | null = null;
             try {
-                const existingUser = await adminAuth.getUserByEmail(email);
+                existingUser = await adminAuth.getUserByEmail(email);
+            } catch {
+                existingUser = null;
+            }
+            // บัญชีแอดมินห้ามผูก LINE อัตโนมัติจากอีเมล — เข้าบัญชีแอดมินได้ด้วยรหัสผ่านตามปกติเท่านั้น
+            if (existingUser && (existingUser.customClaims?.admin === true || existingUser.customClaims?.role === 'admin')) {
+                return NextResponse.json({ error: 'บัญชีนี้ไม่รองรับการเข้าสู่ระบบด้วย LINE' }, { status: 403 });
+            }
+            if (existingUser) {
                 firebaseUid = existingUser.uid;
                 // Link LINE userId to existing account
                 await adminDb.collection('users').doc(firebaseUid).set({
@@ -113,7 +136,7 @@ export async function POST(req: NextRequest) {
                     lineDisplayName: displayName,
                     linePictureUrl: pictureUrl,
                 }, { merge: true });
-            } catch {
+            } else {
                 // No existing user with that email, create new
                 const newUser = await adminAuth.createUser({
                     email,

@@ -1,42 +1,47 @@
 'use server';
 
 import { NotificationService } from "@/services/notification-service";
-import { requireUser } from '@/lib/auth-guard';
+import { requireUser, AuthError } from '@/lib/auth-guard';
+import { checkRateLimit } from '@/lib/security/rate-limiter';
+
+function escapeHtml(v: string) {
+  return String(v ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]!));
+}
 
 /**
- * Server action to notify admins when a new lawyer registers.
- * Can be called from client components.
+ * แจ้งแอดมินว่ามีทนายสมัครใหม่ — หน้า lawyer-signup / for-lawyers เรียกหลังสร้างโปรไฟล์แล้ว
+ *
+ * เดิมด่านมีแค่ requireUser() แล้วใส่ name/email ที่ผู้เรียกส่งมาลงอีเมล HTML ถึงแอดมินทุกคนตรงๆ
+ * → ผู้ใช้คนไหนก็ยิงวนให้กล่องแอดมินท่วม และแทรก HTML/ลิงก์ลงอีเมลที่แอดมินเชื่อถือได้
+ * ตอนนี้: ต้องมีโปรไฟล์ทนายของตัวเองอยู่จริง · ชื่อ/อีเมลอ่านจากโปรไฟล์ฝั่ง server
+ * (พารามิเตอร์คงไว้ให้ผู้เรียกเดิม แต่ไม่ใช้) · จำกัดความถี่ต่อบัญชี
  */
-export async function notifyAdminNewLawyerAction(name: string, email?: string) {
-    // เรียกตอนสมัครทนาย (หลัง mint session แล้ว) — กันคนนอกยิงแจ้งเตือนมั่ว
-    await requireUser();
-
+export async function notifyAdminNewLawyerAction(_name?: string, _email?: string) {
   try {
-    return await NotificationService.notifyAdminNewLawyer(name, email);
+    const { uid, adminApp } = await requireUser();
+    const db = adminApp.firestore();
+
+    let profile = (await db.collection('lawyerProfiles').doc(uid).get()).data();
+    if (!profile) {
+      const q = await db.collection('lawyerProfiles').where('userId', '==', uid).limit(1).get();
+      profile = q.empty ? undefined : q.docs[0].data();
+    }
+    if (!profile) return { success: false, error: 'ไม่พบโปรไฟล์ทนายความของบัญชีนี้' };
+
+    const limit = await checkRateLimit(`notify-admin-new-lawyer:${uid}`, 2, 60 * 60 * 1000);
+    if (!limit.success) return { success: false, error: 'ส่งแจ้งเตือนบ่อยเกินไป' };
+
+    return await NotificationService.notifyAdminNewLawyer(
+      escapeHtml(String(profile.name || 'ไม่ระบุชื่อ').slice(0, 100)),
+      profile.email ? escapeHtml(String(profile.email).slice(0, 254)) : undefined
+    );
   } catch (error) {
+    if (error instanceof AuthError) return { success: false, error: error.message };
     console.error("Error in notifyAdminNewLawyerAction:", error);
     return { success: false, error: "Failed to send notification" };
   }
 }
 
-/**
- * Server action to send a general notification.
- */
-export async function notifyLawyerNewChatAction(params: {
-  lawyerId: string;
-  lawyerName: string;
-  lawyerEmail: string;
-  lawyerLineId?: string;
-  clientName: string;
-  messageSnippet: string;
-  chatId: string;
-}) {
-    await requireUser();
-
-  try {
-    return await NotificationService.notifyLawyerNewChat(params);
-  } catch (error) {
-    console.error("Error in notifyLawyerNewChatAction:", error);
-    return { success: false, error: "Failed to send notification" };
-  }
-}
+// notifyLawyerNewChatAction ถูกลบออก — รับ lawyerEmail / lawyerLineId / ข้อความ จากผู้เรียก
+// ทั้งหมด (ด่านมีแค่ requireUser) = ส่งอีเมล/LINE ในนาม Lawslane ไปหาใครก็ได้
+// และไม่มีโค้ดส่วนไหนเรียกใช้ (แจ้งเตือนแชทใหม่ส่งจาก sendChatMessageAction ฝั่ง server แล้ว)

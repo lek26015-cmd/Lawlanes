@@ -15,6 +15,27 @@ const DEFAULT_SCHEDULE: LawyerSchedule = {
  * Fetches a lawyer profile by ID using the Admin SDK.
  * This is used to bypass client-side permission restrictions.
  */
+/**
+ * ฟิลด์ส่วนตัวของทนาย — ให้เห็นเฉพาะเจ้าของโปรไฟล์กับแอดมิน
+ * action นี้อ่านผ่าน Admin SDK และรับ lawyerId ใดก็ได้ (หน้าโปรไฟล์เป็นหน้าสาธารณะ)
+ * เดิมคืนเอกสารทั้งก้อน → เลขบัญชีธนาคาร / ลิงก์บัตรประชาชน-ใบอนุญาต / เบอร์โทร / ที่อยู่ หลุด
+ */
+const PRIVATE_LAWYER_FIELDS = new Set([
+    'email', 'phone', 'dob', 'gender', 'address', 'lineId', 'lineUserId',
+    'bankName', 'bankAccountName', 'bankAccountNumber', 'bankBookUrl',
+    'idCardUrl', 'idCardNumber', 'licenseUrl', 'rejectionReason', 'pricing',
+]);
+const PRIVATE_LAWYER_FIELD_RE = /bank|idcard|citizen|national|taxid|passport/i;
+
+async function callerOwnsLawyerProfile(profileId: string, profileUserId?: string) {
+    try {
+        const { uid, token } = await requireUser();
+        return token.admin === true || token.role === 'admin' || uid === profileUserId || uid === profileId;
+    } catch {
+        return false;
+    }
+}
+
 export async function getLawyerProfileAction(lawyerId: string): Promise<LawyerProfile | null> {
     const adminApp = await initAdmin();
     if (!adminApp) {
@@ -34,6 +55,13 @@ export async function getLawyerProfileAction(lawyerId: string): Promise<LawyerPr
                 }
                 return val;
             };
+
+            const isOwner = await callerOwnsLawyerProfile(docSnap.id, data?.userId);
+            if (!isOwner) {
+                for (const key of Object.keys(data || {})) {
+                    if (PRIVATE_LAWYER_FIELDS.has(key) || PRIVATE_LAWYER_FIELD_RE.test(key)) delete data[key];
+                }
+            }
 
             const result = {
                 id: docSnap.id,
@@ -65,9 +93,18 @@ export async function updateLawyerPricingAction(pricing: {
     const { lawyerProfileId: lawyerId, adminApp } = await requireLawyer();
     const db = adminApp.firestore();
 
+    // platformFeeRate คือส่วนแบ่งของแพลตฟอร์ม (GP) — แอดมินเป็นคนกำหนด ทนายห้ามตั้งเอง
+    // เดิมเขียน pricing ทั้งก้อนที่ส่งมา ทนายจึงตั้ง platformFeeRate: 0 ให้ตัวเองได้
+    const appointmentFee = Number(pricing?.appointmentFee);
+    const chatFee = Number(pricing?.chatFee);
+    if (![appointmentFee, chatFee].every(v => Number.isFinite(v) && v >= 0 && v <= 1_000_000)) {
+        return { success: false, error: 'ค่าบริการไม่ถูกต้อง' };
+    }
+
     try {
         await db.collection('lawyerProfiles').doc(lawyerId).update({
-            pricing: pricing,
+            'pricing.appointmentFee': appointmentFee,
+            'pricing.chatFee': chatFee,
             updatedAt: new Date().toISOString()
         });
         return { success: true };
@@ -134,7 +171,10 @@ export async function getPlatformSettingsAction() {
     try {
         const settingsDoc = await db.collection('settings').doc('platform').get();
         if (settingsDoc.exists) {
-            return JSON.parse(JSON.stringify(settingsDoc.data()));
+            // action นี้ไม่มีด่าน (Admin SDK ข้าม rules ที่ให้อ่านได้เฉพาะคนล็อกอิน) —
+            // คืนเฉพาะค่าที่หน้าเว็บใช้ ไม่คืนเอกสารตั้งค่าทั้งก้อน
+            const rate = Number(settingsDoc.data()?.platformFeeRate);
+            return { platformFeeRate: Number.isFinite(rate) ? rate : 0.15 };
         }
         return { platformFeeRate: 0.15 }; // Default fallback
     } catch (error) {
@@ -177,13 +217,19 @@ export async function addToVerifiedRegistry(data: {
 
     try {
         // Sanitize ID
-        const docId = data.licenseNumber.replace(/\//g, '-');
+        const licenseNumber = String(data?.licenseNumber || '').trim().slice(0, 50);
+        if (!licenseNumber) return { success: false, error: 'กรุณาระบุเลขใบอนุญาต' };
+        const docId = licenseNumber.replace(/\//g, '-');
 
-        await db.collection('verifiedLawyers').doc(docId).set({
-            licenseNumber: data.licenseNumber,
-            firstName: data.firstName,
-            lastName: data.lastName,
-            province: data.province,
+        // create() ไม่ใช่ set() — เดิมเขียนทับได้ทุกครั้ง ใครที่ล็อกอินก็ยิงเลขใบอนุญาต
+        // ของทนายที่ยืนยันแล้ว (status: 'active') ให้กลายเป็น 'pending' พร้อมชื่อใหม่ได้
+        // (ทะเบียนนี้ใช้ auto-approve ตอนสมัคร และแสดงผลในหน้าตรวจสอบทนาย)
+        // มีอยู่แล้ว = ปล่อยไว้ตามเดิม ถือว่าสำเร็จ
+        await db.collection('verifiedLawyers').doc(docId).create({
+            licenseNumber,
+            firstName: String(data.firstName || '').slice(0, 100),
+            lastName: String(data.lastName || '').slice(0, 100),
+            province: String(data.province || '').slice(0, 100),
             status: 'pending',
             registeredDate: new Date().toISOString(),
             updatedAt: new Date().toISOString()
@@ -191,8 +237,68 @@ export async function addToVerifiedRegistry(data: {
 
         return { success: true };
     } catch (error: any) {
+        // ALREADY_EXISTS (gRPC code 6) — มีรายชื่อนี้อยู่แล้ว ไม่แตะของเดิม
+        if (error?.code === 6) return { success: true };
         console.error("Error adding to verified registry action:", error);
         return { success: false, error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' };
+    }
+}
+
+/**
+ * อนุมัติทนายที่เพิ่งสมัครอัตโนมัติ ถ้าเลขใบอนุญาตตรงกับทะเบียนทนายที่ยืนยันแล้ว (verifiedLawyers, status 'active')
+ *
+ * เดิมหน้า lawyer-signup เช็คทะเบียนฝั่ง client แล้วเขียน `status: 'approved'` ลง lawyerProfiles เอง
+ * แปลว่าใครก็ยิง setDoc(lawyerProfiles/<uid>, { status: 'approved' }) อนุมัติตัวเองได้โดยไม่ต้องมี
+ * ใบอนุญาตจริง ตอนนี้ firestore.rules บังคับให้ client สร้างโปรไฟล์ได้แค่ 'pending' และห้ามแตะ status
+ * การยกเป็น 'approved' จึงต้องมาทาง action นี้ (Admin SDK) ซึ่งตรวจทะเบียนเองฝั่ง server
+ *
+ * ไม่รับ argument — อ่านเลขใบอนุญาตจากโปรไฟล์ของผู้เรียกเอง
+ */
+export async function autoApproveLawyerFromRegistryAction(): Promise<{ approved: boolean }> {
+    const { uid, adminApp } = await requireUser();
+    const db = adminApp.firestore();
+
+    try {
+        const profileRef = db.collection('lawyerProfiles').doc(uid);
+        const profileSnap = await profileRef.get();
+        const profile = profileSnap.data();
+        // อนุมัติได้เฉพาะโปรไฟล์ของตัวเองที่ยังรออนุมัติ — ไม่ยกโปรไฟล์ที่ถูกปฏิเสธ/ระงับกลับมา
+        if (!profileSnap.exists || profile?.userId !== uid || profile?.status !== 'pending') {
+            return { approved: false };
+        }
+
+        const licenseNumber = String(profile?.licenseNumber || '').trim();
+        if (!licenseNumber) return { approved: false };
+
+        const registrySnap = await db.collection('verifiedLawyers')
+            .where('licenseNumber', '==', licenseNumber)
+            .where('status', '==', 'active')
+            .limit(1)
+            .get();
+        if (registrySnap.empty) return { approved: false };
+
+        // เลขใบอนุญาตนี้ถูกใช้กับโปรไฟล์ทนายที่อนุมัติแล้วคนอื่นไปแล้ว = อาจเป็นการสวมเลขคนอื่น
+        // ปล่อยให้แอดมินตรวจเอกสารเอง ไม่อนุมัติอัตโนมัติ
+        const dupSnap = await db.collection('lawyerProfiles')
+            .where('licenseNumber', '==', licenseNumber)
+            .where('status', '==', 'approved')
+            .limit(1)
+            .get();
+        if (!dupSnap.empty && dupSnap.docs[0].id !== uid) return { approved: false };
+
+        const batch = db.batch();
+        batch.update(profileRef, {
+            status: 'approved',
+            approvedAt: admin.firestore.FieldValue.serverTimestamp(),
+            approvedBy: 'registry_auto',
+        });
+        batch.set(db.collection('users').doc(uid), { status: 'approved' }, { merge: true });
+        await batch.commit();
+
+        return { approved: true };
+    } catch (error) {
+        console.error('Error auto-approving lawyer from registry:', error);
+        return { approved: false };
     }
 }
 
@@ -519,7 +625,13 @@ export async function repairChatDocumentsAction(chatId: string) {
                 lawyerId: chatData.lawyerId || 'unknown',
                 title: `สัญญาจ้างทนายความ: ${chatData.caseTitle || 'เคส'}`,
                 amount: chatData.amount || 0,
-                status: chatData.status === 'active' || chatData.status === 'paid' ? 'paid' : 'pending',
+                // ใบแจ้งหนี้ "จ่ายแล้ว" ต่อเมื่อจ่ายครบจริง — ห้อง active แค่แปลว่าจ่ายงวดแรกแล้ว
+                status: (() => {
+                    const insts = chatData.installments || [];
+                    const activeOrPaid = chatData.status === 'active' || chatData.status === 'paid';
+                    if (insts.length > 0) return insts.every((i: any) => i?.status === 'paid') ? 'paid' : 'pending';
+                    return activeOrPaid ? 'paid' : 'pending';
+                })(),
                 type: 'proposal',
                 items: (chatData.installments || []).map((inst: any) => ({
                     description: inst.description,
@@ -530,16 +642,9 @@ export async function repairChatDocumentsAction(chatId: string) {
                 updatedAt: admin.firestore.FieldValue.serverTimestamp(),
             });
 
-            // AUTO-REPAIR: If we just created a 'paid' invoice for a manual case, 
-            // we should also mark the installments in the chat document as paid.
-            if (chatData.status === 'active' || chatData.status === 'paid') {
-                const updatedInstallments = (chatData.installments || []).map((inst: any) => ({
-                    ...inst,
-                    status: 'paid',
-                    paidAt: new Date().toISOString()
-                }));
-                await chatRef.update({ installments: updatedInstallments });
-            }
+            // เดิมตรงนี้ "ซ่อม" ด้วยการตั้งทุกงวดใน chat เป็น 'paid' ถ้าห้อง active อยู่
+            // → ลูกความจ่ายงวดแรก (ห้องกลายเป็น active) แล้วเรียก action นี้ = งวดที่เหลือ
+            // ปิดเป็นจ่ายแล้วทั้งหมดโดยไม่ได้จ่าย สถานะงวดต้องเปลี่ยนผ่านการชำระเงิน/แอดมินเท่านั้น
         } else {
             invoiceId = existingInv.id.trim();
         }
@@ -586,3 +691,96 @@ export async function repairChatDocumentsAction(chatId: string) {
         return { success: false, error: error.message };
     }
 }
+
+/**
+ * ทนายรับ / ปฏิเสธคำขอนัดหมาย — ต้องทำฝั่ง server
+ *
+ * เดิมหน้า lawyer-dashboard/request/[id] ยิง updateDoc(appointments/{id}) และ
+ * addDoc(chats, {...}) จากเบราว์เซอร์ตรงๆ ซึ่งต้องพึ่ง `allow create: if isSignedIn()`
+ * ของ chats — กฎเดียวกับที่ทำให้ใครก็สร้างเคสพร้อม `amount: 0, status: 'paid'` ได้
+ * ย้ายมาที่นี่เพื่อให้ปิดกฎนั้นได้ และเพื่อยืนยันว่าคนกดรับเป็นทนายเจ้าของคำขอจริง
+ *
+ * รับเคสได้เฉพาะนัดหมายที่ **ชำระเงินแล้ว** ('paid' — ตั้งโดย createAppointment เมื่อ
+ * สลิปผ่าน SlipOK หรือโดย approvePaymentSlipAction ของแอดมิน) และยังไม่มีห้องแชท
+ * เดิมรับได้ทุกสถานะและไม่เช็คว่าเคยรับแล้วหรือยัง → รับนัดหมายที่ยังไม่จ่าย
+ * (pending_payment) ได้เป็นห้อง 'active' และกดรับซ้ำ = ห้องซ้ำหลายห้อง
+ * อ่าน + เขียนอยู่ใน transaction เดียว กันกดพร้อมกันสองแท็บแล้วได้สองห้อง
+ */
+export async function respondToAppointmentRequestAction(input: {
+    appointmentId: string;
+    decision: 'accept' | 'reject';
+}): Promise<{ ok: true; chatId?: string } | { ok: false; error: string }> {
+    try {
+        const { uid, lawyerProfileId, adminApp } = await requireLawyer();
+        const db = adminApp.firestore();
+
+        const apptRef = db.collection('appointments').doc(input.appointmentId);
+        const chatRef = db.collection('chats').doc();
+
+        const chatId = await db.runTransaction(async (tx) => {
+            const snap = await tx.get(apptRef);
+            if (!snap.exists) throw new AppointmentRejected('ไม่พบคำขอนัดหมายนี้');
+
+            const appt = snap.data()!;
+            // คำขอนี้เป็นของทนายคนนี้จริงไหม — ห้ามรับเคสแทนคนอื่น
+            // appointments.lawyerId คือ id ของ lawyerProfiles (createAppointment) ไม่ใช่ auth uid
+            if (appt.lawyerId !== lawyerProfileId) {
+                throw new AppointmentRejected('คำขอนี้ไม่ใช่ของคุณ');
+            }
+            if (appt.chatId || appt.status === 'confirmed') {
+                throw new AppointmentRejected('คำขอนี้ถูกรับไปแล้ว');
+            }
+            if (appt.status === 'cancelled' || appt.status === 'completed') {
+                throw new AppointmentRejected('คำขอนี้ปิดไปแล้ว');
+            }
+
+            if (input.decision === 'reject') {
+                tx.update(apptRef, {
+                    status: 'cancelled',
+                    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                });
+                return undefined;
+            }
+
+            if (appt.status !== 'paid') {
+                throw new AppointmentRejected('คำขอนี้ยังไม่ได้ชำระเงิน รอให้แอดมินตรวจสอบสลิปก่อน');
+            }
+
+            const clientId = appt.userId || appt.clientId;
+            if (!clientId) throw new AppointmentRejected('ไม่พบข้อมูลลูกความของคำขอนี้');
+
+            tx.update(apptRef, {
+                status: 'confirmed',
+                updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+                chatId: chatRef.id,
+            });
+            tx.set(chatRef, {
+                participants: [uid, clientId],
+                // lawyerId ของห้องแชทคือ lawyerProfileId เสมอ — requireChatRole() และ
+                // getChatDetailsAction() ตามไปอ่าน lawyerProfiles/{lawyerId}.userId
+                // เดิมใส่ auth uid ซึ่งใช้ได้แค่บัญชีที่ doc id ของโปรไฟล์บังเอิญตรงกับ uid
+                lawyerId: lawyerProfileId,
+                userId: clientId,
+                caseTitle: appt.caseTitle || appt.description || 'เคสจากคำขอนัดหมาย',
+                status: 'active',
+                // ห้องนี้เกิดจากนัดหมายที่ชำระเงินแล้ว ยอดอยู่ที่เอกสาร appointments
+                // ไม่ตั้ง amount ซ้ำตรงนี้เพื่อไม่ให้ถูกนับรายได้สองรอบ
+                appointmentId: input.appointmentId,
+                createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                lastMessageAt: admin.firestore.FieldValue.serverTimestamp(),
+                lastMessage: 'Case accepted',
+            });
+            return chatRef.id;
+        });
+
+        return chatId ? { ok: true, chatId } : { ok: true };
+    } catch (e) {
+        if (e instanceof AuthError) return { ok: false, error: e.message };
+        if (e instanceof AppointmentRejected) return { ok: false, error: e.message };
+        console.error('respondToAppointmentRequestAction failed:', e);
+        return { ok: false, error: 'ดำเนินการไม่สำเร็จ กรุณาลองใหม่อีกครั้ง' };
+    }
+}
+
+/** เหตุผลที่ตั้งใจให้ทนายเห็น (ไม่ export — ไฟล์ 'use server' export ได้แค่ async function) */
+class AppointmentRejected extends Error {}

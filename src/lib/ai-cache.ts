@@ -1,6 +1,20 @@
-import { initializeFirebase } from '@/firebase';
-import { doc, getDoc, setDoc, Timestamp } from 'firebase/firestore';
+import { initAdmin } from '@/lib/firebase-admin';
+import { Timestamp } from 'firebase-admin/firestore';
 import { createHash } from 'crypto';
+
+/**
+ * แคชคำตอบ AI เก็บผ่าน Admin SDK เท่านั้น
+ *
+ * เดิมใช้ client SDK (ไม่ได้ล็อกอิน) คู่กับ rule `ai_cache: allow read, write: if true`
+ * → ใครก็เขียนทับคำตอบในแคชได้ (key คือ sha256 ของ input ซึ่งคำนวณเองได้) ทำให้ผู้ใช้คนถัดไป
+ *   ที่ถามคำถามเดียวกันได้ "คำตอบกฎหมาย" ที่คนอื่นแต่งไว้
+ * → ใครก็อ่านได้ และเอกสารเก็บ `input` 500 ตัวอักษรแรกไว้ด้วย (เช่น เนื้อหาสัญญาที่ผู้ใช้ส่งมาวิเคราะห์)
+ * ตอนนี้ rule ปิดสนิท และฟังก์ชันพวกนี้ถูกเรียกจาก server action / AI flow เท่านั้น
+ */
+async function getAdminDb() {
+  const adminApp = await initAdmin();
+  return adminApp ? adminApp.firestore() : null;
+}
 
 /**
  * Generates a stable hash for a given prompt/input to use as a cache key.
@@ -22,15 +36,14 @@ export async function getCachedAIResponse<T>(
   ttlSeconds: number = 60 * 60 * 24 * 7
 ): Promise<T | null> {
   try {
-    const { firestore } = initializeFirebase();
-    if (!firestore) return null;
+    const db = await getAdminDb();
+    if (!db) return null;
 
     const cacheKey = generateCacheKey(input, namespace);
-    const cacheRef = doc(firestore, 'ai_cache', cacheKey);
-    const cacheSnap = await getDoc(cacheRef);
+    const cacheSnap = await db.collection('ai_cache').doc(cacheKey).get();
 
-    if (cacheSnap.exists()) {
-      const data = cacheSnap.data();
+    if (cacheSnap.exists) {
+      const data = cacheSnap.data()!;
       const createdAt = data.createdAt as Timestamp;
       const now = Timestamp.now();
 
@@ -56,13 +69,12 @@ export async function setCachedAIResponse<T>(
   result: T
 ): Promise<void> {
   try {
-    const { firestore } = initializeFirebase();
-    if (!firestore) return;
+    const db = await getAdminDb();
+    if (!db) return;
 
     const cacheKey = generateCacheKey(input, namespace);
-    const cacheRef = doc(firestore, 'ai_cache', cacheKey);
 
-    await setDoc(cacheRef, {
+    await db.collection('ai_cache').doc(cacheKey).set({
       result,
       createdAt: Timestamp.now(),
       input: input.substring(0, 500) // Store a snippet for debugging/reference

@@ -114,11 +114,14 @@ export async function getReviewsAction(lawyerId: string, limitCount: number = 10
     }
     const db = adminApp.firestore();
 
+    // เปิดสาธารณะโดยตั้งใจ (หน้าโปรไฟล์ทนาย) — แต่จำกัดจำนวนที่ขอได้ต่อครั้ง
+    const safeLimit = Math.min(Math.max(Math.floor(Number(limitCount) || 0), 1), 100);
+
     try {
         const reviewsSnap = await db.collection('reviews')
             .where('lawyerId', '==', lawyerId)
             .orderBy('createdAt', 'desc')
-            .limit(limitCount)
+            .limit(safeLimit)
             .get();
 
         const reviewsData = reviewsSnap.docs.map(doc => {
@@ -131,8 +134,8 @@ export async function getReviewsAction(lawyerId: string, limitCount: number = 10
                 rating: Number(data.rating) || 0,
                 comment: data.comment || '',
                 lawyerId: data.lawyerId,
-                userId: data.userId,
-                caseId: data.caseId,
+                // ไม่คืน userId / caseId — หน้าสาธารณะไม่ได้ใช้ และ caseId คือ chatId ของ
+                // ห้องปรึกษา (ผูก uid ผู้รีวิวเข้ากับเคสของเขาได้ทันที)
                 createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : new Date().toISOString(),
                 dateText: data.createdAt?.toDate ? data.createdAt.toDate().toLocaleDateString('th-TH', { year: 'numeric', month: 'long' }) : 'N/A'
             };

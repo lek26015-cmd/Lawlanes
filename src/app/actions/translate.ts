@@ -3,6 +3,7 @@
 import { GoogleGenerativeAI, SchemaType } from '@google/generative-ai';
 import { getCachedAIResponse, setCachedAIResponse } from '@/lib/ai-cache';
 import { requireUser } from '@/lib/auth-guard';
+import { limitUserAction } from '@/lib/security/action-rate-limit';
 
 export interface TranslationResult {
     english: string;
@@ -13,9 +14,12 @@ export async function translateToMultipleLanguages(
     thaiText: string
 ): Promise<TranslationResult> {
     // endpoint นี้เรียก LLM ซึ่งมีค่าใช้จ่ายต่อครั้ง — ต้องล็อกอินอยู่จริง
-    await requireUser();
+    const { uid } = await requireUser();
+    if (!(await limitUserAction('ai-translate', uid, 60)).success) {
+        throw new Error('Rate limit exceeded. Please wait a moment.');
+    }
 
-    if (!thaiText || thaiText.trim().length === 0) {
+        if (!thaiText || thaiText.trim().length === 0) {
         return { english: '', chinese: '' };
     }
 

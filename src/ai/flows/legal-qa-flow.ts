@@ -4,6 +4,7 @@ import { retrieveContext } from '@/lib/rag';
 import { z } from 'zod';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getCachedAIResponse, setCachedAIResponse } from '@/lib/ai-cache';
+import { limitPublicAction } from '@/lib/security/action-rate-limit';
 
 const LegalQaInputSchema = z.object({
     question: z.string(),
@@ -11,6 +12,14 @@ const LegalQaInputSchema = z.object({
 
 export async function generateLegalAdvice(question: string, locale: string = 'th') {
     try {
+        // หน้า ai-advisor เปิดสาธารณะโดยตั้งใจ — จำกัดความถี่ต่อ IP กันเผาโควตา LLM/RAG
+        const rl = await limitPublicAction('ai-legal-qa');
+        if (!rl.success) {
+            if (locale.startsWith('en')) return "Too many requests. Please wait a moment and try again.";
+            if (locale.startsWith('zh')) return "请求过于频繁，请稍后再试。";
+            return "มีการใช้งานถี่เกินไป กรุณารอสักครู่แล้วลองใหม่";
+        }
+
         // Check cache before doing any RAG/AI work — keyed on question+locale only
         // (not on the retrieved context, which previously meant the RAG call always
         // ran before the cache could even be checked, so a cache hit still paid for

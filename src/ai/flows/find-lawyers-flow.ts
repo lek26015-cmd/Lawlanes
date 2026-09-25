@@ -6,6 +6,7 @@
  */
 
 import { z } from 'zod';
+import { limitPublicAction } from '@/lib/security/action-rate-limit';
 
 const WORKER_URL = process.env.NEXT_PUBLIC_RAG_WORKER_URL || 'https://lawslane-rag-api.lawslane-app.workers.dev';
 
@@ -25,6 +26,10 @@ export async function findLawyerSpecialties(input: FindLawyersInput): Promise<Fi
   if (!input.problem.trim()) {
     return { matchedLawyerIds: [], specialties: [] };
   }
+
+  // ช่องค้นหาหน้าแรกเปิดสาธารณะ — จำกัดความถี่ต่อ IP (ยิงต่อไปที่ RAG worker ทุกครั้ง)
+  const rl = await limitPublicAction('ai-find-lawyers');
+  if (!rl.success) return { matchedLawyerIds: [], specialties: [] };
 
   try {
     console.log(`[Vector Matchmaking] Querying for: "${input.problem}"`);
