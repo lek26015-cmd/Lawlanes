@@ -36,18 +36,18 @@ export default function LawyerCard({ lawyer, featured }: LawyerCardProps) {
   const reviewCount = lawyer.reviewCount || 0;
 
   const handleStartChat = () => {
+    const chatPath = `/lawyers/${lawyer.id}?chat=true`;
     if (!user) {
-      router.push('/login');
+      // login เสร็จแล้วพากลับมาที่ทนายคนนี้ (session route ตรวจว่าเป็น path ภายในเว็บก่อนใช้)
+      router.push(`/login?redirect=${encodeURIComponent(chatPath)}`);
       return;
     }
-    router.push(`/lawyers/${lawyer.id}?chat=true`);
+    router.push(chatPath);
   };
 
+  // ดูโปรไฟล์ไม่ต้อง login (PRD ข้อ 2: ลูกความดูรายชื่อและโปรไฟล์ทนายได้โดยไม่ต้อง login)
+  // หน้าโปรไฟล์อ่านผ่าน getPublicLawyerAction ซึ่งคืนเฉพาะฟิลด์สาธารณะอยู่แล้ว
   const handleViewProfile = () => {
-    if (!user) {
-      router.push('/login');
-      return;
-    }
     router.push(`/lawyers/${lawyer.id}`);
   };
 
