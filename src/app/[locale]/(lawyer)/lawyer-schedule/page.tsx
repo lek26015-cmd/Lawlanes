@@ -1,6 +1,8 @@
 
 'use client'
 
+import LawyerPageHeader, { LawyerPageLoading } from '@/components/lawyer/lawyer-page-header';
+
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -110,40 +112,24 @@ function LawyerScheduleContent() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
-      </div>
+      <LawyerPageLoading />
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50/50">
-      {/* Gradient Header */}
-      <div className="w-full bg-gradient-to-r from-[#0f172a] to-[#1e293b] text-white py-12 md:py-16 rounded-b-[3rem] shadow-lg mb-8">
-        <div className="container mx-auto px-4 md:px-6">
-          <Link href={dashboardLink} className="text-blue-200 hover:text-white mb-6 inline-flex items-center gap-2 transition-colors">
-            <ArrowLeft className="w-4 h-4" />
-            กลับไปที่แดชบอร์ด
-          </Link>
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-white/10 rounded-2xl backdrop-blur-sm">
-              <CalendarIcon className="w-8 h-8 text-blue-200" />
-            </div>
-            <div>
-              <h1 className="text-3xl md:text-4xl font-bold font-headline">จัดการตารางนัดหมาย</h1>
-              <p className="text-blue-200 mt-2">ตั้งค่าเวลาทำงาน วันหยุด และจัดการการนัดหมายของคุณ</p>
-            </div>
-          </div>
-        </div>
-      </div>
+    <>
+      <LawyerPageHeader
+        icon={CalendarIcon}
+        title="ตารางนัดหมาย"
+        description="ตั้งค่าเวลาทำงาน วันหยุด และจัดการการนัดหมายของคุณ"
+      />
 
-      <div className="container mx-auto px-4 md:px-6 pb-20">
-        <div className="max-w-4xl mx-auto space-y-8">
+        <div className="max-w-4xl space-y-6">
 
           {/* Working Hours Card */}
-          <Card className="rounded-[2.5rem] shadow-xl border-none overflow-hidden">
-            <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50/50 px-8 py-6">
-              <CardTitle className="flex items-center gap-3 text-xl text-[#0B3979]">
+          <Card className="rounded-2xl border shadow-sm overflow-hidden">
+            <CardHeader className="border-b px-6 py-5">
+              <CardTitle className="flex items-center gap-3 text-base font-bold text-slate-900 dark:text-slate-100">
                 <div className="p-2 bg-white rounded-xl shadow-sm">
                   <Clock className="w-5 h-5 text-blue-600" />
                 </div>
@@ -151,7 +137,7 @@ function LawyerScheduleContent() {
               </CardTitle>
               <CardDescription className="text-base">กำหนดช่วงเวลาที่คุณรับนัดหมายในแต่ละวัน</CardDescription>
             </CardHeader>
-            <CardContent className="p-8 grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
+            <CardContent className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
               <div className="space-y-3">
                 <Label htmlFor="start-time" className="text-base">เวลาเริ่มต้น</Label>
                 <Select value={workingHours.start} onValueChange={(value) => setWorkingHours(prev => ({ ...prev, start: value }))}>
@@ -170,9 +156,9 @@ function LawyerScheduleContent() {
           </Card>
 
           {/* Available Days Card */}
-          <Card className="rounded-[2.5rem] shadow-xl border-none overflow-hidden">
-            <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50/50 px-8 py-6">
-              <CardTitle className="flex items-center gap-3 text-xl text-[#0B3979]">
+          <Card className="rounded-2xl border shadow-sm overflow-hidden">
+            <CardHeader className="border-b px-6 py-5">
+              <CardTitle className="flex items-center gap-3 text-base font-bold text-slate-900 dark:text-slate-100">
                 <div className="p-2 bg-white rounded-xl shadow-sm">
                   <CalendarIcon className="w-5 h-5 text-blue-600" />
                 </div>
@@ -180,7 +166,7 @@ function LawyerScheduleContent() {
               </CardTitle>
               <CardDescription className="text-base">เลือกวันที่คุณต้องการเปิดรับการนัดหมายในสัปดาห์</CardDescription>
             </CardHeader>
-            <CardContent className="p-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <CardContent className="p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {Object.keys(availableDays).map((day) => (
                 <div key={day} className={`flex items-center justify-between p-4 border rounded-2xl transition-all duration-200 ${availableDays[day as DayOfWeek] ? 'bg-blue-50 border-blue-200 shadow-sm' : 'bg-gray-50 border-transparent opacity-70 hover:opacity-100'}`}>
                   <Label htmlFor={day} className="font-medium text-base cursor-pointer">{dayLabels[day as DayOfWeek]}</Label>
@@ -191,9 +177,9 @@ function LawyerScheduleContent() {
           </Card>
 
           {/* Overrides Card */}
-          <Card className="rounded-[2.5rem] shadow-xl border-none overflow-hidden">
-            <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50/50 px-8 py-6">
-              <CardTitle className="flex items-center gap-3 text-xl text-[#0B3979]">
+          <Card className="rounded-2xl border shadow-sm overflow-hidden">
+            <CardHeader className="border-b px-6 py-5">
+              <CardTitle className="flex items-center gap-3 text-base font-bold text-slate-900 dark:text-slate-100">
                 <div className="p-2 bg-white rounded-xl shadow-sm">
                   <PlusCircle className="w-5 h-5 text-blue-600" />
                 </div>
@@ -201,7 +187,7 @@ function LawyerScheduleContent() {
               </CardTitle>
               <CardDescription className="text-base">ระบุวันที่คุณไม่สะดวกรับงานเพิ่มเติม เช่น วันหยุดพักผ่อน หรือไปทำธุระ</CardDescription>
             </CardHeader>
-            <CardContent className="p-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <CardContent className="p-6 grid grid-cols-1 lg:grid-cols-2 gap-8">
               <div className="flex flex-col gap-4">
                 <div className="p-4 bg-white rounded-3xl shadow-sm border mx-auto w-full max-w-sm">
                   <Calendar
@@ -256,8 +242,7 @@ function LawyerScheduleContent() {
             </Button>
           </div>
         </div>
-      </div>
-    </div>
+    </>
   );
 }
 

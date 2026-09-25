@@ -27,6 +27,8 @@ import {
   FileSearch,
   FolderLock,
   ChevronRight,
+  LayoutDashboard,
+  MessageSquare,
 } from 'lucide-react';
 import { getLawyerDashboardData, getLawyerStats } from '@/lib/data';
 import { getMyLawyerProfileAction } from '@/app/actions/lawyer-directory-actions';
@@ -47,11 +49,11 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { useToast } from '@/hooks/use-toast';
+import LawyerPageHeader, { LawyerPageLoading } from '@/components/lawyer/lawyer-page-header';
 import { useRouter } from 'next/navigation';
 import { v4 as uuidv4 } from 'uuid';
 import { useUser, useFirebase } from '@/firebase';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import LawyerSidebar from '@/components/layout/lawyer-sidebar';
 
 export default function LawyerDashboardPage() {
   const router = useRouter();
@@ -118,9 +120,7 @@ export default function LawyerDashboardPage() {
 
   if (isUserLoading || isLoading || !user) {
     return (
-      <div className="flex justify-center items-center h-screen bg-background">
-        <Loader2 className="h-10 w-10 animate-spin text-[#002f4b]" />
-      </div>
+      <LawyerPageLoading />
     );
   }
 
@@ -136,10 +136,7 @@ export default function LawyerDashboardPage() {
   const scheduleLink = '/lawyer-schedule';
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
-      <LawyerSidebar />
-
-      <main className="flex-1 min-w-0 overflow-y-auto p-6 md:p-8 pt-20 md:pt-24 lg:pt-8 space-y-6">
+    <>
         {/* Status Alerts */}
         {lawyerProfile?.status === 'suspended' && (
           <Alert variant="destructive" className="bg-red-50 border-red-200 text-red-800 rounded-2xl">
@@ -161,28 +158,18 @@ export default function LawyerDashboardPage() {
           </Alert>
         )}
 
-        {/* Top Header */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl md:text-3xl font-extrabold text-[#002f4b] dark:text-blue-400 flex items-center gap-2">
-              แดชบอร์ดทนายความ
-              <Badge variant="outline" className="text-[10px] uppercase font-bold bg-blue-50 text-blue-700 border-blue-200">
-                Legal OS
-              </Badge>
-            </h1>
-            <p className="text-muted-foreground text-sm mt-0.5">
-              ยินดีต้อนรับคุณ <span className="font-semibold text-foreground">{lawyerProfile?.name || user.displayName || 'ทนายความ'}</span> &bull; ภาพรวมงานคดีและลูกความวันนี้
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2.5">
-            <Link href="/lawyer-dashboard/cases">
-              <Button className="rounded-xl gap-2 text-white shadow-md" style={{ background: 'linear-gradient(135deg, #002f4b, #00466c)' }}>
-                <Briefcase className="w-4 h-4" /> แฟ้มคดีทั้งหมด
+        <LawyerPageHeader
+          icon={LayoutDashboard}
+          title="ภาพรวม"
+          description={<>ยินดีต้อนรับคุณ <span className="font-semibold text-foreground">{lawyerProfile?.name || user.displayName || 'ทนายความ'}</span> &bull; งานคดีและลูกความของคุณวันนี้</>}
+          actions={
+            <Link href="/lawyer-dashboard/chats">
+              <Button className="rounded-xl gap-2 bg-[#002f4b] hover:bg-[#00466c] text-white">
+                <MessageSquare className="w-4 h-4" /> แชทกับลูกความ
               </Button>
             </Link>
-          </div>
-        </div>
+          }
+        />
 
         {/* Quick Stats Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -399,7 +386,6 @@ export default function LawyerDashboardPage() {
 
           </div>
         </div>
-      </main>
-    </div>
+      </>
   );
 }

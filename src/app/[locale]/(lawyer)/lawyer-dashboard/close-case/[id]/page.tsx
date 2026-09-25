@@ -1,6 +1,8 @@
 
 'use client'
 
+import LawyerPageHeader, { LawyerPageLoading } from '@/components/lawyer/lawyer-page-header';
+
 import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
 import { useParams, useSearchParams, useRouter } from 'next/navigation';
@@ -10,7 +12,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Briefcase, FileSignature, DollarSign, Info, Loader2, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Briefcase, FileSignature, DollarSign, Info, Loader2, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { closeCaseAction, cancelCaseAction, getCaseDetailsAction } from '@/app/actions/lawyer-case-actions';
 import {
@@ -152,26 +154,20 @@ function CloseCasePageContent() {
 
   if (isLoadingCase) {
     return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-      </div>
+      <LawyerPageLoading />
     );
   }
 
   return (
-    <div className="bg-gray-100/50 min-h-screen">
-      <div className="container mx-auto px-4 md:px-6 py-8">
-        <div className="max-w-3xl mx-auto space-y-6">
-          <div>
-            <Link href={`/chat/${caseId}?lawyerId=${lawyerId}&clientId=${clientId}&view=lawyer`} className="text-sm text-muted-foreground hover:text-foreground mb-4 inline-flex items-center gap-2">
-              <ArrowLeft className="w-4 h-4" />
-              กลับไปที่ห้องแชท
-            </Link>
-            <h1 className="text-3xl font-bold font-headline">ส่งสรุปและปิดเคส</h1>
-            <p className="text-muted-foreground">สรุปผลการให้คำปรึกษาและแจ้งค่าบริการสุดท้ายเพื่อปิดเคส</p>
-          </div>
+        <div className="max-w-3xl space-y-6">
+          <LawyerPageHeader
+            icon={CheckCircle2}
+            title="ส่งสรุปและปิดเคส"
+            description="สรุปผลการให้คำปรึกษาเพื่อปิดเคส"
+            back={{ href: `/chat/${caseId}?lawyerId=${lawyerId}&clientId=${clientId}&view=lawyer`, label: 'กลับไปที่ห้องแชท' }}
+          />
 
-          <Card>
+          <Card className="rounded-2xl border shadow-sm">
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><Briefcase /> ข้อมูลเคส</CardTitle>
             </CardHeader>
@@ -201,7 +197,7 @@ function CloseCasePageContent() {
             </CardContent>
           </Card>
           
-          <Card>
+          <Card className="rounded-2xl border shadow-sm">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2"><FileSignature /> บทสรุปและคำแนะนำสุดท้าย</CardTitle>
                 <CardDescription>กรอกรายละเอียดสรุปผลการให้คำปรึกษาและขั้นตอนต่อไป (ถ้ามี) เพื่อส่งให้ลูกความ</CardDescription>
@@ -216,7 +212,7 @@ function CloseCasePageContent() {
             </CardContent>
           </Card>
           
-          <Card>
+          <Card className="rounded-2xl border shadow-sm">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2"><DollarSign /> ค่าบริการสุดท้าย</CardTitle>
                 <CardDescription>ระบุยอดค่าบริการทั้งหมดสำหรับเคสนี้ (รวมค่าปรึกษาครั้งแรก)</CardDescription>
@@ -287,8 +283,6 @@ function CloseCasePageContent() {
             </Button>
           </div>
         </div>
-      </div>
-    </div>
   );
 }
 

@@ -22,6 +22,9 @@ import {
     ChevronRight,
     LogOut,
     Menu,
+    Home,
+    MessageSquare,
+    FileText,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
@@ -40,20 +43,27 @@ type NavGroup = {
 
 const lawyerNavGroups: NavGroup[] = [
     {
-        title: 'งานหลัก (Operations)',
+        title: 'งานหลัก',
         items: [
-            { title: 'ภาพรวม (Overview)', icon: LayoutDashboard, href: '/lawyer-dashboard' },
-            { title: 'จัดการคดีและลูกความ', icon: Briefcase, href: '/lawyer-dashboard/cases', badge: { label: 'NEW', color: 'emerald' } },
-            { title: 'คลังเอกสารคดี (Vault)', icon: FolderLock, href: '/lawyer-dashboard/vault' },
-            { title: 'การเงินและใบกำกับภาษี', icon: CreditCard, href: '/lawyer-dashboard/financials' },
-            { title: 'ปฏิทินนัดศาล/กำหนดการ', icon: CalendarDays, href: '/lawyer-schedule' },
+            { title: 'ภาพรวม', icon: LayoutDashboard, href: '/lawyer-dashboard' },
+            { title: 'แชทกับลูกความ', icon: MessageSquare, href: '/lawyer-dashboard/chats' },
+            { title: 'จัดการคดี', icon: Briefcase, href: '/lawyer-dashboard/cases' },
+            { title: 'คลังเอกสารคดี', icon: FolderLock, href: '/lawyer-dashboard/vault' },
+            { title: 'ตารางนัดหมาย', icon: CalendarDays, href: '/lawyer-schedule' },
         ],
     },
     {
-        title: 'AI ทนายความ (AI Copilot)',
+        title: 'เอกสารการเงิน',
+        items: [
+            { title: 'ใบแจ้งหนี้', icon: FileText, href: '/lawyer-dashboard/billing' },
+            { title: 'บัญชีรับเงิน', icon: CreditCard, href: '/lawyer-dashboard/financials' },
+        ],
+    },
+    {
+        title: 'AI ผู้ช่วยทนาย',
         items: [
             { title: 'สืบค้นข้อกฎหมาย & ฎีกา', icon: Scale, href: '/law-search' },
-            { title: 'ตรวจร่างสัญญาด้วย AI', icon: FileSearch, href: '/analyze-contract', badge: { label: 'PRO', color: 'amber' } },
+            { title: 'ตรวจร่างสัญญาด้วย AI', icon: FileSearch, href: '/analyze-contract' },
         ],
     },
 ];
@@ -162,23 +172,32 @@ export default function LawyerSidebar() {
     );
 
     const renderFooter = (c: boolean) => (
-        <>
-            {/* Footer */}
-            <div className="px-3 py-3 border-t border-white/10 flex items-center justify-between shrink-0">
-                {!c ? (
-                    <div className="flex items-center justify-between w-full px-1">
-                        <span className="text-[10px] text-white/50 font-medium">Lawslane Lawyer Portal</span>
-                        <Button variant="ghost" size="icon" onClick={handleLogout} className="h-7 w-7 text-white/40 hover:text-red-400 hover:bg-red-500/10 rounded-lg" title="ออกจากระบบ">
-                            <LogOut className="w-3.5 h-3.5" />
-                        </Button>
-                    </div>
-                ) : (
-                    <Button variant="ghost" size="icon" onClick={handleLogout} className="h-8 w-8 mx-auto text-white/40 hover:text-red-400 hover:bg-red-500/10 rounded-lg" title="ออกจากระบบ">
-                        <LogOut className="w-3.5 h-3.5" />
-                    </Button>
+        <div className="px-3 py-3 border-t border-white/10 space-y-1 shrink-0">
+            {/* ออกจากหลังบ้านกลับไปเว็บไซต์หลัก — เดิมไม่มีทางกลับเลย (header เว็บหลักถูกซ่อน) */}
+            <Link
+                href="/"
+                title={c ? 'กลับหน้าหลัก Lawslane' : undefined}
+                className={cn(
+                    "flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium text-white/80 hover:bg-white/[0.07] hover:text-white transition-colors",
+                    c && "justify-center px-2"
                 )}
-            </div>
-        </>
+            >
+                <Home className="w-[17px] h-[17px] shrink-0" />
+                {!c && <span className="flex-1 truncate">กลับหน้าหลัก Lawslane</span>}
+            </Link>
+            <button
+                type="button"
+                onClick={handleLogout}
+                title={c ? 'ออกจากระบบ' : undefined}
+                className={cn(
+                    "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-[13px] font-medium text-white/60 hover:bg-red-500/10 hover:text-red-300 transition-colors",
+                    c && "justify-center px-2"
+                )}
+            >
+                <LogOut className="w-[17px] h-[17px] shrink-0" />
+                {!c && <span className="flex-1 truncate text-left">ออกจากระบบ</span>}
+            </button>
+        </div>
     );
 
     return (

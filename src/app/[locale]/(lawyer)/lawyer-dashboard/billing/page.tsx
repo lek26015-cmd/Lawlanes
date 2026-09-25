@@ -1,10 +1,11 @@
 'use client';
+import LawyerPageHeader, { LawyerPageLoading } from '@/components/lawyer/lawyer-page-header';
 
 import React, { useState, useEffect } from 'react';
 import { InvoiceGenerator } from '@/components/billing/lawyer/invoice-generator';
 import { InvoiceList } from '@/components/billing/invoice-list';
 import { Invoice } from '@/lib/types/billing-types';
-import { Wallet, TrendingUp, Loader2 } from 'lucide-react';
+import { Wallet, TrendingUp, Loader2, FileText } from 'lucide-react';
 import { useUser } from '@/firebase';
 import { getLawyerInvoicesAction, createInvoiceAction } from '@/app/actions/billing-actions';
 import { getLawyerDashboardDataAction } from '@/app/actions/dashboard-actions';
@@ -82,9 +83,7 @@ export default function LawyerBillingPage() {
 
   if (isUserLoading || isLoading) {
     return (
-      <div className="flex justify-center items-center h-screen">
-        <Loader2 className="h-12 w-12 animate-spin text-primary" />
-      </div>
+      <LawyerPageLoading />
     );
   }
 
@@ -92,23 +91,22 @@ export default function LawyerBillingPage() {
   const pendingAmount = invoices.filter(i => i.status === 'pending').reduce((acc, curr) => acc + curr.amount, 0);
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-2xl font-bold text-slate-900 flex items-center">
-          <Wallet className="w-6 h-6 mr-2 text-blue-600" />
-          การเงินและใบแจ้งหนี้
-        </h1>
-      </div>
+    <>
+      <LawyerPageHeader
+        icon={FileText}
+        title="ใบแจ้งหนี้"
+        description="ออกใบแจ้งหนี้ให้ลูกความและติดตามว่าชำระแล้วหรือยัง (ลูกความชำระเข้าบัญชีของคุณโดยตรง)"
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left: Summary & Form */}
         <div className="space-y-6">
-          <div className="bg-blue-600 rounded-2xl p-6 text-white shadow-lg shadow-blue-500/20">
-            <p className="text-blue-100 text-sm font-medium">รวมรายได้ทั้งหมด</p>
+          <div className="bg-[#002f4b] rounded-2xl p-6 text-white shadow-sm">
+            <p className="text-blue-100 text-sm font-medium">ยอดที่ลูกความชำระแล้ว</p>
             <h2 className="text-3xl font-bold mt-1">฿{totalEarned.toLocaleString()}</h2>
-            <div className="mt-4 pt-4 border-t border-blue-500/30 flex items-center text-sm">
+            <div className="mt-4 pt-4 border-t border-white/15 flex items-center text-sm">
               <TrendingUp className="w-4 h-4 mr-1.5" />
-              <span>รอนำส่ง: ฿{pendingAmount.toLocaleString()}</span>
+              <span>รอลูกความชำระ: ฿{pendingAmount.toLocaleString()}</span>
             </div>
           </div>
 
@@ -141,6 +139,6 @@ export default function LawyerBillingPage() {
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 }
