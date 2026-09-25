@@ -7,7 +7,7 @@ import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { Button } from '@/components/ui/button';
 import Logo from '@/components/logo';
 import { Input } from '@/components/ui/input';
-import { Search, Menu, User, ChevronDown, LogOut, LayoutDashboard, Camera, FileText } from 'lucide-react';
+import { Search, Menu, User, ChevronDown, LogOut, LayoutDashboard, Camera, FileText, GraduationCap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
@@ -27,7 +27,7 @@ import { doc, getDoc } from 'firebase/firestore';
 import profileLawyerImg from '@/pic/profile-lawyer.jpg';
 import { getCloudflareVariantUrl } from '@/lib/cloudflare-images';
 
-import { getMainLink, getBusinessLink, getAdminLink } from '@/lib/domain-utils';
+import { getMainLink, getBusinessLink, getAdminLink, getEducationLink } from '@/lib/domain-utils';
 import NotificationBell from './notification-bell';
 
 
@@ -225,6 +225,9 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
             <a href="https://capdeal.lawslane.com" target="_blank" rel="noopener noreferrer" className={pathname.startsWith(`/services/contracts/screenshot`) ? activeNavLinkClasses : navLinkClasses}>
               <span className="flex items-center gap-1"><Camera className="h-4 w-4" />{t('capAndDeal')}</span>
             </a>
+            <a href={getEducationLink()} target="_blank" rel="noopener noreferrer" className={navLinkClasses}>
+              <span className="flex items-center gap-1"><GraduationCap className="h-4 w-4" />{t('education')}</span>
+            </a>
             <Link href={getMainLink('/articles', domainType, !isMounted)} className={pathname.startsWith(`/articles`) ? activeNavLinkClasses : navLinkClasses}>
               {t('articles')}
             </Link>
@@ -415,6 +418,7 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
                   <Link href={getMainLink('/verify-lawyer', domainType, !isMounted)} className="hover:text-primary" onClick={() => setIsMobileMenuOpen(false)}>{t('verifyLawyer')}</Link>
 
                   <a href="https://capdeal.lawslane.com" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:text-primary"><Camera className="h-5 w-5" />{t('capAndDeal')}</a>
+                  <a href={getEducationLink()} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:text-primary"><GraduationCap className="h-5 w-5" />{t('education')}</a>
                   <Link href={getMainLink('/articles', domainType, !isMounted)} className="hover:text-primary">{t('articles')}</Link>
                   <Link href={getMainLink('/for-lawyers', domainType, !isMounted)} className="hover:text-primary">{t('forLawyers')}</Link>
 

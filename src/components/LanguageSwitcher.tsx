@@ -77,8 +77,11 @@ export default function LanguageSwitcher({ className, iconClassName }: LanguageS
         );
     }
 
+    // modal={false}: แบบ modal จะล็อกการเลื่อนด้วย overflow:hidden บน body ซึ่งรวมกับ
+    // overflow-x: clip ใน globals.css ทำให้ navbar หลุด sticky — เลื่อนลงมาแล้วกดเปิดเมนู
+    // navbar กับเมนูจะหายขึ้นไปนอกจอ (dropdown อื่นใน header ตั้งแบบนี้อยู่แล้ว)
     return (
-        <DropdownMenu>
+        <DropdownMenu modal={false}>
             <DropdownMenuTrigger asChild>
                 <Button
                     variant="ghost"
