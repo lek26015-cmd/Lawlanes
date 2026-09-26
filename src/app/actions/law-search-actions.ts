@@ -1,6 +1,6 @@
 'use server';
 
-import { retrieveDocuments } from '@/lib/rag';
+import { retrieveDocuments, retrieveExpanded, resolveLawTitles } from '@/lib/rag';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { getCachedAIResponse, setCachedAIResponse } from '@/lib/ai-cache';
 import { requireUser, requireLawyer } from '@/lib/auth-guard';
@@ -10,6 +10,9 @@ export type SearchResult = {
     source: string;
     content: string;
     score: number;
+    /** ชื่อกฎหมายที่อ่านได้ เช่น "ประมวลกฎหมายที่ดิน" (ถ้าหาได้) */
+    title?: string;
+    year?: number;
 };
 
 // ค้นเอกสารกฎหมายดิบ (ไม่ผ่าน LLM) สำหรับเครื่องมือค้นคว้าในหน้าเคสของทนาย
@@ -30,17 +33,17 @@ export async function searchLaws(query: string, limit: number = 10): Promise<Sea
         throw new Error('Rate limit exceeded. Please wait a moment.');
     }
 
-        if (!query || query.trim() === '') return [];
+    if (!query || query.trim() === '') return [];
 
     try {
-        const results = await retrieveDocuments(query, limit);
-        
-        const filteredResults = results
-            .filter(r => r.score > 0.45) // Slightly lower threshold to capture more, then we clean
-            .sort((a, b) => b.score - a.score)
-            .slice(0, 5); // Limit to top 5 for AI repair to keep it fast
+        // ผู้ใช้พิมพ์ภาษาชาวบ้าน แต่ฐานข้อมูลเป็นภาษาตัวบท — แปลงเป็นคำค้นแบบตัวบทแล้วค้นหลายรอบ
+        const results = await retrieveExpanded(query.trim(), limit);
 
-        if (filteredResults.length === 0) return [];
+        const top = results.slice(0, 8);
+        if (top.length === 0) return [];
+
+        const titles = await resolveLawTitles(top.map(r => r.source));
+        const filteredResults: SearchResult[] = top.map(r => ({ ...r, title: titles.get(r.source) }));
 
         // AI Text Repair: Fix corrupted Thai characters (boxes/encoding issues from PDF)
         const apiKey = process.env.GOOGLE_API_KEY || process.env.GOOGLE_GENAI_API_KEY || '';

@@ -7,7 +7,7 @@ import { limitPublicAction } from '@/lib/security/action-rate-limit';
 
 import { z } from 'zod';
 import { initializeFirebase } from '@/firebase';
-import { retrieveDocuments, resolveLawTitles } from '@/lib/rag';
+import { retrieveDocuments, resolveLawTitles, retrieveExpanded } from '@/lib/rag';
 import { callTyphoonAI } from '@/lib/typhoon';
 import { GoogleGenerativeAI, FunctionDeclaration, SchemaType as GenAISchemaType, Content } from '@google/generative-ai';
 import { collection, getDocs, limit, query } from 'firebase/firestore';
@@ -204,43 +204,6 @@ function stripSourceTags(response: ChatResponse): ChatResponse {
   return clean(response) as ChatResponse;
 }
 
-// คำถามของลูกความเป็นภาษาชาวบ้าน ("เพื่อนบ้านรุกล้ำที่ดิน") แต่ฐานข้อมูลเป็นภาษาตัวบท
-// ("โรงเรือนที่สร้างรุกล้ำเข้าไปในที่ดินของผู้อื่น") ค้นตรง ๆ จึงได้มาตราที่ไม่เกี่ยว
-// ให้ Gemini แปลงเป็นคำค้นแบบตัวบทก่อน แล้วค้นหลายรอบพร้อมกัน
-async function expandLegalQueries(genAI: GoogleGenerativeAI, question: string): Promise<string[]> {
-  // 2.5-flash ตอบ 503 (โหลดสูง) บ่อย — ลองรุ่นเบาต่อ ถ้าพังทั้งคู่ใช้คำถามเดิมค้นอย่างเดียว
-  for (const modelName of ['gemini-2.5-flash', 'gemini-2.5-flash-lite']) {
-    const queries = await expandWith(genAI, modelName, question);
-    if (queries.length > 0) return queries;
-  }
-  return [];
-}
-
-async function expandWith(genAI: GoogleGenerativeAI, modelName: string, question: string): Promise<string[]> {
-  try {
-    const model = genAI.getGenerativeModel({
-      model: modelName,
-      generationConfig: { responseMimeType: 'application/json', temperature: 0 },
-    });
-    const res = await Promise.race([
-      model.generateContent(
-        `Rewrite this Thai legal question into 3 short search queries written the way Thai statutes phrase it ` +
-        `(ประมวลกฎหมายแพ่งและพาณิชย์, ประมวลกฎหมายอาญา, ประมวลกฎหมายที่ดิน, พ.ร.บ. ต่าง ๆ). ` +
-        `Cover the civil, criminal and administrative angles if relevant. Do NOT include section numbers. ` +
-        `Return JSON {"queries": ["...","...","..."]}.\n\nQuestion: ${question}`
-      ),
-      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000)),
-    ]);
-    const parsed = JSON.parse(res.response.text()) as { queries?: unknown };
-    return Array.isArray(parsed.queries)
-      ? parsed.queries.filter((q): q is string => typeof q === 'string' && q.trim().length > 0).slice(0, 3)
-      : [];
-  } catch (e) {
-    console.warn(`[ChatFlow] Query expansion with ${modelName} failed:`, e instanceof Error ? e.message : e);
-    return [];
-  }
-}
-
 export async function chat(
   request: z.infer<typeof ChatRequestSchema>
 ): Promise<ChatResponse> {
@@ -290,26 +253,8 @@ export async function chat(
     // Pre-fetch RAG results before sending to Gemini (legal questions only)
     let ragContext = '';
     try {
-      let ragDocs: Awaited<ReturnType<typeof retrieveDocuments>> = [];
-      if (intent !== 'smalltalk') {
-        const expanded = await expandLegalQueries(new GoogleGenerativeAI(apiKey), prompt);
-        const batches = await Promise.all([prompt, ...expanded].map(q => retrieveDocuments(q, 10)));
-        ragDocs = batches.flat().sort((a, b) => b.score - a.score);
-        console.log(`[ChatFlow] Queries: ${JSON.stringify([prompt, ...expanded])}`);
-      }
-
-      // ฐานข้อมูลมี chunk ซ้ำกันเยอะมาก (ชิ้นเดียวกันถูก index หลายรอบ)
-      // ถ้าไม่ตัดซ้ำ โควตาเอกสารจะถูกกินหมดจนเหลือข้อมูลจริงชิ้นเดียว
-      // แล้ว AI จะถูกบีบให้เดาส่วนที่เหลือ
-      const seen = new Set<string>();
-      const relevantDocs = ragDocs
-        .filter(doc => doc.score > 0.4)
-        .filter(doc => {
-          const key = doc.content.replace(/\s+/g, '').slice(0, 80);
-          if (!key || seen.has(key)) return false;
-          seen.add(key);
-          return true;
-        });
+      // ใช้ตัวค้นเดียวกับหน้าค้นกฎหมาย: แปลงคำถามเป็นคำค้นแบบตัวบท, รวมผลสลับทีละคำค้น, ตัดชิ้นซ้ำ/ขยะ
+      const relevantDocs = intent === 'smalltalk' ? [] : await retrieveExpanded(prompt, 10, 0.4);
 
       if (relevantDocs.length > 0) {
         const topDocs = relevantDocs.slice(0, 8);
@@ -322,7 +267,7 @@ export async function chat(
           const yearTag = doc.year ? ` | year ${doc.year}` : '';
           return `[Source ${i + 1}: ${sourceTitle}${yearTag}]\n${doc.content}`;
         }).join('\n\n---\n\n');
-        console.log(`[ChatFlow] Pre-fetched RAG: ${ragDocs.length} docs -> ${relevantDocs.length} after dedupe for "${prompt.substring(0, 30)}..."`);
+        console.log(`[ChatFlow] Pre-fetched RAG: ${relevantDocs.length} docs after expansion+dedupe for "${prompt.substring(0, 30)}..."`);
       } else if (intent === 'legal') {
         console.log(`[ChatFlow] RAG returned no relevant docs above threshold for "${prompt.substring(0, 30)}..."`);
       }
