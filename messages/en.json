@@ -722,6 +722,7 @@
       "title": "Legal",
       "privacy": "Privacy Policy",
       "terms": "Terms of Service",
+      "cookies": "Cookie Policy",
       "aiDisclaimer": "AI Disclaimer",
       "help": "Help Center",
       "guide": "User Guide"
@@ -1811,5 +1812,12 @@
     "platformNote": "Pay only through Lawslane so you are protected and can get a refund if something goes wrong.",
     "noConversations": "No messages yet",
     "myConversations": "Chats with interpreters"
+  },
+  "CookieBanner": {
+    "title": "We only use necessary cookies",
+    "body": "Our cookies only keep you signed in, remember your language and make chat work. No advertising or tracking cookies.",
+    "link": "Read the Cookie Policy",
+    "accept": "Got it",
+    "close": "Close"
   }
 }

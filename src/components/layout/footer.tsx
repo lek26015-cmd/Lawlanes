@@ -71,6 +71,7 @@ export default function Footer({ userRole, domainType = 'main' }: { userRole: st
   const legalLinks = [
     { href: `/${locale}/privacy`, label: t('legal.privacy') },
     { href: `/${locale}/terms`, label: t('legal.terms') },
+    { href: `/${locale}/cookies`, label: t('legal.cookies') },
     { href: `/${locale}/ai-disclaimer`, label: t('legal.aiDisclaimer') },
     { href: `/${locale}/help`, label: t('legal.help') },
     { href: `/${locale}/guide`, label: t('legal.guide') },

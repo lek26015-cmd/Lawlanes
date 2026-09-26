@@ -41,7 +41,7 @@ export async function POST(request: Request) {
         }
 
         const cookieOptions: any = {
-            maxAge: expiresIn,
+            maxAge: expiresIn / 1000, // Next ใช้วินาที — เดิมส่งมิลลิวินาที คุกกี้เลยค้าง ~13 ปี
             httpOnly: true,
             secure: process.env.NODE_ENV === 'production',
             path: '/',
