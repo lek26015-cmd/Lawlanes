@@ -1757,6 +1757,7 @@
     "overrides": "Days off",
     "addOverride": "Add day off",
     "bankName": "Bank",
+    "bankNamePlaceholder": "Select a bank",
     "bankAccountNumber": "Account number",
     "bankAccountName": "Account name",
     "bankHint": "Used only to pay you after GP. Clients never see this.",
