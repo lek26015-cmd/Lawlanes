@@ -1753,6 +1753,7 @@
     "overrides": "วันหยุดพิเศษ",
     "addOverride": "เพิ่มวันหยุด",
     "bankName": "ธนาคาร",
+    "bankNamePlaceholder": "เลือกธนาคาร",
     "bankAccountNumber": "เลขบัญชี",
     "bankAccountName": "ชื่อบัญชี",
     "bankHint": "ใช้สำหรับโอนค่าจ้างหลังหัก GP เท่านั้น ลูกค้าไม่เห็นข้อมูลนี้",

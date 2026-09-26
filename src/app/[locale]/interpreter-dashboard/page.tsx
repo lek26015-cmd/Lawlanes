@@ -13,6 +13,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { BankSelect } from '@/components/bank-select';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -298,7 +299,7 @@ function BankTab({ profile }: { profile: MyInterpreterProfile }) {
     return (
         <Card className="rounded-2xl border-none shadow-sm"><CardContent className="p-6 space-y-4 max-w-md">
             <p className="text-sm text-muted-foreground">{t('bankHint')}</p>
-            <div className="space-y-1"><Label htmlFor="bn">{t('bankName')}</Label><Input id="bn" value={bankName} maxLength={60} onChange={e => setBankName(e.target.value)} /></div>
+            <div className="space-y-1"><Label htmlFor="bn">{t('bankName')}</Label><BankSelect id="bn" value={bankName} onChange={setBankName} placeholder={t('bankNamePlaceholder')} /></div>
             <div className="space-y-1"><Label htmlFor="ba">{t('bankAccountNumber')}</Label><Input id="ba" inputMode="numeric" value={bankAccountNumber} maxLength={20} onChange={e => setNumber(e.target.value)} /></div>
             <div className="space-y-1"><Label htmlFor="bh">{t('bankAccountName')}</Label><Input id="bh" value={bankAccountName} maxLength={100} onChange={e => setName(e.target.value)} /></div>
             <Button disabled={saving} className="bg-[#0B3979]" onClick={save}>{saving && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}{t('save')}</Button>

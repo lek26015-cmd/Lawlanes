@@ -1756,6 +1756,7 @@
     "overrides": "特别休息日",
     "addOverride": "添加休息日",
     "bankName": "银行",
+    "bankNamePlaceholder": "选择银行",
     "bankAccountNumber": "账号",
     "bankAccountName": "户名",
     "bankHint": "仅用于扣除 GP 后向您付款，客户看不到。",
