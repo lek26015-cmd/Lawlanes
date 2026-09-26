@@ -1,4 +1,5 @@
 import { createHash } from 'crypto';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
 // Use environment variable with fallback to the known deployed URL
 const WORKER_URL = process.env.NEXT_PUBLIC_RAG_WORKER_URL || 'https://lawslane-rag-api.lawlanes-app.workers.dev';
@@ -144,6 +145,12 @@ export async function resolveLawTitles(sources: string[]): Promise<Map<string, s
             if (name) out.set(source, `${name} มาตรา ${csv[2]}`);
             continue;
         }
+        // "กฎหมาย/ประมวลกฎหมายที่ดิน (ฉบับ Update ล่าสุด)/..." — ชื่อกฎหมายอยู่ในโฟลเดอร์ชั้นแรก
+        const named = source.match(/^กฎหมาย\/([^/]+)\//);
+        if (named) {
+            out.set(source, named[1].replace(/\s*\((ฉบับ\s*)?update[^)]*\)/i, '').trim());
+            continue;
+        }
         const kd = source.match(KRISDIKA_SOURCE);
         if (!kd) continue;
         if (lawTitleCache.has(source)) {
@@ -180,4 +187,75 @@ export async function resolveLawTitles(sources: string[]): Promise<Map<string, s
         }
     }
     return out;
+}
+
+// คำถามของลูกความเป็นภาษาชาวบ้าน ("เพื่อนบ้านรุกล้ำที่ดิน") แต่ฐานข้อมูลเป็นภาษาตัวบท
+// ("โรงเรือนที่สร้างรุกล้ำเข้าไปในที่ดินของผู้อื่น") ค้นตรง ๆ จึงได้มาตราที่ไม่เกี่ยว
+// ให้ Gemini แปลงเป็นคำค้นแบบตัวบทก่อน แล้วค้นหลายรอบพร้อมกัน
+export async function expandLegalQueries(question: string): Promise<string[]> {
+  const apiKey = process.env.GOOGLE_API_KEY || process.env.GOOGLE_GENAI_API_KEY || '';
+  if (!apiKey) return [];
+  const genAI = new GoogleGenerativeAI(apiKey);
+  // 3.5-flash-lite ตอบ ~2 วินาที; 2.5-flash ช้า (3-5 วิ) และ 503 บ่อย จึงเป็นตัวสำรอง
+  // (2.5-flash-lite ปิดให้ผู้ใช้ใหม่แล้ว — ตอบ 404) ถ้าพังทั้งคู่ค้นด้วยคำถามเดิมอย่างเดียว
+  for (const modelName of ['gemini-3.5-flash-lite', 'gemini-2.5-flash']) {
+    const queries = await expandWith(genAI, modelName, question);
+    if (queries.length > 0) return queries;
+  }
+  return [];
+}
+
+async function expandWith(genAI: GoogleGenerativeAI, modelName: string, question: string): Promise<string[]> {
+  try {
+    const model = genAI.getGenerativeModel({
+      model: modelName,
+      generationConfig: { responseMimeType: 'application/json', temperature: 0 },
+    });
+    const res = await Promise.race([
+      model.generateContent(
+        `You help search a database of Thai statute text by meaning. Write 4 search queries for the question below. ` +
+        `Each query must read like a phrase that literally appears inside a Thai statute section, e.g. ` +
+        `"บุคคลใดสร้างโรงเรือนในที่ดินของผู้อื่นโดยสุจริต" or "ผู้ใดเข้าไปในอสังหาริมทรัพย์ของผู้อื่น". ` +
+        `Cover the civil, criminal and procedural/administrative rules that could apply. ` +
+        `Do NOT include law names or section numbers. Return JSON {"queries": ["...","...","...","..."]}.\n\nQuestion: ${question}`
+      ),
+      new Promise<never>((_, reject) => setTimeout(() => reject(new Error('timeout')), 8000)),
+    ]);
+    const parsed = JSON.parse(res.response.text()) as { queries?: unknown };
+    return Array.isArray(parsed.queries)
+      ? parsed.queries.filter((q): q is string => typeof q === 'string' && q.trim().length > 0).slice(0, 4)
+      : [];
+  } catch (e) {
+    console.warn(`[RAG] Query expansion with ${modelName} failed:`, e instanceof Error ? e.message : e);
+    return [];
+  }
+}
+
+// ค้นหลายคำค้นพร้อมกัน แล้วรวมผลแบบสลับทีละคำค้น (round-robin) — ถ้าเรียงคะแนนรวมอย่างเดียว
+// คำค้นที่ได้คะแนนสูงแต่ตอบแค่มุมเดียว (เช่น อาญา) จะเบียดมุมอื่น (แพ่ง/ที่ดิน) ออกหมด
+// ตัดชิ้นซ้ำ (index มี chunk ซ้ำเยอะ) และชิ้นขยะสั้น ๆ ออกก่อน
+export async function retrieveExpanded(question: string, perQuery: number = 10, minScore: number = 0.45) {
+    const expanded = await expandLegalQueries(question);
+    const batches = await Promise.all([question, ...expanded].map(q => retrieveDocuments(q, perQuery)));
+    const seen = new Set<string>();
+    const usable = (d: { content: string; score: number }) => {
+        const compact = d.content.replace(/\s+/g, '');
+        // ชุดราชกิจจาฯ มีชิ้นขยะยาว 10-40 ตัวอักษร (เศษหัวกระดาษจาก OCR) ที่คะแนนสูงเกินจริง
+        if (compact.length < 60 || d.score <= minScore) return false;
+        const key = compact.slice(0, 80);
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+    };
+    const queues = batches.map(b => [...b].sort((x, y) => y.score - x.score));
+    const merged: Awaited<ReturnType<typeof retrieveDocuments>> = [];
+    while (queues.some(q => q.length > 0)) {
+        for (const q of queues) {
+            while (q.length > 0) {
+                const d = q.shift()!;
+                if (usable(d)) { merged.push(d); break; }
+            }
+        }
+    }
+    return merged;
 }
