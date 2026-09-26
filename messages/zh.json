@@ -114,10 +114,19 @@
       "emptyTitle": "未找到文章",
       "emptyDescription": "系统中目前没有法律文章。请稍后再试。"
     },
+    "joinUs": {
+      "title": "加入 Lawslane",
+      "subtitle": "我们正在招募愿意通过在线平台服务客户的律师和翻译员。"
+    },
     "forLawyersFooter": {
       "title": "律师专用",
       "description": "加入我们，扩大您的客户群并建立在线信誉。",
       "button": "申请成为律师"
+    },
+    "forInterpretersFooter": {
+      "title": "翻译员与笔译员",
+      "description": "承接法院、警察局、律师会谈口译及法律文件翻译，自定价格，可现场或线上工作。",
+      "button": "申请成为翻译员"
     },
     "stats": {
       "247": "24/7 服务",
