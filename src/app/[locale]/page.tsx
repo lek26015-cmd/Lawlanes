@@ -28,6 +28,9 @@ import lawslaneCoverPhoto from '@/pic/lawslane-cover-photo.webp';
 import lawslaneHeroCover from '@/pic/Lawlanes-Hero-cover.jpg';
 
 export const dynamic = 'error';
+// หน้าแรกเป็น static — ไม่มี revalidate = render ครั้งเดียวตอน build ทนาย/ล่ามที่อนุมัติใหม่ไม่ขึ้นจนกว่าจะ deploy ใหม่
+// 300 วินาทีเท่ากับหน้า /lawyers และ /interpreters
+export const revalidate = 300;
 
 export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
