@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
+import interpreterHero from '@/pic/lawslane-interpreter.webp';
 import { CalendarCheck, CheckCircle2, FileCheck2, Loader2, Upload, Wallet } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Button } from '@/components/ui/button';
@@ -112,10 +114,19 @@ export default function ForInterpretersClient({ gpPercent }: { gpPercent: number
 
     return (
         <div className="bg-gray-50 min-h-screen">
-            <section className="bg-[#0B3979] text-white">
-                <div className="container mx-auto px-4 md:px-6 py-14 max-w-5xl">
-                    <h1 className="text-3xl md:text-4xl font-bold font-headline">{t('heroTitle')}</h1>
-                    <p className="mt-3 text-blue-100 max-w-2xl">{t('heroSubtitle')}</p>
+            <section className="bg-[#0B3979] text-white overflow-hidden">
+                <div className="container mx-auto px-4 md:px-6 max-w-5xl md:grid md:grid-cols-[1fr_auto] md:items-end md:gap-8">
+                    <div className="py-14">
+                        <h1 className="text-3xl md:text-4xl font-bold font-headline">{t('heroTitle')}</h1>
+                        <p className="mt-3 text-blue-100 max-w-2xl">{t('heroSubtitle')}</p>
+                    </div>
+                    <Image
+                        src={interpreterHero}
+                        alt=""
+                        priority
+                        sizes="(min-width: 768px) 260px, 0px"
+                        className="hidden md:block w-[220px] lg:w-[260px] h-auto self-end"
+                    />
                 </div>
             </section>
 
