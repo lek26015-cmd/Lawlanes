@@ -136,14 +136,14 @@ export function HomeRecommendedLawyers({ initialLawyers, initialInterpreters = [
                         <div className="mt-16 pt-12 border-t border-slate-200">
                                 <FadeIn direction="up">
                                     {/* แบนเนอร์ล่าม — ภาพเดียวกับ hero หน้า /interpreters */}
-                                    <div className="relative mb-8 overflow-hidden rounded-3xl bg-[#0B3979] text-white sm:grid sm:grid-cols-[1fr_auto] sm:items-end sm:gap-6">
+                                    <div className="relative mb-8 overflow-hidden rounded-3xl bg-slate-900 text-white sm:grid sm:grid-cols-[1fr_auto] sm:items-end sm:gap-6">
                                         <div className="sm:hidden relative h-[220px]">
                                             <Image src={interpreterHero} alt="" fill sizes="100vw" className="object-contain object-top opacity-80" />
-                                            <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-[#0B3979] to-transparent" />
+                                            <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-slate-900 to-transparent" />
                                         </div>
                                         <div className="relative px-6 pb-8 -mt-6 text-center sm:mt-0 sm:py-10 sm:pl-10 sm:text-left">
                                             <h3 className="text-2xl font-bold tracking-tight font-headline sm:text-3xl">{tInterp('title')}</h3>
-                                            <p className="mt-2 text-blue-100 leading-relaxed">{tInterp('subtitle')}</p>
+                                            <p className="mt-2 text-gray-300 leading-relaxed">{tInterp('subtitle')}</p>
                                         </div>
                                         <Image src={interpreterHero} alt="" sizes="200px" className="hidden sm:block w-[170px] lg:w-[200px] h-auto mr-6" />
                                     </div>
