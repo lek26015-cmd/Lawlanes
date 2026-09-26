@@ -1,6 +1,8 @@
 
 'use client';
 
+import LawyerPageHeader, { LawyerPageLoading } from '@/components/lawyer/lawyer-page-header';
+
 import { useState, useEffect, Suspense } from 'react';
 import { useParams, notFound, useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -15,8 +17,7 @@ import {
   Check,
   X,
   Loader2,
-  DollarSign
-} from 'lucide-react';
+  DollarSign, Inbox } from 'lucide-react';
 import {
   Card,
   CardHeader,
@@ -129,9 +130,7 @@ function RequestDetailPageContent() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-[calc(100vh-200px)] items-center justify-center">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
-      </div>
+      <LawyerPageLoading />
     );
   }
 
@@ -140,32 +139,19 @@ function RequestDetailPageContent() {
   }
 
   return (
-    <div className="bg-gray-100/50 py-12">
-      <div className="container mx-auto max-w-3xl px-4 md:px-6">
-        <div className="mb-6">
-          <Link
-            href="/lawyer-dashboard"
-            className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            กลับไปที่แดชบอร์ด
-          </Link>
-        </div>
+    <div className="max-w-3xl space-y-6">
+        <LawyerPageHeader
+          icon={Inbox}
+          title="คำขอปรึกษา"
+          description="ตรวจสอบรายละเอียดและตัดสินใจรับเคส"
+          back={{ href: '/lawyer-dashboard', label: 'ภาพรวม' }}
+        />
 
-        <Card className="overflow-hidden shadow-lg">
-          <CardHeader className="bg-background p-6">
-            <CardTitle className="text-2xl font-bold font-headline">
-              รายละเอียดคำขอปรึกษา
-            </CardTitle>
-            <CardDescription>
-              ตรวจสอบรายละเอียดและตัดสินใจรับเคส
-            </CardDescription>
-          </CardHeader>
+        <Card className="rounded-2xl border shadow-sm overflow-hidden">
           <CardContent className="space-y-6 p-6">
             <div className="space-y-4 rounded-lg border bg-secondary/30 p-4">
               <div className="flex items-center gap-4">
                 <Avatar className="h-14 w-14">
-                  <AvatarImage src="https://picsum.photos/seed/user-avatar/100/100" />
                   <AvatarFallback>{request.clientName.charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div>
@@ -266,7 +252,6 @@ function RequestDetailPageContent() {
             </AlertDialog>
           </CardFooter>
         </Card>
-      </div>
     </div>
   );
 }

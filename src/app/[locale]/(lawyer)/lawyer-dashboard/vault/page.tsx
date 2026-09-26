@@ -1,5 +1,7 @@
 'use client';
 
+import LawyerPageHeader from '@/components/lawyer/lawyer-page-header';
+
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
@@ -23,7 +25,6 @@ import {
     Trash2,
     Download,
 } from 'lucide-react';
-import LawyerSidebar from '@/components/layout/lawyer-sidebar';
 import { useToast } from '@/hooks/use-toast';
 import {
     Dialog,
@@ -190,28 +191,17 @@ export default function LawyerVaultPage() {
     };
 
     return (
-        <div className="flex h-screen overflow-hidden bg-background">
-            <LawyerSidebar />
-            <main className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6">
-                {/* Header */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
-                        <h1 className="text-2xl md:text-3xl font-extrabold text-[#002f4b] dark:text-blue-400 flex items-center gap-2">
-                            <FolderLock className="w-7 h-7" />
-                            คลังเอกสารคดี (Case Vault)
-                            <Badge variant="outline" className="text-[10px] uppercase font-bold bg-blue-50 text-blue-700 border-blue-200">
-                                256-bit AES
-                            </Badge>
-                        </h1>
-                        <p className="text-muted-foreground text-sm mt-1">
-                            จัดเก็บเอกสารคำฟ้อง พยานหลักฐาน และแชร์ให้ลูกความอย่างปลอดภัยตามมาตรฐานความลับทางวิชาชีพ
-                        </p>
-                    </div>
-
-                    <Button className="rounded-xl gap-2 text-white shadow-lg" style={{ background: 'linear-gradient(135deg, #002f4b, #00466c)' }} onClick={() => setIsUploadOpen(true)}>
+        <>
+                <LawyerPageHeader
+                    icon={FolderLock}
+                    title="คลังเอกสารคดี"
+                    description="จัดเก็บเอกสารคำฟ้อง พยานหลักฐาน และแชร์ให้ลูกความผ่านลิงก์"
+                    actions={
+                    <Button className="rounded-xl gap-2 bg-[#002f4b] hover:bg-[#00466c] text-white" onClick={() => setIsUploadOpen(true)}>
                         <Upload className="w-4 h-4" /> อัปโหลดเอกสารคดี
                     </Button>
-                </div>
+                    }
+                />
 
                 {/* Storage & Security Status */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -405,7 +395,6 @@ export default function LawyerVaultPage() {
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
-            </main>
-        </div>
+            </>
     );
 }

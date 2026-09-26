@@ -1,5 +1,7 @@
 'use client';
 
+import LawyerPageHeader from '@/components/lawyer/lawyer-page-header';
+
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -15,7 +17,6 @@ import {
     Scale,
     Loader2,
 } from 'lucide-react';
-import LawyerSidebar from '@/components/layout/lawyer-sidebar';
 import { useToast } from '@/hooks/use-toast';
 import {
     Dialog,
@@ -150,24 +151,15 @@ export default function LawyerCasesPage() {
     };
 
     return (
-        <div className="flex h-screen overflow-hidden bg-background">
-            <LawyerSidebar />
-            <main className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6">
-                {/* Header */}
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                    <div>
-                        <h1 className="text-2xl md:text-3xl font-extrabold text-[#002f4b] dark:text-blue-400 flex items-center gap-2">
-                            <Briefcase className="w-7 h-7" />
-                            จัดการคดีและลูกความ (Case Management)
-                        </h1>
-                        <p className="text-muted-foreground text-sm mt-1">
-                            ติดตามความคืบหน้าของคดี กำหนดนัดศาล และจัดการลูกความแบบครบวงจร
-                        </p>
-                    </div>
-
+        <>
+                <LawyerPageHeader
+                    icon={Briefcase}
+                    title="จัดการคดีและลูกความ"
+                    description="ติดตามความคืบหน้าของคดี กำหนดนัดศาล และลูกความของคุณ"
+                    actions={
                     <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
                         <DialogTrigger asChild>
-                            <Button className="rounded-xl gap-2 text-white shadow-lg" style={{ background: 'linear-gradient(135deg, #002f4b, #00466c)' }}>
+                            <Button className="rounded-xl gap-2 text-white shadow-lg">
                                 <Plus className="w-4 h-4" /> เปิดสำนวนคดีใหม่
                             </Button>
                         </DialogTrigger>
@@ -224,7 +216,8 @@ export default function LawyerCasesPage() {
                             </DialogFooter>
                         </DialogContent>
                     </Dialog>
-                </div>
+                    }
+                />
 
                 {/* Pipeline Stats */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -335,7 +328,6 @@ export default function LawyerCasesPage() {
                         </div>
                     )}
                 </div>
-            </main>
-        </div>
+            </>
     );
 }

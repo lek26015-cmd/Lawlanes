@@ -1,6 +1,8 @@
 
 'use client';
 
+import LawyerPageHeader from '@/components/lawyer/lawyer-page-header';
+
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
@@ -270,15 +272,14 @@ ${showInstallments ? `โดยแบ่งชำระเป็นดังน�
 
   if (createdChatId) {
     return (
-      <div className="bg-slate-50 min-h-screen pb-20">
-        <div className="container mx-auto max-w-2xl px-4 py-20">
-          <Card className="shadow-2xl border-none rounded-3xl overflow-hidden animate-in zoom-in-95 duration-500">
+      <div className="max-w-2xl mx-auto py-8">
+          <Card className="rounded-2xl border shadow-sm overflow-hidden">
             <div className="h-3 bg-green-500"></div>
             <CardHeader className="text-center pt-10">
               <div className="mx-auto w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mb-4 text-green-600">
                 <CheckCircle2 className="w-12 h-12" />
               </div>
-              <CardTitle className="text-3xl font-black text-slate-900 uppercase italic">สร้างคดีสำเร็จ!</CardTitle>
+              <CardTitle className="text-2xl font-bold text-slate-900">สร้างคดีสำเร็จ</CardTitle>
               <CardDescription className="text-lg">
                 ข้อเสนอเปิดคดีของคุณถูกส่งไปยังลูกความทางแชทเรียบร้อยแล้ว <br/>
                 คุณสามารถกลับไปยังห้องแชทเพื่อตรวจสอบสถานะการชำระเงินของลูกความได้ทันที
@@ -326,28 +327,18 @@ ${showInstallments ? `โดยแบ่งชำระเป็นดังน�
               </div>
             </CardContent>
           </Card>
-        </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-slate-50 min-h-screen pb-20">
-      <div className="container mx-auto max-w-6xl px-4 py-8">
-        {/* Navigation */}
-        <div className="flex items-center gap-2 mb-8 text-sm text-slate-500">
-          <Link href="/lawyer-dashboard/pipeline" className="flex items-center gap-1.5 hover:text-blue-600 transition-colors group">
-            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-            กลับไปหน้า Pipeline
-          </Link>
-        </div>
-
-        <div className="mb-8">
-          <h1 className="text-3xl font-black text-slate-900 font-headline italic tracking-tight uppercase flex items-center gap-3">
-             <Plus className="w-8 h-8 text-blue-600" /> เปิดเคสใหม่
-          </h1>
-          <p className="text-slate-500 mt-2">กรอกข้อมูลเบื้องต้นเพื่อเริ่มต้นการจัดการคดีในรูปแบบ Pipeline</p>
-        </div>
+    <div className="space-y-6">
+        <LawyerPageHeader
+          icon={Plus}
+          title="เปิดเคสใหม่"
+          description="กรอกข้อมูลเบื้องต้นเพื่อเริ่มจัดการคดี"
+          back={{ href: '/lawyer-dashboard/pipeline', label: 'Pipeline คดี' }}
+        />
 
         {step === 1 ? (
           <form onSubmit={handleSubmit}>
@@ -357,7 +348,7 @@ ${showInstallments ? `โดยแบ่งชำระเป็นดังน�
               {/* Left Column: Case & Client Info */}
               <div className="space-y-6">
                 {/* Step 1: Basic Information */}
-                <Card className="shadow-sm border-slate-200 rounded-3xl overflow-hidden min-h-[300px]">
+                <Card className="rounded-2xl border shadow-sm overflow-hidden min-h-[300px]">
                   <div className="h-2 bg-blue-600"></div>
                   <CardHeader>
                     <CardTitle className="text-lg flex items-center gap-2">
@@ -427,7 +418,7 @@ ${showInstallments ? `โดยแบ่งชำระเป็นดังน�
                 </Card>
 
                 {/* Step 2: Client Selection */}
-                <Card className="shadow-sm border-slate-200 rounded-3xl min-h-[220px]">
+                <Card className="rounded-2xl border shadow-sm min-h-[220px]">
                   <CardHeader>
                     <CardTitle className="text-lg flex items-center gap-2">
                       <User className="w-5 h-5 text-blue-500" /> ข้อมูลลูกความ
@@ -540,7 +531,7 @@ ${showInstallments ? `โดยแบ่งชำระเป็นดังน�
               {/* Right Column: Financials & Timeline */}
               <div className="space-y-6">
                 {/* Step 3: Timeline & Financials */}
-                <Card className="shadow-sm border-slate-200 rounded-3xl overflow-hidden min-h-[300px]">
+                <Card className="rounded-2xl border shadow-sm overflow-hidden min-h-[300px]">
                   <CardHeader>
                     <CardTitle className="text-lg flex items-center gap-2">
                       <DollarSign className="w-5 h-5 text-blue-500" /> การเงินและระยะเวลา
@@ -658,7 +649,7 @@ ${showInstallments ? `โดยแบ่งชำระเป็นดังน�
                 </Card>
 
                 {/* Step 4: Notes & Details */}
-                <Card className="shadow-sm border-slate-200 rounded-3xl min-h-[220px]">
+                <Card className="rounded-2xl border shadow-sm min-h-[220px]">
                   <CardHeader>
                     <CardTitle className="text-lg flex items-center gap-2">
                       <CheckCircle2 className="w-5 h-5 text-blue-500" /> รายละเอียดเพิ่มเติม
@@ -887,7 +878,6 @@ ${showInstallments ? `โดยแบ่งชำระเป็นดังน�
             </div>
           </div>
         )}
-      </div>
     </div>
   );
 }

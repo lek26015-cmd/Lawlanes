@@ -19,7 +19,6 @@ import type { Milestone } from '@/lib/types/billing-types';
 import { getUserDashboardData } from '@/app/actions/dashboard-actions';
 import { useTranslations } from 'next-intl';
 import { getSecureDownloadUrl } from '@/app/actions/secure-view';
-import { CaseRoadmap } from '@/components/case/case-roadmap';
 import { LegalResearchTool } from '@/components/case/legal-research-tool';
 import { getInvoicesByChatAction, getContractsByChatAction, signContractAction } from '@/app/actions/billing-actions';
 import { SignaturePad } from '@/components/ui/signature-pad';
