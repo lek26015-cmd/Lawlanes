@@ -705,6 +705,7 @@
       "title": "法律",
       "privacy": "隐私政策",
       "terms": "服务条款",
+      "cookies": "Cookie 政策",
       "aiDisclaimer": "AI 免责声明",
       "help": "帮助中心",
       "guide": "用户指南"
@@ -1472,5 +1473,12 @@
       "noAccount": "还没有账号？",
       "signupHere": "立即注册"
     }
+  },
+  "CookieBanner": {
+    "title": "我们只使用必要的 Cookie",
+    "body": "我们的 Cookie 仅用于保持登录、记住语言和支持聊天功能，不含广告或追踪 Cookie。",
+    "link": "阅读 Cookie 政策",
+    "accept": "知道了",
+    "close": "关闭"
   }
 }

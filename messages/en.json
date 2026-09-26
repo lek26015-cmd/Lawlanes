@@ -707,6 +707,7 @@
       "title": "Legal",
       "privacy": "Privacy Policy",
       "terms": "Terms of Service",
+      "cookies": "Cookie Policy",
       "aiDisclaimer": "AI Disclaimer",
       "help": "Help Center",
       "guide": "User Guide"
@@ -1473,5 +1474,12 @@
       "noAccount": "No account yet?",
       "signupHere": "Sign up here"
     }
+  },
+  "CookieBanner": {
+    "title": "We only use necessary cookies",
+    "body": "Our cookies only keep you signed in, remember your language and make chat work. No advertising or tracking cookies.",
+    "link": "Read the Cookie Policy",
+    "accept": "Got it",
+    "close": "Close"
   }
 }
