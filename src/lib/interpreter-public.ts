@@ -1,3 +1,4 @@
+import { effectiveTier } from '@/lib/provider-plans';
 import 'server-only';
 
 /**
@@ -58,6 +59,7 @@ export function toPublicInterpreter(id: string, d: FirebaseFirestore.DocumentDat
         verifiedCredentials: Array.isArray(d.verifiedCredentials) ? d.verifiedCredentials.map(String) : [],
         averageRating: typeof d.averageRating === 'number' ? d.averageRating : undefined,
         reviewCount: typeof d.reviewCount === 'number' ? d.reviewCount : undefined,
+        planTier: effectiveTier(d.plan),
         status: d.status || 'pending',
         joinedAt: d.joinedAt?.toDate ? d.joinedAt.toDate().toISOString() : null,
     };

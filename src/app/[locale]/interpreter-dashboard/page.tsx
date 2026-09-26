@@ -5,7 +5,7 @@
  * สิทธิ์ตรวจใน server action ทุกตัว (requireInterpreter) middleware เป็นแค่ด่าน UX
  */
 
-import { useCallback, useEffect, useState } from 'react';
+import { Suspense, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { AlertTriangle, Globe2, Loader2, MapPin, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -37,6 +37,7 @@ import { InterpreterProfileFields, type InterpreterProfileValues } from '@/compo
 import { useInterpreterLabels } from '@/components/interpreter/use-interpreter-labels';
 import { ProfilePhotoPicker } from '@/components/interpreter/profile-photo-picker';
 import { InterpreterConversationsList } from '@/components/interpreter/interpreter-conversations-list';
+import { ProviderPlanPanel } from '@/components/plans/provider-plan-panel';
 import type { InterpreterBookingView, MyInterpreterProfile } from '@/lib/interpreter-types';
 import type { LawyerSchedule } from '@/lib/types';
 
@@ -313,6 +314,11 @@ export default function InterpreterDashboardPage() {
     const [profile, setProfile] = useState<MyInterpreterProfile | null | undefined>(undefined);
     const [data, setData] = useState<DashboardData | null>(null);
     const [gpPercent, setGpPercent] = useState(0);
+    // ?tab=plan — กลับมาจากหน้าชำระเงิน Stripe ให้เปิดแท็บแพลนตรง
+    const [initialTab, setInitialTab] = useState<string | null>(null);
+    useEffect(() => {
+        setInitialTab(new URLSearchParams(window.location.search).get('tab'));
+    }, []);
 
     const load = useCallback(async () => {
         const [p, d, gp] = await Promise.all([
@@ -353,7 +359,7 @@ export default function InterpreterDashboardPage() {
                     </div>
                 )}
 
-                <Tabs defaultValue={profile.status === 'approved' ? 'jobs' : 'profile'}>
+                <Tabs defaultValue={profile.status === 'approved' ? (initialTab || 'jobs') : 'profile'}>
                     <TabsList className="flex flex-wrap h-auto">
                         <TabsTrigger value="jobs">{t('tabJobs')}</TabsTrigger>
                         <TabsTrigger value="messages">{t('tabMessages')}</TabsTrigger>
@@ -361,6 +367,7 @@ export default function InterpreterDashboardPage() {
                         <TabsTrigger value="profile">{t('tabProfile')}</TabsTrigger>
                         <TabsTrigger value="schedule">{t('tabSchedule')}</TabsTrigger>
                         <TabsTrigger value="bank">{t('tabBank')}</TabsTrigger>
+                        {profile.status === 'approved' && <TabsTrigger value="plan">{t('tabPlan')}</TabsTrigger>}
                     </TabsList>
                     <TabsContent value="jobs" className="pt-4">
                         {data ? <JobsTab data={data} reload={load} /> : <p className="text-muted-foreground">{t('noJobs')}</p>}
@@ -382,6 +389,11 @@ export default function InterpreterDashboardPage() {
                     <TabsContent value="bank" className="pt-4">
                         <BankTab profile={profile} />
                     </TabsContent>
+                    {profile.status === 'approved' && (
+                        <TabsContent value="plan" className="pt-4">
+                            <Suspense fallback={null}><ProviderPlanPanel kind="interpreter" /></Suspense>
+                        </TabsContent>
+                    )}
                 </Tabs>
             </div>
         </div>
