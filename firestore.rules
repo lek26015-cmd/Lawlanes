@@ -767,6 +767,55 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // ─── ล่ามทนาย (Legal Interpreter) ─────────────────────────────────
+    // เขียนทั้งหมดผ่าน Admin SDK (src/app/actions/interpreter-*-actions.ts และ lawslane-admin)
+    // ซึ่งบังคับสถานะ/ราคา/GP ฝั่ง server — client เขียนตรงไม่ได้เลย
+    // หน้าสาธารณะอ่านผ่าน getApprovedInterpretersAction (allowlist) จึงไม่เปิด list
+    match /interpreterProfiles/{uid} {
+      allow get: if isAdmin() || isOwner(uid);
+      allow list: if isAdmin();
+      allow write: if isAdmin();
+
+      // ข้อมูลติดต่อ เอกสาร บัญชีรับเงิน
+      match /private/{docId} {
+        allow read: if isAdmin() || isOwner(uid);
+        allow write: if isAdmin();
+      }
+    }
+
+    // มีที่อยู่/รายละเอียดงานของลูกค้า — อ่านได้เฉพาะคู่กรณี
+    match /interpreterBookings/{bookingId} {
+      allow get, list: if isAdmin() || (isSignedIn() && (
+        resource.data.customerId == request.auth.uid ||
+        resource.data.interpreterId == request.auth.uid
+      ));
+      allow write: if isAdmin();
+    }
+
+    // ตัวล็อกเวลากันจองชน — ใช้ใน transaction ฝั่ง server เท่านั้น
+    match /interpreterSlots/{slotId} {
+      allow read, write: if isAdmin();
+    }
+
+    // แชทลูกค้า↔ล่าม + ใบเสนอราคา — อ่าน/เขียนผ่าน server action เท่านั้น
+    // (ต้นฉบับข้อความที่ถูกปิดข้อมูลติดต่อเก็บอยู่ในนี้ ห้ามให้คู่สนทนาอ่านตรง)
+    match /interpreterConversations/{conversationId}/{document=**} {
+      allow read, write: if isAdmin();
+    }
+    match /interpreterConversations/{conversationId} {
+      allow read, write: if isAdmin();
+    }
+
+    // ข้อมูลติดต่อลูกค้าของแต่ละงาน — ล่ามเห็นผ่าน server action หลังจ่ายเงินแล้วเท่านั้น
+    match /interpreterBookings/{bookingId}/private/{docId} {
+      allow read, write: if isAdmin();
+    }
+
+    match /interpreterPayouts/{payoutId} {
+      allow get, list: if isAdmin() || (isSignedIn() && resource.data.interpreterId == request.auth.uid);
+      allow write: if isAdmin();
+    }
+
     // Default deny at the very end
     match /{document=**} {
       allow read, write: if false;

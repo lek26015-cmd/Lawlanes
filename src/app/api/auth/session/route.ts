@@ -82,6 +82,9 @@ export async function POST(request: Request) {
                 const lawyerDoc = await db.collection('lawyerProfiles').doc(decodedToken.uid).get();
                 if (lawyerDoc.exists) {
                     role = 'lawyer';
+                } else if ((await db.collection('interpreterProfiles').doc(decodedToken.uid).get()).exists) {
+                    // ล่าม (doc id = uid) — ใช้แค่เลือกหน้าแรกหลังล็อกอิน สิทธิ์จริงคือ requireInterpreter()
+                    role = 'interpreter';
                 } else {
                     // Priority 3: Check Users collection
                     const userDoc = await db.collection('users').doc(decodedToken.uid).get();
@@ -101,7 +104,9 @@ export async function POST(request: Request) {
         });
 
         // Calculate a safe suggested redirect
-        let suggestedRedirect = role === 'lawyer' ? '/lawyer-dashboard' : '/dashboard';
+        let suggestedRedirect = role === 'lawyer' ? '/lawyer-dashboard'
+            : role === 'interpreter' ? '/interpreter-dashboard'
+            : '/dashboard';
         
         // รับเฉพาะ path ภายในเว็บ หรือ URL เต็มที่เป็นโดเมนของเราเอง (หน้า login ส่งต่อข้าม
         // subdomain ได้) — เดิมคืนค่าที่ส่งมาตรงๆ = open redirect: ลิงก์ login?redirect=https://evil

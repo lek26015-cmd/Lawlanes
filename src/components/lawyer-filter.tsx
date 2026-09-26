@@ -24,16 +24,29 @@ import { thaiProvinces } from '@/lib/thai-provinces';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Button } from '@/components/ui/button';
-import { Scale, ShieldCheck } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Languages, Scale, ShieldCheck } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Link } from '@/navigation';
+import { useInterpreterLabels } from '@/components/interpreter/use-interpreter-labels';
+import { INTERPRETER_LANGUAGE_CODES, INTERPRETER_SERVICES } from '@/lib/interpreter-types';
+import { cn } from '@/lib/utils';
+
+type SearchTarget = 'lawyer' | 'interpreter';
 
 export default function LawyerFilterSidebar() {
   const t = useTranslations('Lawyers');
   const tVerify = useTranslations('VerifyLawyer');
+  const tInterp = useTranslations('Interpreters');
+  const l = useInterpreterLabels();
   const router = useRouter();
   const pathname = usePathname();
 
+  const [target, setTarget] = useState<SearchTarget>('lawyer');
+  // จังหวัดใช้ร่วมกันทั้งสองโหมด — สลับไปมาแล้วค่าไม่หาย
+  const [language, setLanguage] = useState<string>('all');
+  const [service, setService] = useState<string>('all');
+  const [remoteOnly, setRemoteOnly] = useState(false);
   const [specialty, setSpecialty] = useState<string>('all');
   const [minRating, setMinRating] = useState<string>('all');
   const [province, setProvince] = useState<string>('all');
@@ -53,6 +66,16 @@ export default function LawyerFilterSidebar() {
 
   const handleSearch = () => {
     const params = new URLSearchParams();
+    if (target === 'interpreter') {
+      // พารามิเตอร์ตรงกับที่ /interpreters อ่าน (lang, service, province, remote)
+      if (language !== 'all') params.set('lang', language);
+      if (service !== 'all') params.set('service', service);
+      if (province !== 'all') params.set('province', province);
+      if (remoteOnly) params.set('remote', '1');
+      const qs = params.toString();
+      router.push(`/interpreters${qs ? `?${qs}` : ''}`);
+      return;
+    }
     if (specialty !== 'all') params.set('specialties', specialty);
     if (minRating !== 'all') params.set('rating', minRating);
     if (province !== 'all') params.set('province', province);
@@ -71,6 +94,65 @@ export default function LawyerFilterSidebar() {
         <CardTitle className="text-xl text-[#0B3979] font-headline">{t('filter.title')}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-6 pt-6">
+        <div className="space-y-3">
+          <Label className="text-sm font-semibold text-slate-700">{t('filter.searchFor')}</Label>
+          <div role="radiogroup" className="grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1">
+            {([
+              { value: 'lawyer', label: t('filter.targetLawyer'), icon: Scale },
+              { value: 'interpreter', label: t('filter.targetInterpreter'), icon: Languages },
+            ] as const).map(({ value, label, icon: Icon }) => (
+              <button
+                key={value}
+                type="button"
+                role="radio"
+                aria-checked={target === value}
+                onClick={() => setTarget(value)}
+                className={cn(
+                  'flex items-center justify-center gap-1.5 rounded-lg h-9 text-sm font-semibold transition-colors',
+                  target === value ? 'bg-white text-[#0B3979] shadow-sm' : 'text-slate-500 hover:text-[#0B3979]'
+                )}
+              >
+                <Icon className="w-4 h-4" />
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {target === 'interpreter' ? (
+          <>
+            <div className="space-y-3">
+              <Label htmlFor="interp-language" className="text-sm font-semibold text-slate-700">{tInterp('filterLanguage')}</Label>
+              <Select value={language} onValueChange={setLanguage}>
+                <SelectTrigger id="interp-language" className="rounded-xl border-slate-200 bg-white shadow-sm hover:border-[#0B3979]/50 transition-colors h-11">
+                  <SelectValue placeholder={tInterp('all')} />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl max-h-[300px]">
+                  <SelectItem value="all" className="rounded-lg">{tInterp('all')}</SelectItem>
+                  {INTERPRETER_LANGUAGE_CODES.map(code => (
+                    <SelectItem key={code} value={code} className="rounded-lg">{l.language(code)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-3">
+              <Label htmlFor="interp-service" className="text-sm font-semibold text-slate-700">{tInterp('filterService')}</Label>
+              <Select value={service} onValueChange={setService}>
+                <SelectTrigger id="interp-service" className="rounded-xl border-slate-200 bg-white shadow-sm hover:border-[#0B3979]/50 transition-colors h-11">
+                  <SelectValue placeholder={tInterp('all')} />
+                </SelectTrigger>
+                <SelectContent className="rounded-xl">
+                  <SelectItem value="all" className="rounded-lg">{tInterp('all')}</SelectItem>
+                  {INTERPRETER_SERVICES.map(s => (
+                    <SelectItem key={s} value={s} className="rounded-lg">{l.service(s)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </>
+        ) : (
+        <>
         <div className="space-y-3">
           <Label htmlFor="specialty" className="text-sm font-semibold text-slate-700">{t('filter.expertise')}</Label>
           <Select value={specialty} onValueChange={setSpecialty}>
@@ -108,6 +190,8 @@ export default function LawyerFilterSidebar() {
             </div>
           </RadioGroup>
         </div>
+        </>
+        )}
 
         <div className="space-y-3">
           <Label htmlFor="province" className="text-sm font-semibold text-slate-700">{t('filter.province')}</Label>
@@ -130,14 +214,22 @@ export default function LawyerFilterSidebar() {
             </SelectContent>
           </Select>
         </div>
+
+        {target === 'interpreter' && (
+          <div className="flex items-center justify-between gap-3">
+            <Label htmlFor="interp-remote" className="text-sm font-semibold text-slate-700">{tInterp('filterRemote')}</Label>
+            <Switch id="interp-remote" checked={remoteOnly} onCheckedChange={setRemoteOnly} />
+          </div>
+        )}
       </CardContent>
       <CardFooter className="pb-8 pt-4 flex flex-col gap-3">
         <Button 
           onClick={handleSearch}
           className="w-full rounded-xl h-12 text-base font-bold shadow-lg hover:shadow-xl transition-all duration-300 bg-[#0B3979] hover:bg-[#082a5a] text-white"
         >
-          {t('filter.searchButton')}
+          {target === 'interpreter' ? t('filter.searchInterpreterButton') : t('filter.searchButton')}
         </Button>
+        {target === 'lawyer' && (
         <Link
           href="/verify-lawyer"
           className="w-full flex items-center justify-center gap-2 text-sm text-slate-500 hover:text-[#0B3979] transition-colors py-2 rounded-xl hover:bg-blue-50"
@@ -145,6 +237,7 @@ export default function LawyerFilterSidebar() {
           <ShieldCheck className="w-4 h-4" />
           {tVerify('filter.verifyLink')}
         </Link>
+        )}
       </CardFooter>
     </Card>
   );
