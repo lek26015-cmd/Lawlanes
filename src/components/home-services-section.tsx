@@ -1,7 +1,7 @@
 
 'use client';
 
-import { FileText, Users, Briefcase, ShieldCheck } from 'lucide-react';
+import { FileText, Users, Briefcase, ShieldCheck, Languages } from 'lucide-react';
 import Link from 'next/link';
 import { FadeIn } from '@/components/fade-in';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,6 +34,12 @@ export function HomeServicesSection() {
             title: t('dispute.title'),
             description: t('dispute.description'),
             link: "/b2b#contact"
+        },
+        {
+            icon: <Languages className="w-10 h-10 text-[#0B3979]" />,
+            title: t('interpreter.title'),
+            description: t('interpreter.description'),
+            link: "/interpreters"
         }
     ];
 
@@ -51,9 +57,10 @@ export function HomeServicesSection() {
                     </div>
                 </FadeIn>
 
-                <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8">
+                {/* 5 การ์ด: flex-wrap + justify-center แทน grid ให้แถวสุดท้าย (3+2) อยู่กึ่งกลาง — 5 ต่อแถวแคบเกินสำหรับหัวข้อภาษาไทย */}
+                <div className="flex flex-wrap justify-center gap-8">
                     {services.map((service, index) => (
-                        <FadeIn key={index} delay={index * 100} direction="up">
+                        <FadeIn key={index} delay={index * 100} direction="up" className="w-full md:w-[calc((100%-2rem)/2)] lg:w-[calc((100%-4rem)/3)]">
                             <Link href={service.link} className="block h-full">
                                 <Card className="border-none shadow-lg hover:shadow-xl transition-all duration-300 h-full group rounded-xl">
                                     <CardHeader>

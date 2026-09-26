@@ -12,26 +12,27 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { FadeIn } from '@/components/fade-in';
 import { useTranslations } from 'next-intl';
 import LawyerFilterSidebar from '@/components/lawyer-filter';
+import { Languages } from 'lucide-react';
+import { InterpreterCard } from '@/components/interpreter/interpreter-card';
+import type { PublicInterpreter } from '@/lib/interpreter-types';
+import { lawyerDisplayTier, TIER_RANK } from '@/lib/provider-plans';
 
 interface HomeRecommendedLawyersProps {
     initialLawyers?: LawyerProfile[];
+    initialInterpreters?: PublicInterpreter[];
 }
 
-export function HomeRecommendedLawyers({ initialLawyers }: HomeRecommendedLawyersProps) {
+export function HomeRecommendedLawyers({ initialLawyers, initialInterpreters = [] }: HomeRecommendedLawyersProps) {
     const [lawyers, setLawyers] = useState<LawyerProfile[]>(initialLawyers || []);
     const [loading, setLoading] = useState(!initialLawyers);
     const t = useTranslations('HomePage.recommendedLawyers');
-    const FEATURED_LAWYER_NAMES = ['กฤตเมธ ไวโส'];
-
-    // Sort featured lawyers first
+    const tInterp = useTranslations('HomePage.recommendedInterpreters');
+    // แพลนบริษัท (การ์ดกรอบทอง) → Pro (ป้ายแนะนำ) → ฟรี — ดู src/lib/provider-plans.ts
     const sortFeaturedFirst = (list: LawyerProfile[]) =>
-        [...list].sort((a, b) => {
-            const isFeatA = FEATURED_LAWYER_NAMES.some(name => a.name?.includes(name));
-            const isFeatB = FEATURED_LAWYER_NAMES.some(name => b.name?.includes(name));
-            if (isFeatA && !isFeatB) return -1;
-            if (!isFeatA && isFeatB) return 1;
-            return 0;
-        });
+        list
+            .map((l, i) => ({ l, i }))
+            .sort((a, b) => TIER_RANK[lawyerDisplayTier(b.l as any)] - TIER_RANK[lawyerDisplayTier(a.l as any)] || a.i - b.i)
+            .map(x => x.l);
 
     useEffect(() => {
         if (initialLawyers && initialLawyers.length > 0) {
@@ -104,10 +105,10 @@ export function HomeRecommendedLawyers({ initialLawyers }: HomeRecommendedLawyer
                             <div className="flex flex-col gap-6">
                                 {lawyers.map((lawyer, index) => (
                                     <FadeIn key={lawyer.id} delay={index * 150} direction="up">
-                                        {FEATURED_LAWYER_NAMES.some(name => lawyer.name?.includes(name)) ? (
+                                        {lawyerDisplayTier(lawyer as any) === 'top' ? (
                                             <FeaturedLawyerCard lawyer={lawyer} />
                                         ) : (
-                                            <LawyerCard lawyer={lawyer} />
+                                            <LawyerCard lawyer={lawyer} featured={lawyerDisplayTier(lawyer as any) === 'pro'} />
                                         )}
                                     </FadeIn>
                                 ))}
@@ -127,6 +128,45 @@ export function HomeRecommendedLawyers({ initialLawyers }: HomeRecommendedLawyer
                                     <Link href={`/lawyers`}>{t('viewAll')}</Link>
                                 </Button>
                             </FadeIn>
+                        </div>
+
+                        {/* ล่ามแนะนำ — ต่อจากทนาย ใช้ตัวกรองด้านซ้ายร่วมกัน (สลับเป็นโหมดล่ามได้) */}
+                        <div className="mt-16 pt-12 border-t border-slate-200">
+                                <FadeIn direction="up">
+                                    <div className="mb-8 text-center lg:text-left">
+                                        <h3 className="text-2xl font-bold tracking-tight text-[#0B3979] font-headline sm:text-3xl">{tInterp('title')}</h3>
+                                        <p className="mt-2 text-slate-600 leading-relaxed">{tInterp('subtitle')}</p>
+                                    </div>
+                                </FadeIn>
+                                {initialInterpreters.length > 0 ? (
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                        {initialInterpreters.map((interpreter, index) => (
+                                            <FadeIn key={interpreter.id} delay={index * 150} direction="up" className="h-full">
+                                                <InterpreterCard interpreter={interpreter} />
+                                            </FadeIn>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <FadeIn>
+                                        <EmptyState
+                                            icon={Languages}
+                                            title={tInterp('emptyTitle')}
+                                            description={tInterp('emptyDescription')}
+                                        />
+                                        <div className="text-center -mt-4">
+                                            <Link href={`/for-interpreters`} className="text-sm font-medium text-[#0B3979] hover:underline">
+                                                {tInterp('becomeInterpreter')}
+                                            </Link>
+                                        </div>
+                                    </FadeIn>
+                                )}
+                                <div className="mt-12 text-center lg:text-left">
+                                    <FadeIn delay={400} direction="up">
+                                        <Button asChild size="lg" variant="outline" className="bg-white hover:bg-slate-50 border-slate-200 text-slate-700 shadow-md hover:shadow-lg transition-all px-10 py-6 rounded-full text-lg font-medium">
+                                            <Link href={`/interpreters`}>{tInterp('viewAll')}</Link>
+                                        </Button>
+                                    </FadeIn>
+                                </div>
                         </div>
                     </div>
                 </div>

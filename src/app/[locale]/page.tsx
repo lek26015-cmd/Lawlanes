@@ -3,11 +3,13 @@ import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { MessageSquare, Users, ShieldCheck, ArrowRight, Briefcase, UserCheck, FileText, Download, Check, Camera } from 'lucide-react';
+import { MessageSquare, Users, ShieldCheck, ArrowRight, Briefcase, UserCheck, FileText, Download, Check, Camera, Languages } from 'lucide-react';
 import Image from 'next/image';
 import { Link } from '@/navigation';
 import { getAllArticles, getAdsByPlacement, getImageUrl, getImageHint } from '@/lib/data';
 import { getApprovedLawyersAction } from '@/app/actions/lawyer-directory-actions';
+import { getApprovedInterpretersAction } from '@/app/actions/interpreter-directory-actions';
+import { TIER_RANK } from '@/lib/provider-plans';
 import type { LawyerProfile } from '@/lib/types';
 import LawyerCard from '@/components/lawyer-card';
 import AiConsultButton from '@/components/ai-consult-button';
@@ -27,6 +29,9 @@ import lawslaneCoverPhoto from '@/pic/lawslane-cover-photo.webp';
 import lawslaneHeroCover from '@/pic/Lawlanes-Hero-cover.jpg';
 
 export const dynamic = 'error';
+// หน้าแรกเป็น static — ไม่มี revalidate = render ครั้งเดียวตอน build ทนาย/ล่ามที่อนุมัติใหม่ไม่ขึ้นจนกว่าจะ deploy ใหม่
+// 300 วินาทีเท่ากับหน้า /lawyers และ /interpreters
+export const revalidate = 300;
 
 export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -36,7 +41,17 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
 
   // Fetch lawyers on the server for faster loading
   // อ่านผ่าน Admin SDK + projection สาธารณะ แทน client SDK ที่ดึงทุกฟิลด์มาถึง browser
-  const initialLawyers = (await getApprovedLawyersAction(6)) as unknown as LawyerProfile[];
+  const [initialLawyers, allInterpreters] = await Promise.all([
+    getApprovedLawyersAction(6) as unknown as Promise<LawyerProfile[]>,
+    getApprovedInterpretersAction(),
+  ]);
+  // ล่ามแนะนำ: ลำดับเดียวกับหน้า /interpreters (แพลน → ตรวจเอกสารแล้ว → คะแนน) ส่งไป client แค่ 4 คน
+  const initialInterpreters = [...allInterpreters]
+    .sort((a, b) =>
+      TIER_RANK[b.planTier || 'free'] - TIER_RANK[a.planTier || 'free']
+      || (b.verifiedCredentials.length > 0 ? 1 : 0) - (a.verifiedCredentials.length > 0 ? 1 : 0)
+      || (b.averageRating ?? 0) - (a.averageRating ?? 0))
+    .slice(0, 4);
 
   // ข้อมูล Feature แบบภาษาไทย
   const features = [
@@ -154,7 +169,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         </section>
 
         {/* Recommended Lawyers - Server Side Prefetched */}
-        <HomeRecommendedLawyers initialLawyers={initialLawyers} />
+        <HomeRecommendedLawyers initialLawyers={initialLawyers} initialInterpreters={initialInterpreters} />
 
         {/* Lawyer Search CTA */}
         <section className="w-full py-16 md:py-24 bg-blue-50">
@@ -386,28 +401,40 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         {/* Articles Section - Client Side Fetching */}
         <HomeLatestArticles />
 
+        {/* รับสมัครทนายและล่าม — 2 การ์ดคู่กัน */}
         <section className="w-full bg-foreground text-background">
           <div className="container mx-auto px-4 md:px-6 py-12 md:py-24 lg:py-32">
             <FadeIn direction="up">
-              <div className="text-center">
-                <div className="inline-block bg-background text-foreground p-3 rounded-full mb-4">
-                  <Briefcase className="h-8 w-8" />
-                </div>
+              <div className="text-center mb-10 md:mb-14">
                 <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl font-headline">
-                  {t('forLawyersFooter.title')}
+                  {t('joinUs.title')}
                 </h2>
                 <p className="max-w-3xl mx-auto mt-4 text-background/80 md:text-xl">
-                  {t('forLawyersFooter.description')}
+                  {t('joinUs.subtitle')}
                 </p>
-                <div className="mt-8">
-                  <Link href={`/for-lawyers`}>
-                    <Button size="lg" variant="secondary" className="text-lg">
-                      <UserCheck className="mr-2 h-5 w-5" /> {t('forLawyersFooter.button')}
-                    </Button>
-                  </Link>
-                </div>
               </div>
             </FadeIn>
+            <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
+              {[
+                { icon: Briefcase, title: t('forLawyersFooter.title'), description: t('forLawyersFooter.description'), button: t('forLawyersFooter.button'), href: '/for-lawyers', ButtonIcon: UserCheck },
+                { icon: Languages, title: t('forInterpretersFooter.title'), description: t('forInterpretersFooter.description'), button: t('forInterpretersFooter.button'), href: '/for-interpreters', ButtonIcon: ArrowRight },
+              ].map(({ icon: Icon, title, description, button, href, ButtonIcon }, index) => (
+                <FadeIn key={href} direction="up" delay={index * 150} className="h-full">
+                  <div className="h-full rounded-3xl border border-background/15 bg-background/5 p-8 md:p-10 flex flex-col items-center text-center">
+                    <div className="inline-block bg-background text-foreground p-3 rounded-full mb-4">
+                      <Icon className="h-8 w-8" />
+                    </div>
+                    <h3 className="text-2xl md:text-3xl font-bold font-headline">{title}</h3>
+                    <p className="mt-3 text-background/80 md:text-lg flex-1">{description}</p>
+                    <Link href={href} className="mt-8">
+                      <Button size="lg" variant="secondary" className="text-lg">
+                        <ButtonIcon className="mr-2 h-5 w-5" /> {button}
+                      </Button>
+                    </Link>
+                  </div>
+                </FadeIn>
+              ))}
+            </div>
           </div>
         </section>
       </div >

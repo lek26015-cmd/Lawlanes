@@ -32,6 +32,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from '@/components/ui/select';
+import { BankSelect } from '@/components/bank-select';
 import { Badge } from '@/components/ui/badge';
 import { THAI_PROVINCES } from '@/lib/thai-provinces';
 import { X } from 'lucide-react';
@@ -39,23 +40,6 @@ import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '@/lib/constants';
 import { formatPhoneNumber, formatBankAccount } from '@/lib/utils';
 import Image from 'next/image';
 
-import bblLogo from '@/pic/logo-bank/กรุงเทพ.png';
-import kbankLogo from '@/pic/logo-bank/กสิกร.png';
-import ktbLogo from '@/pic/logo-bank/กรุงไทย.png';
-import scbLogo from '@/pic/logo-bank/ไทยพาณิช.png';
-import bayLogo from '@/pic/logo-bank/กรุงศรี.png';
-import ttbLogo from '@/pic/logo-bank/ttb.png';
-import gsbLogo from '@/pic/logo-bank/ออมสิน.png';
-import baacLogo from '@/pic/logo-bank/ธนาคาร ธกส.png';
-import cimbLogo from '@/pic/logo-bank/Cimb.png';
-import uobLogo from '@/pic/logo-bank/UOB.png';
-import tiscoLogo from '@/pic/logo-bank/ทิสโก้.png';
-import ibankLogo from '@/pic/logo-bank/ธนาคารอิสลาม.png';
-import ghbLogo from '@/pic/logo-bank/ธอส.png';
-import kkpLogo from '@/pic/logo-bank/เกียรตินาคิน.png';
-import lhLogo from '@/pic/logo-bank/แลนด์แลนด์เฮ้าท์ .png';
-import icbcLogo from '@/pic/logo-bank/ICBC.png';
-import bocLogo from '@/pic/logo-bank/ธนาคารแห่งประเทศจีน.png';
 import lawyerCoverImg from '@/pic/lawyer-cover.jpg';
 
 const specialties = [
@@ -67,25 +51,6 @@ const specialties = [
   'อสังหาริมทรัพย์',
 ];
 
-const banks = [
-  { name: "ธนาคารกรุงเทพ", logo: bblLogo, color: "#1e4598" },
-  { name: "ธนาคารกสิกรไทย", logo: kbankLogo, color: "#138f2d" },
-  { name: "ธนาคารกรุงไทย", logo: ktbLogo, color: "#1ba5e1" },
-  { name: "ธนาคารไทยพาณิชย์", logo: scbLogo, color: "#4e2e7f" },
-  { name: "ธนาคารกรุงศรีอยุธยา", logo: bayLogo, color: "#fec43b" },
-  { name: "ธนาคารทหารไทยธนชาต", logo: ttbLogo, color: "#102a4d" },
-  { name: "ธนาคารออมสิน", logo: gsbLogo, color: "#eb198d" },
-  { name: "ธนาคารเพื่อการเกษตรและสหกรณ์การเกษตร", logo: baacLogo, color: "#4b9b1d" },
-  { name: "ธนาคารซีไอเอ็มบี ไทย", logo: cimbLogo, color: "#7e2f36" },
-  { name: "ธนาคารยูโอบี", logo: uobLogo, color: "#0b3979" },
-  { name: "ธนาคารทิสโก้", logo: tiscoLogo, color: "#1a4d8d" },
-  { name: "ธนาคารอิสลามแห่งประเทศไทย", logo: ibankLogo, color: "#164134" },
-  { name: "ธนาคารอาคารสงเคราะห์", logo: ghbLogo, color: "#f58523" },
-  { name: "ธนาคารเกียรตินาคินภัทร", logo: kkpLogo, color: "#6e5a9c" },
-  { name: "ธนาคารแลนด์ แอนด์ เฮ้าส์", logo: lhLogo, color: "#6d6e71" },
-  { name: "ธนาคารไอซีบีซี (ไทย)", logo: icbcLogo, color: "#c4161c" },
-  { name: "ธนาคารแห่งประเทศจีน (ไทย)", logo: bocLogo, color: "#b40026" },
-];
 
 const formSchema = z.object({
   name: z.string().min(2, { message: 'ชื่อ-นามสกุลต้องมีอย่างน้อย 2 ตัวอักษร' }),
@@ -761,21 +726,7 @@ export default function ForLawyersPage() {
                                 <div className="space-y-6">
                                     <FormField control={form.control} name="bankName" render={({ field }) => (
                                         <FormItem><FormLabel className="font-bold">เลือกธนาคาร</FormLabel>
-                                            <Select onValueChange={field.onChange} defaultValue={field.value}>
-                                                <FormControl><SelectTrigger className="rounded-2xl h-16 px-5 border-slate-200"><SelectValue placeholder="ค้นหาและเลือกธนาคาร" /></SelectTrigger></FormControl>
-                                                <SelectContent className="max-h-[350px]">
-                                                    {banks.map(bank => (
-                                                        <SelectItem key={bank.name} value={bank.name} className="py-3">
-                                                            <div className="flex items-center gap-4">
-                                                                <div className="w-10 h-10 relative rounded-xl overflow-hidden border bg-white flex items-center justify-center p-1 shadow-sm">
-                                                                    <Image src={bank.logo} alt={bank.name} className="object-contain" fill />
-                                                                </div>
-                                                                <span className="font-bold text-slate-700 dark:text-slate-200">{bank.name}</span>
-                                                            </div>
-                                                        </SelectItem>
-                                                    ))}
-                                                </SelectContent>
-                                            </Select>
+                                            <FormControl><BankSelect value={field.value} onChange={field.onChange} placeholder="ค้นหาและเลือกธนาคาร" triggerClassName="rounded-2xl h-16 px-5 border-slate-200" /></FormControl>
                                             <FormMessage /></FormItem>
                                     )} />
                                     <FormField control={form.control} name="bankAccountName" render={({ field }) => (

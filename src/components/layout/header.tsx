@@ -47,6 +47,8 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
 
   const [role, setRole] = useState<string | null>(null);
   const [customClaims, setCustomClaims] = useState<{ admin?: boolean; lawyer?: boolean }>({});
+  // ล่ามเป็นบทบาทเสริม (ทนาย/ลูกค้าก็เป็นล่ามได้) — ใช้แค่แสดงลิงก์แดชบอร์ดล่าม
+  const [isInterpreter, setIsInterpreter] = useState(false);
 
   const isAdmin = role === 'admin' || customClaims.admin === true;
   const isLawyer = role === 'lawyer' || customClaims.lawyer === true;
@@ -72,6 +74,11 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
           setRole('admin');
           setUserRole('admin');
         }
+
+        // rules ให้เจ้าของอ่านโปรไฟล์ล่ามของตัวเองได้ — ไม่มีโปรไฟล์ = exists() false
+        getDoc(doc(firestore, "interpreterProfiles", user.uid))
+          .then(snap => setIsInterpreter(snap.exists()))
+          .catch(() => setIsInterpreter(false));
 
         // 2. Check Lawyer Profile (Firestore)
         const lawyerDocRef = doc(firestore, "lawyerProfiles", user.uid);
@@ -221,6 +228,9 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
             <Link href={getMainLink('/verify-lawyer', domainType, !isMounted)} className={pathname.startsWith(`/verify-lawyer`) ? activeNavLinkClasses : navLinkClasses}>
               {t('verifyLawyer')}
             </Link>
+            <Link href={getMainLink('/interpreters', domainType, !isMounted)} className={pathname.startsWith(`/interpreters`) ? activeNavLinkClasses : navLinkClasses}>
+              {t('findInterpreter')}
+            </Link>
 
             <a href="https://capdeal.lawslane.com" target="_blank" rel="noopener noreferrer" className={pathname.startsWith(`/services/contracts/screenshot`) ? activeNavLinkClasses : navLinkClasses}>
               <span className="flex items-center gap-1"><Camera className="h-4 w-4" />{t('capAndDeal')}</span>
@@ -291,7 +301,7 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
                     {isAdmin && (
                     <DropdownMenuItem asChild>
                       <a href={getAdminLink('/', domainType, !isMounted)}>
-                        <LayoutDashboard className="mr-2" />{t('adminDashboard')}
+                        {t('adminDashboard')}
                       </a>
                     </DropdownMenuItem>
                   )}
@@ -299,7 +309,15 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
                   {(isLawyer || isSuperUser) && (
                     <DropdownMenuItem asChild>
                       <Link href="/lawyer-dashboard">
-                        <LayoutDashboard className="mr-2" />{t('dashboard')} {isSuperUser ? '(ทนาย)' : ''}
+                        {t('dashboard')} {isSuperUser ? '(ทนาย)' : ''}
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
+
+                  {isInterpreter && (
+                    <DropdownMenuItem asChild>
+                      <Link href="/interpreter-dashboard">
+                        {t('interpreterDashboard')}
                       </Link>
                     </DropdownMenuItem>
                   )}
@@ -307,17 +325,16 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
                   {/* Show User Dashboard to everyone as their primary 'Client' view */}
                   <DropdownMenuItem asChild>
                     <Link href="/dashboard">
-                      <LayoutDashboard className="mr-2" />
                       {t('dashboard')} {(isAdmin || isLawyer) && isSuperUser ? '(ผู้ใช้)' : ''}
                     </Link>
                   </DropdownMenuItem>
 
                   <DropdownMenuItem asChild>
-                    <Link href="/account"><User className="mr-2" />{t('manageAccount')}</Link>
+                    <Link href="/account">{t('manageAccount')}</Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout} className="text-destructive">
-                    <LogOut className="mr-2" />{t('logout')}
+                    {t('logout')}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -416,6 +433,7 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
                   <Link href={getMainLink('/', domainType, !isMounted)} className="hover:text-primary">{t('home')}</Link>
                   <Link href={getMainLink('/lawyers', domainType, !isMounted)} className="hover:text-primary">{t('findLawyer')}</Link>
                   <Link href={getMainLink('/verify-lawyer', domainType, !isMounted)} className="hover:text-primary" onClick={() => setIsMobileMenuOpen(false)}>{t('verifyLawyer')}</Link>
+                  <Link href={getMainLink('/interpreters', domainType, !isMounted)} className="hover:text-primary" onClick={() => setIsMobileMenuOpen(false)}>{t('findInterpreter')}</Link>
 
                   <a href="https://capdeal.lawslane.com" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:text-primary"><Camera className="h-5 w-5" />{t('capAndDeal')}</a>
                   <a href={getEducationLink()} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:text-primary"><GraduationCap className="h-5 w-5" />{t('education')}</a>
@@ -452,20 +470,25 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
                       <div className="flex flex-col gap-2">
                         {isAdmin && (
                           <a href={getAdminLink('/', domainType, !isMounted)} className="flex items-center gap-2 p-2 hover:bg-muted rounded-md text-foreground">
-                            <LayoutDashboard className="w-4 h-4" /> {t('adminDashboard')}
+                            {t('adminDashboard')}
                           </a>
                         )}
                         {(isLawyer || isSuperUser) && (
                           <Link href="/lawyer-dashboard" className="flex items-center gap-2 p-2 hover:bg-muted rounded-md text-foreground">
-                            <LayoutDashboard className="w-4 h-4" /> {t('dashboard')} {isSuperUser ? '(ทนาย)' : ''}
+                            {t('dashboard')} {isSuperUser ? '(ทนาย)' : ''}
+                          </Link>
+                        )}
+                        {isInterpreter && (
+                          <Link href="/interpreter-dashboard" className="flex items-center gap-2 p-2 hover:bg-muted rounded-md text-foreground">
+                            {t('interpreterDashboard')}
                           </Link>
                         )}
                         {/* Always show user dashboard for clients/personal view */}
                         <Link href="/dashboard" className="flex items-center gap-2 p-2 hover:bg-muted rounded-md">
-                          <LayoutDashboard className="w-4 h-4" /> {t('dashboard')} {(isAdmin || isLawyer) ? ' (ลูกความ)' : ''}
+                          {t('dashboard')} {(isAdmin || isLawyer) ? ' (ลูกความ)' : ''}
                         </Link>
                         <Link href="/account" className="flex items-center gap-2 p-2 hover:bg-muted rounded-md">
-                          <User className="w-4 h-4" /> {t('manageAccount')}
+                          {t('manageAccount')}
                         </Link>
                       </div>
                       <Button onClick={handleLogout} className="w-full mt-2" variant="destructive">{t('logout')}</Button>

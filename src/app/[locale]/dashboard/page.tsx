@@ -9,6 +9,8 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Calendar, Briefcase, FileText, Loader2, Search, MessageSquare, Building, FileUp, HelpCircle, CheckCircle, User, Ticket, FileSignature, Camera, CreditCard, Clock, ShieldCheck, FileDown, Receipt } from 'lucide-react';
 import type { Case, UpcomingAppointment, ReportedTicket } from '@/lib/types';
+import { MyInterpreterBookingsCard } from '@/components/interpreter/my-interpreter-bookings-card';
+import { InterpreterConversationsList } from '@/components/interpreter/interpreter-conversations-list';
 import { format } from 'date-fns';
 import { th, enUS, zhCN } from 'date-fns/locale';
 import { Badge } from '@/components/ui/badge';
@@ -289,6 +291,9 @@ export default function DashboardPage() {
                             </Card>
                         )}
 
+
+                        <MyInterpreterBookingsCard />
+                        <InterpreterConversationsList as="customer" card />
 
                         {/* Cap Deal - Recent Contracts */}
                         <Card className="rounded-none md:rounded-3xl shadow-none md:shadow-sm border-none">
