@@ -56,7 +56,6 @@ import { useFirebase } from '@/firebase';
 import { format } from 'date-fns';
 import { th } from 'date-fns/locale';
 import { useToast } from '@/hooks/use-toast';
-import { CaseRoadmap } from '@/components/case/case-roadmap';
 import { LegalResearchTool } from '@/components/case/legal-research-tool';
 import { Sparkles, BrainCircuit, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -1123,22 +1122,6 @@ function CaseDetailPageContent() {
         <div className="mt-6">
           {/* Overview TabContent is default, but we use it inside the Tabs system properly */}
           <TabsContent value="overview" className="m-0 space-y-8 pb-20">
-            {/* Visual Case Roadmap Section */}
-            <FadeIn>
-              <div className="bg-white rounded-2xl border shadow-sm overflow-hidden p-1">
-                 <CaseRoadmap 
-                   currentStep={currentStep} 
-                   className="border-none shadow-none bg-transparent" 
-                   steps={milestones.length > 0 ? milestones.map((m, i) => ({ 
-                     id: i + 1, 
-                     label: m.title, 
-                     icon: i === 0 ? Scale : (i === 1 ? FileText : (i === 2 ? Gavel : (i === 3 ? CheckCircle2 : Gavel))),
-                     date: m.dueDate ? format(m.dueDate, 'dd MMM', { locale: th }) : undefined
-                   })) : undefined}
-                 />
-              </div>
-            </FadeIn>
-
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
               {/* Left Column */}
               <div className="lg:col-span-2 space-y-6">
