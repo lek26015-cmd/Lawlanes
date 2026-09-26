@@ -203,6 +203,63 @@
                 { "fieldPath": "status", "order": "ASCENDING" },
                 { "fieldPath": "rank.score", "order": "DESCENDING" }
             ]
+        },
+        {
+            "collectionGroup": "interpreterProfiles",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "status", "order": "ASCENDING" },
+                { "fieldPath": "languageCodes", "arrayConfig": "CONTAINS" }
+            ]
+        },
+        {
+            "collectionGroup": "interpreterBookings",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "customerId", "order": "ASCENDING" },
+                { "fieldPath": "createdAt", "order": "DESCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "interpreterBookings",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "interpreterId", "order": "ASCENDING" },
+                { "fieldPath": "createdAt", "order": "DESCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "interpreterBookings",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "customerId", "order": "ASCENDING" },
+                { "fieldPath": "interpreterId", "order": "ASCENDING" },
+                { "fieldPath": "status", "order": "ASCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "interpreterConversations",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "customerId", "order": "ASCENDING" },
+                { "fieldPath": "lastMessageAt", "order": "DESCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "interpreterConversations",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "interpreterUserId", "order": "ASCENDING" },
+                { "fieldPath": "lastMessageAt", "order": "DESCENDING" }
+            ]
+        },
+        {
+            "collectionGroup": "interpreterPayouts",
+            "queryScope": "COLLECTION",
+            "fields": [
+                { "fieldPath": "interpreterId", "order": "ASCENDING" },
+                { "fieldPath": "paidAt", "order": "DESCENDING" }
+            ]
         }
     ],
     "fieldOverrides": []

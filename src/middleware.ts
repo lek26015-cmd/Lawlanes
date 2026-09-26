@@ -69,11 +69,14 @@ export async function middleware(request: NextRequest) {
   // Define protected areas
   const clientProtectedPaths = ['/dashboard', '/payment', '/account'];
   const lawyerProtectedPaths = ['/lawyer-dashboard', '/lawyer-schedule'];
-  const sharedProtectedPaths = ['/chat']; // Both roles can access chat
+  // Both roles can access chat · ล่ามอาจเป็นทนาย/ลูกค้าด้วย และทนายจองล่ามให้เคสได้
+  // สิทธิ์จริงตรวจใน server action (requireInterpreter / requireUser) ไม่ใช่ที่นี่
+  const sharedProtectedPaths = ['/chat', '/interpreter-dashboard', '/interpreter-chat'];
 
   const isClientProtected = clientProtectedPaths.some(p => route.startsWith(p) || route === p);
   const isLawyerProtected = lawyerProtectedPaths.some(p => route.startsWith(p) || route === p);
-  const isSharedProtected = sharedProtectedPaths.some(p => route.startsWith(p) || route === p);
+  const isSharedProtected = sharedProtectedPaths.some(p => route.startsWith(p) || route === p)
+    || /^\/interpreters\/[^/]+\/book(\/|$)/.test(route);
 
   // Unauthenticated users trying to hit protected routes bounce to /login
   if (!isAuthenticated && (isClientProtected || isLawyerProtected || isSharedProtected)) {

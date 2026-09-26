@@ -108,6 +108,27 @@ export async function requireLawyer(): Promise<Session & { lawyerProfileId: stri
   return { ...session, lawyerProfileId: snap.docs[0].id };
 }
 
+/**
+ * ผู้เรียกต้องเป็นล่ามที่แอดมินอนุมัติแล้ว — doc id ของ interpreterProfiles = auth uid เสมอ
+ *
+ * ไม่เชื่อ claim `interpreter` อย่างเดียว เพราะแอดมินอาจระงับล่ามหลังออก claim ไปแล้ว
+ * (claim อยู่ใน session cookie ได้ถึง 5 วัน) จึงอ่านสถานะจากโปรไฟล์ทุกครั้ง
+ * ใช้ allowPending: true กับหน้าที่ล่ามทุกสถานะต้องเข้าได้ (ดู/แก้โปรไฟล์ตัวเอง)
+ * งานที่ทำให้เกิดผลกับลูกค้า (รับงาน/ปิดงาน) ต้องเรียกแบบไม่ส่ง opts = เฉพาะ approved
+ */
+export async function requireInterpreter(opts: { allowPending?: boolean } = {}): Promise<
+  Session & { interpreterId: string; profile: FirebaseFirestore.DocumentData }
+> {
+  const session = await requireUser();
+  const snap = await session.adminApp.firestore().collection('interpreterProfiles').doc(session.uid).get();
+  const profile = snap.data();
+  const allowed = opts.allowPending ? ['approved', 'pending', 'rejected', 'suspended'] : ['approved'];
+  if (!snap.exists || !profile || !allowed.includes(profile.status)) {
+    throw new AuthError('Forbidden: interpreter access required', 403);
+  }
+  return { ...session, interpreterId: session.uid, profile };
+}
+
 /** ตัวช่วยสำหรับ API route */
 export function authErrorResponse(error: unknown) {
   if (error instanceof AuthError) {

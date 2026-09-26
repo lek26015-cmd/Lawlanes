@@ -401,4 +401,45 @@ export const NotificationService = {
 
     return await sendEmailFlexible(clientEmail, `[Lawslane] ค่าบริการเพิ่มเติม — ${caseTitle}`, emailHtml);
   },
+
+  // ============================================================
+  // Legal Interpreter (ล่ามทนาย)
+  // ผู้เรียกต้อง escape ค่าที่มาจากผู้ใช้ก่อนส่งเข้ามา (ดู escapeHtml ใน interpreter actions)
+  // ============================================================
+
+  async notifyAdminNewInterpreter(interpreterName: string) {
+    const emailHtml = generateStandardEmailHtml({
+      title: "มีล่ามสมัครใหม่",
+      content: `เรียนทีมแอดมิน,<br><br>มีล่ามชื่อ <span class="highlight">${interpreterName}</span> สมัครเข้าร่วม Lawslane<br><br>กรุณาตรวจเอกสารและอนุมัติการใช้งาน`,
+      buttonText: "ดูรายชื่อล่าม",
+      buttonLink: `${SITE_URL}/admin/interpreters`
+    });
+    const results = await Promise.all(
+      ADMIN_EMAILS.map(email => sendEmailFlexible(email, `[Lawslane Admin] ล่ามสมัครใหม่: ${interpreterName}`, emailHtml))
+    );
+    return { success: results.every(r => r.success) };
+  },
+
+  async notifyAdminInterpreterSlip(bookingId: string, amountText: string) {
+    const emailHtml = generateStandardEmailHtml({
+      title: "มีสลิปงานล่ามรอตรวจ",
+      content: `เรียนทีมแอดมิน,<br><br>มีการจองล่ามยอด <span class="highlight">${amountText} บาท</span> ที่ระบบตรวจสลิปอัตโนมัติไม่ผ่าน กรุณาตรวจสลิปด้วยตนเอง`,
+      buttonText: "ดูงานล่าม",
+      buttonLink: `${SITE_URL}/admin/interpreter-bookings/${bookingId}`
+    });
+    const results = await Promise.all(
+      ADMIN_EMAILS.map(email => sendEmailFlexible(email, `[Lawslane Admin] สลิปงานล่ามรอตรวจ`, emailHtml))
+    );
+    return { success: results.every(r => r.success) };
+  },
+
+  async notifyInterpreterNewBooking(params: { email: string; interpreterName: string; serviceLabel: string; whenText: string }) {
+    const emailHtml = generateStandardEmailHtml({
+      title: "คุณมีงานล่ามใหม่",
+      content: `เรียนคุณ ${params.interpreterName},<br><br>ลูกค้าชำระเงินสำหรับงาน <span class="highlight">${params.serviceLabel}</span> (${params.whenText}) แล้ว<br><br>กรุณาเข้าสู่ระบบเพื่อรับงานหรือปฏิเสธ`,
+      buttonText: "ดูงานของฉัน",
+      buttonLink: `${SITE_URL}/interpreter-dashboard`
+    });
+    return await sendEmailFlexible(params.email, `[Lawslane] งานล่ามใหม่: ${params.serviceLabel}`, emailHtml);
+  },
 };

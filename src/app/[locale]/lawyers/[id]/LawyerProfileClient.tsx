@@ -8,7 +8,7 @@ import Image from 'next/image';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import Link from 'next/link';
-import { ArrowLeft, Trophy, BookCopy, Mail, Phone, Scale, X } from 'lucide-react';
+import { ArrowLeft, Trophy, BookCopy, Mail, Phone, Scale, X, Languages } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
@@ -256,6 +256,11 @@ export default function LawyerProfileClient({ initialLawyer, id }: LawyerProfile
                                         <>
                                             <Button onClick={handleStartChat} variant="outline" className="w-full">
                                                 <Mail className="mr-2 h-4 w-4" /> {t('sendMessage')}
+                                            </Button>
+                                            <Button asChild variant="ghost" size="sm" className="w-full text-muted-foreground">
+                                                <Link href={`/interpreters?lawyerId=${encodeURIComponent(id)}`}>
+                                                    <Languages className="mr-2 h-4 w-4" /> {t('needInterpreter')}
+                                                </Link>
                                             </Button>
                                         </>
                                     )}
