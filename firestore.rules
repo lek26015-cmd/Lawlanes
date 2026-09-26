@@ -599,13 +599,9 @@ service cloud.firestore {
       }
 
       allow read: if canAccessContract();
-      allow create: if isAdmin() || (
-        isSignedIn()
-        && request.resource.data.ownerId == request.auth.uid
-        && request.resource.data.get('status', 'draft') in ['draft', 'pending']
-        && contractUnsigned(request.resource.data)
-        && !request.resource.data.keys().hasAny(serverOnlyContractFields())
-      );
+      // สร้างผ่าน server เท่านั้น (capdeal: POST /api/contracts ตัดโควตาแพ็กเกจใน transaction
+      // เดียวกัน) — ถ้าเปิดให้ client สร้างเอง ผู้ใช้ Free สร้างสัญญาเกินโควตาได้
+      allow create: if isAdmin();
       // แก้ได้เฉพาะก่อนมีใครเซ็น และแตะ owner / createdAt / ฟิลด์ของ server ไม่ได้
       allow update: if isAdmin() || (
         canAccessContract()
