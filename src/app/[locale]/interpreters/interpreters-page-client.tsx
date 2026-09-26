@@ -2,6 +2,8 @@
 
 import { useMemo } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
+import interpreterHero from '@/pic/lawslane-interpreter.webp';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { Languages, Scale } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -54,14 +56,27 @@ export function InterpretersPageClient({ interpreters }: { interpreters: PublicI
 
     return (
         <div className="bg-gray-50 min-h-screen">
-            <section className="bg-[#0B3979] text-white">
-                <div className="container mx-auto px-4 md:px-6 py-12 md:py-16 max-w-6xl">
-                    <div className="flex items-center gap-3 mb-4 text-blue-200">
-                        <Languages className="w-6 h-6" />
-                        <span className="text-sm font-semibold uppercase tracking-wider">Lawslane</span>
+            <section className="relative bg-[#0B3979] text-white overflow-hidden rounded-b-[40px] md:rounded-b-none">
+                <div className="md:hidden absolute inset-x-0 top-0 h-[340px] pointer-events-none">
+                    <Image src={interpreterHero} alt="" fill priority sizes="100vw" className="object-contain object-top opacity-80" />
+                    <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#0B3979] via-[#0B3979]/80 to-transparent" />
+                </div>
+                <div className="relative container mx-auto px-4 md:px-6 max-w-6xl md:grid md:grid-cols-[1fr_auto] md:items-end md:gap-8">
+                    <div className="pt-[250px] pb-10 text-center md:text-left md:py-16">
+                        <div className="flex items-center justify-center md:justify-start gap-3 mb-4 text-blue-200">
+                            <Languages className="w-6 h-6" />
+                            <span className="text-sm font-semibold uppercase tracking-wider">Lawslane</span>
+                        </div>
+                        <h1 className="text-3xl md:text-4xl font-bold font-headline">{t('heroTitle')}</h1>
+                        <p className="mt-3 text-blue-100 max-w-2xl mx-auto md:mx-0">{t('heroSubtitle')}</p>
                     </div>
-                    <h1 className="text-3xl md:text-4xl font-bold font-headline">{t('heroTitle')}</h1>
-                    <p className="mt-3 text-blue-100 max-w-2xl">{t('heroSubtitle')}</p>
+                    <Image
+                        src={interpreterHero}
+                        alt=""
+                        priority
+                        sizes="(min-width: 1024px) 280px, 240px"
+                        className="hidden md:block w-[240px] lg:w-[280px] h-auto self-end"
+                    />
                 </div>
             </section>
 
