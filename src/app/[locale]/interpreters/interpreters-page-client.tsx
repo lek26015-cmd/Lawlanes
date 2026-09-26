@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { InterpreterCard } from '@/components/interpreter/interpreter-card';
+import { TIER_RANK } from '@/lib/provider-plans';
 import { useInterpreterLabels } from '@/components/interpreter/use-interpreter-labels';
 import { THAI_PROVINCES } from '@/lib/thai-provinces';
 import { INTERPRETER_LANGUAGE_CODES, INTERPRETER_SERVICES, type PublicInterpreter } from '@/lib/interpreter-types';
@@ -41,9 +42,10 @@ export function InterpretersPageClient({ interpreters }: { interpreters: PublicI
         .filter(i => !service || i.services.includes(service as any))
         .filter(i => !province || i.serviceProvinces.includes(province) || i.remoteAvailable)
         .filter(i => !remoteOnly || i.remoteAvailable)
-        // ล่ามที่แอดมินตรวจเอกสารแล้วขึ้นก่อน แล้วเรียงตามคะแนน
+        // แพลนพรีเมียม → Pro → ตรวจเอกสารแล้ว → คะแนน
         .sort((a, b) =>
-            (b.verifiedCredentials.length > 0 ? 1 : 0) - (a.verifiedCredentials.length > 0 ? 1 : 0)
+            TIER_RANK[b.planTier || 'free'] - TIER_RANK[a.planTier || 'free']
+            || (b.verifiedCredentials.length > 0 ? 1 : 0) - (a.verifiedCredentials.length > 0 ? 1 : 0)
             || (b.averageRating ?? 0) - (a.averageRating ?? 0)),
         [interpreters, language, service, province, remoteOnly]);
 

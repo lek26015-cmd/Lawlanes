@@ -20,12 +20,15 @@
  * (แอดมินอ่านเต็มผ่าน lawslane-admin อยู่แล้ว)
  */
 
+import { effectiveTier, type PlanTier } from '@/lib/provider-plans';
 import { initAdmin } from '@/lib/firebase-admin';
 import { requireChatRole, requireLawyer } from '@/lib/auth-guard';
 import type { LawyerProfile, LawyerSchedule } from '@/lib/types';
 
 /** ฟิลด์ที่ปลอดภัยจะส่งออกสู่สาธารณะ — allowlist ไม่ใช่ blocklist */
 export interface PublicLawyer {
+    /** แพลนที่ใช้สิทธิ์ได้ตอนนี้ (ไม่ส่งข้อมูล Stripe ออกสาธารณะ) */
+    planTier?: PlanTier;
     id: string;
     name: string;
     licenseNumber: string;
@@ -96,6 +99,7 @@ function toPublicLawyer(id: string, d: FirebaseFirestore.DocumentData): PublicLa
             ? d.joinedAt.toDate().toISOString()
             : (typeof d.joinedAt === 'string' ? d.joinedAt : null),
         schedule: toPublicSchedule(d.schedule),
+        planTier: effectiveTier(d.plan),
     };
 }
 

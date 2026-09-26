@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { BadgeCheck, Globe2, MapPin } from 'lucide-react';
+import { BadgeCheck, Crown, Globe2, MapPin } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -18,9 +18,11 @@ export function InterpreterCard({ interpreter, query }: { interpreter: PublicInt
     const l = useInterpreterLabels();
     const href = `/interpreters/${interpreter.id}${query ? `?${query}` : ''}`;
     const cheapest = cheapestRate(interpreter.rateCard);
+    // แพลนพรีเมียม = การ์ดกรอบทอง · Pro = กรอบรูปทอง + ป้ายแนะนำ (ดู src/lib/provider-plans.ts)
+    const tier = interpreter.planTier || 'free';
 
     return (
-        <Card className="rounded-2xl border-none shadow-sm hover:shadow-md transition-shadow h-full">
+        <Card className={`rounded-2xl shadow-sm hover:shadow-md transition-shadow h-full ${tier === 'top' ? 'border-2 border-amber-300 bg-gradient-to-b from-amber-50/60 to-white' : 'border-none'}`}>
             <CardContent className="p-5 flex flex-col h-full gap-4">
                 <div className="flex items-start gap-4">
                     <div className="relative h-16 w-16 flex-shrink-0">
@@ -29,13 +31,19 @@ export function InterpreterCard({ interpreter, query }: { interpreter: PublicInt
                             alt={interpreter.name}
                             fill
                             sizes="64px"
-                            className="rounded-full object-cover"
+                            className={`rounded-full object-cover ${tier !== 'free' ? 'ring-4 ring-amber-400' : ''}`}
                         />
+                        {tier !== 'free' && (
+                            <Crown className="absolute -bottom-1 -right-1 w-5 h-5 text-amber-500 fill-amber-100 bg-white rounded-full p-0.5" />
+                        )}
                     </div>
                     <div className="min-w-0">
                         <Link href={href} className="font-bold text-lg text-[#0B3979] hover:underline line-clamp-1">
                             {interpreter.name}
                         </Link>
+                        {tier !== 'free' && (
+                            <p className="text-xs font-semibold text-amber-600 mt-0.5">{t('recommendedBadge')}</p>
+                        )}
                         {interpreter.verifiedCredentials.length > 0 && (
                             <p className="flex items-center gap-1 text-xs text-emerald-700 mt-0.5">
                                 <BadgeCheck className="w-3.5 h-3.5" /> {t('verifiedBadge')}

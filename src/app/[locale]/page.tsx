@@ -9,6 +9,7 @@ import { Link } from '@/navigation';
 import { getAllArticles, getAdsByPlacement, getImageUrl, getImageHint } from '@/lib/data';
 import { getApprovedLawyersAction } from '@/app/actions/lawyer-directory-actions';
 import { getApprovedInterpretersAction } from '@/app/actions/interpreter-directory-actions';
+import { TIER_RANK } from '@/lib/provider-plans';
 import type { LawyerProfile } from '@/lib/types';
 import LawyerCard from '@/components/lawyer-card';
 import AiConsultButton from '@/components/ai-consult-button';
@@ -44,10 +45,11 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
     getApprovedLawyersAction(6) as unknown as Promise<LawyerProfile[]>,
     getApprovedInterpretersAction(),
   ]);
-  // ล่ามแนะนำ: ลำดับเดียวกับหน้า /interpreters (ตรวจเอกสารแล้วก่อน แล้วตามคะแนน) ส่งไป client แค่ 4 คน
+  // ล่ามแนะนำ: ลำดับเดียวกับหน้า /interpreters (แพลน → ตรวจเอกสารแล้ว → คะแนน) ส่งไป client แค่ 4 คน
   const initialInterpreters = [...allInterpreters]
     .sort((a, b) =>
-      (b.verifiedCredentials.length > 0 ? 1 : 0) - (a.verifiedCredentials.length > 0 ? 1 : 0)
+      TIER_RANK[b.planTier || 'free'] - TIER_RANK[a.planTier || 'free']
+      || (b.verifiedCredentials.length > 0 ? 1 : 0) - (a.verifiedCredentials.length > 0 ? 1 : 0)
       || (b.averageRating ?? 0) - (a.averageRating ?? 0))
     .slice(0, 4);
 

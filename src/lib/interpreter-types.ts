@@ -119,6 +119,8 @@ export interface PublicInterpreter {
     reviewCount?: number;
     status: InterpreterStatus;
     joinedAt: string | null;
+    /** แพลนที่ใช้สิทธิ์ได้ตอนนี้ (ไม่ส่งข้อมูล Stripe ออกสาธารณะ) */
+    planTier?: import('@/lib/provider-plans').PlanTier;
 }
 
 /** โปรไฟล์ของล่ามเองในแดชบอร์ด (รวมข้อมูล private) */

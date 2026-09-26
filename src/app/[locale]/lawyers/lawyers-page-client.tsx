@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import LawyerCard from '@/components/lawyer-card';
 import FeaturedLawyerCard from '@/components/featured-lawyer-card';
+import { lawyerDisplayTier, TIER_RANK } from '@/lib/provider-plans';
 import RegistryLawyerCard from '@/components/registry-lawyer-card';
 import type { LawyerProfile, RegistryLawyer } from '@/lib/types';
 import { Award, Sparkles, ClipboardList } from 'lucide-react';
@@ -15,8 +16,6 @@ import { LawyerPageSidebarAds } from '@/components/lawyer-page-sidebar-ads';
 import { RecommendedArticles } from '@/components/recommended-articles';
 import { useTranslations } from 'next-intl';
 
-// Configurable list of featured lawyer names
-const FEATURED_LAWYER_NAMES = ['กฤตเมธ ไวโส'];
 const LAST_PLACE_NAMES = ['ชนาพัทธ์ ผมเพชร'];
 
 function sortLawyers(lawyers: LawyerProfile[]): LawyerProfile[] {
@@ -259,14 +258,16 @@ export function LawyersPageClient({ initialLawyers, initialRegistryLawyers }: La
 
             {/* Featured Lawyers (amber border, shown first) */}
             {visibleLawyers
-              .filter(l => FEATURED_LAWYER_NAMES.some(name => l.name?.includes(name)))
+              .filter(l => lawyerDisplayTier(l as any) === 'top')
               .map((lawyer) => (
                 <FeaturedLawyerCard key={lawyer.id} lawyer={lawyer} />
               ))
             }
 
             {visibleLawyers
-              .filter(l => !FEATURED_LAWYER_NAMES.some(name => l.name?.includes(name)))
+              .filter(l => lawyerDisplayTier(l as any) !== 'top')
+              // Pro ขึ้นก่อนแพลนฟรี (sort คงลำดับเดิมภายในกลุ่ม)
+              .sort((a, b) => TIER_RANK[lawyerDisplayTier(b as any)] - TIER_RANK[lawyerDisplayTier(a as any)])
               .map((lawyer) => (
               <div
                 key={lawyer.id}
@@ -282,7 +283,7 @@ export function LawyersPageClient({ initialLawyers, initialRegistryLawyers }: La
                     <span className="text-xs font-medium text-primary">Best Match</span>
                   </div>
                 )}
-                <LawyerCard lawyer={lawyer} />
+                <LawyerCard lawyer={lawyer} featured={lawyerDisplayTier(lawyer as any) === 'pro'} />
               </div>
             ))}
 

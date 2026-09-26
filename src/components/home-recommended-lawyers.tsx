@@ -15,6 +15,7 @@ import LawyerFilterSidebar from '@/components/lawyer-filter';
 import { Languages } from 'lucide-react';
 import { InterpreterCard } from '@/components/interpreter/interpreter-card';
 import type { PublicInterpreter } from '@/lib/interpreter-types';
+import { lawyerDisplayTier, TIER_RANK } from '@/lib/provider-plans';
 
 interface HomeRecommendedLawyersProps {
     initialLawyers?: LawyerProfile[];
@@ -26,17 +27,12 @@ export function HomeRecommendedLawyers({ initialLawyers, initialInterpreters = [
     const [loading, setLoading] = useState(!initialLawyers);
     const t = useTranslations('HomePage.recommendedLawyers');
     const tInterp = useTranslations('HomePage.recommendedInterpreters');
-    const FEATURED_LAWYER_NAMES = ['กฤตเมธ ไวโส'];
-
-    // Sort featured lawyers first
+    // แพลนบริษัท (การ์ดกรอบทอง) → Pro (ป้ายแนะนำ) → ฟรี — ดู src/lib/provider-plans.ts
     const sortFeaturedFirst = (list: LawyerProfile[]) =>
-        [...list].sort((a, b) => {
-            const isFeatA = FEATURED_LAWYER_NAMES.some(name => a.name?.includes(name));
-            const isFeatB = FEATURED_LAWYER_NAMES.some(name => b.name?.includes(name));
-            if (isFeatA && !isFeatB) return -1;
-            if (!isFeatA && isFeatB) return 1;
-            return 0;
-        });
+        list
+            .map((l, i) => ({ l, i }))
+            .sort((a, b) => TIER_RANK[lawyerDisplayTier(b.l as any)] - TIER_RANK[lawyerDisplayTier(a.l as any)] || a.i - b.i)
+            .map(x => x.l);
 
     useEffect(() => {
         if (initialLawyers && initialLawyers.length > 0) {
@@ -109,10 +105,10 @@ export function HomeRecommendedLawyers({ initialLawyers, initialInterpreters = [
                             <div className="flex flex-col gap-6">
                                 {lawyers.map((lawyer, index) => (
                                     <FadeIn key={lawyer.id} delay={index * 150} direction="up">
-                                        {FEATURED_LAWYER_NAMES.some(name => lawyer.name?.includes(name)) ? (
+                                        {lawyerDisplayTier(lawyer as any) === 'top' ? (
                                             <FeaturedLawyerCard lawyer={lawyer} />
                                         ) : (
-                                            <LawyerCard lawyer={lawyer} />
+                                            <LawyerCard lawyer={lawyer} featured={lawyerDisplayTier(lawyer as any) === 'pro'} />
                                         )}
                                     </FadeIn>
                                 ))}
