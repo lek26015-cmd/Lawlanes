@@ -38,9 +38,9 @@ export default function LawSearchPage() {
     };
 
     const getScoreLabel = (score: number) => {
-        if (score >= 0.8) return 'Very High Match';
-        if (score >= 0.65) return 'Good Match';
-        return 'Possible Match';
+        if (score >= 0.8) return 'ตรงมาก';
+        if (score >= 0.65) return 'ตรง';
+        return 'เกี่ยวข้อง';
     };
 
     return (
@@ -137,12 +137,11 @@ export default function LawSearchPage() {
                                                 </div>
                                                 <div>
                                                     <h3 className="text-lg font-bold text-slate-900 leading-tight">
-                                                        {result.source.split('/').pop()?.replace('.pdf', '') || 'เอกสารกฎหมาย'}
+                                                        {result.title || sourceLabel(result.source)}
                                                     </h3>
-                                                    <div className="flex items-center mt-1 text-sm text-slate-500 gap-2">
-                                                        <span className="capitalize">{result.source.split('/')[0] || 'ฐานข้อมูล'}</span>
-                                                        <span>•</span>
-                                                        <span>Match Score: {(result.score * 100).toFixed(1)}%</span>
+                                                    <div className="flex flex-wrap items-center mt-1 text-sm text-slate-500 gap-x-2">
+                                                        <span>{datasetLabel(result.source)}</span>
+                                                        {result.year && (<><span>•</span><span>พ.ศ. {result.year + 543}</span></>)}
                                                     </div>
                                                 </div>
                                             </div>
@@ -180,4 +179,19 @@ export default function LawSearchPage() {
             </div>
         </div>
     );
+}
+
+// ชื่อไฟล์ในฐานข้อมูลเป็นเลข (เช่น "พ.ร.บ. กฤษฎีกา/3117.json") — ใช้เมื่อหาชื่อกฎหมายไม่ได้
+function sourceLabel(source: string): string {
+    const csv = source.match(/^ThaiLawCSV\/([^/]+)\/(.+)$/);
+    if (csv) return `${csv[1]} มาตรา ${csv[2]}`;
+    const file = source.split('/').pop()?.replace(/\.(pdf|json)$/i, '') || '';
+    return /^[\d-]+$/.test(file) ? 'เอกสารกฎหมาย' : file || 'เอกสารกฎหมาย';
+}
+
+function datasetLabel(source: string): string {
+    if (source.startsWith('พ.ร.บ. กฤษฎีกา') || source.startsWith('ThaiLawCSV') || source.startsWith('กฎหมาย/')) return 'ตัวบทกฎหมาย (สำนักงานคณะกรรมการกฤษฎีกา)';
+    if (source.startsWith('ราชกิจจานุเบกษา')) return 'ราชกิจจานุเบกษา';
+    if (source.startsWith('คำพิพากษาฎีกา')) return 'คำพิพากษาฎีกา';
+    return source.split('/')[0] || 'ฐานข้อมูล';
 }

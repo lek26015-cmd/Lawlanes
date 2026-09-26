@@ -51,3 +51,9 @@ export const getAdminLink = (path: string, currentDomain: string = 'main', force
 
     return `${protocol}://admin.${rootDomain}${path}`;
 };
+
+// Lawslane Wittaya (คอร์ส/ข้อสอบ/หนังสือ) เป็นอีกแอปหนึ่ง — ลิงก์ข้ามโดเมนเสมอ
+export const getEducationLink = (path: string = '/') => {
+    const base = process.env.NEXT_PUBLIC_EDUCATION_URL || `https://wittaya.${getRootDomain()}`;
+    return `${base.replace(/\/$/, '')}${path}`;
+};

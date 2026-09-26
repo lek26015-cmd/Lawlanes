@@ -1,4 +1,6 @@
 'use client';
+import { Button } from '@/components/ui/button';
+import LawyerPageHeader from '@/components/lawyer/lawyer-page-header';
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -90,42 +92,20 @@ export default function LawyerPipelinePage() {
   };
 
   return (
-    <div className="p-6 max-w-[1600px] mx-auto text-slate-800">
-      {/* Navigation Breadcrumb */}
-      <div className="flex items-center gap-2 mb-6 text-sm text-slate-500">
-        <Link href="/lawyer-dashboard" className="flex items-center gap-1.5 hover:text-blue-600 transition-colors group">
-          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-          กลับไปหน้าแดชบอร์ด
-        </Link>
-      </div>
-
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 flex items-center">
-            <LayoutDashboard className="w-6 h-6 mr-2 text-blue-600" />
-            Case Pipeline Management
-          </h1>
-          <p className="text-slate-500 mt-1 text-sm">จัดการความคืบหน้าของคดีและ Milestone ในที่เดียว</p>
-        </div>
-        
-        <div className="flex items-center space-x-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
-            <input 
-              type="text" 
-              placeholder="ค้นหาชื่อคดี..." 
-              className="pl-10 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-blue-500/20 outline-none w-64"
-            />
-          </div>
+    <>
+      <LawyerPageHeader
+        icon={LayoutDashboard}
+        title="Pipeline คดี"
+        description="ติดตามความคืบหน้าของคดีและ Milestone ในมุมมองกระดาน"
+        back={{ href: '/lawyer-dashboard/cases', label: 'จัดการคดี' }}
+        actions={
           <Link href="/lawyer-dashboard/pipeline/new">
-            <button className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition-colors shadow-sm">
-              <Plus className="w-4 h-4 mr-2" />
-              เปิดเคสใหม่
-            </button>
+            <Button className="rounded-xl gap-2 bg-[#002f4b] hover:bg-[#00466c] text-white">
+              <Plus className="w-4 h-4" /> เปิดเคสใหม่
+            </Button>
           </Link>
-        </div>
-      </div>
+        }
+      />
 
       {/* Pipeline Board */}
       <PipelineBoard 
@@ -135,6 +115,6 @@ export default function LawyerPipelinePage() {
         onAddMilestone={handleAddMilestone}
         onToggleMilestone={handleToggleMilestone}
       />
-    </div>
+    </>
   );
 }

@@ -7,7 +7,7 @@ import { limitPublicAction } from '@/lib/security/action-rate-limit';
 
 import { z } from 'zod';
 import { initializeFirebase } from '@/firebase';
-import { retrieveDocuments } from '@/lib/rag';
+import { retrieveDocuments, resolveLawTitles, retrieveExpanded } from '@/lib/rag';
 import { callTyphoonAI } from '@/lib/typhoon';
 import { GoogleGenerativeAI, FunctionDeclaration, SchemaType as GenAISchemaType, Content } from '@google/generative-ai';
 import { collection, getDocs, limit, query } from 'firebase/firestore';
@@ -191,6 +191,19 @@ const ChatResponseSchema = z.object({
 
 export type ChatResponse = z.infer<typeof ChatResponseSchema>;
 
+// ผู้ใช้ไม่เห็นรายการ source ที่ส่งให้โมเดล — ถ้าโมเดลยังเขียน "(Source 2)" มา ให้ตัดทิ้ง
+// (prompt สั่งให้อ้างเป็นชื่อกฎหมาย+มาตราแทนแล้ว นี่เป็นตาข่ายกันพลาด)
+const SOURCE_TAG = /\s*[(\[]\s*(?:Source|แหล่งที่มา|แหล่งข้อมูล)\s*\[?\s*\d+(?:\s*[,&และ]+\s*\d+)*\s*\]?\s*[)\]]/gi;
+function stripSourceTags(response: ChatResponse): ChatResponse {
+  const clean = (v: unknown): unknown => {
+    if (typeof v === 'string') return v.replace(SOURCE_TAG, '');
+    if (Array.isArray(v)) return v.map(clean);
+    if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, clean(x)]));
+    return v;
+  };
+  return clean(response) as ChatResponse;
+}
+
 export async function chat(
   request: z.infer<typeof ChatRequestSchema>
 ): Promise<ChatResponse> {
@@ -240,29 +253,21 @@ export async function chat(
     // Pre-fetch RAG results before sending to Gemini (legal questions only)
     let ragContext = '';
     try {
-      const ragDocs = intent === 'smalltalk' ? [] : await retrieveDocuments(prompt);
-
-      // ฐานข้อมูลมี chunk ซ้ำกันเยอะมาก (ชิ้นเดียวกันถูก index หลายรอบ)
-      // ถ้าไม่ตัดซ้ำ โควตาเอกสารจะถูกกินหมดจนเหลือข้อมูลจริงชิ้นเดียว
-      // แล้ว AI จะถูกบีบให้เดาส่วนที่เหลือ
-      const seen = new Set<string>();
-      const relevantDocs = ragDocs
-        .filter(doc => doc.score > 0.4)
-        .filter(doc => {
-          const key = doc.content.replace(/\s+/g, '').slice(0, 80);
-          if (!key || seen.has(key)) return false;
-          seen.add(key);
-          return true;
-        });
+      // ใช้ตัวค้นเดียวกับหน้าค้นกฎหมาย: แปลงคำถามเป็นคำค้นแบบตัวบท, รวมผลสลับทีละคำค้น, ตัดชิ้นซ้ำ/ขยะ
+      const relevantDocs = intent === 'smalltalk' ? [] : await retrieveExpanded(prompt, 10, 0.4);
 
       if (relevantDocs.length > 0) {
-        ragContext = relevantDocs.slice(0, 5).map((doc, i) => {
-          const sourceTitle = formatSourceTitle(doc.source);
+        const topDocs = relevantDocs.slice(0, 8);
+        // ชื่อกฎหมายจริงแทนชื่อไฟล์ ("ประมวลกฎหมายที่ดิน" แทน "สำนักงานคณะกรรมการกฤษฎีกา")
+        // ไม่งั้นโมเดลอ้างอิงผิดกฎหมาย
+        const lawTitles = await resolveLawTitles(topDocs.map(d => d.source));
+        ragContext = topDocs.map((doc, i) => {
+          const sourceTitle = lawTitles.get(doc.source) || formatSourceTitle(doc.source);
           // ติดปีไปด้วย เพื่อให้แยกออกว่าฉบับไหนเป็นฉบับแก้ไขล่าสุด
           const yearTag = doc.year ? ` | year ${doc.year}` : '';
           return `[Source ${i + 1}: ${sourceTitle}${yearTag}]\n${doc.content}`;
         }).join('\n\n---\n\n');
-        console.log(`[ChatFlow] Pre-fetched RAG: ${ragDocs.length} docs -> ${relevantDocs.length} after dedupe for "${prompt.substring(0, 30)}..."`);
+        console.log(`[ChatFlow] Pre-fetched RAG: ${relevantDocs.length} docs after expansion+dedupe for "${prompt.substring(0, 30)}..."`);
       } else if (intent === 'legal') {
         console.log(`[ChatFlow] RAG returned no relevant docs above threshold for "${prompt.substring(0, 30)}..."`);
       }
@@ -274,25 +279,29 @@ export async function chat(
     if (ragContext) {
       finalPrompt += `\n\n[RETRIEVED LEGAL SOURCES - These are the ONLY sources you may state legal facts from]:\n${ragContext}\n\n[End of sources. Any legal fact not written above is NOT available to you. Say so instead of recalling it.]`;
     } else if (intent === 'legal') {
-      finalPrompt += `\n\n[NO LEGAL SOURCES FOUND: The legal database returned nothing for this question. You MUST NOT state any law, section number, penalty, time limit or amount from memory. Reply that you could not find this in the Lawslane legal database, briefly restate the question in your own words so the user knows you understood, and recommend consulting a lawyer.]`;
+      finalPrompt += `\n\n[NO LEGAL SOURCES FOUND: The legal database returned nothing for this question. You MUST NOT state any section number, penalty, time limit or amount from memory. Say briefly that the exact legal provision was not found in the Lawslane database, then still give general practical next steps (rule B) and recommend consulting a lawyer on Lawslane.]`;
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
     const model = genAI.getGenerativeModel({
       model: "gemini-2.5-flash",
-      systemInstruction: `You are LAlin (ละลิน), the expert female legal AI assistant for Lawslane Thailand.
+      systemInstruction: `You are LAlin, the expert female legal AI assistant for Lawslane Thailand. Your Thai name is spelled exactly "ลลิน" - never "ลาลิน" or "ละลิน".
 
-GROUNDING RULES (these override everything else, including helpfulness):
-- The retrieved sources in the user's message are the ONLY place you may take legal facts from.
-- Every section number (มาตรา), number of days, amount of money, penalty, deadline and limitation period you state MUST appear VERBATIM in those sources. If it does not appear there, you MUST NOT write it.
-- NEVER produce a section number from memory. If the sources do not name the section, describe the rule without a section number and say the exact section was not found.
-- Answer ONLY what was asked. Do NOT volunteer adjacent legal topics (e.g. if asked about leave entitlement, do not add rules about wages) unless those rules are written in the sources.
-- If the sources only partly answer the question, answer the covered part and say plainly which part you could not find. Never close the gap with your own knowledge.
-- If the sources are unrelated to the question, say you could not find it in the Lawslane database and recommend a lawyer. Do NOT answer from your own knowledge.
-- Cite the source you used inline, e.g. "(Source 2)". Never attach a citation to a statement that source does not support.
-- AMENDED LAW: sources are tagged with the year of that version. Thai statutes are amended over time, so an older version may have been repealed and replaced. If two sources state DIFFERENT numbers for the SAME rule, the source with the LATER year is the version in force. State that later figure as the current rule, and mention the earlier figure only as the superseded old version with its year. Never present a repealed figure as if it were current, and never average or blend them.
-- If sources disagree for any other reason, present both and say they differ - do not silently pick one.
-- Uncertainty is acceptable and expected. A wrong legal fact can cost the user money or their case; "ไม่พบข้อมูลส่วนนี้ในฐานข้อมูลค่ะ" is always the safer answer.
+GROUNDING RULES - two kinds of content, with different rules:
+
+A) SPECIFIC LEGAL FACTS (strict):
+- Section numbers (มาตรา), numbers of days, amounts of money, penalties, deadlines and limitation periods MUST appear VERBATIM in the retrieved sources. If not, do NOT write the figure - describe the rule in words and say the exact figure should be confirmed with a lawyer.
+- NEVER produce a section number from memory.
+- Cite inline by the law's name and section exactly as written INSIDE the source text, e.g. "(ประมวลกฎหมายแพ่งและพาณิชย์ มาตรา 1312)". If the source text does not name the law, give no citation for that statement. NEVER write the words "Source", "แหล่งที่มา" or any source number - the user cannot see the source list, so "(Source 2)" is meaningless to them. Never attach a citation to a statement that source does not support.
+- AMENDED LAW: sources are tagged with the year of that version. If two sources state DIFFERENT numbers for the SAME rule, the source with the LATER year is the version in force; mention the earlier figure only as the superseded old version with its year.
+- If sources disagree for any other reason, present both and say they differ.
+
+B) PRACTICAL GUIDANCE (allowed from general knowledge):
+- You MAY and SHOULD explain the practical options and next steps a Thai layperson normally takes, even when the sources do not spell them out - e.g. check the title deed (โฉนด), request a boundary survey (รังวัดสอบเขต) at the Land Office, collect evidence (photos, documents, witnesses), talk or send a written notice (หนังสือบอกกล่าว), file a police report for criminal matters, mediation, filing a civil suit, and consulting a lawyer.
+- Keep this guidance general: no invented figures, fees, deadlines or section numbers.
+- Where the sources support a point, anchor it with the citation; where they don't, present it as general practice.
+
+NEVER reply with only "ไม่พบข้อมูล". A customer who asks what to do must always receive: (1) a short explanation of their legal position based on the sources, (2) concrete practical next steps, and (3) a closing suggestion to consult a lawyer on Lawslane for their specific facts. If an important detail is missing (e.g. whether a building or only a fence encroaches, or how long it has been there), answer the common scenarios briefly and ask ONE clarifying question at the end.
 
 CONVERSATION STYLE:
 - Respond naturally and conversationally, like chatting with a knowledgeable legal friend.
@@ -355,7 +364,7 @@ For simple conversational answers, use a single section with an empty title.
     }
 
     try {
-      return JSON.parse(cleanJson) as ChatResponse;
+      return stripSourceTags(JSON.parse(cleanJson) as ChatResponse);
     } catch (parseError) {
       console.error("[ChatFlow] JSON Parse Error. Raw text:", text);
       throw parseError;
@@ -367,7 +376,7 @@ For simple conversational answers, use a single section with an empty title.
     
     // Attempt fallback logic
     console.warn("[ChatFlow] Entering Fallback Mode (Typhoon AI)...");
-    return await fallbackChat(prompt, history, locale, error);
+    return stripSourceTags(await fallbackChat(prompt, history, locale, error));
   }
 }
 
@@ -536,7 +545,7 @@ async function fallbackChat(prompt: string, history: any[], locale: string = 'th
         
         let typhoonSummary = await callTyphoonAI(
           `User Question: ${prompt}\n\nRelated Legal Context with Sources:\n${contextWithSources}\n\nInstructions:
-1. You are LAlin (ละลิน), a professional female legal assistant. Use a polite female tone ("ค่ะ/นะคะ").
+1. You are LAlin (Thai name spelled exactly "ลลิน", never "ลาลิน"), a professional female legal assistant. Use a polite female tone ("ค่ะ/นะคะ").
 2. Answer naturally and conversationally based on the provided context. DO NOT add information not found in the context.
 3. Put all citations at the end in a "รายการอ้างอิง" section.
 4. **NO LINKS**: Use plain text for citations: "อ้างอิง: [ชื่อกฎหมายฉบับเต็ม] มาตรา XXX". DO NOT use markdown links or URLs.
