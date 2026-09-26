@@ -579,10 +579,47 @@ service cloud.firestore {
         );
       }
 
+      // ลายเซ็น / สถานะ "เซ็นแล้ว" / ลิงก์แชร์ เขียนผ่าน Admin SDK เท่านั้น
+      // (capdeal: api/contracts/[id]/sign, api/contracts/[id]/share)
+      // เดิม create เช็คแค่ isSignedIn() และ update แค่ canAccessContract() →
+      // เจ้าของเขียนลายเซ็นแทนคู่สัญญา ตั้ง status 'signed' เอง หรือแก้เนื้อหาหลังเซ็นได้
+      // และใครก็สร้างสัญญาใส่ ownerId ของคนอื่นได้ (ยัดโควตา/รายการของเหยื่อ)
+      function partyUnsigned(p) {
+        return !(p is map) || !p.keys().hasAny([
+          'signature', 'signedAt', 'verifiedPhoneNumber', 'otpVerificationTimestamp',
+          'authUid', 'signerUid', 'signedVia', 'signerIp', 'signerUserAgent', 'termsHash'
+        ]);
+      }
+      function contractUnsigned(d) {
+        return partyUnsigned(d.get('employer', null)) && partyUnsigned(d.get('contractor', null));
+      }
+      function serverOnlyContractFields() {
+        return ['shareToken', 'sharePinHash', 'sharePin', 'shareFailedAttempts',
+                'shareLockedUntil', 'signedAt', 'signedTermsHash'];
+      }
+
       allow read: if canAccessContract();
-      allow create: if isSignedIn();
-      allow update: if canAccessContract();
-      allow delete: if isAdmin() || (isSignedIn() && request.auth.uid == resource.data.ownerId);
+      allow create: if isAdmin() || (
+        isSignedIn()
+        && request.resource.data.ownerId == request.auth.uid
+        && request.resource.data.get('status', 'draft') in ['draft', 'pending']
+        && contractUnsigned(request.resource.data)
+        && !request.resource.data.keys().hasAny(serverOnlyContractFields())
+      );
+      // แก้ได้เฉพาะก่อนมีใครเซ็น และแตะ owner / createdAt / ฟิลด์ของ server ไม่ได้
+      allow update: if isAdmin() || (
+        canAccessContract()
+        && contractUnsigned(resource.data)
+        && contractUnsigned(request.resource.data)
+        && !(resource.data.get('status', 'draft') in ['signed', 'completed', 'canceled'])
+        && request.resource.data.get('status', 'draft') in ['draft', 'pending', 'canceled']
+        && !request.resource.data.diff(resource.data).affectedKeys()
+              .hasAny(serverOnlyContractFields().concat(['ownerId', 'createdAt', 'id']))
+      );
+      // สัญญาที่มีลายเซ็นแล้วเป็นหลักฐานของอีกฝ่ายด้วย — เจ้าของลบเองไม่ได้
+      allow delete: if isAdmin() || (
+        isSignedIn() && request.auth.uid == resource.data.ownerId && contractUnsigned(resource.data)
+      );
     }
 
     match /compliance_events/{eventId} {
