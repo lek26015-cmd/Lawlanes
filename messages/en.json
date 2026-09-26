@@ -114,10 +114,19 @@
       "emptyTitle": "No articles found",
       "emptyDescription": "There are currently no legal articles in the system. Please try again later."
     },
+    "joinUs": {
+      "title": "Join Lawslane",
+      "subtitle": "We are welcoming lawyers and interpreters ready to serve clients through our online platform."
+    },
     "forLawyersFooter": {
       "title": "For Lawyers",
       "description": "Join us to expand your client base and build online credibility.",
       "button": "Apply as a Lawyer"
+    },
+    "forInterpretersFooter": {
+      "title": "For Interpreters & Translators",
+      "description": "Take court, police station, lawyer-meeting and legal document jobs. Set your own rates and work on-site or online.",
+      "button": "Apply as an interpreter"
     },
     "stats": {
       "247": "24/7 Service",
