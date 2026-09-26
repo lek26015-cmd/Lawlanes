@@ -1,3 +1,4 @@
+import { createHash } from 'crypto';
 
 // Use environment variable with fallback to the known deployed URL
 const WORKER_URL = process.env.NEXT_PUBLIC_RAG_WORKER_URL || 'https://lawslane-rag-api.lawlanes-app.workers.dev';
@@ -109,3 +110,74 @@ export async function generateIndex(): Promise<void> {
     console.log("Index generation is now handled by Cloudflare Worker ingestion script.");
 }
 
+
+// ---- ชื่อกฎหมายของแต่ละ source ----
+// ชุดกฤษฎีกาเก็บชื่อไฟล์เป็นเลข ("พ.ร.บ. กฤษฎีกา/3117.json") ไม่มีชื่อกฎหมายใน metadata
+// แต่ chunk แรกของทุกไฟล์ขึ้นต้นด้วยชื่อกฎหมาย และ id ของ chunk คำนวณได้ (md5("kd-{file}-{i}")
+// ใน scripts/ingest-krisdika.py) จึงดึง chunk 0 ด้วย /get แล้วตัดชื่อออกมา
+const KRISDIKA_SOURCE = /^พ\.ร\.บ\. กฤษฎีกา\/(.+)$/;
+const lawTitleCache = new Map<string, string | null>();
+
+const THAI_LAW_CSV_NAMES: Record<string, string> = {
+    'Civil and Commercial': 'ประมวลกฎหมายแพ่งและพาณิชย์',
+    'Criminal': 'ประมวลกฎหมายอาญา',
+    'Civil Procedure': 'ประมวลกฎหมายวิธีพิจารณาความแพ่ง',
+    'Criminal Procedure': 'ประมวลกฎหมายวิธีพิจารณาความอาญา',
+    'Land': 'ประมวลกฎหมายที่ดิน',
+    'Revenue': 'ประมวลรัษฎากร',
+};
+
+function titleFromFirstChunk(text: string): string | null {
+    // "ประมวลกฎหมายที่ดิน  พระราชบัญญัติ ให้ใช้..." — ชื่อคือข้อความก่อนเว้นวรรคคู่แรก
+    const title = text.split(/\s{2,}|\n/)[0]?.trim();
+    return title && title.length >= 4 && title.length <= 150 ? title : null;
+}
+
+export async function resolveLawTitles(sources: string[]): Promise<Map<string, string>> {
+    const out = new Map<string, string>();
+    const missing: Array<{ source: string; id: string }> = [];
+
+    for (const source of new Set(sources)) {
+        const csv = source.match(/^ThaiLawCSV\/([^/]+)\/(.+)$/);
+        if (csv) {
+            const name = THAI_LAW_CSV_NAMES[csv[1]];
+            if (name) out.set(source, `${name} มาตรา ${csv[2]}`);
+            continue;
+        }
+        const kd = source.match(KRISDIKA_SOURCE);
+        if (!kd) continue;
+        if (lawTitleCache.has(source)) {
+            const cached = lawTitleCache.get(source);
+            if (cached) out.set(source, cached);
+            continue;
+        }
+        missing.push({ source, id: createHash('md5').update(`kd-${kd[1]}-0`).digest('hex') });
+    }
+
+    if (missing.length > 0) {
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 3000);
+            const res = await fetch(`${WORKER_URL}/get`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', ...ragAuthHeaders() },
+                body: JSON.stringify({ ids: missing.slice(0, 20).map(m => m.id) }),
+                signal: controller.signal,
+            });
+            clearTimeout(timeoutId);
+            if (res.ok) {
+                const vectors = await res.json() as Array<{ id: string; metadata?: { text?: string } }>;
+                const byId = new Map(vectors.map(v => [v.id, v.metadata?.text || '']));
+                for (const m of missing.slice(0, 20)) {
+                    const title = titleFromFirstChunk(byId.get(m.id) || '');
+                    lawTitleCache.set(m.source, title);
+                    if (title) out.set(m.source, title);
+                }
+            }
+        } catch (e) {
+            // worker ยังไม่มี /get หรือช้า — ใช้ชื่อแบบเดิมไป ไม่ทำให้แชทล้ม
+            console.warn('[RAG] resolveLawTitles failed:', e instanceof Error ? e.message : e);
+        }
+    }
+    return out;
+}
