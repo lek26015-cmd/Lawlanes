@@ -39,6 +39,9 @@ export const PRIVACY: Record<LegalLocale, LegalDoc> = {
                                 ['ลูกความ', 'ชื่อ อีเมล รหัสผ่าน (ระบบยืนยันตัวตนเก็บแบบเข้ารหัส เราไม่เห็นรหัสผ่าน) หรือข้อมูลโปรไฟล์จาก Google/LINE (ชื่อที่แสดง อีเมล รูปโปรไฟล์ LINE user ID) และวันเวลาที่ยอมรับข้อกำหนด'],
                                 ['ทนายความ', 'ชื่อ อีเมล รหัสผ่าน เบอร์โทรศัพท์ วันเกิด เพศ ที่อยู่ LINE ID เลขใบอนุญาตทนายความ การศึกษา ประสบการณ์ ความเชี่ยวชาญ จังหวัดที่ให้บริการ รูปโปรไฟล์ **สำเนาบัตรประชาชนและสำเนาใบอนุญาตทนายความ** ข้อมูลบัญชีธนาคาร (ธนาคาร ชื่อบัญชี เลขบัญชี สำเนาหน้าสมุดบัญชี) และข้อมูลนิติบุคคล (ถ้ามี)'],
                                 ['เคสและการสนทนา', 'ข้อความแชทระหว่างลูกความกับทนายความ ไฟล์แนบและพยานหลักฐาน รายละเอียดเคส นัดหมาย ใบเสนอราคา/งวดชำระ การแจ้งโอนและหลักฐานการโอนที่ลูกความแนบ และการยืนยันรับเงินของทนายความ'],
+                                ['ล่าม/นักแปล', 'ชื่อ อีเมล เบอร์โทรศัพท์ LINE ID รูปโปรไฟล์ คำอธิบาย ภาษา บริการ ความเชี่ยวชาญ จังหวัด อัตราค่าบริการ ตารางเวลา **สำเนาบัตรประชาชนหรือหนังสือเดินทาง** เอกสารรับรองความสามารถ ข้อมูลบัญชีธนาคารสำหรับรับเงิน และวันเวลาที่ยอมรับข้อกำหนดและอัตรา GP'],
+                                ['การจองล่าม/นักแปล', 'บริการที่จอง วันเวลา สถานที่ทำงาน (กรณีงานนอกสถานที่) หมายเหตุ เอกสารที่ส่งให้แปล ชื่อ เบอร์โทรศัพท์ และ LINE ของผู้จอง สลิปโอนเงินและผลการตรวจสลิป ราคา GP การคืนเงินและการโอนเงินให้ล่าม/นักแปล แชทกับล่าม/นักแปล (รวมข้อความต้นฉบับก่อนซ่อนช่องทางติดต่อ ซึ่งเก็บไว้ให้ทีมงานตรวจสอบ)'],
+                                ['แพลนรายเดือน', 'ระดับแพลน สถานะ วันสิ้นรอบ และรหัสลูกค้า/การสมัครสมาชิกของ Stripe (ข้อมูลบัตรเก็บโดย Stripe เราไม่เห็นเลขบัตร)'],
                                 ['รีวิว', 'คะแนน ข้อความรีวิว ชื่อที่แสดงและรูปของผู้รีวิว และเคสที่เกี่ยวข้อง'],
                                 ['ติดต่อเรา', 'ข้อความและอีเมลที่ส่งถึงศูนย์ช่วยเหลือ'],
                                 ['เครื่องมือ AI', 'คำถาม ข้อความ สัญญา หรือรูปภาพที่ท่านส่งให้ลลิน การค้นหาข้อกฎหมาย การวิเคราะห์สัญญา และการแปล'],
@@ -61,6 +64,9 @@ export const PRIVACY: Record<LegalLocale, LegalDoc> = {
                                 ['เชื่อมลูกความกับทนายความ ส่งข้อความ ไฟล์ นัดหมาย และแสดงบัญชีรับเงินของทนายความให้ลูกความในเคส', 'จำเป็นเพื่อปฏิบัติตามสัญญา (มาตรา 24(3))'],
                                 ['ตรวจเลขใบอนุญาตและเอกสารของทนายความก่อนเปิดโปรไฟล์', 'ประโยชน์โดยชอบด้วยกฎหมายในการคุ้มครองลูกความจากผู้แอบอ้าง (มาตรา 24(5))'],
                                 ['แสดงโปรไฟล์ทนายความและรีวิวต่อสาธารณะ', 'จำเป็นเพื่อปฏิบัติตามสัญญากับทนายความ (มาตรา 24(3)) และประโยชน์โดยชอบด้วยกฎหมาย (มาตรา 24(5))'],
+                                ['รับชำระค่าจองล่าม/นักแปล ตรวจสลิป คืนเงิน และโอนเงินให้ล่าม/นักแปล', 'จำเป็นเพื่อปฏิบัติตามสัญญา (มาตรา 24(3))'],
+                                ['เรียกเก็บเงินและจัดการแพลนรายเดือน', 'จำเป็นเพื่อปฏิบัติตามสัญญา (มาตรา 24(3))'],
+                                ['ซ่อนช่องทางติดต่อในแชทกับล่าม/นักแปลก่อนชำระเงิน และเก็บข้อความต้นฉบับไว้ตรวจสอบกรณีมีข้อร้องเรียนหรือการชักชวนชำระนอกระบบ', 'ประโยชน์โดยชอบด้วยกฎหมายในการคุ้มครองผู้จองจากการฉ้อโกง (มาตรา 24(5))'],
                                 ['ส่งอีเมลแจ้งเตือนเกี่ยวกับบัญชีและเคส', 'จำเป็นเพื่อปฏิบัติตามสัญญา (มาตรา 24(3))'],
                                 ['ให้บริการเครื่องมือ AI', 'จำเป็นเพื่อปฏิบัติตามสัญญา (มาตรา 24(3)) เมื่อท่านเลือกใช้เครื่องมือนั้น'],
                                 ['ป้องกันการฉ้อโกง สแปม และการโจมตีระบบ (จำกัดคำขอตาม IP ตรวจบอท)', 'ประโยชน์โดยชอบด้วยกฎหมาย (มาตรา 24(5))'],
@@ -80,6 +86,7 @@ export const PRIVACY: Record<LegalLocale, LegalDoc> = {
                     {
                         ul: [
                             '**ทนายความที่ท่านติดต่อ** ได้รับข้อความ ไฟล์ และรายละเอียดเคสที่ท่านส่ง',
+                            '**ล่าม/นักแปลที่ท่านจอง** ได้รับรายละเอียดงาน เอกสารที่ส่งให้แปล และข้อมูลติดต่อของท่านหลังชำระเงิน',
                             '**ลูกความในเคส** เห็นชื่อ รูป และบัญชีรับเงินของทนายความเจ้าของเคส',
                             '**สาธารณะ** เห็นข้อมูลโปรไฟล์ทนายความที่ได้รับอนุมัติ (ตามที่ระบุใน[ข้อกำหนดการใช้งาน](/terms)) และรีวิว',
                             '**ผู้ให้บริการที่ประมวลผลข้อมูลแทนเรา** ตามตารางด้านล่าง ภายใต้สัญญาหรือข้อตกลงการใช้บริการที่กำหนดให้ใช้ข้อมูลตามคำสั่งของเราเท่านั้น',
@@ -94,6 +101,8 @@ export const PRIVACY: Record<LegalLocale, LegalDoc> = {
                                 ['Google (Gemini API)', 'ประมวลผลเครื่องมือ AI', 'ข้อความ ไฟล์ และรูปที่ท่านส่งให้เครื่องมือ AI'],
                                 ['SCB 10X (Typhoon)', 'โมเดล AI สำรองของลลิน และคำแนะนำกลยุทธ์คดีสำหรับทนายความ', 'คำถามและบทสนทนากับลลิน ชื่อเคสและขั้นตอนงาน'],
                                 ['Cloudflare', 'ระบบแชท ค้นหาข้อกฎหมาย เก็บไฟล์และรูป คิวส่งการแจ้งเตือน รับอีเมล และ Turnstile กันบอท', 'ข้อความแชท (เข้ารหัสจากเบราว์เซอร์เมื่อรองรับ) คำค้น ไฟล์ อีเมลแจ้งเตือน IP'],
+                                ['Stripe', 'รับชำระแพลนรายเดือนด้วยบัตร และจัดการการสมัครสมาชิก', 'อีเมล ชื่อ ข้อมูลบัตร (Stripe เก็บเอง) ประวัติการชำระ'],
+                                ['SlipOK', 'ตรวจสลิปโอนเงินค่าจองล่าม/นักแปล', 'ข้อมูลจาก QR บนสลิป (ธนาคาร ชื่อบัญชีผู้โอน-ผู้รับ ยอดเงิน วันเวลา)'],
                                 ['Resend', 'ส่งอีเมล', 'อีเมลและชื่อผู้รับ เนื้อหาการแจ้งเตือน'],
                                 ['LINE', 'เข้าสู่ระบบด้วย LINE', 'LINE user ID ชื่อที่แสดง รูป อีเมล'],
                                 ['Upstash', 'จำกัดจำนวนคำขอ', 'หมายเลข IP'],
@@ -116,7 +125,7 @@ export const PRIVACY: Record<LegalLocale, LegalDoc> = {
                 blocks: [
                     {
                         ul: [
-                            'จำกัดสิทธิ์การเข้าถึงข้อมูลด้วยกฎความปลอดภัยของฐานข้อมูลและที่เก็บไฟล์ เช่น ไฟล์แนบแชทเปิดได้เฉพาะคนในห้องแชท เอกสารยืนยันตัวตนของทนายความเปิดได้เฉพาะเจ้าของและผู้ดูแลระบบ',
+                            'จำกัดสิทธิ์การเข้าถึงข้อมูลด้วยกฎความปลอดภัยของฐานข้อมูลและที่เก็บไฟล์ เช่น ไฟล์แนบแชทเปิดได้เฉพาะคนในห้องแชท เอกสารยืนยันตัวตนของทนายความและล่าม/นักแปลเปิดได้เฉพาะเจ้าของและผู้ดูแลระบบ ข้อมูลติดต่อของผู้จองล่ามแยกเก็บในส่วนที่เข้าถึงได้จำกัด',
                             'รับส่งข้อมูลผ่าน HTTPS และเข้ารหัสข้อความแชทในเบราว์เซอร์เมื่ออุปกรณ์รองรับ',
                             'จำกัดการเข้าถึงหลังบ้านเฉพาะเจ้าหน้าที่ที่ได้รับอนุญาต',
                         ],
@@ -131,6 +140,7 @@ export const PRIVACY: Record<LegalLocale, LegalDoc> = {
                     {
                         ul: [
                             'ข้อมูลบัญชี เคส แชท และไฟล์ เก็บตลอดที่บัญชียังเปิดใช้',
+                            'ข้อมูลการชำระเงิน การคืนเงิน และการโอนเงินให้ล่าม/นักแปล เก็บตามระยะเวลาที่กฎหมายบัญชีและภาษีกำหนด แม้ปิดบัญชีแล้ว',
                             `เมื่อปิดบัญชี เราจะลบหรือทำให้ข้อมูลไม่สามารถระบุตัวท่านได้ภายใน ${th.retentionDays} วัน ยกเว้นข้อมูลที่ต้องเก็บตามกฎหมาย หรือจำเป็นต่อการใช้สิทธิเรียกร้องตามกฎหมาย ซึ่งจะเก็บไม่เกินอายุความ`,
                             'ข้อความและไฟล์ที่ท่านส่งให้ทนายความ ทนายความอาจเก็บสำเนาไว้ตามหน้าที่วิชาชีพของทนายความเอง',
                             'รีวิวที่เผยแพร่แล้วอาจยังแสดงต่อหลังปิดบัญชี โดยไม่แสดงชื่อและรูปของท่าน',
@@ -216,6 +226,9 @@ export const PRIVACY: Record<LegalLocale, LegalDoc> = {
                                 ['Clients', 'Name, email, password (stored hashed by the authentication service; we cannot see it) or your Google/LINE profile (display name, email, photo, LINE user ID), and when you accepted the Terms.'],
                                 ['Lawyers', 'Name, email, password, phone, date of birth, gender, address, LINE ID, licence number, education, experience, specialties, provinces served, profile photo, **copies of your national ID card and lawyer\'s licence**, bank details (bank, account name and number, bank book copy) and company details if any.'],
                                 ['Cases and chats', 'Messages between client and lawyer, attachments and evidence, case details, appointments, quotes and instalments, payment notices and transfer slips the client attaches, and the lawyer\'s confirmation of receipt.'],
+                                ['Interpreters/translators', 'Name, email, phone, LINE ID, profile photo, description, languages, services, specialties, provinces, rates, schedule, **copy of national ID card or passport**, certificates, bank details for payouts, and when you accepted the Terms and the GP rate.'],
+                                ['Interpreter bookings', "Service booked, date and time, work location (for on-site jobs), notes, documents sent for translation, the client's name, phone and LINE, transfer slip and slip check result, price, GP, refunds and payouts, and chat with the interpreter (including the original text before contact details were hidden, kept for our team to review)."],
+                                ['Monthly plans', 'Plan tier, status, period end, and Stripe customer/subscription IDs (card details are held by Stripe; we never see the card number).'],
                                 ['Reviews', 'Rating, review text, reviewer display name and photo, and the related case.'],
                                 ['Contact', 'Messages and emails sent to our help center.'],
                                 ['AI tools', 'Questions, text, contracts or images you send to Lalin, law search, contract analysis and translation.'],
@@ -238,6 +251,9 @@ export const PRIVACY: Record<LegalLocale, LegalDoc> = {
                                 ['Connect clients with lawyers; deliver messages, files, appointments; show the lawyer\'s payment account to clients in the case', 'Performance of contract (s. 24(3))'],
                                 ['Check lawyers\' licence numbers and documents before publishing a profile', 'Legitimate interest in protecting clients from impostors (s. 24(5))'],
                                 ['Publish lawyer profiles and reviews', 'Performance of contract with the lawyer (s. 24(3)) and legitimate interest (s. 24(5))'],
+                                ['Collect interpreter booking payments, check slips, refund, and pay out interpreters', 'Performance of contract (s. 24(3))'],
+                                ['Bill and manage monthly plans', 'Performance of contract (s. 24(3))'],
+                                ['Hide contact details in interpreter chat before payment, and keep the original text to review complaints or attempts to take payment off-platform', 'Legitimate interest in protecting clients from fraud (s. 24(5))'],
                                 ['Send account and case notification emails', 'Performance of contract (s. 24(3))'],
                                 ['Provide AI tools', 'Performance of contract (s. 24(3)) when you choose to use them'],
                                 ['Prevent fraud, spam and attacks (IP rate limiting, bot checks)', 'Legitimate interest (s. 24(5))'],
@@ -257,6 +273,7 @@ export const PRIVACY: Record<LegalLocale, LegalDoc> = {
                     {
                         ul: [
                             '**The lawyer you contact** receives the messages, files and case details you send.',
+                            '**The interpreter/translator you book** receives the job details, documents sent for translation, and your contact details after payment.',
                             '**Clients in a case** see the case lawyer\'s name, photo and payment account.',
                             '**The public** sees approved lawyer profiles (as described in the [Terms of Service](/terms)) and reviews.',
                             '**Service providers processing data for us**, listed below, under contracts or service terms that limit them to our instructions.',
@@ -271,6 +288,8 @@ export const PRIVACY: Record<LegalLocale, LegalDoc> = {
                                 ['Google (Gemini API)', 'Processing AI tools', 'Text, files and images you send to AI tools'],
                                 ['SCB 10X (Typhoon)', 'Lalin\'s fallback AI model; case strategy suggestions for lawyers', 'Lalin questions and conversation; case and milestone titles'],
                                 ['Cloudflare', 'Chat, law search, file and image storage, notification queue, inbound email, Turnstile bot protection', 'Chat messages (encrypted in the browser where supported), search queries, files, notification emails, IP'],
+                                ['Stripe', 'Card payments and subscription management for monthly plans', 'Email, name, card details (held by Stripe), payment history'],
+                                ['SlipOK', 'Checking transfer slips for interpreter bookings', 'Data from the slip QR code (banks, sender and recipient account names, amount, date and time)'],
                                 ['Resend', 'Sending email', 'Recipient name and email, notification content'],
                                 ['LINE', 'Sign in with LINE', 'LINE user ID, display name, photo, email'],
                                 ['Upstash', 'Rate limiting', 'IP address'],
@@ -293,7 +312,7 @@ export const PRIVACY: Record<LegalLocale, LegalDoc> = {
                 blocks: [
                     {
                         ul: [
-                            'Access is restricted by database and storage security rules; for example, chat attachments open only for members of that chat, and lawyers\' identity documents only for the lawyer and administrators.',
+                            'Access is restricted by database and storage security rules; for example, chat attachments open only for members of that chat, and identity documents of lawyers and interpreters only for their owner and administrators. Interpreter clients\' contact details are stored separately with restricted access.',
                             'Data travels over HTTPS, and chat messages are encrypted in the browser where the device supports it.',
                             'Back-office access is limited to authorised staff.',
                         ],
@@ -308,6 +327,7 @@ export const PRIVACY: Record<LegalLocale, LegalDoc> = {
                     {
                         ul: [
                             'Account, case, chat and file data are kept while your account is open.',
+                            'Records of payments, refunds and interpreter payouts are kept for the period required by accounting and tax law, even after account closure.',
                             `When you close your account we delete or anonymise your data within ${en.retentionDays} days, except data the law requires us to keep or that is needed to exercise legal claims, which we keep no longer than the limitation period.`,
                             'A lawyer may keep copies of messages and files you sent them under their own professional obligations.',
                             'Published reviews may remain after account closure, without your name or photo.',
@@ -393,6 +413,9 @@ export const PRIVACY: Record<LegalLocale, LegalDoc> = {
                                 ['委托人', '姓名、电子邮件、密码（由身份验证服务以哈希方式存储，我们无法看到），或 Google/LINE 资料（显示名称、电子邮件、头像、LINE 用户 ID），以及接受条款的时间。'],
                                 ['律师', '姓名、电子邮件、密码、电话、出生日期、性别、地址、LINE ID、执照号、学历、经验、专业领域、服务府、头像、**身份证及律师执照复印件**、银行信息（银行、户名、账号、存折复印件）及公司信息（如有）。'],
                                 ['案件与聊天', '委托人与律师之间的消息、附件和证据、案件详情、预约、报价和分期、委托人上传的付款通知和转账凭证，以及律师的收款确认。'],
+                                ['口译/笔译员', '姓名、电子邮件、电话、LINE ID、头像、简介、语言、服务、专业领域、服务府、费率、日程、**身份证或护照复印件**、资格证书、收款银行信息，以及接受条款和 GP 费率的时间。'],
+                                ['口译/笔译预约', '预约的服务、日期时间、工作地点（现场工作）、备注、需翻译的文件、预约方的姓名、电话和 LINE、转账凭证及核验结果、价格、GP、退款和向口译员的付款，以及与口译员的聊天（包括隐藏联系方式前的原文，供团队审核）。'],
+                                ['月度方案', '方案级别、状态、周期结束日期，以及 Stripe 客户/订阅编号（银行卡信息由 Stripe 保存，我们看不到卡号）。'],
                                 ['评价', '评分、评价内容、评价者的显示名称和头像，以及相关案件。'],
                                 ['联系我们', '发送至帮助中心的消息和邮件。'],
                                 ['AI 工具', '您发送给 Lalin、法律检索、合同分析和翻译的问题、文字、合同或图片。'],
@@ -415,6 +438,9 @@ export const PRIVACY: Record<LegalLocale, LegalDoc> = {
                                 ['连接委托人与律师，传递消息、文件、预约，并向案件委托人显示律师收款账户', '履行合同所必需（第 24(3) 条）'],
                                 ['在公开资料前审核律师执照号和文件', '保护委托人免受冒充者侵害的合法利益（第 24(5) 条）'],
                                 ['公开律师资料和评价', '履行与律师的合同（第 24(3) 条）及合法利益（第 24(5) 条）'],
+                                ['收取口译/笔译预约款项、核验凭证、退款及向口译员付款', '履行合同所必需（第 24(3) 条）'],
+                                ['月度方案计费与管理', '履行合同所必需（第 24(3) 条）'],
+                                ['付款前隐藏与口译员聊天中的联系方式，并保留原文以处理投诉或系统外付款的引导', '保护预约方免受欺诈的合法利益（第 24(5) 条）'],
                                 ['发送账户和案件通知邮件', '履行合同所必需（第 24(3) 条）'],
                                 ['提供 AI 工具', '您选择使用时，为履行合同所必需（第 24(3) 条）'],
                                 ['防止欺诈、垃圾信息和攻击（按 IP 限流、机器人检测）', '合法利益（第 24(5) 条）'],
@@ -434,6 +460,7 @@ export const PRIVACY: Record<LegalLocale, LegalDoc> = {
                     {
                         ul: [
                             '**您联系的律师**会收到您发送的消息、文件和案件详情。',
+                            '**您预约的口译/笔译员**会收到工作详情、需翻译的文件，并在付款后收到您的联系方式。',
                             '**案件中的委托人**可看到该案律师的姓名、头像和收款账户。',
                             '**公众**可看到已审核律师的资料（见[服务条款](/terms)）和评价。',
                             '**代表我们处理数据的服务商**（见下表），其须依合同或服务条款仅按我们的指示使用数据。',
@@ -448,6 +475,8 @@ export const PRIVACY: Record<LegalLocale, LegalDoc> = {
                                 ['Google（Gemini API）', '处理 AI 工具', '您发送给 AI 工具的文字、文件和图片'],
                                 ['SCB 10X（Typhoon）', 'Lalin 的备用 AI 模型；为律师提供案件策略建议', 'Lalin 的问题和对话；案件和阶段标题'],
                                 ['Cloudflare', '聊天、法律检索、文件和图片存储、通知队列、接收邮件、Turnstile 机器人防护', '聊天消息（设备支持时在浏览器端加密）、检索词、文件、通知邮件、IP'],
+                                ['Stripe', '月度方案的银行卡付款和订阅管理', '电子邮件、姓名、银行卡信息（由 Stripe 保存）、付款记录'],
+                                ['SlipOK', '核验口译/笔译预约的转账凭证', '凭证二维码中的数据（银行、转出和收款户名、金额、日期时间）'],
                                 ['Resend', '发送邮件', '收件人姓名和邮箱、通知内容'],
                                 ['LINE', 'LINE 登录', 'LINE 用户 ID、显示名称、头像、电子邮件'],
                                 ['Upstash', '请求限流', 'IP 地址'],
@@ -470,7 +499,7 @@ export const PRIVACY: Record<LegalLocale, LegalDoc> = {
                 blocks: [
                     {
                         ul: [
-                            '通过数据库和存储安全规则限制访问，例如聊天附件仅限该聊天成员打开，律师身份文件仅限本人和管理员查看。',
+                            '通过数据库和存储安全规则限制访问，例如聊天附件仅限该聊天成员打开，律师和口译/笔译员的身份文件仅限本人和管理员查看，口译预约方的联系方式单独存放并限制访问。',
                             '数据通过 HTTPS 传输；设备支持时，聊天消息在浏览器端加密。',
                             '后台仅限获授权的工作人员访问。',
                         ],
@@ -485,6 +514,7 @@ export const PRIVACY: Record<LegalLocale, LegalDoc> = {
                     {
                         ul: [
                             '账户开通期间，保存账户、案件、聊天和文件数据。',
+                            '付款、退款及向口译员付款的记录，即使账户注销，也会按会计和税务法律规定的期限保存。',
                             `账户注销后，我们会在 ${zh.retentionDays} 天内删除您的数据或使其无法识别到您，但法律要求保存或行使法律请求权所需的数据除外，此类数据保存期限不超过诉讼时效。`,
                             '律师可依其职业义务保留您发送给他的消息和文件副本。',
                             '已发布的评价在账户注销后可能仍会显示，但不显示您的姓名和头像。',
