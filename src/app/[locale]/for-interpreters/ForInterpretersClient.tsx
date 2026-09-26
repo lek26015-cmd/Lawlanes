@@ -114,15 +114,15 @@ export default function ForInterpretersClient({ gpPercent }: { gpPercent: number
 
     return (
         <div className="bg-gray-50 min-h-screen">
-            <section className="relative bg-[#0B3979] text-white overflow-hidden rounded-b-[40px] md:rounded-b-none">
+            <section className="relative bg-slate-900 text-white overflow-hidden rounded-b-[40px] md:rounded-b-none">
                 <div className="md:hidden absolute inset-x-0 top-0 h-[340px] pointer-events-none">
                     <Image src={interpreterHero} alt="" fill priority sizes="100vw" className="object-contain object-top opacity-80" />
-                    <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[#0B3979] via-[#0B3979]/80 to-transparent" />
+                    <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-slate-900 via-slate-900/80 to-transparent" />
                 </div>
                 <div className="relative container mx-auto px-4 md:px-6 max-w-5xl md:grid md:grid-cols-[1fr_auto] md:items-end md:gap-8">
                     <div className="pt-[250px] pb-10 text-center md:text-left md:py-14">
                         <h1 className="text-3xl md:text-4xl font-bold font-headline">{t('heroTitle')}</h1>
-                        <p className="mt-3 text-blue-100 max-w-2xl mx-auto md:mx-0">{t('heroSubtitle')}</p>
+                        <p className="mt-3 text-gray-300 max-w-2xl mx-auto md:mx-0">{t('heroSubtitle')}</p>
                     </div>
                     <Image
                         src={interpreterHero}
