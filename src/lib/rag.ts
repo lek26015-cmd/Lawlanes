@@ -59,6 +59,9 @@ export async function retrieveDocuments(query: string, topK: number = 5): Promis
                 content = content.replace(/พิจาร\s+ณา/g, 'พิจารณา');
                 content = content.replace(/พิ\s+จารณา/g, 'พิจารณา');
                 
+                // 2.5 บางชุดข้อมูลเก็บ "\\n" เป็นตัวอักษรจริง (ไม่ใช่ขึ้นบรรทัด)
+                content = content.replace(/\\n/g, '\n');
+
                 // 3. Clean up excessive whitespace/newlines
                 content = content.replace(/\n\s*\n/g, '\n').trim();
                 content = content.replace(/[ ]{2,}/g, ' '); // Remove double spaces
@@ -247,7 +250,16 @@ export async function retrieveExpanded(question: string, perQuery: number = 10, 
         seen.add(key);
         return true;
     };
-    const queues = batches.map(b => [...b].sort((x, y) => y.score - x.score));
+    // ตัวบทจริง (กฤษฎีกา/ThaiLawCSV/โฟลเดอร์กฎหมาย) มาก่อนคำพิพากษา และประกาศราชกิจจาฯ
+    // ประกาศราชกิจจาฯ ส่วนใหญ่เป็นคำสั่ง/ประกาศรายกรณี (เช่น คำสั่งยึดทรัพย์ที่มีชื่อบุคคล)
+    // คะแนนความหมายใกล้กับคำถามแต่ไม่ใช่ข้อกฎหมายที่ผู้ใช้ต้องการ
+    const weighted = (d: { source: string; score: number }) => {
+        if (/^(ThaiLawCSV|พ\.ร\.บ\. กฤษฎีกา|กฎหมาย)\//.test(d.source)) return d.score;
+        if (d.source.startsWith('คำพิพากษาฎีกา')) return d.score * 0.95;
+        if (d.source.startsWith('ราชกิจจานุเบกษา')) return d.score * 0.85;
+        return d.score * 0.9;
+    };
+    const queues = batches.map(b => [...b].sort((x, y) => weighted(y) - weighted(x)));
     const merged: Awaited<ReturnType<typeof retrieveDocuments>> = [];
     while (queues.some(q => q.length > 0)) {
         for (const q of queues) {
@@ -257,5 +269,13 @@ export async function retrieveExpanded(question: string, perQuery: number = 10, 
             }
         }
     }
-    return merged;
+    // เรียงตามประเภทแหล่งข้อมูลโดยคงลำดับ round-robin ในกลุ่มเดียวกัน: ตัวบท → ฎีกา → อื่น ๆ → ราชกิจจาฯ
+    const tier = (src: string) =>
+        /^(ThaiLawCSV|พ\.ร\.บ\. กฤษฎีกา|กฎหมาย)\//.test(src) ? 0
+        : src.startsWith('คำพิพากษาฎีกา') ? 1
+        : src.startsWith('ราชกิจจานุเบกษา') ? 3 : 2;
+    return merged
+        .map((d, i) => ({ d, i }))
+        .sort((a, b) => tier(a.d.source) - tier(b.d.source) || a.i - b.i)
+        .map(x => x.d);
 }
