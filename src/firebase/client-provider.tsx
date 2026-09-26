@@ -63,17 +63,18 @@ export function FirebaseClientProvider({ children }: FirebaseClientProviderProps
           const hasSessionHint = typeof document !== 'undefined' && document.cookie.includes('session_hint=');
 
           if (hasSessionHint) {
+            // มี server session (เช่น ล็อกอินจาก subdomain อื่น) แต่ Client SDK ยังไม่มีผู้ใช้ —
+            // แลกเป็น custom token แล้ว sign in จริง; onAuthStateChanged จะยิงอีกรอบพร้อมผู้ใช้
+            // (เดิมตั้ง user ปลอมแล้วค้าง isUserLoading=true ตลอดไป → header ไม่มีปุ่ม login/เมนูบัญชี)
             try {
-              // Try to verify session with backend
-              const res = await fetch('/api/auth/session');
-              const data = await res.json();
-              if (data.authenticated) {
-                // We have a server session, but Firebase Client SDK doesn't have the user yet.
-                // Keep isUserLoading: true but store the basic info if needed.
-                // This prevents the dashboard from rendering and making Firestore calls 
-                // until the REAL Firebase Auth SDK has initialized and authenticated.
-                setUserAuthState(prev => ({ ...prev, user: { uid: data.uid, email: data.email } as any }));
-                return;
+              const res = await fetch('/api/auth/session/token', { method: 'POST' });
+              if (res.ok) {
+                const { customToken } = await res.json();
+                if (customToken) {
+                  const { signInWithCustomToken } = await import('firebase/auth');
+                  await signInWithCustomToken(auth, customToken);
+                  return;
+                }
               }
             } catch (e) {
               console.error("Session sync failed:", e);
