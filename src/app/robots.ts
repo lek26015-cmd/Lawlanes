@@ -5,7 +5,7 @@ import { MetadataRoute } from 'next'
 // ไฟล์นี้ชนะ public/robots.txt จึงลบไฟล์นั้นทิ้ง ให้เหลือที่เดียว
 const PRIVATE_PATHS = [
   'admin', 'dashboard', 'account', 'chat', 'interpreter-chat', 'interpreter-dashboard',
-  'dev', 'payment', 'vault', 'appointment', 'review',
+  'dev', 'payment', 'vault', 'appointment', 'review', 'contract', 'support',
   'lawyer-dashboard', 'lawyer-login', 'lawyer-signup', 'lawyer-schedule',
   'login', 'signup', 'reset-password', 'registration-success',
 ]
@@ -15,7 +15,8 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: '*',
       allow: '/',
-      disallow: ['/api/', ...PRIVATE_PATHS.map((p) => `/*/${p}`)],
+      // หน้าจอง/นัดของทนายและล่ามแต่ละคน (ต้องล็อกอิน มีข้อมูลที่ลูกความกรอก)
+      disallow: ['/api/', ...PRIVATE_PATHS.map((p) => `/*/${p}`), '/*/interpreters/*/book', '/*/lawyers/*/schedule'],
     },
     sitemap: 'https://www.lawslane.com/sitemap.xml',
   }

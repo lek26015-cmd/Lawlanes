@@ -113,6 +113,14 @@ export async function submitReviewAction(data: {
     }
 }
 
+function maskReviewerName(name: unknown): string {
+    const parts = typeof name === 'string' ? name.trim().split(/\s+/).filter(Boolean) : [];
+    if (parts.length === 0) return 'ผู้ใช้ Lawslane';
+    // อีเมลที่ถูกใช้เป็นชื่อ → เอาเฉพาะ 2 ตัวแรก
+    const first = parts[0].includes('@') ? `${parts[0].slice(0, 2)}***` : parts[0];
+    return parts.length > 1 ? `${first} ${Array.from(parts[1])[0]}.` : first;
+}
+
 export async function getReviewsAction(lawyerId: string, limitCount: number = 100) {
     const adminApp = await initAdmin();
     if (!adminApp) {
@@ -135,8 +143,10 @@ export async function getReviewsAction(lawyerId: string, limitCount: number = 10
             // Ensure no non-serializable objects (like Timestamps) are passed to the client
             return {
                 id: doc.id,
-                author: data.author || 'Anonymous',
-                avatar: data.avatar || '',
+                // หน้าโปรไฟล์ทนายเป็นหน้าสาธารณะที่ search engine เก็บได้ — ห้ามโชว์ชื่อเต็ม/รูปของ
+                // ลูกความ (ผูกตัวตนเข้ากับ "เคยเป็นลูกความของทนายคนนี้") → ชื่อแรก + อักษรแรกของนามสกุล ไม่มีรูป
+                author: maskReviewerName(data.author),
+                avatar: '',
                 rating: Number(data.rating) || 0,
                 comment: data.comment || '',
                 lawyerId: data.lawyerId,
