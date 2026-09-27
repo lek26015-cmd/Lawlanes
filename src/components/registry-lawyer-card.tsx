@@ -75,7 +75,8 @@ export default function RegistryLawyerCard({ lawyer }: RegistryLawyerCardProps) 
       </div>
 
       <div className="flex-shrink-0 flex flex-col sm:flex-row md:flex-col items-stretch justify-center gap-3 w-full md:w-40 mt-2 md:mt-0 relative z-10">
-        <Link href={`/verify-lawyer?licenseNumber=${encodeURIComponent(lawyer.licenseNumber)}`}>
+        {/* nofollow: ผลตรวจรายคนไม่ต้องให้ bot ไล่ crawl/index */}
+        <Link href={`/verify-lawyer?licenseNumber=${encodeURIComponent(lawyer.licenseNumber)}`} rel="nofollow">
           <Button
             className="w-full bg-gradient-to-r from-slate-500 to-slate-600 hover:from-slate-600 hover:to-slate-700 text-white shadow-md hover:shadow-lg transition-all"
             onClick={(e) => e.stopPropagation()}

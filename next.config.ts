@@ -159,9 +159,17 @@ const nextConfig: NextConfig = {
     ];
   },
   async redirects() {
+    // URL เก่าที่ไม่มี locale (เช่น /verify-lawyer ที่เคยติดอันดับ Google) → /th/... แบบถาวร (308)
+    // เดิม next-intl ส่ง 307 ชั่วคราว อันดับจึงไม่ย้ายตามไป URL ใหม่ · หน้าแรก / ยังให้ next-intl เลือกภาษาเอง
+    const publicPagesWithoutLocale = [
+      'lawyers', 'interpreters', 'law-search', 'articles', 'forms', 'for-lawyers',
+      'for-interpreters', 'verify-lawyer', 'about', 'help', 'guide', 'ai-disclaimer', 'privacy', 'terms',
+    ].map((page) => ({ source: `/${page}/:path*`, destination: `/th/${page}/:path*`, permanent: true }));
+
     // หลังยกหลังบ้านไป admin.lawslane.com แล้ว (แผนรวมหลังบ้าน Module 1)
     // ลิงก์เก่าที่คนบุ๊กมาร์กไว้ต้องไม่ 404 — permanent: false เผื่อย้ายกลับ/เปลี่ยนปลายทาง
     return [
+      ...publicPagesWithoutLocale,
       {
         source: '/:locale(th|en)/admin/registry-import',
         destination: 'https://admin.lawslane.com/lawyer-registry/import',

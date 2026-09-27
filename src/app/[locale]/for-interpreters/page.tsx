@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { localeAlternates } from '@/lib/seo';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { getInterpreterGpPercentAction } from '@/app/actions/interpreter-profile-actions';
 import ForInterpretersClient from './ForInterpretersClient';
@@ -6,7 +7,7 @@ import ForInterpretersClient from './ForInterpretersClient';
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
     const { locale } = await params;
     const t = await getTranslations({ locale, namespace: 'ForInterpreters' });
-    return { title: t('metaTitle'), description: t('heroSubtitle') };
+    return { title: t('metaTitle'), description: t('heroSubtitle'), alternates: localeAlternates(locale, '/for-interpreters') };
 }
 
 export const revalidate = 300;

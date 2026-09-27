@@ -13,9 +13,12 @@ export interface VerifyResult {
     id: string;
     name: string;
     licenseNumber: string;
-    status: 'active' | 'suspended' | 'struck_off' | 'pending';
+    // announced = พบชื่อในประกาศรับใบอนุญาตของสภาทนายความ (ประกาศไม่มีเลขใบอนุญาต)
+    status: 'active' | 'announced' | 'suspended' | 'struck_off' | 'pending';
     province?: string;
-    registeredDate?: string;
+    // ที่มาของรายชื่อ — วันที่ตามประกาศต้นฉบับ + ลิงก์ประกาศ
+    announcementDate?: string;
+    sourceUrl?: string;
     // Fields only available if on Lawslane
     isOnLawslane: boolean;
     lawslaneProfileId?: string;
@@ -35,6 +38,11 @@ export default function VerifyResultCard({ result }: VerifyResultCardProps) {
         active: {
             label: t('status.active'),
             color: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+            icon: <ShieldCheck className="w-3.5 h-3.5" />,
+        },
+        announced: {
+            label: t('status.announced'),
+            color: 'bg-sky-50 text-sky-700 border-sky-200',
             icon: <ShieldCheck className="w-3.5 h-3.5" />,
         },
         suspended: {
@@ -57,7 +65,10 @@ export default function VerifyResultCard({ result }: VerifyResultCardProps) {
     const currentStatus = statusConfig[result.status] || statusConfig.pending;
 
     const handleShare = async () => {
-        const shareUrl = `${window.location.origin}/verify-lawyer?licenseNumber=${encodeURIComponent(result.licenseNumber)}`;
+        // ไม่มีเลขใบอนุญาต → แชร์หน้าค้นหาเฉย ๆ (ไม่ใส่ชื่อบุคคลลงใน URL)
+        const shareUrl = result.licenseNumber
+            ? `${window.location.origin}/verify-lawyer?licenseNumber=${encodeURIComponent(result.licenseNumber)}`
+            : `${window.location.origin}/verify-lawyer`;
         const shareText = `ตรวจสอบสถานะทนายความ ${result.name} บน Lawslane`;
 
         if (navigator.share) {
@@ -117,12 +128,6 @@ export default function VerifyResultCard({ result }: VerifyResultCardProps) {
                                         {result.province}
                                     </Badge>
                                 )}
-                                {result.registeredDate && (
-                                    <Badge variant="outline" className="text-slate-500 border-slate-200 gap-1 font-normal">
-                                        <Calendar className="w-3 h-3" />
-                                        {result.registeredDate}
-                                    </Badge>
-                                )}
                             </div>
 
                             {result.specialty && result.specialty.length > 0 && (
@@ -177,23 +182,42 @@ export default function VerifyResultCard({ result }: VerifyResultCardProps) {
                     <div className="flex-grow text-center sm:text-left">
                         <h3 className="text-xl font-bold text-slate-800">{result.name}</h3>
                         <p className="text-sm text-slate-500 mt-0.5">
-                            {t('resultFound.licenseNumber')} {result.licenseNumber}
+                            {result.licenseNumber
+                                ? `${t('resultFound.licenseNumber')} ${result.licenseNumber}`
+                                : t('card.noLicenseNumber')}
                         </p>
 
                         <div className="flex flex-wrap gap-2 mt-3 justify-center sm:justify-start">
+                            {result.status === 'announced' && (
+                                <Badge variant="outline" className={`gap-1 font-normal ${currentStatus.color}`}>
+                                    {currentStatus.icon}
+                                    {currentStatus.label}
+                                </Badge>
+                            )}
                             {result.province && (
                                 <Badge variant="outline" className="text-slate-500 border-slate-200 gap-1 font-normal">
                                     <MapPin className="w-3 h-3" />
                                     {result.province}
                                 </Badge>
                             )}
-                            {result.registeredDate && (
+                            {result.announcementDate && (
                                 <Badge variant="outline" className="text-slate-500 border-slate-200 gap-1 font-normal">
                                     <Calendar className="w-3 h-3" />
-                                    {result.registeredDate}
+                                    {t('card.announcedIn', { date: result.announcementDate })}
                                 </Badge>
                             )}
                         </div>
+                        {result.sourceUrl?.startsWith('https://') && (
+                            <a
+                                href={result.sourceUrl}
+                                target="_blank"
+                                rel="noopener noreferrer nofollow"
+                                className="inline-flex items-center gap-1 mt-3 text-sm text-[#0B3979] hover:underline"
+                            >
+                                <ExternalLink className="w-3.5 h-3.5" />
+                                {t('card.viewSource')}
+                            </a>
+                        )}
                     </div>
                 </div>
 

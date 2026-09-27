@@ -1,3 +1,5 @@
+import type { Metadata } from 'next';
+import { pageMetadata } from '@/lib/seo';
 import { Shield, Award, Heart, Globe, Mail, Phone, MapPin, Scale, ArrowRight } from 'lucide-react';
 import Image from 'next/image';
 import groupPhoto from '@/pic/lawslane-photo-group.webp';
@@ -6,6 +8,11 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { FadeIn } from '@/components/fade-in';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await params;
+  return pageMetadata(locale, 'about', '/about');
+}
 
 export default async function AboutPage({ params }: { params: Promise<{ locale: string }> }) {
     const { locale: l } = await params;

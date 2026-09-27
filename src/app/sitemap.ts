@@ -1,9 +1,10 @@
 import { MetadataRoute } from 'next'
 import { locales } from '@/navigation'
+import { SITE_URL } from '@/lib/seo'
 
 // โดเมนจริงคือ www (lawslane.com redirect มา www) และทุกหน้ามี locale นำหน้า (localePrefix: 'always')
 // URL ที่ไม่มี /th จะโดน redirect — ใส่ URL ปลายทางตรง ๆ พร้อม hreflang ของอีกสองภาษา
-const baseUrl = 'https://www.lawslane.com'
+const baseUrl = SITE_URL
 
 const pages: { path: string; changeFrequency: 'daily' | 'weekly' | 'monthly'; priority: number }[] = [
   { path: '', changeFrequency: 'daily', priority: 1 },

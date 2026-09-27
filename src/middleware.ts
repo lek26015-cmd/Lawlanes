@@ -102,7 +102,12 @@ export async function middleware(request: NextRequest) {
   }
 
   // 3. Handle Page Routes (Internationalization)
-  return intlMiddleware(request);
+  const response = intlMiddleware(request);
+  // ผลตรวจสอบทนายรายคน (?licenseNumber=) ไม่ให้ search engine index — หน้าหลักยัง index ปกติ
+  if (route.startsWith('/verify-lawyer') && request.nextUrl.searchParams.has('licenseNumber')) {
+    response.headers.set('X-Robots-Tag', 'noindex, follow');
+  }
+  return response;
 }
 
 export const config = {

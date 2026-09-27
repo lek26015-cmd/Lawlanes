@@ -267,9 +267,9 @@
   },
   "VerifyLawyer": {
     "backToHome": "返回首页",
-    "title": "验证",
-    "titleLine2": "律师状态",
-    "description": "通过验证律师执照信息来建立信心，确保服务的准确性和安全性。",
+    "title": "核实",
+    "titleLine2": "泰国律师",
+    "description": "聘请律师前，免费查询律师姓名或执照号码。",
     "dataSource": "此数据仅来自 Lawslane 数据库",
     "lastUpdated": "最后更新于",
     "lastUpdatedToday": "最后更新：今天",
@@ -296,15 +296,17 @@
       "viewProfile": "查看资料"
     },
     "resultNotFound": {
-      "title": "未找到",
-      "description": "未找到符合所提供信息的律师。请检查详细信息或联系支持。",
-      "closeButton": "关闭"
+      "title": "未在 Lawslane 数据库中找到",
+      "description": "我们的数据库尚未涵盖所有律师。未找到并不代表是假律师，请向泰国律师协会核实。",
+      "closeButton": "关闭",
+      "officialButton": "向律师协会核实"
     },
     "status": {
       "active": "执照有效",
       "suspended": "执照暂停",
       "struckOff": "已除名",
-      "pending": "待验证"
+      "pending": "待验证",
+      "announced": "名字见于律师执照公告"
     },
     "card": {
       "onLawslane": "已注册 Lawslane",
@@ -313,12 +315,53 @@
       "notRegisteredCta": "如果您是该律师，可以注册以添加联系方式并通过 Lawslane 接收客户。",
       "registerButton": "注册成为律师",
       "share": "分享",
-      "shareLawyer": "邀请注册"
+      "shareLawyer": "邀请注册",
+      "announcedIn": "律师注册办公室公告 {date}",
+      "viewSource": "查看原始公告",
+      "noLicenseNumber": "原始公告未列出执照号码"
     },
     "filter": {
       "verifyLink": "验证律师状态"
     },
-    "searchByNameTip": "建议使用姓名搜索，部分律师的执业证号尚未录入系统。"
+    "searchByNameTip": "建议使用姓名搜索，部分律师的执业证号尚未录入系统。",
+    "guide": {
+      "heading": "聘请前如何核实律师",
+      "step1Title": "索取姓名和执照号码",
+      "step1Body": "向律师索取全名和执照号码。真正的律师持有泰国律师协会会员卡，执照号码格式为\"号码/佛历年\"，例如 12345/2550。",
+      "step2Title": "在本页查询",
+      "step2Body": "在上方输入执照号码或全名。我们会查询在 Lawslane 注册的律师以及从律师注册办公室公告中收集的名单。",
+      "step3Title": "向律师协会确认",
+      "step3Body": "如果未找到或仍不确定，请直接向颁发律师执照的泰国律师协会核实。",
+      "warningHeading": "律师可能是假的警示信号",
+      "warning1": "拒绝提供执照号码或出示律师协会会员卡",
+      "warning2": "保证一定胜诉，或声称\"认识法院的人\"",
+      "warning3": "催促立即转大笔款项，却没有委托合同或收据",
+      "warning4": "要求把钱转入他人账户",
+      "warning5": "只能通过聊天联系，没有可核实的办公室或地址",
+      "faqHeading": "常见问题",
+      "faq1Q": "在哪里可以查询律师名单？",
+      "faq1A": "可在本页通过姓名或执照号码免费查询，并向颁发律师执照的泰国律师协会正式确认。",
+      "faq2Q": "查不到是否代表是假律师？",
+      "faq2A": "不一定。Lawslane 数据库尚未涵盖所有律师，尤其是很早取得执照的律师。下结论前请先向律师协会核实。",
+      "faq3Q": "律师执照号码在哪里查看？",
+      "faq3A": "在律师的执照或律师协会会员卡上，格式为\"号码/佛历年\"。真正的律师应在被要求时出示。",
+      "faq4Q": "终身执照和两年执照有什么区别？",
+      "faq4A": "两年执照须按期续期，终身执照无需续期。未被暂停或除名时，两者均可执业。",
+      "faq5Q": "本页数据来自哪里？",
+      "faq5A": "来自在 Lawslane 注册的律师，以及从泰国律师协会律师注册办公室公告中收集的名单。来自公告的结果都会显示日期和原始链接。",
+      "faq6Q": "如何更正或删除本人数据？",
+      "faq6A": "请通过 Lawslane 帮助中心联系我们，我们会审核处理。"
+    },
+    "notice": {
+      "title": "核实律师前须知",
+      "item1": "本页数据来自在 Lawslane 注册的律师以及律师协会注册公告中的名单，尚未涵盖所有律师。",
+      "item2": "查不到并不代表是假律师，请再向律师协会核实。",
+      "item3": "来自公告的结果会显示日期和原始链接，但不能确认执照今天仍然有效。",
+      "item4": "在核实律师身份并签订明确的委托合同之前，请勿转账。",
+      "dontShowAgain": "不再显示",
+      "accept": "明白了，开始查询",
+      "imageAlt": "律师正在审阅文件"
+    }
   },
   "LegalForms": {
     "heroTitle": "法律表格中心",
@@ -1820,5 +1863,47 @@
     "platformNote": "请仅通过 Lawslane 付款，以获得保障并在出现问题时退款。",
     "noConversations": "暂无消息",
     "myConversations": "与译员的聊天"
+  },
+  "Seo": {
+    "home": {
+      "title": "Lawslane - 在泰国寻找并咨询认证律师",
+      "description": "在泰国寻找并咨询经过核实的律师，免费查询律师姓名，预约法律翻译，下载法律表格，使用AI法律助手。"
+    },
+    "lawyers": {
+      "title": "寻找泰国律师 - Lawslane",
+      "description": "按专业领域和府查找泰国律师，查看评价并预约经过核实的律师咨询。"
+    },
+    "forLawyers": {
+      "title": "加入 Lawslane 成为律师 - 在线获取新客户",
+      "description": "律师专区：创建个人资料，通过 Lawslane 获取新客户和案件。"
+    },
+    "lawSearch": {
+      "title": "泰国法律检索 - Lawslane",
+      "description": "快速检索与您问题相关的泰国法律条文。"
+    },
+    "articles": {
+      "title": "法律文章 - Lawslane",
+      "description": "通俗易懂的泰国家庭、继承、合同、民事、刑事和商业法律文章。"
+    },
+    "forms": {
+      "title": "免费法律表格与合同模板 - Lawslane",
+      "description": "免费下载常用法律表格和合同模板。"
+    },
+    "about": {
+      "title": "关于 Lawslane - 数字法律平台",
+      "description": "Lawslane 连接客户与经过核实的泰国律师和法律翻译。"
+    },
+    "help": {
+      "title": "帮助中心 - Lawslane",
+      "description": "联系 Lawslane 团队，报告问题或申请更正/删除数据。"
+    },
+    "guide": {
+      "title": "Lawslane 使用指南",
+      "description": "分步介绍如何寻找律师、预约、付款及使用 Lawslane 各项功能。"
+    },
+    "verifyLawyer": {
+      "title": "核实泰国律师 - 免费查询姓名或执照号码 - Lawslane",
+      "description": "免费查询泰国律师姓名或执照号码，了解如何辨别真假律师以及聘请前的警示信号。"
+    }
   }
 }
