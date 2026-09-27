@@ -704,15 +704,25 @@
       "articles": "บทความ",
       "findLawyer": "ค้นหาทนาย",
       "verifyLawyer": "ตรวจสอบสถานะทนาย",
-      "customerDashboard": "แดชบอร์ดลูกความ"
+      "customerDashboard": "แดชบอร์ดลูกความ",
+      "findInterpreter": "ค้นหาล่ามและนักแปล",
+      "lawSearch": "ค้นหากฎหมาย",
+      "forms": "แบบฟอร์มกฎหมาย"
+    },
+    "ecosystem": {
+      "title": "ระบบในเครือ Lawslane",
+      "wittaya": "Lawslane Wittaya — เตรียมสอบกฎหมาย",
+      "capdeal": "Cap & Deal — สัญญาและดีล",
+      "business": "Lawslane for Business"
     },
     "forLawyers": {
-      "title": "สำหรับทนายความ",
+      "title": "สำหรับทนายและล่าม",
       "join": "เข้าร่วมเป็นทนาย Lawslane",
       "login": "เข้าสู่ระบบทนาย",
       "dashboard": "Dashboard ทนาย",
       "adminDashboard": "แดชบอร์ดผู้ดูแล",
-      "adminView": "แดชบอร์ดทนาย (Admin View)"
+      "adminView": "แดชบอร์ดทนาย (Admin View)",
+      "joinInterpreter": "สมัครเป็นล่าม / นักแปล"
     },
     "legal": {
       "title": "กฎหมาย",

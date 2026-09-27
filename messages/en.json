@@ -708,15 +708,24 @@
       "books": "Bookstore",
       "findLawyer": "Find Lawyer",
       "verifyLawyer": "Verify Lawyer Status",
-      "customerDashboard": "Customer Dashboard"
+      "customerDashboard": "Customer Dashboard",
+      "findInterpreter": "Find Interpreters",
+      "lawSearch": "Law Search"
+    },
+    "ecosystem": {
+      "title": "Lawslane Network",
+      "wittaya": "Lawslane Wittaya — Law Exam Prep",
+      "capdeal": "Cap & Deal — Contracts & Deals",
+      "business": "Lawslane for Business"
     },
     "forLawyers": {
-      "title": "For Lawyers",
+      "title": "For Lawyers & Interpreters",
       "join": "Join Lawslane",
       "login": "Lawyer Login",
       "dashboard": "Lawyer Dashboard",
       "adminDashboard": "Admin Dashboard",
-      "adminView": "Lawyer Dashboard (Admin View)"
+      "adminView": "Lawyer Dashboard (Admin View)",
+      "joinInterpreter": "Join as an Interpreter"
     },
     "legal": {
       "title": "Legal",

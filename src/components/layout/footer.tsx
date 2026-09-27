@@ -5,7 +5,7 @@ import Logo from '@/components/logo';
 import { usePathname } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import { useState, useEffect } from 'react';
-import { getMainLink, getBusinessLink, getAdminLink } from '@/lib/domain-utils';
+import { getMainLink, getBusinessLink, getAdminLink, getEducationLink, getRootDomain } from '@/lib/domain-utils';
 import { MonthlyVisitorBadge } from '@/components/monthly-visitor-badge';
 
 // Helper component to handle absolute vs relative links
@@ -39,23 +39,32 @@ export default function Footer({ userRole, domainType = 'main' }: { userRole: st
 
   const isAuthPage = pathname.endsWith('/login') || pathname.endsWith('/signup') || pathname.endsWith('/lawyer-login');
 
+  // บริการบนเว็บหลัก — ผ่าน getMainLink เพื่อให้ footer บนโดเมนย่อย (lawyer./admin./business.) ชี้กลับเว็บหลัก
   let quickLinks = [
     { href: `/${locale}`, label: t('quickLinks.home') },
-    { href: `/${locale}/about`, label: t('quickLinks.about') },
-    { href: `/${locale}/articles`, label: t('quickLinks.articles') },
     { href: `/${locale}/lawyers`, label: t('quickLinks.findLawyer') },
-    { href: `/verify-lawyer`, label: t('quickLinks.verifyLawyer') },
-  ];
+    { href: `/${locale}/interpreters`, label: t('quickLinks.findInterpreter') },
+    { href: `/${locale}/law-search`, label: t('quickLinks.lawSearch') },
+    { href: `/${locale}/forms`, label: t('quickLinks.forms') },
+    { href: `/${locale}/articles`, label: t('quickLinks.articles') },
+    { href: `/${locale}/verify-lawyer`, label: t('quickLinks.verifyLawyer') },
+    { href: `/${locale}/about`, label: t('quickLinks.about') },
+  ].map((link) => ({ ...link, href: getMainLink(link.href, domainType, !isMounted) }));
 
   if (userRole === 'customer') {
-    quickLinks.push({ href: getMainLink('/dashboard', domainType, !isMounted), label: t('quickLinks.customerDashboard') });
+    quickLinks.push({ href: getMainLink(`/${locale}/dashboard`, domainType, !isMounted), label: t('quickLinks.customerDashboard') });
   }
 
-  // Add Business link
-  quickLinks.push({ href: getMainLink('/coming-soon', domainType, !isMounted), label: 'Lawslane for Business' });
+  // ระบบอื่นในเครือ — แยกโดเมนทั้งหมด (เดิมลิงก์ Business ชี้ /coming-soon)
+  const ecosystemLinks = [
+    { href: getEducationLink('/'), label: t('ecosystem.wittaya') },
+    { href: `https://capdeal.${getRootDomain()}`, label: t('ecosystem.capdeal') },
+    { href: getBusinessLink('/', domainType, !isMounted), label: t('ecosystem.business') },
+  ];
 
   let forLawyersLinks = [
     { href: `/${locale}/for-lawyers`, label: t('forLawyers.join') },
+    { href: `/${locale}/for-interpreters`, label: t('forLawyers.joinInterpreter') },
     { href: `/lawyer-login`, label: t('forLawyers.login') },
   ];
 
@@ -84,8 +93,8 @@ export default function Footer({ userRole, domainType = 'main' }: { userRole: st
   return (
     <footer id="page-footer" className="bg-gray-900 text-gray-300">
       <div className="container mx-auto px-4 md:px-6 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          <div className="flex flex-col">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8">
+          <div className="flex flex-col sm:col-span-2 lg:col-span-1">
             <Logo href={`/${locale}`} variant="white" className="text-white mb-4" />
             <p className="text-sm text-gray-400 max-w-xs mb-4">
               {t('description')}
@@ -108,6 +117,19 @@ export default function Footer({ userRole, domainType = 'main' }: { userRole: st
             <h3 className="font-semibold text-white mb-4">{t('quickLinks.title')}</h3>
             <ul className="space-y-2">
               {quickLinks.map((link) => (
+                <li key={link.label}>
+                  <SafeLink href={link.href} className="text-sm hover:text-white transition-colors">
+                    {link.label}
+                  </SafeLink>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="font-semibold text-white mb-4">{t('ecosystem.title')}</h3>
+            <ul className="space-y-2">
+              {ecosystemLinks.map((link) => (
                 <li key={link.label}>
                   <SafeLink href={link.href} className="text-sm hover:text-white transition-colors">
                     {link.label}
