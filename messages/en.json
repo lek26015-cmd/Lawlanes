@@ -267,9 +267,9 @@
   },
   "VerifyLawyer": {
     "backToHome": "Back to Home",
-    "title": "Verify",
-    "titleLine2": "Lawyer Status",
-    "description": "Build confidence by verifying lawyer license information for accuracy and safety in receiving services.",
+    "title": "Verify a",
+    "titleLine2": "Thai Lawyer",
+    "description": "Check a lawyer's name or license number for free before you hire.",
     "dataSource": "This data is from the Lawslane database only",
     "lastUpdated": "Last updated",
     "lastUpdatedToday": "Last updated: Today",
@@ -297,15 +297,17 @@
       "viewProfile": "View Profile"
     },
     "resultNotFound": {
-      "title": "Not Found",
-      "description": "No lawyer found with the provided information. Please check the details or contact support.",
-      "closeButton": "Close"
+      "title": "Not found in the Lawslane database",
+      "description": "Our database does not cover every lawyer yet. Not being found does not mean the lawyer is fake — please check with the Lawyers Council of Thailand.",
+      "closeButton": "Close",
+      "officialButton": "Check with the Lawyers Council"
     },
     "status": {
       "active": "Active License",
       "suspended": "License Suspended",
       "struckOff": "Struck Off",
-      "pending": "Pending Verification"
+      "pending": "Pending Verification",
+      "announced": "Named in a Lawyers Council license announcement"
     },
     "card": {
       "onLawslane": "Registered on Lawslane",
@@ -314,10 +316,51 @@
       "notRegisteredCta": "If you are this lawyer, you can register to add your contact information and receive clients through Lawslane.",
       "registerButton": "Register as a Lawyer",
       "share": "Share",
-      "shareLawyer": "Invite to Register"
+      "shareLawyer": "Invite to Register",
+      "announcedIn": "Lawyer Registration Office announcement {date}",
+      "viewSource": "View original announcement",
+      "noLicenseNumber": "The original announcement does not list a license number"
     },
     "filter": {
       "verifyLink": "Verify Lawyer Status"
+    },
+    "guide": {
+      "heading": "How to verify a lawyer before hiring",
+      "step1Title": "Ask for name and license number",
+      "step1Body": "Ask for the lawyer's full name and license number. A real lawyer has a Lawyers Council membership card showing a license number in the form \"number/Buddhist year\", e.g. 12345/2550.",
+      "step2Title": "Search on this page",
+      "step2Body": "Enter the license number or full name above. We search lawyers registered with Lawslane and names collected from Lawyer Registration Office announcements.",
+      "step3Title": "Confirm with the Lawyers Council",
+      "step3Body": "If the name is not found or you are unsure, check directly with the Lawyers Council of Thailand, the body that licenses lawyers.",
+      "warningHeading": "Warning signs the lawyer may not be real",
+      "warning1": "Refuses to give a license number or show a Lawyers Council card",
+      "warning2": "Guarantees you will win, or claims to \"know people in court\"",
+      "warning3": "Pushes for a large transfer right away with no engagement contract or receipt",
+      "warning4": "Asks you to pay into someone else's bank account",
+      "warning5": "Only reachable by chat, with no verifiable office or address",
+      "faqHeading": "Frequently asked questions",
+      "faq1Q": "Where can I check a lawyer's name?",
+      "faq1A": "Search for free on this page by name or license number, and confirm officially with the Lawyers Council of Thailand, which issues lawyer licenses.",
+      "faq2Q": "If I can't find the lawyer, are they fake?",
+      "faq2A": "Not necessarily. The Lawslane database does not cover every lawyer yet, especially those licensed long ago. Check with the Lawyers Council before drawing conclusions.",
+      "faq3Q": "Where do I find a lawyer's license number?",
+      "faq3A": "On the lawyer's license or Lawyers Council membership card, in the form \"number/Buddhist year\". A real lawyer should show it when asked.",
+      "faq4Q": "What is the difference between a lifetime and a two-year license?",
+      "faq4A": "A two-year license must be renewed on schedule; a lifetime license does not need renewal. Both allow practice unless suspended or struck off.",
+      "faq5Q": "Where does this data come from?",
+      "faq5A": "From lawyers registered with Lawslane and names collected from Lawyer Registration Office announcements of the Lawyers Council. Results from announcements always show the date and a link to the original.",
+      "faq6Q": "How do I correct or remove my own data?",
+      "faq6A": "Contact the Lawslane team through our Help Center and we will review your request."
+    },
+    "notice": {
+      "title": "Before you verify a lawyer",
+      "item1": "Data on this page comes from lawyers registered with Lawslane and names from Lawyers Council registration announcements. It does not cover every lawyer.",
+      "item2": "Not found does not mean the lawyer is fake. Please double-check with the Lawyers Council.",
+      "item3": "Results from announcements show the date and a link to the original, but do not confirm the license is still valid today.",
+      "item4": "Do not transfer money until you have verified the lawyer and signed a clear engagement contract.",
+      "dontShowAgain": "Don't show again",
+      "accept": "Got it, start checking",
+      "imageAlt": "Lawyers reviewing documents"
     }
   },
   "LegalForms": {
@@ -1820,5 +1863,47 @@
     "platformNote": "Pay only through Lawslane so you are protected and can get a refund if something goes wrong.",
     "noConversations": "No messages yet",
     "myConversations": "Chats with interpreters"
+  },
+  "Seo": {
+    "home": {
+      "title": "Lawslane - Find and Consult Verified Lawyers in Thailand",
+      "description": "Find and consult verified lawyers in Thailand, check a lawyer's name for free, book legal interpreters, download legal forms and ask an AI legal assistant."
+    },
+    "lawyers": {
+      "title": "Find a Lawyer in Thailand - Lawslane",
+      "description": "Browse lawyers in Thailand by practice area and province, read reviews and book a consultation with a verified lawyer."
+    },
+    "forLawyers": {
+      "title": "Join Lawslane as a Lawyer - Get New Clients Online",
+      "description": "For lawyers: create a profile and receive new clients and cases through Lawslane, with booking and case tools."
+    },
+    "lawSearch": {
+      "title": "Thai Law Search - Lawslane",
+      "description": "Search Thai statutes and sections related to your legal issue quickly."
+    },
+    "articles": {
+      "title": "Legal Articles - Lawslane",
+      "description": "Easy-to-read articles on Thai family, inheritance, contract, civil, criminal and business law."
+    },
+    "forms": {
+      "title": "Free Legal Forms and Contract Templates - Lawslane",
+      "description": "Download commonly used legal forms and contract templates for free."
+    },
+    "about": {
+      "title": "About Lawslane - Digital Legal Platform",
+      "description": "Lawslane connects clients with verified lawyers and legal interpreters in Thailand."
+    },
+    "help": {
+      "title": "Help Center - Lawslane",
+      "description": "Contact the Lawslane team, report an issue, or request correction or removal of data."
+    },
+    "guide": {
+      "title": "How to Use Lawslane",
+      "description": "Step-by-step guide to finding a lawyer, booking, payment and other Lawslane features."
+    },
+    "verifyLawyer": {
+      "title": "Verify a Thai Lawyer - Check Name or License Number Free - Lawslane",
+      "description": "Check a Thai lawyer's name or license number for free, learn how to tell a real lawyer from a fake one, and warning signs before hiring."
+    }
   }
 }

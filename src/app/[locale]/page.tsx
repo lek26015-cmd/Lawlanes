@@ -1,3 +1,5 @@
+import type { Metadata } from 'next';
+import { pageMetadata } from '@/lib/seo';
 import { locales } from '@/navigation';
 import { useTranslations } from 'next-intl';
 
@@ -32,6 +34,11 @@ export const dynamic = 'error';
 // หน้าแรกเป็น static — ไม่มี revalidate = render ครั้งเดียวตอน build ทนาย/ล่ามที่อนุมัติใหม่ไม่ขึ้นจนกว่าจะ deploy ใหม่
 // 300 วินาทีเท่ากับหน้า /lawyers และ /interpreters
 export const revalidate = 300;
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await params;
+  return pageMetadata(locale, 'home', '');
+}
 
 export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;

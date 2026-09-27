@@ -1,3 +1,5 @@
+import type { Metadata } from 'next';
+import { pageMetadata } from '@/lib/seo';
 import { Suspense } from 'react';
 import { setRequestLocale } from 'next-intl/server';
 import { initializeFirebase } from '@/firebase';
@@ -14,6 +16,11 @@ export const revalidate = 300;
 // Fetched server-side now instead of client-side on mount (see LAWSLANE-PLAN-01 2.11) —
 // this was previously a fully client-rendered page: blank HTML → JS → Firebase SDK →
 // query, meaning a loading spinner and no content for search engines on first paint.
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await params;
+  return pageMetadata(locale, 'lawyers', '/lawyers');
+}
+
 export default async function LawyersPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   setRequestLocale(locale);

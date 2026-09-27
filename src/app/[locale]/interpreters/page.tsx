@@ -1,5 +1,6 @@
 import { Suspense } from 'react';
 import type { Metadata } from 'next';
+import { localeAlternates } from '@/lib/seo';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { getApprovedInterpretersAction } from '@/app/actions/interpreter-directory-actions';
 import { InterpretersPageClient } from './interpreters-page-client';
@@ -10,7 +11,7 @@ export const revalidate = 300;
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
     const { locale } = await params;
     const t = await getTranslations({ locale, namespace: 'Interpreters' });
-    return { title: t('metaTitle'), description: t('metaDescription') };
+    return { title: t('metaTitle'), description: t('metaDescription'), alternates: localeAlternates(locale, '/interpreters') };
 }
 
 export default async function InterpretersPage({ params }: { params: Promise<{ locale: string }> }) {
