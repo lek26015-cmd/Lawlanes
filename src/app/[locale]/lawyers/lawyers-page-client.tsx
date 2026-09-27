@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { LawyerPageSidebarAds } from '@/components/lawyer-page-sidebar-ads';
 import { RecommendedArticles } from '@/components/recommended-articles';
 import { useTranslations } from 'next-intl';
+import { LawyersHero } from './lawyers-hero';
 
 const LAST_PLACE_NAMES = ['ชนาพัทธ์ ผมเพชร'];
 
@@ -198,23 +199,7 @@ export function LawyersPageClient({ initialLawyers, initialRegistryLawyers }: La
             </h1>
           </div>
         ) : (
-          <div className="flex justify-center mb-4 flex-col">
-            {/* Desktop Image */}
-            <img
-              src="/images/lawyers-center-lawslane.jpg"
-              alt="Professional Lawyers Center"
-              className="hidden md:block w-full h-auto object-cover"
-            />
-
-            {/* Mobile View: Image Only - Full Width */}
-            <div className="block md:hidden w-screen -ml-4 mr-0">
-              <img
-                src="/images/lawyers-center-lawslane-mobile.jpg"
-                alt="Professional Lawyers Center"
-                className="w-full h-auto object-cover"
-              />
-            </div>
-          </div>
+          <LawyersHero />
         )}
         {isAiSearch && (
           <p className="max-w-2xl mx-auto mt-4 text-muted-foreground md:text-xl">
