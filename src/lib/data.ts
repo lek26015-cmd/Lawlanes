@@ -15,7 +15,7 @@ import {
   writeBatch,
   setDoc
 } from 'firebase/firestore';
-import type { LawyerProfile, RegistryLawyer, ImagePlaceholder, Ad, Article, Case, UpcomingAppointment, ReportedTicket, LawyerAppointmentRequest, LawyerCase, UserProfile, LegalForm } from '@/lib/types';
+import type { LawyerProfile, ImagePlaceholder, Ad, Article, Case, UpcomingAppointment, ReportedTicket, LawyerAppointmentRequest, LawyerCase, UserProfile, LegalForm } from '@/lib/types';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { format } from 'date-fns';
 import { th } from 'date-fns/locale';
@@ -28,57 +28,8 @@ export const getImageHint = (id: string) => PlaceHolderImages.find(img => img.id
 // ใน src/app/actions/lawyer-directory-actions.ts แล้ว (Admin SDK + projection สาธารณะ)
 // เพราะ firestore.rules ปิด `list` ของ lawyerProfiles ไม่ให้ยิงจาก client SDK อีก
 
-/**
- * Fetch registry lawyers (from verifiedLawyers collection) that have a license number
- * but are NOT already registered on Lawslane. Used to show them in the search page.
- */
-export async function getRegistryLawyers(
-  db: Firestore,
-  approvedLawyerLicenseNumbers: Set<string>,
-  limitCount: number = 50
-): Promise<RegistryLawyer[]> {
-  if (!db) return [];
-  try {
-    const verifiedRef = collection(db, 'verifiedLawyers');
-    const q = query(
-      verifiedRef,
-      where('status', '==', 'active'),
-      limit(limitCount + approvedLawyerLicenseNumbers.size) // fetch extra to account for duplicates
-    );
-    const querySnapshot = await getDocs(q);
-
-    const results: RegistryLawyer[] = [];
-    for (const docSnap of querySnapshot.docs) {
-      const data = docSnap.data();
-      const licenseNumber = data.licenseNumber?.trim() || '';
-
-      // Skip if no license number
-      if (!licenseNumber) continue;
-
-      // Skip if already registered on Lawslane
-      if (approvedLawyerLicenseNumbers.has(licenseNumber)) continue;
-
-      results.push({
-        id: docSnap.id,
-        prefix: data.prefix || '',
-        firstName: data.firstName || '',
-        lastName: data.lastName || '',
-        licenseNumber,
-        licenseType: data.licenseType || '',
-        province: data.province || '',
-        status: data.status || 'active',
-        source: data.source || 'document_import',
-      });
-
-      if (results.length >= limitCount) break;
-    }
-
-    return results;
-  } catch (error) {
-    console.error('Error fetching registry lawyers:', error);
-    return [];
-  }
-}
+// getRegistryLawyers() ย้ายไปเป็น getRegistryLawyersForDirectory()
+// ใน src/lib/verified-lawyers-server.ts แล้ว (Admin SDK) — rules ปิด list ของ verifiedLawyers
 
 // getLawyerById() ถูกลบแล้ว — เดิมยิง client SDK ได้เอกสารทนายทั้งก้อนถึง browser
 // (strip ฟิลด์ทีหลังเป็นแค่เครื่องสำอาง) ใช้ตัวใดตัวหนึ่งใน

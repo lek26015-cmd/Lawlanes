@@ -3,7 +3,11 @@ import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { ArrowLeft, ShieldAlert, FileText, Search, Landmark } from 'lucide-react';
 import { Link } from '@/navigation';
 import { pageMetadata, SITE_URL } from '@/lib/seo';
+import { getRegistryStats } from '@/lib/verified-lawyers-server';
 import { VerifyLawyerClient } from './verify-lawyer-client';
+
+// จำนวนรายชื่อ/วันที่อัปเดตในทะเบียนคำนวณที่ server — รีเฟรชทุกชั่วโมง
+export const revalidate = 3600;
 
 const FAQ_COUNT = 6;
 const WARNING_COUNT = 5;
@@ -20,6 +24,7 @@ export default async function VerifyLawyerPage({ params }: { params: Promise<{ l
     setRequestLocale(locale);
     const t = await getTranslations({ locale, namespace: 'VerifyLawyer' });
     const seo = await getTranslations({ locale, namespace: 'Seo' });
+    const stats = await getRegistryStats();
 
     const faqs = Array.from({ length: FAQ_COUNT }, (_, i) => ({
         q: t(`guide.faq${i + 1}Q`),
@@ -93,7 +98,7 @@ export default async function VerifyLawyerPage({ params }: { params: Promise<{ l
                     </div>
                 </div>
 
-                <VerifyLawyerClient />
+                <VerifyLawyerClient registryCount={stats.count} lastUpdatedIso={stats.lastUpdated} />
 
                 {/* วิธีตรวจสอบ */}
                 <section className="max-w-4xl mx-auto mt-6">
