@@ -127,12 +127,11 @@ service cloud.firestore {
       // getChatLawyerAction / getMyLawyerProfileAction) ที่ยังยิง client SDK เหลือแค่
       // เจ้าของอ่านเอกสารของตัวเองด้วย uid (header, account, financials)
       //
-      // ⚠️ `get` ยังต้องเปิดสาธารณะไว้ก่อน เพราะ repo อื่นที่ใช้ Firestore ชุดนี้ร่วมกัน
-      // ยัง getDoc โปรไฟล์ทนายคนอื่นจาก browser อยู่ (lawslane-capdeal: invoice/[id],
-      // payment, review ผ่าน getLawyerById) — ปิดตอนนี้หน้าพวกนั้นพังทันที
-      // เป้าหมายหลังย้ายครบ: get ได้เฉพาะเจ้าของ (lawyerId == uid หรือ
-      // resource.data.userId == uid) หรือแอดมิน
-      allow get: if true;
+      // `get` เดิมเปิดสาธารณะ — ใครรู้ doc id (อยู่ใน URL /lawyers/{id}) ก็ได้เอกสารเต็ม รวมเลขบัตร
+      // ประชาชน เลขบัญชี และ path/URL เอกสารสมัคร · ตอนนี้เจ้าของหรือแอดมินเท่านั้น
+      // หน้าสาธารณะ/ลูกความของทุก repo อ่านผ่าน server (Admin SDK + projection สาธารณะ) แทน
+      allow get: if isAdmin() || isOwner(lawyerId)
+        || (isSignedIn() && resource.data.userId == request.auth.uid);
       // list: แอดมิน หรือ query ที่ผูกกับตัวเองเท่านั้น (where userId == uid)
       // rules บังคับว่า query ต้องมีเงื่อนไขนี้ จึงไล่ดึงของคนอื่นไม่ได้ — คงไว้ให้
       // flow "บัญชีนี้เป็นทนายไหม" ใน repo อื่น (เช่น lawslane-capdeal payment) ยังทำงาน
