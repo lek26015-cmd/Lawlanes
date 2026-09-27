@@ -706,15 +706,25 @@
       "articles": "文章",
       "findLawyer": "查找律师",
       "verifyLawyer": "验证律师状态",
-      "customerDashboard": "客户仪表板"
+      "customerDashboard": "客户仪表板",
+      "findInterpreter": "查找翻译",
+      "lawSearch": "法律检索",
+      "forms": "法律表格"
+    },
+    "ecosystem": {
+      "title": "Lawslane 旗下平台",
+      "wittaya": "Lawslane Wittaya — 法律考试备考",
+      "capdeal": "Cap & Deal — 合同与交易",
+      "business": "Lawslane 企业版"
     },
     "forLawyers": {
-      "title": "律师专用",
+      "title": "律师与译员专区",
       "join": "加入 Lawslane",
       "login": "律师登录",
       "dashboard": "律师仪表板",
       "adminDashboard": "管理员仪表板",
-      "adminView": "律师仪表板 (管理员视图)"
+      "adminView": "律师仪表板 (管理员视图)",
+      "joinInterpreter": "成为翻译"
     },
     "legal": {
       "title": "法律",
