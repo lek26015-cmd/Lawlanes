@@ -59,7 +59,8 @@ export function ArticleComments({ articleId }: ArticleCommentsProps) {
             await addDoc(collection(firestore, 'articleComments'), {
                 articleId,
                 userId: user.uid,
-                userName: user.displayName || user.email?.split('@')[0] || 'Anonymous',
+                // ไม่ใช้ส่วนหน้าของอีเมลเป็นชื่อ — คอมเมนต์ขึ้นบนหน้าบทความสาธารณะ
+                userName: user.displayName || 'ผู้ใช้ Lawslane',
                 userAvatar: user.photoURL || '',
                 content: newComment.trim(),
                 createdAt: serverTimestamp(),

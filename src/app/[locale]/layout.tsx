@@ -17,10 +17,14 @@ export function generateStaticParams() {
 export const dynamicParams = false;
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://www.lawslane.com'),
   title: 'Lawslane - ที่ปรึกษากฎหมายมืออาชีพเพื่อท่าน',
   description: 'แพลตฟอร์มที่เชื่อมโยงท่านกับทนายความผู้เชี่ยวชาญ ค้นหาทนายความที่ใช่ หรือปรึกษา AI ทนายความอัจฉริยะในฐานะลูกความผู้ทรงเกียรติ',
+  // โลโก้สี่เหลี่ยมจัตุรัส 800×800 — Google ใช้เป็นไอคอนในผลค้นหา (ต้องเป็นสัดส่วน 1:1)
+  // (ลบ src/app/icon.tsx ที่สร้างรูปตาชั่งออก: /icon โดน middleware redirect ไป /th/icon ใช้ไม่ได้)
   icons: {
     icon: '/icon.jpg',
+    apple: '/icon.jpg',
   },
   openGraph: {
     title: 'Lawslane - Digital Legal Hub สำหรับลูกความทุกท่าน',
@@ -29,7 +33,7 @@ export const metadata: Metadata = {
       {
         url: '/icon.jpg',
         width: 800,
-        height: 600,
+        height: 800,
         alt: 'Lawslane Logo',
       },
     ],
@@ -83,8 +87,8 @@ export default async function RootLayout({
               "@context": "https://schema.org",
               "@type": "Organization",
               "name": "Lawslane",
-              "url": "https://lawslane.com",
-              "logo": "https://lawslane.com/icon.jpg",
+              "url": "https://www.lawslane.com",
+              "logo": "https://www.lawslane.com/icon.jpg",
               "description": "ที่ปรึกษากฎหมายมืออาชีพเพื่อท่าน แพลตฟอร์มที่เชื่อมโยงท่านกับทนายความผู้เชี่ยวชาญ ค้นหาทนายที่ใช่ หรือปรึกษา AI ทนายความอัจฉริยะได้ทันที เพื่อความรัดกุมและปลอดภัยสูงสุดของลูกความทุกท่าน",
               "sameAs": [
                 "https://www.facebook.com/lawslane",
@@ -101,10 +105,10 @@ export default async function RootLayout({
               "@context": "https://schema.org",
               "@type": "WebSite",
               "name": "Lawslane",
-              "url": "https://lawslane.com",
+              "url": "https://www.lawslane.com",
               "potentialAction": {
                 "@type": "SearchAction",
-                "target": "https://lawslane.com/lawyers?q={search_term_string}",
+                "target": "https://www.lawslane.com/th/lawyers?q={search_term_string}",
                 "query-input": "required name=search_term_string"
               }
             })
