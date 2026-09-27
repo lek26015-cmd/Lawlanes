@@ -20,7 +20,7 @@ import { Separator } from '@/components/ui/separator';
 import { TurnstileWidget } from '@/components/turnstile-widget';
 import { validateTurnstile } from '@/app/actions/turnstile';
 import { Checkbox } from '@/components/ui/checkbox';
-import Link from 'next/link';
+import { Link } from '@/navigation';
 
 const formSchema = z.object({
     name: z.string().min(2, { message: 'ชื่อต้องมีอย่างน้อย 2 ตัวอักษร' }),
@@ -169,6 +169,9 @@ function SignupPageContent() {
                     email: user.email,
                     role: 'customer',
                     status: 'active',
+                    // สมัครด้วย Google = ยอมรับตามข้อความใต้ปุ่ม (ไม่มี checkbox แบบฟอร์มอีเมล)
+                    termsAccepted: true,
+                    termsAcceptedAt: serverTimestamp(),
                 };
                 setDoc(userRef, userProfileData)
                     .catch(error => {
@@ -232,6 +235,9 @@ function SignupPageContent() {
                             )}
                             สมัครสมาชิกด้วย Google
                         </Button>
+                        <p className="-mt-5 text-center text-xs leading-relaxed text-slate-500">
+                            การสมัครด้วย Google ถือว่าคุณยอมรับ <Link href="/terms" className="text-primary hover:underline">ข้อกำหนดการใช้งาน</Link> และ <Link href="/privacy" className="text-primary hover:underline">นโยบายความเป็นส่วนตัว</Link>
+                        </p>
 
                         <div className="relative">
                             <div className="absolute inset-0 flex items-center">
