@@ -92,6 +92,8 @@ export async function getMyPlanAction(kind: ProviderKind): Promise<Result<{
 
 export async function startPlanCheckoutAction(kind: ProviderKind, tier: PaidTier, locale: string): Promise<Result<{ url: string }>> {
     try {
+        // เลิกขายแพลนล่ามแล้ว (ไม่แสดงรายชื่อล่ามบนเว็บ ป้ายแนะนำ/อันดับจึงไม่มีผล) — portal ยังเปิดให้จัดการของเดิมได้
+        if (kind === 'interpreter') return { success: false, error: 'ไม่มีแพลนรายเดือนสำหรับล่ามแล้ว' };
         const { adminApp, profileId, profile, token } = await caller(kind);
         if (kind === 'lawyer' && profile.status !== 'approved') {
             return { success: false, error: 'บัญชีทนายต้องผ่านการอนุมัติก่อนสมัครแพลน' };
