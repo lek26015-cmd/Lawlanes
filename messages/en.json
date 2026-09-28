@@ -1539,7 +1539,8 @@
       "submit": "Sign in",
       "noAccount": "No account yet?",
       "signupHere": "Sign up here"
-    }
+    },
+    "socialConsent": "Signing in with Google or LINE for the first time creates an account and means you accept the <terms>Terms of Service</terms> and <privacy>Privacy Policy</privacy>."
   },
   "Interpreters": {
     "metaTitle": "Legal interpreters & translators - Lawslane",

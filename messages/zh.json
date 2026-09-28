@@ -1539,7 +1539,8 @@
       "submit": "登录",
       "noAccount": "还没有账号？",
       "signupHere": "立即注册"
-    }
+    },
+    "socialConsent": "首次使用 Google 或 LINE 登录将为您创建账户，即表示您接受<terms>服务条款</terms>和<privacy>隐私政策</privacy>。"
   },
   "Interpreters": {
     "metaTitle": "法律口译与翻译 - Lawslane",

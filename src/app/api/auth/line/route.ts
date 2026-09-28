@@ -151,6 +151,10 @@ export async function POST(req: NextRequest) {
                     email,
                     createdAt: new Date(),
                     provider: 'line',
+                    // สมัครผ่านปุ่ม LINE ในหน้าเข้าสู่ระบบ — ใต้ปุ่มมีข้อความยอมรับข้อกำหนด/นโยบาย
+                    termsAccepted: true,
+                    termsAcceptedAt: new Date(),
+                    termsAcceptedVia: 'line_login',
                 }, { merge: true });
             }
         } else {
@@ -174,6 +178,9 @@ export async function POST(req: NextRequest) {
                     linePictureUrl: pictureUrl,
                     createdAt: new Date(),
                     provider: 'line',
+                    termsAccepted: true,
+                    termsAcceptedAt: new Date(),
+                    termsAcceptedVia: 'line_login',
                 }, { merge: true });
             }
         }
