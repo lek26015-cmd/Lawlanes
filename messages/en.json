@@ -538,6 +538,41 @@
       "confirmed": "Confirmed",
       "completed": "Completed",
       "other": "In progress"
+    },
+    "capdeal": {
+      "title": "CapDeal — recent contracts",
+      "defaultTitle": "Service contract",
+      "status": {
+        "signed": "Signed",
+        "draft": "Draft",
+        "pending": "Awaiting signature"
+      },
+      "task": "Task: {task}",
+      "noDetails": "No details",
+      "price": "Price: {price} THB",
+      "view": "View contract",
+      "create": "New contract",
+      "empty": "No CapDeal contracts yet",
+      "start": "Snap a chat, make a deal!"
+    },
+    "invoiceCard": {
+      "defaultDescription": "Legal fees",
+      "paid": "Paid",
+      "pending": "Pending",
+      "dueDate": "Due: {date}",
+      "empty": "No invoices yet",
+      "help": "Payment problem? Contact us"
+    },
+    "chatItem": {
+      "yesterday": "Yesterday",
+      "pendingPayment": "Awaiting payment",
+      "pendingVerification": "Verifying slip",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "active": "In progress",
+      "typeCase": "Case chat",
+      "typePreliminary": "Initial consultation",
+      "noMessages": "No messages yet"
     }
   },
   "CaseRoom": {

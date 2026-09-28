@@ -265,7 +265,7 @@ export default function DashboardPage() {
                                 ) : (
                                     <div className="text-center py-8 text-muted-foreground">
                                         <Briefcase className="mx-auto h-10 w-10 mb-2" />
-                                        <p>{t('noActiveCases') || "ยังไม่มีรายการปรึกษา"}</p>
+                                        <p>{t('noActiveCases')}</p>
                                     </div>
                                 )}
                             </CardContent>
@@ -358,7 +358,7 @@ export default function DashboardPage() {
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2 font-bold">
                                     <FileSignature className="w-5 h-5" />
-                                    แคปดีล — สัญญาล่าสุด
+                                    {t('capdeal.title')}
                                 </CardTitle>
                             </CardHeader>
                             <CardContent>
@@ -369,20 +369,20 @@ export default function DashboardPage() {
                                                 <div className="flex items-center justify-between p-4 rounded-3xl bg-blue-50 border border-blue-100 hover:bg-blue-100/50 transition-colors">
                                                     <div className="flex-1 min-w-0">
                                                         <p className="font-semibold text-blue-900 truncate flex items-center gap-2">
-                                                            {deal.title || 'สัญญาจ้างทำของ'}
+                                                            {deal.title || t('capdeal.defaultTitle')}
                                                             <Badge variant="outline" className={`text-xs ${deal.status === 'signed' ? 'text-green-700 border-green-600 bg-green-50' :
                                                                 deal.status === 'draft' ? 'text-slate-600 border-slate-400 bg-slate-50' :
                                                                     'text-blue-700 border-blue-600 bg-blue-50'
                                                                 }`}>
-                                                                {deal.status === 'signed' ? 'เซ็นแล้ว' : deal.status === 'draft' ? 'ร่าง' : deal.status === 'pending' ? 'อยากเซ็น' : deal.status}
+                                                                {['signed', 'draft', 'pending'].includes(deal.status) ? t(`capdeal.status.${deal.status}`) : deal.status}
                                                             </Badge>
                                                         </p>
                                                         <p className="text-sm text-blue-700 truncate">
-                                                            {deal.task ? `งาน: ${deal.task.substring(0, 50)}${deal.task.length > 50 ? '...' : ''}` : 'ไม่มีรายละเอียด'}
-                                                            {deal.price ? ` | ราคา: ${Number(deal.price).toLocaleString()} บาท` : ''}
+                                                            {deal.task ? t('capdeal.task', { task: `${deal.task.substring(0, 50)}${deal.task.length > 50 ? '...' : ''}` }) : t('capdeal.noDetails')}
+                                                            {deal.price ? ` | ${t('capdeal.price', { price: Number(deal.price).toLocaleString() })}` : ''}
                                                         </p>
                                                     </div>
-                                                    <Button size="sm" className="bg-foreground hover:bg-foreground/90 text-background rounded-full ml-3 shrink-0">ดูสัญญา</Button>
+                                                    <Button size="sm" className="bg-foreground hover:bg-foreground/90 text-background rounded-full ml-3 shrink-0">{t('capdeal.view')}</Button>
                                                 </div>
                                             </Link>
                                         ))}
@@ -390,7 +390,7 @@ export default function DashboardPage() {
                                             <Link href={`https://capdeal.lawslane.com/${locale}/services/contracts/screenshot`} target="_blank">
                                                 <Button variant="outline" className="rounded-full">
                                                     <Camera className="w-4 h-4 mr-2" />
-                                                    สร้างสัญญาใหม่
+                                                    {t('capdeal.create')}
                                                 </Button>
                                             </Link>
                                         </div>
@@ -398,11 +398,11 @@ export default function DashboardPage() {
                                 ) : (
                                     <div className="text-center py-8 text-muted-foreground">
                                         <FileSignature className="mx-auto h-10 w-10 mb-2" />
-                                        <p>ยังไม่มีสัญญาที่สร้างจากแคปดีล</p>
+                                        <p>{t('capdeal.empty')}</p>
                                         <Link href={`https://capdeal.lawslane.com/${locale}/services/contracts/screenshot`} target="_blank">
                                             <Button className="mt-4 rounded-full">
                                                 <Camera className="w-4 h-4 mr-2" />
-                                                เริ่มแคปแล้วดีลเลย!
+                                                {t('capdeal.start')}
                                             </Button>
                                         </Link>
                                     </div>
@@ -491,7 +491,7 @@ export default function DashboardPage() {
                                     <div className="p-1.5 bg-blue-50 rounded-lg">
                                         <CreditCard className="w-4 h-4 text-blue-600" />
                                     </div>
-                                    {t('paymentsAndInvoices') || 'ชำระเงินและใบเสร็จ'}
+                                    {t('paymentsAndInvoices')}
                                 </CardTitle>
                             </CardHeader>
                             <CardContent className="space-y-4">
@@ -502,14 +502,14 @@ export default function DashboardPage() {
                                                 <div className="flex justify-between items-start mb-2">
                                                     <div>
                                                         <p className="text-[10px] font-mono text-slate-400 uppercase tracking-wider">#{inv.id.substring(0, 8)}</p>
-                                                        <p className="font-bold text-slate-700 text-sm truncate max-w-[140px]">{inv.description || 'ค่าดำเนินคดี'}</p>
+                                                        <p className="font-bold text-slate-700 text-sm truncate max-w-[140px]">{inv.description || inv.title || t('invoiceCard.defaultDescription')}</p>
                                                     </div>
                                                     <Badge variant="outline" className={cn(
                                                         "rounded-full px-2 py-0 font-bold text-[9px] uppercase tracking-wider shrink-0",
                                                         inv.status === 'paid' ? "bg-emerald-50 text-emerald-700 border-emerald-200" :
                                                         "bg-amber-50 text-amber-700 border-amber-200"
                                                     )}>
-                                                        {inv.status === 'paid' ? (locale === 'th' ? 'ชำระแล้ว' : 'Paid') : (locale === 'th' ? 'รอชำระ' : 'Pending')}
+                                                        {inv.status === 'paid' ? t('invoiceCard.paid') : t('invoiceCard.pending')}
                                                     </Badge>
                                                 </div>
                                                 <div className="flex justify-between items-end">
@@ -519,19 +519,19 @@ export default function DashboardPage() {
                                                             {Number.isFinite(Number(inv.amount)) ? `฿${Number(inv.amount).toLocaleString()}` : '–'}
                                                         </p>
                                                         {inv.dueDate && !isNaN(new Date(inv.dueDate).getTime()) && (
-                                                            <p className="text-[9px] text-slate-400">ครบกำหนด: {format(new Date(inv.dueDate), 'dd MMM yyyy', { locale: dateLocale })}</p>
+                                                            <p className="text-[9px] text-slate-400">{t('invoiceCard.dueDate', { date: format(new Date(inv.dueDate), 'dd MMM yyyy', { locale: dateLocale }) })}</p>
                                                         )}
                                                     </div>
-                                                    <div className="flex gap-1">
-                                                        <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full text-slate-400 hover:text-blue-600">
-                                                            <FileDown className="w-3.5 h-3.5" />
-                                                        </Button>
-                                                        {inv.status !== 'paid' && (
+                                                    {/* ปุ่มดาวน์โหลดใบเสร็จซ่อนไว้จนกว่าจะมีระบบออกใบเสร็จ (PLAN-06 รอบ 5)
+                                                        ปุ่มชำระเงินพาไปห้องแชทของเคส — ยอด/งวดที่ต้องจ่ายเลือกได้ถูกต้องที่นั่น
+                                                        (หน้า /payment ต้องมี amount/installmentIndex ที่การ์ดนี้ไม่รู้) */}
+                                                    {inv.status !== 'paid' && inv.chatId && (
+                                                        <Link href={`/${locale}/chat/${inv.chatId}`}>
                                                             <Button size="sm" className="bg-blue-600 hover:bg-blue-700 text-white rounded-full px-3 h-7 text-[10px] font-bold">
-                                                                {t('payNow') || 'ชำระเงิน'}
+                                                                {t('payNow')}
                                                             </Button>
-                                                        )}
-                                                    </div>
+                                                        </Link>
+                                                    )}
                                                 </div>
                                             </div>
                                         ))}
@@ -539,13 +539,13 @@ export default function DashboardPage() {
                                 ) : (
                                     <div className="text-center py-6 text-slate-400 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
                                         <Receipt className="mx-auto h-8 w-8 opacity-20 mb-2" />
-                                        <p className="text-xs">ยังไม่มีรายการแจ้งหนี้</p>
+                                        <p className="text-xs">{t('invoiceCard.empty')}</p>
                                     </div>
                                 )}
                                 
                                 <div className="text-center pt-1 border-t border-slate-50 mt-2">
                                     <Link href={`/${locale}/help`} className="text-[9px] text-slate-400 hover:text-blue-600 hover:underline font-medium">
-                                        มีปัญหาเรื่องการเงิน? ติดต่อเรา
+                                        {t('invoiceCard.help')}
                                     </Link>
                                 </div>
                             </CardContent>

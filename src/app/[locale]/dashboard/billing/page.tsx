@@ -94,7 +94,11 @@ export default function ClientBillingPage() {
           <InvoiceList 
             invoices={invoices} 
             role="client" 
-            onAction={(id) => router.push(`/payment?chatId=${invoices.find(i => i.id === id)?.case_id}&type=case`)} 
+            // ไปห้องแชทของเคส — เดิมไป /payment?type=case โดยไม่มียอด/งวด เคสแบ่งงวดจึงอาจเรียกเก็บผิดยอด
+            onAction={(id) => {
+              const caseId = invoices.find(i => i.id === id)?.case_id;
+              if (caseId) router.push(`/${locale}/chat/${caseId}`);
+            }}
             onViewEvidence={(inv) => {
               if (inv.evidence_url) {
                 window.open(inv.evidence_url, '_blank');
