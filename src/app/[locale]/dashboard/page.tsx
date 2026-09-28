@@ -360,7 +360,7 @@ export default function DashboardPage() {
                         <Card className="rounded-none md:rounded-3xl shadow-none md:shadow-sm border-none">
                             <CardContent className="pt-6 flex flex-col items-center text-center">
                                 <Avatar className="w-20 h-20 mb-4">
-                                    <AvatarImage src={user.photoURL || "https://picsum.photos/seed/user-avatar/100/100"} />
+                                    {user.photoURL && <AvatarImage src={user.photoURL} />}
                                     <AvatarFallback>{user.displayName?.charAt(0) || user.email?.charAt(0)}</AvatarFallback>
                                 </Avatar>
                                 <p className="font-semibold text-lg">{user.displayName || user.email}</p>
@@ -456,8 +456,13 @@ export default function DashboardPage() {
                                                 </div>
                                                 <div className="flex justify-between items-end">
                                                     <div>
-                                                        <p className="font-bold text-blue-600 text-base">฿{inv.amount.toLocaleString()}</p>
-                                                        <p className="text-[9px] text-slate-400">ครบกำหนด: {format(new Date(inv.dueDate), 'dd MMM yyyy', { locale: dateLocale })}</p>
+                                                        <p className="font-bold text-blue-600 text-base">
+                                                            {/* ใบแจ้งหนี้เก่าบางใบไม่มี amount/dueDate — เดิม .toLocaleString() / format() พังทั้งหน้า */}
+                                                            {Number.isFinite(Number(inv.amount)) ? `฿${Number(inv.amount).toLocaleString()}` : '–'}
+                                                        </p>
+                                                        {inv.dueDate && !isNaN(new Date(inv.dueDate).getTime()) && (
+                                                            <p className="text-[9px] text-slate-400">ครบกำหนด: {format(new Date(inv.dueDate), 'dd MMM yyyy', { locale: dateLocale })}</p>
+                                                        )}
                                                     </div>
                                                     <div className="flex gap-1">
                                                         <Button variant="ghost" size="icon" className="h-7 w-7 rounded-full text-slate-400 hover:text-blue-600">
@@ -481,7 +486,7 @@ export default function DashboardPage() {
                                 )}
                                 
                                 <div className="text-center pt-1 border-t border-slate-50 mt-2">
-                                    <Link href={`/${locale}/support`} className="text-[9px] text-slate-400 hover:text-blue-600 hover:underline font-medium">
+                                    <Link href={`/${locale}/help`} className="text-[9px] text-slate-400 hover:text-blue-600 hover:underline font-medium">
                                         มีปัญหาเรื่องการเงิน? ติดต่อเรา
                                     </Link>
                                 </div>
