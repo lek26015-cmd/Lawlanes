@@ -16,13 +16,6 @@
       "cta": "Download All Forms"
     },
     "lawyerSearch": {
-      "title": "Find the Right Lawyer for You",
-      "description": "Consult with specialized lawyers. Easy to find, reliable, and ready for immediate consultation via video call or chat.",
-      "features": {
-        "verified": "Verified licensed lawyers",
-        "expert": "Expertise in various fields",
-        "review": "Transparent reviews and fees"
-      },
       "cta": "Find a Lawyer"
     },
     "aiAnalysis": {
@@ -143,6 +136,18 @@
         "legal": "Legally valid and enforceable contracts"
       },
       "cta": "Start Cap & Deal Now"
+    },
+    "wittaya": {
+      "badge": "Lawslane Wittaya",
+      "title": "Prepare for the Thai lawyer license exam with Lawslane Wittaya",
+      "description": "Past law exams, exam prep books and law courses for students and lawyer license candidates.",
+      "features": {
+        "exams": "Past law exams for every year",
+        "books": "Books and courses for the lawyer license exam",
+        "ai": "AI-assisted grading of essay answers"
+      },
+      "cta": "Go to Lawslane Wittaya",
+      "imageAlt": "Two law students studying for exams"
     }
   },
   "NotFound": {
@@ -453,7 +458,10 @@
       "labor": "Labor Law",
       "intellectualProperty": "Intellectual Property",
       "business": "Business Law"
-    }
+    },
+    "heroTitle": "Professional Lawyers Center",
+    "heroSubtitle": "Experienced lawyers with specialized expertise, ready to advise you and take care of your case closely.",
+    "heroImageAlt": "Male and female lawyers in gowns holding a law book and a tablet"
   },
   "LawyerProfile": {
     "backToList": "Back to Lawyers",
