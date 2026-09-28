@@ -657,10 +657,10 @@
     "dangerZone": "Danger Zone",
     "dangerZoneSubtitle": "These actions cannot be reversed",
     "deleteAccount": "Delete Account",
-    "deleteAccountSubtitle": "All your data will be permanently deleted",
+    "deleteAccountSubtitle": "Delete your login and personal data. This cannot be undone.",
     "deleteMyAccount": "Delete My Account",
     "deleteConfirmTitle": "Are you sure?",
-    "deleteConfirmSubtitle": "This action cannot be reversed. Your account and all data will be permanently deleted.",
+    "deleteConfirmSubtitle": "Deleting your account cannot be undone. You will no longer be able to sign in with it.",
     "confirmDelete": "Confirm Delete",
     "loginRequired": "Please login to manage account",
     "login": "Login",
@@ -685,7 +685,16 @@
       "profileUpdatedDetail": "Your profile information has been updated successfully",
       "passwordChanged": "Password Changed",
       "passwordChangedDetail": "Your password has been changed successfully"
-    }
+    },
+    "deleteWhatRemoved": "Removed now: your login, profile data, lawyer/interpreter profile, notifications, personal files, and your name/photo on reviews and comments.",
+    "deleteWhatKept": "Kept as required by law: payment, invoice and payout records · messages in case chats stay with the other party.",
+    "deleteBlockedTitle": "You can’t delete your account yet because:",
+    "deleteReauth": "For security, please sign out and sign in again before deleting your account (you must have signed in within the last 15 minutes).",
+    "deleteReauthButton": "Sign out and sign in again",
+    "deleteTypeToConfirm": "Type \"{phrase}\" to confirm",
+    "deleteDone": "Your account has been deleted",
+    "deleteFailed": "Could not delete your account. Please try again or contact us.",
+    "deleteCheckFailed": "Could not check your account. Please try again."
   },
   "Banks": {
     "Bangkok Bank": "Bangkok Bank",
