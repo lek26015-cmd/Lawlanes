@@ -17,7 +17,7 @@ export const TERMS: Record<LegalLocale, LegalDoc> = {
                 id: 'service',
                 title: 'Lawslane คืออะไร และไม่ใช่อะไร',
                 blocks: [
-                    { p: 'Lawslane เป็น**แพลตฟอร์มออนไลน์ที่ช่วยให้ลูกความค้นหาและติดต่อทนายความ และล่าม/นักแปลด้านกฎหมาย** พร้อมเครื่องมือช่วยค้นข้อมูลกฎหมายเบื้องต้น เช่น ผู้ช่วย AI "ลลิน" การค้นหาข้อกฎหมาย และแบบฟอร์มเอกสาร' },
+                    { p: 'Lawslane เป็น**แพลตฟอร์มออนไลน์ที่ช่วยให้ลูกความค้นหาและติดต่อทนายความ และขอใช้บริการล่าม/นักแปลด้านกฎหมาย** พร้อมเครื่องมือช่วยค้นข้อมูลกฎหมายเบื้องต้น เช่น ผู้ช่วย AI "ลลิน" การค้นหาข้อกฎหมาย และแบบฟอร์มเอกสาร' },
                     {
                         ul: [
                             'Lawslane **ไม่ใช่สำนักงานกฎหมาย** และไม่ได้ให้คำปรึกษาทางกฎหมายเอง',
@@ -81,18 +81,18 @@ export const TERMS: Record<LegalLocale, LegalDoc> = {
                 id: 'interpreters',
                 title: 'บริการล่ามและนักแปล',
                 blocks: [
-                    { p: 'Lawslane มีรายชื่อล่ามและนักแปลด้านกฎหมาย (เช่น ล่ามในศาล สถานีตำรวจ การประชุม และการแปลเอกสาร) ที่ลูกความจองและชำระเงินผ่านระบบได้ **บริการนี้ต่างจากบริการทนายความ ตรงที่ Lawslane เป็นผู้รับชำระเงินแทนล่าม/นักแปล**' },
+                    { p: 'Lawslane ให้บริการจัดหาล่ามและนักแปลด้านกฎหมาย (เช่น ล่ามในศาล สถานีตำรวจ การประชุม และการแปลเอกสาร) โดยท่านส่งคำขอผ่านหน้าบริการล่าม แล้วทีมงาน Lawslane จะพูดคุยรายละเอียด จัดหาล่าม/นักแปลที่เหมาะสม และเสนอราคาให้ในแชท เว็บไซต์ไม่แสดงรายชื่อหรืออัตราค่าบริการของล่าม/นักแปล และไม่เปิดรับสมัครล่าม/นักแปลผ่านเว็บไซต์ **บริการนี้ต่างจากบริการทนายความ ตรงที่ Lawslane เป็นผู้รับชำระเงินแทนล่าม/นักแปล**' },
                     {
                         ul: [
-                            '**สำหรับผู้จอง:** ราคาเป็นไปตามอัตราหรือใบเสนอราคาที่ล่าม/นักแปลกำหนด ไม่มีค่าธรรมเนียมเพิ่มจากผู้จอง ท่านโอนเงินเข้าบัญชีรับชำระของ Lawslane ที่แสดงในหน้าจอง แล้วแนบสลิป ระบบตรวจสลิปอัตโนมัติ หากตรวจไม่ผ่าน ทีมงานจะตรวจเองและกันช่วงเวลาไว้ให้ 24 ชั่วโมง',
-                            'ต้องจองล่วงหน้าอย่างน้อย 24 ชั่วโมง และไม่เกิน 60 วัน',
+                            '**การขอใช้บริการ:** ต้องเข้าสู่ระบบ รายละเอียดคำขอ (บริการ ภาษา วันที่ สถานที่ เบอร์ติดต่อ และข้อความ) จะส่งถึงทีมงานในแชทซัพพอร์ต การส่งคำขอยังไม่ถือเป็นการจองและไม่มีค่าใช้จ่าย',
+                            '**ราคาและการชำระเงิน:** ทีมงานจะส่งลิงก์ชำระเงินในแชท ระบุรายการ ล่าม/นักแปลที่จัดให้ และยอดชำระ ลิงก์ใช้ได้ 7 วันและใช้ได้เฉพาะบัญชีที่ส่งคำขอ ไม่มีค่าธรรมเนียมเพิ่มจากยอดในลิงก์ ท่านโอนเงินเข้าบัญชีรับชำระของ Lawslane ที่แสดงในหน้าชำระเงินแล้วแนบสลิป ระบบตรวจสลิปอัตโนมัติ หากตรวจไม่ผ่าน ทีมงานจะตรวจเอง งานถือว่าจองแล้วเมื่อยืนยันการชำระเงินแล้ว',
+                            'วันเวลาและสถานที่ของงานนัดหมายกับทีมงานในแชท',
                             '**การคืนเงิน:** คืนเต็มจำนวนหากล่าม/นักแปลปฏิเสธงาน หรือท่านยกเลิกงานล่ามก่อนเวลาเริ่มงานมากกว่า 48 ชั่วโมง งานแปลเอกสารที่ล่าม/นักแปลรับแล้ว และการยกเลิกภายใน 48 ชั่วโมง ให้ติดต่อทีมงานเพื่อพิจารณาเป็นกรณี ทีมงานเป็นผู้โอนคืนเข้าบัญชีของท่าน',
-                            'ก่อนชำระเงิน ระบบจะซ่อนเบอร์โทร อีเมล LINE และช่องทางติดต่ออื่นในแชทกับล่าม/นักแปลโดยอัตโนมัติ และเปิดให้เห็นหลังชำระแล้ว โปรดชำระผ่าน Lawslane เท่านั้น การชำระนอกระบบจะไม่ได้รับความคุ้มครองและการคืนเงินจากเรา',
-                            '**สำหรับล่าม/นักแปล:** ต้องส่งบัตรประชาชนหรือหนังสือเดินทาง และเอกสารรับรองความสามารถ (ถ้ามี) ที่เป็นความจริง ทีมงานตรวจเอกสารก่อนอนุมัติโปรไฟล์ ป้าย "ยืนยันแล้ว" หมายถึงทีมงาน Lawslane ตรวจเอกสารแล้ว ไม่ใช่การรับรองจากหน่วยงานรัฐ',
-                            'ข้อมูลโปรไฟล์ที่เปิดสาธารณะ ได้แก่ ชื่อ รูป คำอธิบาย ภาษา บริการ ความเชี่ยวชาญ จังหวัด อัตราค่าบริการ ตารางเวลา และคะแนน ส่วนเบอร์โทร อีเมล LINE เอกสาร และบัญชีธนาคารไม่เปิดเผย',
-                            '**ค่าธรรมเนียมแพลตฟอร์ม (GP):** Lawslane หักค่าธรรมเนียมจากราคางานตามอัตราที่แสดงตอนสมัครและในหลังบ้านล่าม (ปัจจุบันค่าเริ่มต้น 15%) อัตราที่ใช้กับแต่ละงานคืออัตราตอนที่จอง การเปลี่ยนอัตราจะแจ้งล่วงหน้าและไม่ย้อนหลังกับงานที่จองแล้ว',
+                            'โปรดชำระผ่านลิงก์ของ Lawslane เท่านั้น การชำระนอกระบบจะไม่ได้รับความคุ้มครองและการคืนเงินจากเรา',
+                            '**สำหรับล่าม/นักแปลที่ร่วมงานกับ Lawslane:** ต้องส่งบัตรประชาชนหรือหนังสือเดินทาง และเอกสารรับรองความสามารถ (ถ้ามี) ที่เป็นความจริง ทีมงานตรวจเอกสารก่อนจัดงานให้ ข้อมูลของล่าม/นักแปลไม่เปิดเผยบนเว็บไซต์ ลูกค้าเห็นเฉพาะชื่อในลิงก์ชำระเงินของงานนั้น ส่วนเบอร์โทร อีเมล LINE เอกสาร และบัญชีธนาคารไม่เปิดเผย',
+                            '**ค่าธรรมเนียมแพลตฟอร์ม (GP):** Lawslane หักค่าธรรมเนียมจากราคางานตามอัตราที่แจ้งไว้และแสดงในหลังบ้านล่าม (ปัจจุบันค่าเริ่มต้น 15%) อัตราที่ใช้กับแต่ละงานคืออัตราตอนที่ลูกค้าชำระเงิน การเปลี่ยนอัตราจะแจ้งล่วงหน้าและไม่ย้อนหลังกับงานที่ชำระแล้ว',
                             'เมื่องานเสร็จ Lawslane โอนยอดหลังหัก GP เข้าบัญชีที่ล่าม/นักแปลกรอกไว้ ล่าม/นักแปลรับผิดชอบภาษีจากรายได้ของตนเอง',
-                            'ล่าม/นักแปลต้องรักษาความลับของข้อมูลและเอกสารของผู้จอง และห้ามชักชวนให้ชำระเงินนอกระบบ',
+                            'ล่าม/นักแปลต้องรักษาความลับของข้อมูลและเอกสารของลูกค้า และห้ามชักชวนให้ชำระเงินนอกระบบ',
                         ],
                     },
                 ],
@@ -228,7 +228,7 @@ export const TERMS: Record<LegalLocale, LegalDoc> = {
                 id: 'service',
                 title: 'What Lawslane is, and is not',
                 blocks: [
-                    { p: 'Lawslane is an **online platform that helps clients find and contact lawyers and legal interpreters/translators**, with tools for preliminary legal research such as the "Lalin" AI assistant, law search and document forms.' },
+                    { p: 'Lawslane is an **online platform that helps clients find and contact lawyers and request legal interpreters/translators**, with tools for preliminary legal research such as the "Lalin" AI assistant, law search and document forms.' },
                     {
                         ul: [
                             'Lawslane is **not a law firm** and does not give legal advice itself.',
@@ -292,17 +292,17 @@ export const TERMS: Record<LegalLocale, LegalDoc> = {
                 id: 'interpreters',
                 title: 'Interpreter and translator service',
                 blocks: [
-                    { p: "Lawslane lists legal interpreters and translators (for courts, police stations, meetings and document translation) whom clients can book and pay through the Service. **Unlike the lawyer service, Lawslane collects payment on the interpreter's behalf.**" },
+                    { p: "Lawslane arranges legal interpreters and translators (for courts, police stations, meetings and document translation). You send a request on the interpreter service page, and Lawslane's team discusses the details with you, arranges a suitable interpreter and sends you a quote in chat. The website does not list interpreters or their rates, and does not recruit interpreters through the website. **Unlike the lawyer service, Lawslane collects payment on the interpreter's behalf.**" },
                     {
                         ul: [
-                            "**For clients:** the price is the interpreter's rate or quote, with no extra fee added. You transfer to the Lawslane payment account shown on the booking page and attach the slip. Slips are checked automatically; if the check fails, our team reviews it manually and the time slot is held for 24 hours.",
-                            'Bookings must be made at least 24 hours and at most 60 days in advance.',
-                            '**Refunds:** full refund if the interpreter declines, or if you cancel interpretation work more than 48 hours before it starts. For translation work already accepted, and cancellations within 48 hours, contact our team for a case-by-case decision. Our team transfers refunds to your account.',
-                            'Before payment, phone numbers, emails, LINE IDs and other contact details in chat with the interpreter are hidden automatically, and shown after payment. Please pay only through Lawslane; payments made outside the Service are not covered by our protection or refunds.',
-                            '**For interpreters/translators:** you must submit a genuine national ID card or passport, and certificates if any. Our team reviews documents before approving a profile. The "Verified" badge means Lawslane\'s team has checked the documents; it is not a government certification.',
-                            'Public profile data: name, photo, description, languages, services, specialties, provinces, rates, schedule and ratings. Phone, email, LINE, documents and bank details are not published.',
-                            '**Platform fee (GP):** Lawslane deducts a fee from the job price at the rate shown at sign-up and in the interpreter dashboard (currently 15% by default). Each job uses the rate at the time of booking. Rate changes are announced in advance and never apply to existing bookings.',
-                            'When a job is completed, Lawslane transfers the amount after GP to the bank account you registered. You are responsible for tax on your income.',
+                            '**Requests:** you must be logged in. Your request (service, languages, date, location, phone and message) goes to our team in support chat. Sending a request is not a booking and costs nothing.',
+                            "**Price and payment:** our team sends a payment link in chat showing the item, the assigned interpreter and the amount. The link is valid for 7 days and only for the account that sent the request. No fee is added to the amount in the link. You transfer to the Lawslane payment account shown on the payment page and attach the slip. Slips are checked automatically; if the check fails, our team reviews it. The job is booked once payment is confirmed.",
+                            'The date, time and location of the job are arranged with our team in chat.',
+                            '**Refunds:** full refund if the interpreter declines, or if you cancel interpretation work more than 48 hours before it starts. For translation work already accepted, and cancellations within 48 hours, contact our team for a case-by-case decision. Our team makes refunds to your account.',
+                            'Please pay only through Lawslane payment links; payments made outside the Service are not covered by our protection or refunds.',
+                            "**For interpreters/translators working with Lawslane:** you must submit a genuine national ID card or passport, and certificates if any. Our team reviews documents before assigning work. Interpreter details are not published on the website; clients see only your name in the payment link for their job. Phone, email, LINE, documents and bank details are never shown.",
+                            "**Platform fee (GP):** Lawslane deducts a fee from the job price at the rate we notify you of and show in the interpreter dashboard (currently 15% by default). Each job uses the rate at the time the client pays. Rate changes are announced in advance and do not apply to jobs already paid.",
+                            'When a job is completed, Lawslane transfers the amount after GP to the bank account you provided. You are responsible for tax on your income.',
                             "Interpreters/translators must keep clients' information and documents confidential and must not solicit payment outside the Service.",
                         ],
                     },
@@ -439,7 +439,7 @@ export const TERMS: Record<LegalLocale, LegalDoc> = {
                 id: 'service',
                 title: 'Lawslane 是什么，不是什么',
                 blocks: [
-                    { p: 'Lawslane 是一个**帮助委托人查找并联系律师及法律口译/笔译员的在线平台**，并提供初步法律检索工具，例如 AI 助手"Lalin"、法律检索和文书模板。' },
+                    { p: 'Lawslane 是一个**帮助委托人查找并联系律师、申请法律口译/笔译服务的在线平台**，并提供初步法律检索工具，例如 AI 助手"Lalin"、法律检索和文书模板。' },
                     {
                         ul: [
                             'Lawslane **不是律师事务所**，本身不提供法律意见。',
@@ -503,18 +503,18 @@ export const TERMS: Record<LegalLocale, LegalDoc> = {
                 id: 'interpreters',
                 title: '口译与笔译服务',
                 blocks: [
-                    { p: 'Lawslane 提供法律口译和笔译员名录（如法院、警察局、会议口译及文件翻译），委托人可在系统中预约并付款。**与律师服务不同，此项服务由 Lawslane 代口译/笔译员收款。**' },
+                    { p: 'Lawslane 提供法律口译与笔译员安排服务（如法院、警察局、会议口译及文件翻译）。您在译员服务页面提交申请后，Lawslane 团队会在聊天中与您沟通细节、安排合适的译员并报价。网站不展示译员名单或费率，也不通过网站招募译员。**与律师服务不同，此项服务由 Lawslane 代译员收款。**' },
                     {
                         ul: [
-                            '**预约方：**价格以口译/笔译员设定的费率或报价为准，不向预约方额外收费。请转账至预约页面显示的 Lawslane 收款账户并上传转账凭证。系统会自动核验凭证；未通过时由团队人工核查，并为您保留时段 24 小时。',
-                            '须至少提前 24 小时、最多提前 60 天预约。',
-                            '**退款：**口译/笔译员拒绝接单，或您在口译工作开始前 48 小时以上取消的，全额退款。已接单的笔译工作及 48 小时内的取消，请联系团队个案处理。退款由团队转入您的账户。',
-                            '付款前，系统会自动隐藏与口译/笔译员聊天中的电话、电子邮件、LINE 等联系方式，付款后才显示。请仅通过 Lawslane 付款；在系统外付款不受我们的保障和退款约束。',
-                            '**口译/笔译员：**须提交真实的身份证或护照，以及资格证书（如有）。团队在审核文件后批准资料。"已认证"标志表示 Lawslane 团队已核查文件，并非政府认证。',
-                            '公开资料包括：姓名、照片、简介、语言、服务、专业领域、服务府、费率、日程和评分。电话、电子邮件、LINE、文件和银行账户不会公开。',
-                            '**平台服务费（GP）：**Lawslane 按注册时及口译员后台显示的费率从订单金额中扣除服务费（目前默认 15%）。每笔订单适用预约时的费率。费率变更会提前通知，且不追溯已预约的订单。',
+                            '**提交申请：**须先登录。您的申请（服务、语言、日期、地点、电话和留言）会发送到团队的支持聊天中。提交申请不等于预约，也不收费。',
+                            '**价格与付款：**团队会在聊天中发送付款链接，列明项目、指派的译员和金额。链接有效期 7 天，仅限提交申请的账户使用，不在链接金额之外额外收费。请转账至付款页面显示的 Lawslane 收款账户并上传转账凭证。系统会自动核验凭证；未通过时由团队人工核查。确认付款后即视为预约成功。',
+                            '工作的日期、时间和地点在聊天中与团队约定。',
+                            '**退款：**译员拒绝接单，或您在口译工作开始前 48 小时以上取消的，全额退款。已接单的笔译工作及 48 小时内的取消，请联系团队个案处理。退款由团队转入您的账户。',
+                            '请仅通过 Lawslane 的付款链接付款；在系统外付款不受我们的保障和退款约束。',
+                            '**与 Lawslane 合作的译员：**须提交真实的身份证或护照，以及资格证书（如有）。团队审核文件后才会安排工作。译员资料不在网站公开，委托人只会在该工作的付款链接中看到您的姓名。电话、电子邮件、LINE、文件和银行账户不会公开。',
+                            '**平台服务费（GP）：**Lawslane 按通知您并在译员后台显示的费率从订单金额中扣除服务费（目前默认 15%）。每笔订单适用委托人付款时的费率。费率变更会提前通知，且不追溯已付款的订单。',
                             '工作完成后，Lawslane 将扣除 GP 后的金额转入您登记的银行账户。您自行负责收入的税款。',
-                            '口译/笔译员须为委托人的信息和文件保密，不得引导在系统外付款。',
+                            '译员须为委托人的信息和文件保密，不得引导在系统外付款。',
                         ],
                     },
                 ],
