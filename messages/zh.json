@@ -635,10 +635,10 @@
     "dangerZone": "危险区域",
     "dangerZoneSubtitle": "这些操作无法撤销",
     "deleteAccount": "注销账户",
-    "deleteAccountSubtitle": "您的所有数据将被永久删除",
+    "deleteAccountSubtitle": "删除您的登录账户和个人数据，无法撤销。",
     "deleteMyAccount": "注销我的账户",
     "deleteConfirmTitle": "您确定吗？",
-    "deleteConfirmSubtitle": "此操作无法撤销。您的账户和所有数据将被永久删除。",
+    "deleteConfirmSubtitle": "删除账户后无法撤销，您将无法再使用此账户登录。",
     "confirmDelete": "确认删除",
     "loginRequired": "请登录以管理账户",
     "login": "登录",
@@ -663,7 +663,16 @@
       "profileUpdatedDetail": "您的个人资料信息已成功更新",
       "passwordChanged": "修改密码成功",
       "passwordChangedDetail": "您的密码已成功修改"
-    }
+    },
+    "deleteWhatRemoved": "立即删除：登录账户、个人资料、律师/译员资料、通知、个人文件，以及评价和评论中的姓名/头像。",
+    "deleteWhatKept": "依法保留：付款、发票和转账记录 · 案件聊天中的消息仍保留给对方。",
+    "deleteBlockedTitle": "暂时无法删除账户，原因：",
+    "deleteReauth": "为了安全，请先退出并重新登录后再删除账户（须在 15 分钟内登录）。",
+    "deleteReauthButton": "退出并重新登录",
+    "deleteTypeToConfirm": "输入\"{phrase}\"以确认",
+    "deleteDone": "账户已删除",
+    "deleteFailed": "删除账户失败，请重试或联系我们。",
+    "deleteCheckFailed": "检查账户失败，请重试。"
   },
   "Banks": {
     "Bangkok Bank": "盘谷银行",
