@@ -164,7 +164,11 @@ const nextConfig: NextConfig = {
     const publicPagesWithoutLocale = [
       'lawyers', 'interpreters', 'law-search', 'articles', 'forms', 'for-lawyers',
       'verify-lawyer', 'about', 'help', 'guide', 'ai-disclaimer', 'privacy', 'terms',
-    ].map((page) => ({ source: `/${page}/:path*`, destination: `/th/${page}/:path*`, permanent: true }));
+    ].flatMap((page) => [
+      // แยก 2 แบบ: `/:path*` ตอนว่างจะได้ปลายทางมี / ต่อท้าย → redirect ซ้ำอีกทอด
+      { source: `/${page}`, destination: `/th/${page}`, permanent: true },
+      { source: `/${page}/:path+`, destination: `/th/${page}/:path+`, permanent: true },
+    ]);
 
     // หลังยกหลังบ้านไป admin.lawslane.com แล้ว (แผนรวมหลังบ้าน Module 1)
     // ลิงก์เก่าที่คนบุ๊กมาร์กไว้ต้องไม่ 404 — permanent: false เผื่อย้ายกลับ/เปลี่ยนปลายทาง

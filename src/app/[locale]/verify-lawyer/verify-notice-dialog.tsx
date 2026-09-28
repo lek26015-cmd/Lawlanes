@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
-import { Info } from 'lucide-react';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Info, X } from 'lucide-react';
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import searchImg from '@/pic/lawslane-search.webp';
@@ -37,24 +37,29 @@ export function VerifyNoticeDialog() {
 
     return (
         <Dialog open={open} onOpenChange={handleOpenChange}>
-            <DialogContent className="max-w-lg rounded-2xl p-0 overflow-hidden max-h-[90vh] overflow-y-auto">
-                <div className="bg-gradient-to-b from-blue-50 to-white px-6 pt-6">
+            <DialogContent className="max-w-xl rounded-2xl p-0 overflow-hidden max-h-[92vh] overflow-y-auto bg-[#0B3979] border-[#0B3979] text-white" hideCloseButton>
+                <DialogClose className="absolute right-4 top-4 z-10 rounded-full p-1.5 text-white/80 hover:text-white hover:bg-white/10 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white">
+                    <X className="h-5 w-5" />
+                    <span className="sr-only">Close</span>
+                </DialogClose>
+                {/* พื้นหลังน้ำเงิน CI · ภาพเต็มความกว้าง popup */}
+                <div className="px-4 pt-8 sm:px-6">
                     <Image
                         src={searchImg}
                         alt={t('imageAlt')}
-                        className="w-full max-w-[280px] sm:max-w-[360px] h-auto mx-auto"
-                        sizes="(max-width: 640px) 280px, 360px"
+                        className="w-full h-auto mx-auto"
+                        sizes="(max-width: 640px) 100vw, 576px"
                         priority
                     />
                 </div>
                 <div className="px-6 pb-6 space-y-4">
                     <DialogHeader>
-                        <DialogTitle className="text-xl font-bold text-[#0B3979] flex items-center gap-2">
+                        <DialogTitle className="text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
                             <Info className="w-5 h-5 flex-shrink-0" />
                             {t('title')}
                         </DialogTitle>
                         <DialogDescription asChild>
-                            <ul className="space-y-2 text-sm text-slate-600 leading-relaxed list-disc pl-5 text-left">
+                            <ul className="space-y-2 text-sm sm:text-base text-blue-100 leading-relaxed list-disc pl-5 text-left marker:text-blue-300">
                                 {Array.from({ length: NOTICE_ITEMS }, (_, i) => (
                                     <li key={i}>{t(`item${i + 1}`)}</li>
                                 ))}
@@ -62,8 +67,9 @@ export function VerifyNoticeDialog() {
                         </DialogDescription>
                     </DialogHeader>
                     <DialogFooter className="flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                        <label className="flex items-center gap-2 text-sm text-slate-500 cursor-pointer">
+                        <label className="flex items-center gap-2 text-sm text-blue-100 cursor-pointer">
                             <Checkbox
+                                className="border-white data-[state=checked]:bg-white data-[state=checked]:text-[#0B3979]"
                                 checked={dontShowAgain}
                                 onCheckedChange={(v) => setDontShowAgain(v === true)}
                             />
@@ -71,7 +77,7 @@ export function VerifyNoticeDialog() {
                         </label>
                         <Button
                             onClick={() => handleOpenChange(false)}
-                            className="rounded-full bg-[#0B3979] hover:bg-[#082a5a] text-white px-6"
+                            className="rounded-full bg-white hover:bg-blue-50 text-[#0B3979] font-semibold px-6"
                         >
                             {t('accept')}
                         </Button>
