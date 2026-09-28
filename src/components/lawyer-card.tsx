@@ -7,6 +7,7 @@ import type { LawyerProfile } from '@/lib/types';
 import { Mail, Scale, Phone, BadgeCheck, Crown } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
+import { Link as LocaleLink } from '@/navigation';
 import { useRouter } from 'next/navigation';
 import profileLawyerImg from '@/pic/profile-lawyer.jpg';
 import { useUser } from '@/firebase';
@@ -110,7 +111,12 @@ export default function LawyerCard({ lawyer, featured }: LawyerCardProps) {
       <div className="flex-grow text-center md:text-left relative z-10 w-full">
         <div className="flex flex-col md:flex-row md:items-center gap-2 mb-1 justify-center md:justify-start">
           {/* Lawyer name is NOT translated */}
-          <h3 className="font-bold text-xl text-slate-800">{lawyer.name}</h3>
+          <h3 className="font-bold text-xl text-slate-800">
+            {/* ลิงก์จริง (href) ให้ Google เจอหน้าโปรไฟล์ — ทั้งการ์ดคลิกได้อยู่แล้วผ่าน router.push */}
+            <LocaleLink href={`/lawyers/${lawyer.id}`} onClick={(e) => e.stopPropagation()} className="hover:text-primary">
+              {lawyer.name}
+            </LocaleLink>
+          </h3>
           {lawyer.status === 'approved' && (
             <span className="inline-flex items-center rounded-lg border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-blue-50 text-blue-700 hover:bg-blue-100">
               {t('card.verified')}
