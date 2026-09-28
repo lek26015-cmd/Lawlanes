@@ -173,10 +173,9 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
           <div className="container mx-auto px-4 md:px-6">
             <div className="grid lg:grid-cols-2 gap-12 items-center">
               <FadeIn direction="right">
-                {/* ภาพการ์ตูนเดียวกับ hero ของ Wittaya (PNG พื้นใส) บนการ์ดน้ำเงิน CI */}
-                <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-[#0B3979] to-[#082a5a] shadow-xl aspect-[5/4] flex items-end justify-center">
-                  <div className="absolute top-0 right-0 -mr-16 -mt-16 w-72 h-72 bg-white/10 rounded-full blur-3xl pointer-events-none" />
-                  <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-72 h-72 bg-blue-400/10 rounded-full blur-3xl pointer-events-none" />
+                {/* ภาพการ์ตูนเดียวกับ hero ของ Wittaya (PNG พื้นใส) บนการ์ดพื้น slate-900 เดียวกับ hero หน้าแรก */}
+                <div className="relative overflow-hidden rounded-[2.5rem] bg-slate-900 shadow-xl aspect-[5/4] flex items-end justify-center">
+                  <div className="absolute top-0 right-0 -mr-16 -mt-16 w-72 h-72 bg-white/5 rounded-full blur-3xl pointer-events-none" />
                   <Image
                     src={wittayaHeroImg}
                     alt={t('wittaya.imageAlt')}
@@ -264,7 +263,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
 
               {/* Right Card: Verify Status */}
               <FadeIn direction="up" delay={200}>
-                <div className="h-full bg-gradient-to-br from-[#0B3979] to-[#082a5a] text-white rounded-[2.5rem] p-8 md:p-12 shadow-xl hover:shadow-2xl transition-all duration-300 flex flex-col justify-between relative overflow-hidden group">
+                <div className="h-full bg-slate-900 text-white rounded-[2.5rem] p-8 md:p-12 shadow-xl hover:shadow-2xl transition-all duration-300 flex flex-col justify-between relative overflow-hidden group">
                   {/* Subtle Background Pattern */}
                   <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-white/5 rounded-full blur-3xl group-hover:bg-white/10 transition-colors duration-500"></div>
                   
@@ -276,13 +275,13 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                       <h2 className="text-2xl md:text-3xl font-bold font-headline text-white">
                         {t('verifyStatus.title')}
                       </h2>
-                      <p className="text-blue-100 text-lg leading-relaxed">
+                      <p className="text-gray-400 text-lg leading-relaxed">
                         {t('verifyStatus.description')}
                       </p>
                     </div>
                     
                     <div className="bg-white/5 rounded-2xl p-6 border border-white/10 backdrop-blur-sm">
-                      <p className="text-sm text-blue-200 uppercase font-semibold tracking-wider mb-2">{t('stats.experts')}</p>
+                      <p className="text-sm text-gray-400 uppercase font-semibold tracking-wider mb-2">{t('stats.experts')}</p>
                       <div className="text-3xl font-bold text-white">50+ {t('stats.experts')}</div>
                     </div>
                   </div>

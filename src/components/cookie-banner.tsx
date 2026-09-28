@@ -55,10 +55,10 @@ export default function CookieBanner() {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 20, scale: 0.95 }}
           transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }}
-          className="relative overflow-hidden rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-3xl border border-indigo-100 dark:border-slate-800 shadow-[0_32px_64px_rgba(30,41,59,0.2)] dark:shadow-[0_32px_64px_rgba(0,0,0,0.5)]"
+          className="relative overflow-hidden rounded-2xl bg-white/95 dark:bg-slate-900/95 backdrop-blur-3xl border border-blue-100 dark:border-slate-800 shadow-[0_32px_64px_rgba(30,41,59,0.2)] dark:shadow-[0_32px_64px_rgba(0,0,0,0.5)]"
         >
           {/* Decorative elements */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl opacity-50" />
+          <div className="absolute top-0 right-0 w-32 h-32 bg-[#0B3979]/10 rounded-full blur-3xl opacity-50" />
           <div className="absolute bottom-0 left-0 w-32 h-32 bg-blue-500/10 rounded-full blur-3xl opacity-50" />
 
           <div className="p-6 md:p-8">
@@ -71,7 +71,7 @@ export default function CookieBanner() {
                   exit={{ opacity: 0, x: 20 }}
                   className="relative z-10 flex flex-col md:flex-row items-center gap-6 md:gap-10"
                 >
-                  <div className="hidden md:flex flex-shrink-0 items-center justify-center w-20 h-20 rounded-xl bg-indigo-50 dark:bg-slate-800 shadow-xl shadow-indigo-100/50 dark:shadow-none text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-slate-700 transition-transform hover:scale-110">
+                  <div className="hidden md:flex flex-shrink-0 items-center justify-center w-20 h-20 rounded-xl bg-blue-50 dark:bg-slate-800 shadow-xl shadow-blue-100/50 dark:shadow-none text-[#0B3979] dark:text-blue-300 border border-blue-100 dark:border-slate-700 transition-transform hover:scale-110">
                     <Cookie className="h-10 w-10 animate-bounce group-hover:animate-none" />
                   </div>
 
@@ -79,12 +79,12 @@ export default function CookieBanner() {
                     <div className="flex items-center justify-center md:justify-start gap-2 mb-3">
                       <div className="flex -space-x-1">
                         {[1,2,3].map(i => (
-                          <div key={i} className="w-5 h-5 rounded-full bg-indigo-100 dark:bg-indigo-900/50 border-2 border-white dark:border-slate-900 overflow-hidden">
-                            <ShieldCheck className="w-full h-full p-0.5 text-indigo-600 dark:text-indigo-400" />
+                          <div key={i} className="w-5 h-5 rounded-full bg-blue-100 dark:bg-blue-900/50 border-2 border-white dark:border-slate-900 overflow-hidden">
+                            <ShieldCheck className="w-full h-full p-0.5 text-[#0B3979] dark:text-blue-300" />
                           </div>
                         ))}
                       </div>
-                      <span className="text-[10px] font-black uppercase tracking-[0.15em] text-indigo-700 dark:text-indigo-400">
+                      <span className="text-[10px] font-black uppercase tracking-[0.15em] text-[#082a5a] dark:text-blue-300">
                         Guaranteed Privacy Standard
                       </span>
                     </div>
@@ -93,7 +93,7 @@ export default function CookieBanner() {
                       เราใช้คุกกี้เพื่อวิเคราะห์การใช้งานและมอบข้อเสนอพิเศษที่ตรงใจคุณมากที่สุด 
                       คุณร่วมเป็นส่วนหนึ่งของการพัฒนาประสบการณ์ได้โดยการยอมรับคุกกี้ของเรา 
                       อ่านเพิ่มเติมได้ที่{' '}
-                      <Link href="/privacy" className="font-bold text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 dark:hover:text-indigo-300 underline underline-offset-4 decoration-indigo-500/30 transition-colors">
+                      <Link href="/privacy" className="font-bold text-[#0B3979] hover:text-[#082a5a] dark:text-blue-300 dark:hover:text-blue-200 underline underline-offset-4 decoration-[#0B3979]/30 transition-colors">
                         นโยบายความเป็นส่วนตัว
                       </Link>
                     </p>
@@ -102,9 +102,9 @@ export default function CookieBanner() {
                   <div className="flex flex-col gap-3 w-full md:w-auto min-w-[240px]">
                     <Button
                       onClick={() => handleConsent('all')}
-                      className="group relative w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-indigo-600 dark:hover:bg-indigo-50 rounded-xl h-14 font-black text-lg shadow-2xl transition-all active:scale-95 overflow-hidden border-none"
+                      className="group relative w-full bg-slate-900 dark:bg-white text-white dark:text-slate-900 hover:bg-[#0B3979] dark:hover:bg-blue-50 rounded-xl h-14 font-black text-lg shadow-2xl transition-all active:scale-95 overflow-hidden border-none"
                     >
-                      <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/0 via-white/20 to-indigo-500/0 group-hover:translate-x-full transition-transform duration-1000 -translate-x-full" />
+                      <div className="absolute inset-0 bg-gradient-to-r from-[#0B3979]/0 via-white/20 to-[#0B3979]/0 group-hover:translate-x-full transition-transform duration-1000 -translate-x-full" />
                       <Check className="h-5 w-5 mr-1" /> ยอมรับทั้งหมด
                     </Button>
                     
@@ -112,14 +112,14 @@ export default function CookieBanner() {
                       <Button
                         variant="outline"
                         onClick={() => setView('settings')}
-                        className="flex-1 rounded-lg h-11 text-xs font-bold border-slate-200 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400 transition-all font-sans"
+                        className="flex-1 rounded-lg h-11 text-xs font-bold border-slate-200 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-800 hover:text-[#0B3979] dark:hover:text-blue-300 transition-all font-sans"
                       >
                         จำเป็นเท่านั้น
                       </Button>
                       <Button
                         variant="outline"
                         onClick={() => setView('settings')}
-                        className="rounded-2xl h-11 w-11 flex items-center justify-center border-slate-200 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-800 hover:text-indigo-600 dark:hover:text-indigo-400"
+                        className="rounded-2xl h-11 w-11 flex items-center justify-center border-slate-200 dark:border-slate-800 hover:bg-white dark:hover:bg-slate-800 hover:text-[#0B3979] dark:hover:text-blue-300"
                       >
                         <Settings className="h-4 w-4" />
                       </Button>
@@ -139,24 +139,24 @@ export default function CookieBanner() {
                       <Button 
                         variant="ghost" 
                         size="icon" 
-                        className="rounded-full hover:bg-indigo-50 dark:hover:bg-slate-800"
+                        className="rounded-full hover:bg-blue-50 dark:hover:bg-slate-800"
                         onClick={() => setView('main')}
                       >
                         <ChevronLeft className="h-5 w-5" />
                       </Button>
                       <h3 className="text-xl font-black text-slate-900 dark:text-white">ตั้งค่าความเป็นส่วนตัว</h3>
                     </div>
-                    <div className="flex items-center gap-2 px-3 py-1 bg-indigo-50 dark:bg-indigo-900/30 rounded-full">
-                      <Info className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-700 dark:text-indigo-400">โปร่งใสและปลอดภัย</span>
+                    <div className="flex items-center gap-2 px-3 py-1 bg-blue-50 dark:bg-blue-900/30 rounded-full">
+                      <Info className="h-4 w-4 text-[#0B3979] dark:text-blue-300" />
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-[#082a5a] dark:text-blue-300">โปร่งใสและปลอดภัย</span>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-8">
                     {/* Necessary */}
-                    <div className="p-5 rounded-xl bg-white dark:bg-slate-800 border border-indigo-50 dark:border-slate-800 transition-all hover:shadow-lg">
+                    <div className="p-5 rounded-xl bg-white dark:bg-slate-800 border border-blue-50 dark:border-slate-800 transition-all hover:shadow-lg">
                       <div className="flex items-center justify-between mb-3">
-                        <div className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400">
+                        <div className="p-2 rounded-lg bg-blue-50 dark:bg-blue-900/40 text-[#0B3979] dark:text-blue-300">
                           <ShieldCheck className="h-5 w-5" />
                         </div>
                         <Switch disabled checked={true} />
@@ -166,7 +166,7 @@ export default function CookieBanner() {
                     </div>
 
                     {/* Analytics */}
-                    <div className="p-5 rounded-xl bg-white dark:bg-slate-800 border border-indigo-50 dark:border-slate-800 transition-all hover:shadow-lg">
+                    <div className="p-5 rounded-xl bg-white dark:bg-slate-800 border border-blue-50 dark:border-slate-800 transition-all hover:shadow-lg">
                       <div className="flex items-center justify-between mb-3">
                         <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400">
                           <Cookie className="h-5 w-5" />
@@ -178,7 +178,7 @@ export default function CookieBanner() {
                     </div>
 
                     {/* Marketing */}
-                    <div className="p-5 rounded-xl bg-white dark:bg-slate-800 border border-indigo-50 dark:border-slate-800 transition-all hover:shadow-lg">
+                    <div className="p-5 rounded-xl bg-white dark:bg-slate-800 border border-blue-50 dark:border-slate-800 transition-all hover:shadow-lg">
                       <div className="flex items-center justify-between mb-3">
                         <div className="p-2 rounded-xl bg-purple-50 dark:bg-purple-900/40 text-purple-600 dark:text-purple-400">
                           <Settings className="h-5 w-5" />
@@ -200,7 +200,7 @@ export default function CookieBanner() {
                     </Button>
                     <Button
                       onClick={() => handleConsent('custom')}
-                      className="rounded-xl h-11 px-8 text-sm font-black bg-indigo-600 hover:bg-slate-900 text-white shadow-lg transition-all active:scale-95 border-none"
+                      className="rounded-xl h-11 px-8 text-sm font-black bg-[#0B3979] hover:bg-slate-900 text-white shadow-lg transition-all active:scale-95 border-none"
                     >
                       ยืนยันการตั้งค่า
                     </Button>

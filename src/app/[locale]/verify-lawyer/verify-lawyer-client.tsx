@@ -1,6 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, type ReactNode } from 'react';
+import Image from 'next/image';
+import searchImg from '@/pic/lawslane-search.webp';
+import logoWhite from '@/pic/logo-lawslane-transparent-white.png';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -20,7 +23,8 @@ const LAWYERS_COUNCIL_URL = 'https://www.lawyerscouncil.or.th/';
 // อ่าน ?licenseNumber= จาก window หลัง mount แทน
 // verifiedLawyers อ่านผ่าน server action/server component เท่านั้น (rules ปิด list จาก browser)
 // จำนวนรายชื่อ + วันที่อัปเดตล่าสุดคำนวณที่ server แล้วส่งมาเป็น props
-export function VerifyLawyerClient({ registryCount, lastUpdatedIso }: { registryCount: number; lastUpdatedIso: string | null }) {
+// heading (h1 + คำอธิบาย) มาจาก server page — วางใน hero เดียวกับฟอร์มค้นหา แบบ hero หน้าแรก
+export function VerifyLawyerClient({ registryCount, lastUpdatedIso, heading }: { registryCount: number; lastUpdatedIso: string | null; heading: ReactNode }) {
     const [licenseNumberFromQuery, setLicenseNumberFromQuery] = useState<string | null>(null);
     const t = useTranslations('VerifyLawyer');
     const locale = useLocale();
@@ -50,6 +54,12 @@ export function VerifyLawyerClient({ registryCount, lastUpdatedIso }: { registry
     const [results, setResults] = useState<VerifyResult[]>([]);
     const [hasSearched, setHasSearched] = useState(false);
     const lawyerCount = registryCount;
+    const resultsRef = useRef<HTMLDivElement>(null);
+
+    // ฟอร์มอยู่ใน hero — ค้นหาเสร็จเลื่อนลงไปที่ผลลัพธ์ (มือถือ hero สูงจนผลอยู่นอกจอ)
+    useEffect(() => {
+        if (hasSearched) resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, [hasSearched]);
 
     useEffect(() => {
         const fromQuery = new URLSearchParams(window.location.search).get('licenseNumber');
@@ -145,101 +155,169 @@ export function VerifyLawyerClient({ registryCount, lastUpdatedIso }: { registry
 
             <VerifyNoticeDialog />
 
-            {lawyerCount > 0 && (
-            <p className="text-center text-sm text-slate-400 font-medium -mt-4 mb-8">
-                {t('totalRegistryCount', { count: lawyerCount.toLocaleString() })}
-            </p>
-            )}
-
-            {/* Search Form */}
-            {!hasSearched && !isVerifying && (
-            <div className="max-w-lg mx-auto mb-10">
-                <Card className="shadow-xl rounded-2xl border-none overflow-hidden bg-white">
-                    <CardContent className="space-y-5 p-6 md:p-8">
-                        <div className="space-y-5">
-                            <div className="space-y-1.5">
-                                <Label htmlFor="license-number" className="text-sm font-bold text-[#0B3979]">{t('licenseNumberLabel')}</Label>
-                                <div className="relative">
-                                    <Input
-                                        id="license-number"
-                                        placeholder={t('licenseNumberPlaceholder')}
-                                        value={licenseNumber}
-                                        onChange={(e) => setLicenseNumber(e.target.value)}
-                                        disabled={isVerifying}
-                                        className="h-11 text-sm pl-10 rounded-xl border-slate-200 bg-[#F8FAFC] focus:bg-white transition-all"
-                                    />
-                                    <FileText className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                </div>
+            {/* Hero — แบบหน้าแรก: bg-slate-900 เต็มความกว้าง ขอบล่างโค้ง · ภาพเป็นพื้นหลัง (opacity-80) ให้ข้อความทับได้บางส่วน
+                ภาพ + หัวเรื่อง + ฟอร์มค้นหาเป็นส่วนเดียวกัน */}
+            <section className="relative w-full bg-slate-900 text-white rounded-b-[60px] md:rounded-b-[80px] overflow-hidden">
+                {/* จอใหญ่: ภาพชิดล่างซ้าย กว้างเกินครึ่งจอ — คอลัมน์ข้อความด้านขวาทับขอบภาพ */}
+                <div className="hidden lg:block absolute inset-0 pointer-events-none">
+                    <div className="relative w-full h-full max-w-screen-2xl mx-auto">
+                        {/* ภาพแนวนอน (850×527) — กว้าง 75% ชิดบนระดับเดียวกับหัวเรื่อง (hero สูงตามฟอร์ม ถ้าชิดล่างคนในภาพจะตกขอบ)
+                            ฝั่งขวา (แล็ปท็อป) ลอดใต้คอลัมน์ข้อความ · ขอบขวาและขอบล่างจางเข้าพื้นด้วย mask */}
+                        <div className="absolute top-10 left-[1%] w-[75%] aspect-[850/640] opacity-80 [mask-image:linear-gradient(to_right,black_50%,transparent_85%),linear-gradient(to_bottom,black_70%,transparent)] [mask-composite:intersect]">
+                            {/* โลโก้ Lawslane หลังคนในภาพ เฟดลงล่าง แบบภาพ hero หน้าแรก */}
+                            <div className="absolute left-[22%] top-0 h-[80%] aspect-[711/994] opacity-50 [mask-image:linear-gradient(to_bottom,black_35%,transparent_85%)]">
+                                <Image src={logoWhite} alt="" fill sizes="400px" className="object-contain" />
                             </div>
-
-                            <div className="relative">
-                                <div className="absolute inset-0 flex items-center">
-                                    <span className="w-full border-t border-slate-200" />
-                                </div>
-                                <div className="relative flex justify-center text-xs">
-                                    <span className="bg-white px-3 text-slate-400">
-                                        {t('or')}
-                                    </span>
-                                </div>
-                            </div>
-
-                            <div className="space-y-1.5">
-                                <Label htmlFor="lawyer-name" className="text-sm font-bold text-[#0B3979]">{t('lawyerNameLabel')}</Label>
-                                <div className="relative">
-                                    <Input
-                                        id="lawyer-name"
-                                        placeholder={t('lawyerNamePlaceholder')}
-                                        value={lawyerName}
-                                        onChange={(e) => setLawyerName(e.target.value)}
-                                        disabled={isVerifying}
-                                        className="h-11 text-sm pl-10 rounded-xl border-slate-200 bg-white"
-                                    />
-                                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                                </div>
-                                <p className="text-xs text-emerald-600 font-medium flex items-center gap-1 pl-1">
-                                    💡 {t('searchByNameTip')}
-                                </p>
-                            </div>
-
-                            <Button
-                                onClick={() => handleVerify()}
-                                className="w-full h-11 rounded-full text-base font-semibold bg-[#0B3979] hover:bg-[#082a5a] text-white shadow-lg shadow-blue-900/20 transition-all"
-                                size="lg"
-                                disabled={isVerifying || (!licenseNumber && !lawyerName)}
-                            >
-                                {isVerifying ? (
-                                    <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                                ) : (
-                                    <Search className="mr-2 h-5 w-5" />
-                                )}
-                                {t('verifyButton')}
-                            </Button>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                {/* CTA: Browse registered lawyers */}
-                <Link href="/lawyers" className="block mt-6 group">
-                    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#0B3979] to-[#1a5bb8] p-5 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02]">
-                        <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
-                        <div className="absolute bottom-0 left-0 w-20 h-20 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
-                        <div className="relative flex items-center gap-4">
-                            <div className="flex-shrink-0 w-11 h-11 bg-white/15 backdrop-blur-sm rounded-xl flex items-center justify-center">
-                                <ShieldCheck className="w-6 h-6 text-emerald-300" />
-                            </div>
-                            <div className="flex-grow min-w-0">
-                                <p className="text-white font-semibold text-sm leading-snug">{t('ctaBrowseLawyers')}</p>
-                                <p className="text-blue-200 text-xs mt-0.5">{t('ctaBrowseSubtitle')}</p>
-                            </div>
-                            <div className="flex-shrink-0 w-8 h-8 bg-white/20 rounded-full flex items-center justify-center group-hover:bg-white/30 transition-colors">
-                                <ArrowLeft className="w-4 h-4 text-white rotate-180 group-hover:translate-x-0.5 transition-transform" />
+                            {/* คนในภาพชิดล่างของกล่อง — เว้นด้านบนให้โลโก้โผล่เหนือไหล่
+                                unoptimized: ไฟล์ต้นฉบับกว้างแค่ 850px ไม่ให้ next/image บีบซ้ำ (q75) จนแตกกว่าเดิม */}
+                            <div className="absolute inset-x-0 bottom-0 aspect-[850/527]">
+                                <Image
+                                    src={searchImg}
+                                    alt=""
+                                    fill
+                                    priority
+                                    sizes="85vw"
+                                    unoptimized
+                                    className="object-contain"
+                                />
                             </div>
                         </div>
                     </div>
-                </Link>
-            </div>
-            )}
+                </div>
 
+                {/* มือถือ/ไอแพด: ภาพอยู่ด้านบนเป็นพื้นหลัง ข้อความเลื่อนขึ้นมาทับขอบล่างภาพ */}
+                <div className="lg:hidden absolute top-10 inset-x-0 pointer-events-none opacity-80">
+                    <div className="relative mx-auto w-full max-w-[680px] aspect-[850/640]">
+                        {/* โลโก้ Lawslane หลังคนในภาพ เฟดลงล่าง แบบภาพ hero หน้าแรก */}
+                        <div className="absolute left-[22%] top-0 h-[80%] aspect-[711/994] opacity-50 [mask-image:linear-gradient(to_bottom,black_35%,transparent_85%)]">
+                            <Image src={logoWhite} alt="" fill sizes="50vw" className="object-contain" />
+                        </div>
+                        <div className="absolute inset-x-0 bottom-0 aspect-[850/527]">
+                            <Image
+                                src={searchImg}
+                                alt=""
+                                fill
+                                priority
+                                sizes="100vw"
+                                unoptimized
+                                className="object-contain"
+                            />
+                        </div>
+                        <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-slate-900 to-transparent" />
+                    </div>
+                </div>
+
+                <div className="relative z-10 px-4 md:px-12 lg:px-20 max-w-screen-2xl mx-auto pt-6 md:pt-8">
+                    <Link href="/" className="inline-flex items-center text-sm text-gray-400 hover:text-white transition-colors font-medium">
+                        <ArrowLeft className="w-4 h-4 mr-2" />
+                        {t('backToHome')}
+                    </Link>
+
+                    <div className="grid lg:grid-cols-2 gap-8 items-start pt-56 sm:pt-80 lg:pt-0">
+                        {/* ช่องว่างฝั่งภาพบนจอใหญ่ */}
+                        <div className="hidden lg:block h-1" />
+
+                        <div className="pb-16 md:pb-24 lg:pt-12 lg:pb-28 space-y-6">
+                            <div className="space-y-4 text-center lg:text-left">
+                                {heading}
+                                {lawyerCount > 0 && (
+                                    <p className="text-sm text-gray-400 font-medium">
+                                        {t('totalRegistryCount', { count: lawyerCount.toLocaleString() })}
+                                    </p>
+                                )}
+                            </div>
+
+                            <div className="max-w-lg mx-auto lg:mx-0">
+                            <Card className="shadow-xl rounded-2xl border-none overflow-hidden bg-white">
+                                <CardContent className="space-y-5 p-6 md:p-8">
+                                    <div className="space-y-5">
+                                        <div className="space-y-1.5">
+                                            <Label htmlFor="license-number" className="text-sm font-bold text-[#0B3979]">{t('licenseNumberLabel')}</Label>
+                                            <div className="relative">
+                                                <Input
+                                                    id="license-number"
+                                                    placeholder={t('licenseNumberPlaceholder')}
+                                                    value={licenseNumber}
+                                                    onChange={(e) => setLicenseNumber(e.target.value)}
+                                                    disabled={isVerifying}
+                                                    className="h-11 text-sm pl-10 rounded-xl border-slate-200 bg-[#F8FAFC] focus:bg-white transition-all"
+                                                />
+                                                <FileText className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                            </div>
+                                        </div>
+
+                                        <div className="relative">
+                                            <div className="absolute inset-0 flex items-center">
+                                                <span className="w-full border-t border-slate-200" />
+                                            </div>
+                                            <div className="relative flex justify-center text-xs">
+                                                <span className="bg-white px-3 text-slate-400">
+                                                    {t('or')}
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-1.5">
+                                            <Label htmlFor="lawyer-name" className="text-sm font-bold text-[#0B3979]">{t('lawyerNameLabel')}</Label>
+                                            <div className="relative">
+                                                <Input
+                                                    id="lawyer-name"
+                                                    placeholder={t('lawyerNamePlaceholder')}
+                                                    value={lawyerName}
+                                                    onChange={(e) => setLawyerName(e.target.value)}
+                                                    disabled={isVerifying}
+                                                    className="h-11 text-sm pl-10 rounded-xl border-slate-200 bg-white"
+                                                />
+                                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                            </div>
+                                            <p className="text-xs text-emerald-600 font-medium flex items-center gap-1 pl-1">
+                                                💡 {t('searchByNameTip')}
+                                            </p>
+                                        </div>
+
+                                        <Button
+                                            onClick={() => handleVerify()}
+                                            className="w-full h-11 rounded-full text-base font-semibold bg-[#0B3979] hover:bg-[#082a5a] text-white shadow-lg shadow-blue-900/20 transition-all"
+                                            size="lg"
+                                            disabled={isVerifying || (!licenseNumber && !lawyerName)}
+                                        >
+                                            {isVerifying ? (
+                                                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                                            ) : (
+                                                <Search className="mr-2 h-5 w-5" />
+                                            )}
+                                            {t('verifyButton')}
+                                        </Button>
+                                    </div>
+                                </CardContent>
+                            </Card>
+
+                            {/* CTA: Browse registered lawyers */}
+                            <Link href="/lawyers" className="block mt-6 group">
+                                <div className="relative overflow-hidden rounded-2xl bg-white/10 backdrop-blur-sm border border-white/15 p-5 hover:bg-white/15 transition-all duration-300 hover:scale-[1.02]">
+                                    <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full -translate-y-1/2 translate-x-1/2" />
+                                    <div className="absolute bottom-0 left-0 w-20 h-20 bg-white/5 rounded-full translate-y-1/2 -translate-x-1/2" />
+                                    <div className="relative flex items-center gap-4">
+                                        <div className="flex-shrink-0 w-11 h-11 bg-white/15 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                                            <ShieldCheck className="w-6 h-6 text-emerald-300" />
+                                        </div>
+                                        <div className="flex-grow min-w-0">
+                                            <p className="text-white font-semibold text-sm leading-snug">{t('ctaBrowseLawyers')}</p>
+                                            <p className="text-blue-200 text-xs mt-0.5">{t('ctaBrowseSubtitle')}</p>
+                                        </div>
+                                        <div className="flex-shrink-0 w-8 h-8 bg-white/20 rounded-full flex items-center justify-center group-hover:bg-white/30 transition-colors">
+                                            <ArrowLeft className="w-4 h-4 text-white rotate-180 group-hover:translate-x-0.5 transition-transform" />
+                                        </div>
+                                    </div>
+                                </div>
+                            </Link>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <div ref={resultsRef} className="max-w-6xl mx-auto px-4 md:px-8 pt-10 scroll-mt-24">
             {/* Loading State */}
             {isVerifying && (
                 <div className="max-w-2xl mx-auto text-center text-muted-foreground bg-white p-6 rounded-2xl shadow-lg mb-8">
@@ -318,6 +396,7 @@ export function VerifyLawyerClient({ registryCount, lastUpdatedIso }: { registry
                     <div className="w-1 h-1 bg-slate-300 rounded-full" />
                     <div>{lastUpdated || t('loading')}</div>
                 </div>
+            </div>
             </div>
         </>
     );

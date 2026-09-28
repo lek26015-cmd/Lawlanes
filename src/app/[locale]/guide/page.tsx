@@ -38,7 +38,7 @@ export default function UserGuidePage() {
     },
     {
       title: "การค้นหาและจองนัดหมายทนาย",
-      icon: <Search className="h-6 w-6 text-indigo-500" />,
+      icon: <Search className="h-6 w-6 text-[#0B3979]" />,
       description: "เลือกทนายความที่เชี่ยวชาญจากทั่วประเทศ ตรวจสอบประวัติ รีวิว และเรตติ้ง เพื่อความมั่นใจก่อนตัดสินใจจองนัดเพื่อรับคำปรึกษาจริงแบบตัวต่อตัว",
       steps: ["กดเมนู 'ค้นหาทนาย'", "กรองความเชี่ยวชาญหรือพื้นที่", "เลือกทนายและกด 'จองนัดหมาย' ในเวลาที่สะดวก"]
     },
@@ -88,7 +88,7 @@ export default function UserGuidePage() {
       <div className="max-w-6xl mx-auto">
         {/* Header Section */}
         <div className="text-center mb-16 animate-in fade-in slide-in-from-top duration-700">
-          <BookOpen className="h-14 w-14 text-indigo-600 mx-auto mb-4" />
+          <BookOpen className="h-14 w-14 text-[#0B3979] mx-auto mb-4" />
           <h1 className="text-4xl md:text-5xl font-extrabold text-slate-900 mb-4 tracking-tight">
             คู่มือการใช้งาน Lawslane
           </h1>
@@ -101,16 +101,16 @@ export default function UserGuidePage() {
         {/* User Choice Tabs */}
         <Tabs defaultValue="client" className="w-full">
           <div className="flex justify-center mb-12">
-            <TabsList className="grid w-full max-col grid-cols-2 bg-indigo-50 p-1 rounded-full shadow-inner max-w-md">
+            <TabsList className="grid w-full max-col grid-cols-2 bg-blue-50 p-1 rounded-full shadow-inner max-w-md">
               <TabsTrigger 
                 value="client" 
-                className="rounded-full py-3 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md transition-all font-semibold"
+                className="rounded-full py-3 data-[state=active]:bg-white data-[state=active]:text-[#0B3979] data-[state=active]:shadow-md transition-all font-semibold"
               >
                 สำหรับลูกความ (Client)
               </TabsTrigger>
               <TabsTrigger 
                 value="lawyer"
-                className="rounded-full py-3 data-[state=active]:bg-white data-[state=active]:text-indigo-600 data-[state=active]:shadow-md transition-all font-semibold"
+                className="rounded-full py-3 data-[state=active]:bg-white data-[state=active]:text-[#0B3979] data-[state=active]:shadow-md transition-all font-semibold"
               >
                 สำหรับทนายความ (Lawyer)
               </TabsTrigger>
@@ -121,9 +121,9 @@ export default function UserGuidePage() {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
               {clientFeatures.map((feature, idx) => (
                 <Card key={idx} className="border-none shadow-xl hover:shadow-2xl transition-shadow group overflow-hidden bg-white/80 backdrop-blur-sm">
-                  <div className="h-2 w-full bg-indigo-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  <div className="h-2 w-full bg-[#0B3979] opacity-0 group-hover:opacity-100 transition-opacity" />
                   <CardHeader>
-                    <div className="p-3 w-fit rounded-2xl bg-slate-100 mb-4 group-hover:bg-indigo-50 transition-colors">
+                    <div className="p-3 w-fit rounded-2xl bg-slate-100 mb-4 group-hover:bg-blue-50 transition-colors">
                       {feature.icon}
                     </div>
                     <CardTitle className="text-xl text-slate-900">{feature.title}</CardTitle>
@@ -146,7 +146,7 @@ export default function UserGuidePage() {
             </div>
             
             {/* Call to action for Clients */}
-            <div className="mt-16 bg-white rounded-3xl p-8 md:p-12 shadow-2xl border border-indigo-50 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8">
+            <div className="mt-16 bg-white rounded-3xl p-8 md:p-12 shadow-2xl border border-blue-50 relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-8">
               <div className="relative z-10 flex-1">
                 <h3 className="text-3xl font-bold text-slate-900 mb-4">พร้อมเริ่มปรึกษาคดีหรือยัง?</h3>
                 <p className="text-slate-600 text-lg mb-0 max-w-xl">
@@ -154,12 +154,12 @@ export default function UserGuidePage() {
                 </p>
               </div>
               <div className="relative z-10 flex flex-col sm:flex-row gap-4">
-                <a href={`/${locale}/lawyers`} className="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-bold hover:bg-indigo-700 transition-all shadow-lg hover:shadow-indigo-200 flex items-center justify-center">
+                <a href={`/${locale}/lawyers`} className="bg-[#0B3979] text-white px-8 py-4 rounded-2xl font-bold hover:bg-[#082a5a] transition-all shadow-lg hover:shadow-blue-200 flex items-center justify-center">
                   ค้นหาทนาย <ChevronRight className="ml-2 h-5 w-5" />
                 </a>
               </div>
               {/* Background accent */}
-              <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-indigo-50 rounded-full blur-3xl opacity-50" />
+              <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-blue-50 rounded-full blur-3xl opacity-50" />
             </div>
           </TabsContent>
 
@@ -219,7 +219,7 @@ export default function UserGuidePage() {
           
           <Accordion type="single" collapsible className="w-full space-y-4">
             <AccordionItem value="item-1" className="bg-white px-6 rounded-2xl shadow-sm border-none">
-              <AccordionTrigger className="text-lg font-semibold py-6 hover:no-underline hover:text-indigo-600 transition-colors text-left">
+              <AccordionTrigger className="text-lg font-semibold py-6 hover:no-underline hover:text-[#0B3979] transition-colors text-left">
                 1. เงินที่ชำระผ่านระบบปลอดภัยแค่ไหน?
               </AccordionTrigger>
               <AccordionContent className="pb-6 text-slate-600 leading-relaxed text-base">
@@ -228,7 +228,7 @@ export default function UserGuidePage() {
             </AccordionItem>
 
             <AccordionItem value="item-2" className="bg-white px-6 rounded-2xl shadow-sm border-none">
-              <AccordionTrigger className="text-lg font-semibold py-6 hover:no-underline hover:text-indigo-600 transition-colors text-left">
+              <AccordionTrigger className="text-lg font-semibold py-6 hover:no-underline hover:text-[#0B3979] transition-colors text-left">
                 2. AI Advisor ให้คำปรึกษาแทนทนายจริงได้หรือไม่?
               </AccordionTrigger>
               <AccordionContent className="pb-6 text-slate-600 leading-relaxed text-base">
@@ -237,7 +237,7 @@ export default function UserGuidePage() {
             </AccordionItem>
 
             <AccordionItem value="item-3" className="bg-white px-6 rounded-2xl shadow-sm border-none">
-              <AccordionTrigger className="text-lg font-semibold py-6 hover:no-underline hover:text-indigo-600 transition-colors text-left">
+              <AccordionTrigger className="text-lg font-semibold py-6 hover:no-underline hover:text-[#0B3979] transition-colors text-left">
                 3. หากต้องการถอนเงิน (สำหรับทนาย) ต้องทำอย่างไร?
               </AccordionTrigger>
               <AccordionContent className="pb-6 text-slate-600 leading-relaxed text-base">
@@ -249,7 +249,7 @@ export default function UserGuidePage() {
 
         {/* Support Section */}
         <div className="mt-24 text-center pb-12">
-          <div className="inline-flex items-center justify-center p-2 rounded-full bg-indigo-50 text-indigo-700 font-medium text-sm mb-6 px-4">
+          <div className="inline-flex items-center justify-center p-2 rounded-full bg-blue-50 text-[#082a5a] font-medium text-sm mb-6 px-4">
             <MessageSquare className="h-4 w-4 mr-2" /> ต้องการความช่วยเหลือเพิ่มเติม?
           </div>
           <h3 className="text-2xl font-bold text-slate-900 mb-4">ติดต่อทีมงานซัพพอร์ตลูกความ</h3>
@@ -257,7 +257,7 @@ export default function UserGuidePage() {
             ทีมงานของเราพร้อมให้บริการประสานงานและตอบคำถามการใช้งานระบบทาง Line Official: @Lawslane หรือทางหน้า Help Center ของเรา
           </p>
           <div className="flex justify-center gap-4">
-             <a href={`/${locale}/help`} className="text-indigo-600 border border-indigo-600 px-6 py-3 rounded-xl font-semibold hover:bg-indigo-50 transition-all">
+             <a href={`/${locale}/help`} className="text-[#0B3979] border border-[#0B3979] px-6 py-3 rounded-xl font-semibold hover:bg-blue-50 transition-all">
               ไปยังศูนย์ช่วยเหลือ
              </a>
           </div>
