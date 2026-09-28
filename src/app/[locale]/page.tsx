@@ -27,7 +27,7 @@ import { FadeIn } from '@/components/fade-in';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import lawslaneCoverPhoto from '@/pic/lawslane-cover-photo.webp';
 import lawslaneHeroCover from '@/pic/Lawlanes-Hero-cover.jpg';
-import wittayaEducationImg from '@/pic/wittaya-education.webp';
+import wittayaHeroImg from '@/pic/wittaya-hero-cartoon.webp';
 import { getEducationLink } from '@/lib/domain-utils';
 
 export const dynamic = 'error';
@@ -169,21 +169,26 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         <HomeRecommendedLawyers initialLawyers={initialLawyers} />
 
         {/* Lawslane Wittaya CTA — เตรียมสอบตั๋วทนาย (แอปแยก ลิงก์ข้ามโดเมน) */}
-        <section className="w-full py-16 md:py-24 bg-[#E8E8F8] overflow-hidden">
+        <section className="w-full py-16 md:py-24 bg-white overflow-hidden">
           <div className="container mx-auto px-4 md:px-6">
-            <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center max-w-6xl mx-auto">
+            <div className="grid lg:grid-cols-2 gap-12 items-center">
               <FadeIn direction="right">
-                <Image
-                  src={wittayaEducationImg}
-                  alt={t('wittaya.imageAlt')}
-                  sizes="(max-width: 1024px) 100vw, 560px"
-                  className="w-full h-auto max-w-lg mx-auto"
-                />
+                {/* ภาพการ์ตูนเดียวกับ hero ของ Wittaya (PNG พื้นใส) บนการ์ดน้ำเงิน CI */}
+                <div className="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-[#0B3979] to-[#082a5a] shadow-xl aspect-[5/4] flex items-end justify-center">
+                  <div className="absolute top-0 right-0 -mr-16 -mt-16 w-72 h-72 bg-white/10 rounded-full blur-3xl pointer-events-none" />
+                  <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-72 h-72 bg-blue-400/10 rounded-full blur-3xl pointer-events-none" />
+                  <Image
+                    src={wittayaHeroImg}
+                    alt={t('wittaya.imageAlt')}
+                    sizes="(max-width: 1024px) 80vw, 480px"
+                    className="relative w-[80%] max-w-[480px] h-auto"
+                  />
+                </div>
               </FadeIn>
 
               <FadeIn direction="left" delay={200}>
                 <div className="space-y-6">
-                  <Badge variant="outline" className="text-[#4B3FA8] border-[#4B3FA8] font-bold px-4 py-1">{t('wittaya.badge')}</Badge>
+                  <Badge variant="outline" className="text-[#0B3979] border-[#0B3979] font-bold px-4 py-1">{t('wittaya.badge')}</Badge>
                   <h2 className="text-3xl md:text-4xl font-bold font-headline text-[#0B3979]">
                     {t('wittaya.title')}
                   </h2>
@@ -197,8 +202,8 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                       t('wittaya.features.ai')
                     ].map((item, index) => (
                       <div key={index} className="flex items-center gap-4 bg-white px-6 py-4 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
-                        <div className="w-8 h-8 rounded-full bg-[#EEEBFB] flex items-center justify-center shrink-0">
-                          <Check className="w-4 h-4 text-[#4B3FA8]" />
+                        <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+                          <Check className="w-4 h-4 text-[#0B3979]" />
                         </div>
                         <span className="text-slate-700 font-medium">{item}</span>
                       </div>
