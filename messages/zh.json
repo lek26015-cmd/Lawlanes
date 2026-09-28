@@ -538,6 +538,41 @@
       "confirmed": "已确认",
       "completed": "已完成",
       "other": "处理中"
+    },
+    "capdeal": {
+      "title": "CapDeal — 最近的合同",
+      "defaultTitle": "承揽合同",
+      "status": {
+        "signed": "已签署",
+        "draft": "草稿",
+        "pending": "待签署"
+      },
+      "task": "工作：{task}",
+      "noDetails": "无详细信息",
+      "price": "价格：{price} 泰铢",
+      "view": "查看合同",
+      "create": "新建合同",
+      "empty": "还没有通过 CapDeal 创建的合同",
+      "start": "截图即可签约！"
+    },
+    "invoiceCard": {
+      "defaultDescription": "诉讼费用",
+      "paid": "已付款",
+      "pending": "待付款",
+      "dueDate": "到期日：{date}",
+      "empty": "暂无账单",
+      "help": "付款遇到问题？联系我们"
+    },
+    "chatItem": {
+      "yesterday": "昨天",
+      "pendingPayment": "待付款",
+      "pendingVerification": "正在核对付款凭证",
+      "completed": "已完成",
+      "cancelled": "已取消",
+      "active": "进行中",
+      "typeCase": "案件聊天",
+      "typePreliminary": "初步咨询",
+      "noMessages": "暂无消息"
     }
   },
   "CaseRoom": {
