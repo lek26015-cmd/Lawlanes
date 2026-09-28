@@ -244,8 +244,24 @@ export async function addToVerifiedRegistry(data: {
     }
 }
 
+// คำนำหน้าชื่อที่ตัดออกก่อนเทียบชื่อกับทะเบียน (ยาวก่อนสั้น)
+const NAME_PREFIXES = ['ว่าที่ร้อยตรีหญิง', 'ว่าที่ร้อยตรี', 'ว่าที่ร.ต.หญิง', 'ว่าที่ร.ต.', 'นางสาว', 'นาย', 'นาง', 'น.ส.', 'ดร.'];
+
+function normalizeName(v: string): string {
+    let s = v.replace(/\s+/g, '').trim();
+    for (const p of NAME_PREFIXES) if (s.startsWith(p)) { s = s.slice(p.length); break; }
+    return s;
+}
+
+/** ชื่อในโปรไฟล์ ("ชื่อ นามสกุล") ตรงกับชื่อ+สกุลในทะเบียนหรือไม่ — ไม่สนช่องว่าง/คำนำหน้า */
+function sameLawyerName(profileName: string, firstName: string, lastName: string): boolean {
+    const want = normalizeName(firstName) + normalizeName(lastName);
+    return want.length > 1 && normalizeName(profileName) === want;
+}
+
 /**
- * อนุมัติทนายที่เพิ่งสมัครอัตโนมัติ ถ้าเลขใบอนุญาตตรงกับทะเบียนทนายที่ยืนยันแล้ว (verifiedLawyers, status 'active')
+ * อนุมัติทนายที่เพิ่งสมัครอัตโนมัติ ถ้าเลขใบอนุญาต **และชื่อ-สกุล** ตรงกับทะเบียนทนายที่ยืนยันแล้ว
+ * (verifiedLawyers, status 'active', ไม่ติด needsReview) — ไม่ตรงข้อใดข้อหนึ่งให้แอดมินตรวจเอง
  *
  * เดิมหน้า lawyer-signup เช็คทะเบียนฝั่ง client แล้วเขียน `status: 'approved'` ลง lawyerProfiles เอง
  * แปลว่าใครก็ยิง setDoc(lawyerProfiles/<uid>, { status: 'approved' }) อนุมัติตัวเองได้โดยไม่ต้องมี
@@ -268,7 +284,7 @@ export async function autoApproveLawyerFromRegistryAction(): Promise<{ approved:
         }
 
         const licenseNumber = String(profile?.licenseNumber || '').trim();
-        if (!licenseNumber) return { approved: false };
+        if (!/^\d{1,6}\/\d{4}$/.test(licenseNumber)) return { approved: false };
 
         const registrySnap = await db.collection('verifiedLawyers')
             .where('licenseNumber', '==', licenseNumber)
@@ -276,6 +292,15 @@ export async function autoApproveLawyerFromRegistryAction(): Promise<{ approved:
             .limit(1)
             .get();
         if (registrySnap.empty) return { approved: false };
+        const registry = registrySnap.docs[0].data();
+
+        // เลขที่ยังไม่มีใครเทียบแหล่งจริง (needsReview) ใช้อนุมัติอัตโนมัติไม่ได้ — ให้แอดมินตรวจเอง
+        if (registry.needsReview === true) return { approved: false };
+
+        // เลขใบอนุญาตค้นได้สาธารณะ ตรงเลขอย่างเดียวจึงสวมรอยได้ — ชื่อ-สกุลในโปรไฟล์ต้องตรงกับทะเบียนด้วย
+        if (!sameLawyerName(String(profile?.name || ''), String(registry.firstName || ''), String(registry.lastName || ''))) {
+            return { approved: false };
+        }
 
         // เลขใบอนุญาตนี้ถูกใช้กับโปรไฟล์ทนายที่อนุมัติแล้วคนอื่นไปแล้ว = อาจเป็นการสวมเลขคนอื่น
         // ปล่อยให้แอดมินตรวจเอกสารเอง ไม่อนุมัติอัตโนมัติ

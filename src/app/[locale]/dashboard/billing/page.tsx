@@ -73,7 +73,7 @@ export default function ClientBillingPage() {
           </div>
           <div>
             <div className="text-sm text-slate-400 font-medium">การชำระเงินที่ปลอดภัย</div>
-            <div className="text-slate-600 text-sm">ข้อมูลการชำระเงินของคุณถูกเข้ารหัสและปกป้องโดยมาตรฐานความปลอดภัยระดับสูง</div>
+            <div className="text-slate-600 text-sm">เชื่อมต่อผ่าน HTTPS และแสดงเฉพาะรายการในบัญชีของคุณ</div>
           </div>
         </div>
       </div>
