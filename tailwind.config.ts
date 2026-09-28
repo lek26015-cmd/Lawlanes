@@ -20,8 +20,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        body: ['Prompt', 'sans-serif'],
-        headline: ['Prompt', 'sans-serif'],
+        body: ['var(--font-prompt)', 'Prompt', 'sans-serif'],
+        headline: ['var(--font-prompt)', 'Prompt', 'sans-serif'],
         code: ['monospace'],
       },
       colors: {

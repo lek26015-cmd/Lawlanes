@@ -534,8 +534,12 @@ export default function ChatModal() {
                 <Send className="w-4 h-4 ml-0.5" />
               </Button>
             </form>
+            {/* ข้อจำกัดของ AI — ข้อมูลทั่วไป ไม่ใช่คำปรึกษากฎหมาย (รายการตรวจเอกสารกฎหมาย ข้อ 3) */}
             <p className="mt-3 text-center text-xs text-muted-foreground">
-              AI อาจแสดงผลผิดพลาด โปรดตรวจสอบข้อมูลสำคัญอย่างละเอียดเสมอ
+              {t('disclaimer')}{' '}
+              <Link href={`/${locale}/ai-disclaimer`} target="_blank" className="underline hover:text-foreground">
+                {t('disclaimerLink')}
+              </Link>
             </p>
           </div>
         </div>

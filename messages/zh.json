@@ -743,7 +743,9 @@
       "inheritance": "想咨询一下关于遗产的问题。",
       "company": "注册公司需要准备什么？",
       "land": "遇到了土地纠纷，该怎么办？"
-    }
+    },
+    "disclaimer": "Lalin 是提供一般法律信息的 AI，并非律师的法律意见，也可能出错。重要信息请自行核实。",
+    "disclaimerLink": "阅读 AI 使用限制"
   },
   "SupportTicket": {
     "detailsTitle": "工单详情",
