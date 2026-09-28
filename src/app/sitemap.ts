@@ -18,7 +18,6 @@ const pages: { path: string; changeFrequency: 'daily' | 'weekly' | 'monthly'; pr
   { path: '/verify-lawyer', changeFrequency: 'monthly', priority: 0.5 },
   { path: '/about', changeFrequency: 'monthly', priority: 0.4 },
   { path: '/help', changeFrequency: 'monthly', priority: 0.4 },
-  { path: '/guide', changeFrequency: 'monthly', priority: 0.4 },
   { path: '/ai-disclaimer', changeFrequency: 'monthly', priority: 0.2 },
   { path: '/privacy', changeFrequency: 'monthly', priority: 0.2 },
   { path: '/terms', changeFrequency: 'monthly', priority: 0.2 },
