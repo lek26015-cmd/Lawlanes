@@ -1938,5 +1938,32 @@
       "title": "核实泰国律师 - 免费查询姓名或执照号码 - Lawslane",
       "description": "免费查询泰国律师姓名或执照号码，了解如何辨别真假律师以及聘请前的警示信号。"
     }
+  },
+  "InterpreterPayment": {
+    "title": "支付译员服务费",
+    "subtitle": "来自 Lawslane 团队的付款通知",
+    "item": "项目",
+    "interpreter": "译员",
+    "service": "服务",
+    "languages": "语言",
+    "date": "日期",
+    "notes": "备注",
+    "amount": "应付金额",
+    "transferTo": "转账至 Lawslane 账户",
+    "payNote": "平台先代收款项，工作完成后支付给译员。",
+    "submit": "确认付款",
+    "submitting": "提交中...",
+    "paidTitle": "付款成功",
+    "paidBody": "团队已收到款项，将在聊天中确认安排。",
+    "reviewTitle": "已收到转账凭证",
+    "reviewBody": "团队正在核对凭证，将在聊天中通知您。",
+    "notFound": "未找到此付款链接，或该链接属于其他账户。",
+    "closed": "此链接已付款或已取消。",
+    "expired": "此链接已过期，请在聊天中联系团队。",
+    "notReady": "支付功能暂不可用，请联系团队。",
+    "backToChat": "返回与团队的聊天",
+    "loginRequired": "请使用提交申请的账户登录。",
+    "login": "登录",
+    "error": "付款失败，请重试。"
   }
 }

@@ -1938,5 +1938,32 @@
       "title": "Verify a Thai Lawyer - Check Name or License Number Free - Lawslane",
       "description": "Check a Thai lawyer's name or license number for free, learn how to tell a real lawyer from a fake one, and warning signs before hiring."
     }
+  },
+  "InterpreterPayment": {
+    "title": "Pay for interpreter service",
+    "subtitle": "Payment request from the Lawslane team",
+    "item": "Item",
+    "interpreter": "Interpreter",
+    "service": "Service",
+    "languages": "Languages",
+    "date": "Date",
+    "notes": "Notes",
+    "amount": "Amount due",
+    "transferTo": "Transfer to the Lawslane account",
+    "payNote": "The platform holds the payment and pays the interpreter after the job.",
+    "submit": "Confirm payment",
+    "submitting": "Sending...",
+    "paidTitle": "Payment received",
+    "paidBody": "Our team has received your payment and will confirm the schedule in chat.",
+    "reviewTitle": "Slip received",
+    "reviewBody": "Our team is checking your slip and will update you in chat.",
+    "notFound": "Payment link not found, or it belongs to another account.",
+    "closed": "This link has already been paid or was cancelled.",
+    "expired": "This link has expired. Please contact our team in chat.",
+    "notReady": "Payment is not available yet. Please contact our team.",
+    "backToChat": "Back to chat with our team",
+    "loginRequired": "Please log in with the account that sent the request.",
+    "login": "Log in",
+    "error": "Payment failed. Please try again."
   }
 }

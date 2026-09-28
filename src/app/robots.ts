@@ -7,7 +7,7 @@ const PRIVATE_PATHS = [
   'admin', 'dashboard', 'account', 'chat', 'interpreter-chat', 'interpreter-dashboard',
   'dev', 'payment', 'vault', 'appointment', 'review', 'contract', 'support',
   'lawyer-dashboard', 'lawyer-login', 'lawyer-signup', 'lawyer-schedule',
-  'login', 'signup', 'reset-password', 'registration-success',
+  'login', 'signup', 'reset-password', 'registration-success', 'interpreter-payment',
 ]
 
 export default function robots(): MetadataRoute.Robots {
