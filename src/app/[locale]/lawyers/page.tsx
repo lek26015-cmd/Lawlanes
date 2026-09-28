@@ -7,6 +7,7 @@ import { getApprovedLawyersAction } from '@/app/actions/lawyer-directory-actions
 import type { LawyerProfile } from '@/lib/types';
 import { LawyersPageClient } from './lawyers-page-client';
 import { LawyersHero } from './lawyers-hero';
+import { LawyersGuide } from './lawyers-guide';
 
 // The approved/registry lawyer lists are identical for every visitor regardless of
 // query string (only the client-side matchmaking sort depends on that), so this is
@@ -35,16 +36,20 @@ export default async function LawyersPage({ params }: { params: Promise<{ locale
   const registryLawyers = await getRegistryLawyersForDirectory(approvedLicenseNumbers, 100);
 
   return (
-    <Suspense
-      fallback={
-        <div className="max-w-6xl mx-auto px-4 md:px-6 py-12">
-          <div className="mb-8">
-            <LawyersHero />
+    <>
+      <Suspense
+        fallback={
+          <div className="max-w-6xl mx-auto px-4 md:px-6 py-12">
+            <div className="mb-8">
+              <LawyersHero />
+            </div>
           </div>
-        </div>
-      }
-    >
-      <LawyersPageClient initialLawyers={lawyers} initialRegistryLawyers={registryLawyers} />
-    </Suspense>
+        }
+      >
+        <LawyersPageClient initialLawyers={lawyers} initialRegistryLawyers={registryLawyers} />
+      </Suspense>
+      {/* อยู่นอก Suspense — เรนเดอร์ฝั่ง server เสมอ */}
+      <LawyersGuide locale={locale} />
+    </>
   );
 }
