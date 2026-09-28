@@ -34,11 +34,11 @@
       },
       "quality": {
         "title": "Quality Lawyers",
-        "description": "All lawyers are verified for history and license."
+        "description": "Every lawyer on Lawslane has their license number checked before their profile goes live."
       },
       "privacy": {
         "title": "Safe & Private",
-        "description": "Your case data is kept with highest confidentiality and security standards."
+        "description": "Case data is accessible only to you, your lawyer and authorized staff, under our Privacy Policy."
       }
     },
     "usageSteps": {
@@ -864,7 +864,7 @@
     },
     "submit": "Submit for Assessment",
     "submitting": "Sending...",
-    "privacy": "Your information is kept strictly confidential according to our privacy policy.",
+    "privacy": "Your information is kept confidential under our Privacy Policy.",
     "toast": {
       "successTitle": "Request Sent Successfully",
       "successDesc": "Our staff will contact you with a price assessment within 24 hours.",
@@ -1465,8 +1465,8 @@
         "desc": "Send us your requirements. We help assess the scope and price for free. No upfront costs."
       },
       "f2": {
-        "title": "Maximum Confidentiality",
-        "desc": "All information and documents you send will be strictly kept under Confidentiality and PDPA standards."
+        "title": "Your information stays confidential",
+        "desc": "Information and documents you send are kept confidential and used only as described in our Privacy Policy."
       }
     }
   },

@@ -423,8 +423,7 @@ function CaseDetailPageContent() {
                          </h5>
                          <div className="p-8 rounded-3xl bg-slate-50 border border-slate-100 space-y-4">
                             {[
-                              "ข้อมูลถูกเข้ารหัสแบบ End-to-End Encryption",
-                              "จัดเก็บเป็นพยานหลักฐานดิจิทัลตามมาตรฐานธรรมาภิบาล",
+                              "ไฟล์เข้ารหัสขณะจัดเก็บ (Cloudflare R2)",
                               "เข้าถึงได้เฉพาะผู้มีส่วนเกี่ยวข้องในคดีนี้เท่านั้น"
                             ].map((log, i) => (
                               <div key={i} className="flex items-center gap-4 text-lg text-slate-600">
