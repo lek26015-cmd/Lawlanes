@@ -74,9 +74,9 @@
       "viewAll": "View All Lawyers"
     },
     "recommendedInterpreters": {
-      "title": "Recommended Interpreters",
-      "subtitle": "Interpreters and translators for court, police stations, lawyer meetings and legal documents, with clear prices before you book.",
-      "viewAll": "View all interpreters",
+      "title": "Legal interpreters & translators",
+      "subtitle": "Court, police stations, lawyer meetings, business meetings and legal document translation — tell us your job and our team will arrange an interpreter and a quote.",
+      "viewAll": "Request an interpreter",
       "emptyTitle": "No interpreters yet",
       "emptyDescription": "We are onboarding interpreters now. Need one today? Contact our team and we will find one for you.",
       "becomeInterpreter": "Become a Lawslane interpreter →"
@@ -1543,9 +1543,9 @@
   },
   "Interpreters": {
     "metaTitle": "Legal interpreters & translators - Lawslane",
-    "metaDescription": "Find interpreters for court, police stations, lawyer consultations, business meetings and legal document translation. Book and pay online.",
+    "metaDescription": "Legal interpreters and translators for court, police stations, lawyer meetings, business meetings and document translation — contact the Lawslane team and we will arrange the right interpreter.",
     "heroTitle": "Legal interpreters & translators",
-    "heroSubtitle": "For foreigners with legal matters in Thailand and for foreign companies and investors. Choose your interpreter and see the price before you book.",
+    "heroSubtitle": "For foreigners with legal matters in Thailand and foreign companies/investors — tell us about your job and our team will arrange an interpreter and send you a quote.",
     "forLawyerBanner": "Looking for an interpreter for your case with a lawyer — pick one below",
     "filterLanguage": "Language",
     "filterService": "Service",
@@ -1716,7 +1716,39 @@
     "sessionLength": "{hours} hr per session",
     "bookThis": "Book this",
     "customQuoteHint": "Need something not listed? Chat with the interpreter to get a custom quote.",
-    "chatWithInterpreter": "Chat with interpreter"
+    "chatWithInterpreter": "Chat with interpreter",
+    "request": {
+      "howTitle": "How to request an interpreter",
+      "step1Title": "Tell us your job",
+      "step1Body": "Choose the service, languages, date and location in the form below.",
+      "step2Title": "Chat with our team",
+      "step2Body": "The Lawslane team replies in chat, confirms the details and sends a quote.",
+      "step3Title": "Get the right interpreter",
+      "step3Body": "We arrange an interpreter who matches your languages and type of work.",
+      "servicesTitle": "Our services",
+      "formTitle": "Contact our team for an interpreter",
+      "formSubtitle": "Fill in what you know — our team will ask for the rest in chat.",
+      "service": "Service",
+      "languageFrom": "From",
+      "languageTo": "To",
+      "date": "Date (if known)",
+      "mode": "Format",
+      "onsite": "On-site",
+      "remote": "Online (video call)",
+      "location": "Location / province",
+      "locationPlaceholder": "e.g. Bangkok South District Court",
+      "phone": "Phone (optional)",
+      "details": "More details",
+      "detailsPlaceholder": "e.g. estimated duration, number of pages, anything we should know",
+      "select": "Select",
+      "submit": "Send request and chat with our team",
+      "submitting": "Sending...",
+      "loginRequired": "Please log in first so our team can reply to you in chat.",
+      "loginButton": "Log in",
+      "required": "Please choose a service and languages",
+      "error": "Could not send your request. Please try again.",
+      "forLawyerNote": "This request will be linked to the case of the lawyer who referred you."
+    }
   },
   "ForInterpreters": {
     "metaTitle": "Become a legal interpreter - Lawslane",
@@ -1862,7 +1894,8 @@
     "send": "Send",
     "platformNote": "Pay only through Lawslane so you are protected and can get a refund if something goes wrong.",
     "noConversations": "No messages yet",
-    "myConversations": "Chats with interpreters"
+    "myConversations": "Chats with interpreters",
+    "contactAdmin": "Contact our team"
   },
   "Seo": {
     "home": {

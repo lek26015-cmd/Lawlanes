@@ -170,6 +170,13 @@ const nextConfig: NextConfig = {
     // ลิงก์เก่าที่คนบุ๊กมาร์กไว้ต้องไม่ 404 — permanent: false เผื่อย้ายกลับ/เปลี่ยนปลายทาง
     return [
       ...publicPagesWithoutLocale,
+      // ไม่แสดงรายชื่อ/โปรไฟล์ล่ามและการจองเองบนเว็บแล้ว — ลูกค้าส่งคำขอแล้วคุยกับแอดมินที่ /interpreters
+      // permanent: false เผื่อกลับมาเปิดโปรไฟล์ล่ามอีก
+      {
+        source: '/:locale(th|en|zh)/interpreters/:id/:rest*',
+        destination: '/:locale/interpreters',
+        permanent: false,
+      },
       {
         source: '/:locale(th|en)/admin/registry-import',
         destination: 'https://admin.lawslane.com/lawyer-registry/import',

@@ -12,19 +12,15 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { FadeIn } from '@/components/fade-in';
 import { useTranslations } from 'next-intl';
 import LawyerFilterSidebar from '@/components/lawyer-filter';
-import { Languages } from 'lucide-react';
 import Image from 'next/image';
 import interpreterHero from '@/pic/lawslane-interpreter.webp';
-import { InterpreterCard } from '@/components/interpreter/interpreter-card';
-import type { PublicInterpreter } from '@/lib/interpreter-types';
 import { lawyerDisplayTier, TIER_RANK } from '@/lib/provider-plans';
 
 interface HomeRecommendedLawyersProps {
     initialLawyers?: LawyerProfile[];
-    initialInterpreters?: PublicInterpreter[];
 }
 
-export function HomeRecommendedLawyers({ initialLawyers, initialInterpreters = [] }: HomeRecommendedLawyersProps) {
+export function HomeRecommendedLawyers({ initialLawyers }: HomeRecommendedLawyersProps) {
     const [lawyers, setLawyers] = useState<LawyerProfile[]>(initialLawyers || []);
     const [loading, setLoading] = useState(!initialLawyers);
     const t = useTranslations('HomePage.recommendedLawyers');
@@ -132,7 +128,7 @@ export function HomeRecommendedLawyers({ initialLawyers, initialInterpreters = [
                             </FadeIn>
                         </div>
 
-                        {/* ล่ามแนะนำ — ต่อจากทนาย ใช้ตัวกรองด้านซ้ายร่วมกัน (สลับเป็นโหมดล่ามได้) */}
+                        {/* บริการล่าม — ไม่แสดงรายชื่อล่ามบนเว็บแล้ว ลูกค้าส่งคำขอแล้วคุยกับแอดมินที่หน้า /interpreters */}
                         <div className="mt-16 pt-12 border-t border-slate-200">
                                 <FadeIn direction="up">
                                     {/* แบนเนอร์ล่าม — ภาพเดียวกับ hero หน้า /interpreters */}
@@ -148,28 +144,6 @@ export function HomeRecommendedLawyers({ initialLawyers, initialInterpreters = [
                                         <Image src={interpreterHero} alt="" sizes="200px" className="hidden sm:block w-[170px] lg:w-[200px] h-auto mr-6" />
                                     </div>
                                 </FadeIn>
-                                {initialInterpreters.length > 0 ? (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        {initialInterpreters.map((interpreter, index) => (
-                                            <FadeIn key={interpreter.id} delay={index * 150} direction="up" className="h-full">
-                                                <InterpreterCard interpreter={interpreter} />
-                                            </FadeIn>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <FadeIn>
-                                        <EmptyState
-                                            icon={Languages}
-                                            title={tInterp('emptyTitle')}
-                                            description={tInterp('emptyDescription')}
-                                        />
-                                        <div className="text-center -mt-4">
-                                            <Link href={`/for-interpreters`} className="text-sm font-medium text-[#0B3979] hover:underline">
-                                                {tInterp('becomeInterpreter')}
-                                            </Link>
-                                        </div>
-                                    </FadeIn>
-                                )}
                                 <div className="mt-12 text-center lg:text-left">
                                     <FadeIn delay={400} direction="up">
                                         <Button asChild size="lg" variant="outline" className="bg-white hover:bg-slate-50 border-slate-200 text-slate-700 shadow-md hover:shadow-lg transition-all px-10 py-6 rounded-full text-lg font-medium">

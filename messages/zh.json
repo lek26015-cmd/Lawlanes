@@ -74,9 +74,9 @@
       "viewAll": "查看所有律师"
     },
     "recommendedInterpreters": {
-      "title": "推荐翻译员",
-      "subtitle": "为法院、警察局、律师会谈及法律文件提供口译与笔译服务，预订前价格清晰透明。",
-      "viewAll": "查看全部翻译员",
+      "title": "法律口译与笔译服务",
+      "subtitle": "法院、警察局、律师会谈、商务会议及法律文件翻译——告诉我们您的需求，团队为您安排译员并报价。",
+      "viewAll": "申请译员",
       "emptyTitle": "暂无翻译员",
       "emptyDescription": "我们正在招募翻译员。如现在需要，请联系我们的团队协助寻找。",
       "becomeInterpreter": "成为 Lawslane 翻译员 →"
@@ -1543,9 +1543,9 @@
   },
   "Interpreters": {
     "metaTitle": "法律口译与翻译 - Lawslane",
-    "metaDescription": "查找法庭、警局、律师咨询、商务会议口译及法律文件翻译，在线预约和付款。",
+    "metaDescription": "法律口译与笔译服务，适用于法院、警察局、律师会谈、商务会议及文件翻译——联系 Lawslane 团队为您安排合适的译员。",
     "heroTitle": "法律口译与翻译",
-    "heroSubtitle": "为在泰国处理法律事务的外国人及外国企业和投资者服务。自选译员，预约前即可看到价格。",
+    "heroSubtitle": "面向在泰国有法律事务的外国人及外国企业/投资者——告诉我们您的需求，团队将为您安排译员并报价。",
     "forLawyerBanner": "正在为您的律师案件寻找译员 — 请在下方选择",
     "filterLanguage": "语言",
     "filterService": "服务",
@@ -1716,7 +1716,39 @@
     "sessionLength": "每次 {hours} 小时",
     "bookThis": "预约此项",
     "customQuoteHint": "没有合适的套餐？可与译员聊天获取专属报价。",
-    "chatWithInterpreter": "咨询译员"
+    "chatWithInterpreter": "咨询译员",
+    "request": {
+      "howTitle": "如何申请译员",
+      "step1Title": "告诉我们您的需求",
+      "step1Body": "在下方表格中选择服务、语言、日期和地点。",
+      "step2Title": "与团队聊天",
+      "step2Body": "Lawslane 团队会在聊天中回复，确认细节并报价。",
+      "step3Title": "获得合适的译员",
+      "step3Body": "我们为您安排语言和工作类型相符的译员。",
+      "servicesTitle": "我们的服务",
+      "formTitle": "联系团队申请译员",
+      "formSubtitle": "填写您已知的信息，其余细节团队会在聊天中询问。",
+      "service": "所需服务",
+      "languageFrom": "源语言",
+      "languageTo": "目标语言",
+      "date": "日期（如已知）",
+      "mode": "形式",
+      "onsite": "现场",
+      "remote": "线上（视频通话）",
+      "location": "地点 / 府",
+      "locationPlaceholder": "例如：曼谷南区法院",
+      "phone": "联系电话（选填）",
+      "details": "补充说明",
+      "detailsPlaceholder": "例如：预计时长、文件页数或其他需要告知的事项",
+      "select": "请选择",
+      "submit": "提交申请并与团队聊天",
+      "submitting": "提交中...",
+      "loginRequired": "请先登录，以便团队在聊天中回复您。",
+      "loginButton": "登录",
+      "required": "请选择服务和语言",
+      "error": "提交失败，请重试。",
+      "forLawyerNote": "此申请将关联到推荐您的律师的案件。"
+    }
   },
   "ForInterpreters": {
     "metaTitle": "成为法律译员 - Lawslane",
@@ -1862,7 +1894,8 @@
     "send": "发送",
     "platformNote": "请仅通过 Lawslane 付款，以获得保障并在出现问题时退款。",
     "noConversations": "暂无消息",
-    "myConversations": "与译员的聊天"
+    "myConversations": "与译员的聊天",
+    "contactAdmin": "联系团队"
   },
   "Seo": {
     "home": {
