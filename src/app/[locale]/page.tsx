@@ -27,6 +27,8 @@ import { FadeIn } from '@/components/fade-in';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import lawslaneCoverPhoto from '@/pic/lawslane-cover-photo.webp';
 import lawslaneHeroCover from '@/pic/Lawlanes-Hero-cover.jpg';
+import wittayaEducationImg from '@/pic/wittaya-education.webp';
+import { getEducationLink } from '@/lib/domain-utils';
 
 export const dynamic = 'error';
 // หน้าแรกเป็น static — ไม่มี revalidate = render ครั้งเดียวตอน build ทนาย/ล่ามที่อนุมัติใหม่ไม่ขึ้นจนกว่าจะ deploy ใหม่
@@ -166,41 +168,47 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         {/* Recommended Lawyers - Server Side Prefetched */}
         <HomeRecommendedLawyers initialLawyers={initialLawyers} />
 
-        {/* Lawyer Search CTA */}
-        <section className="w-full py-16 md:py-24 bg-blue-50">
+        {/* Lawslane Wittaya CTA — เตรียมสอบตั๋วทนาย (แอปแยก ลิงก์ข้ามโดเมน) */}
+        <section className="w-full py-16 md:py-24 bg-[#E8E8F8] overflow-hidden">
           <div className="container mx-auto px-4 md:px-6">
-            <div className="max-w-4xl mx-auto">
-              <FadeIn direction="up" className="text-center">
-                <div className="space-y-8">
-                  <div className="space-y-4">
-                    <h2 className="text-3xl md:text-4xl font-bold font-headline text-[#0B3979]">
-                      {t('lawyerSearch.title')}
-                    </h2>
-                    <p className="text-slate-600 text-lg leading-relaxed max-w-2xl mx-auto">
-                      {t('lawyerSearch.description')}
-                    </p>
-                  </div>
+            <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center max-w-6xl mx-auto">
+              <FadeIn direction="right">
+                <Image
+                  src={wittayaEducationImg}
+                  alt={t('wittaya.imageAlt')}
+                  sizes="(max-width: 1024px) 100vw, 560px"
+                  className="w-full h-auto max-w-lg mx-auto"
+                />
+              </FadeIn>
 
-                  <div className="flex flex-col md:flex-row justify-center gap-4 text-left">
+              <FadeIn direction="left" delay={200}>
+                <div className="space-y-6">
+                  <Badge variant="outline" className="text-[#4B3FA8] border-[#4B3FA8] font-bold px-4 py-1">{t('wittaya.badge')}</Badge>
+                  <h2 className="text-3xl md:text-4xl font-bold font-headline text-[#0B3979]">
+                    {t('wittaya.title')}
+                  </h2>
+                  <p className="text-slate-600 text-lg leading-relaxed">
+                    {t('wittaya.description')}
+                  </p>
+                  <div className="grid gap-4">
                     {[
-                      t('lawyerSearch.features.verified'),
-                      t('lawyerSearch.features.expert'),
-                      t('lawyerSearch.features.review')
+                      t('wittaya.features.exams'),
+                      t('wittaya.features.books'),
+                      t('wittaya.features.ai')
                     ].map((item, index) => (
-                      <div key={index} className="flex items-center gap-3 bg-white px-5 py-4 rounded-xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
-                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-                          <Check className="w-4 h-4 text-blue-600" />
+                      <div key={index} className="flex items-center gap-4 bg-white px-6 py-4 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="w-8 h-8 rounded-full bg-[#EEEBFB] flex items-center justify-center shrink-0">
+                          <Check className="w-4 h-4 text-[#4B3FA8]" />
                         </div>
                         <span className="text-slate-700 font-medium">{item}</span>
                       </div>
                     ))}
                   </div>
-
-                  <div className="pt-4">
-                    <Link href="/lawyers" className="inline-flex items-center justify-center px-8 py-3 text-base font-medium text-white bg-[#0B3979] rounded-full hover:bg-[#082a5a] shadow-lg hover:shadow-xl transition-all duration-300 group">
-                      {t('lawyerSearch.cta')}
-                      <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                    </Link>
+                  <div className="pt-2">
+                    <a href={getEducationLink('/')} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center px-10 py-4 text-lg font-bold text-white bg-[#0B3979] rounded-full hover:bg-[#082a5a] shadow-lg shadow-blue-900/20 hover:shadow-xl transition-all duration-300 group">
+                      {t('wittaya.cta')}
+                      <ArrowRight className="ml-3 w-6 h-6 group-hover:translate-x-1 transition-transform" />
+                    </a>
                   </div>
                 </div>
               </FadeIn>
