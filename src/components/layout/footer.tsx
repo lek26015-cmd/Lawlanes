@@ -64,7 +64,6 @@ export default function Footer({ userRole, domainType = 'main' }: { userRole: st
 
   let forLawyersLinks = [
     { href: `/${locale}/for-lawyers`, label: t('forLawyers.join') },
-    { href: `/${locale}/for-interpreters`, label: t('forLawyers.joinInterpreter') },
     { href: `/lawyer-login`, label: t('forLawyers.login') },
   ];
 

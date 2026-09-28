@@ -69,10 +69,7 @@
     "recommendedInterpreters": {
       "title": "Legal interpreters & translators",
       "subtitle": "Court, police stations, lawyer meetings, business meetings and legal document translation — tell us your job and our team will arrange an interpreter and a quote.",
-      "viewAll": "Request an interpreter",
-      "emptyTitle": "No interpreters yet",
-      "emptyDescription": "We are onboarding interpreters now. Need one today? Contact our team and we will find one for you.",
-      "becomeInterpreter": "Become a Lawslane interpreter →"
+      "viewAll": "Request an interpreter"
     },
     "services": {
       "title": "Our Services",
@@ -115,11 +112,6 @@
       "title": "For Lawyers",
       "description": "Join us to expand your client base and build online credibility.",
       "button": "Apply as a Lawyer"
-    },
-    "forInterpretersFooter": {
-      "title": "For Interpreters & Translators",
-      "description": "Take court, police station, lawyer-meeting and legal document jobs. Set your own rates and work on-site or online.",
-      "button": "Apply as an interpreter"
     },
     "stats": {
       "247": "24/7 Service",
@@ -782,7 +774,7 @@
       "findLawyer": "Find Lawyer",
       "verifyLawyer": "Verify Lawyer Status",
       "customerDashboard": "Customer Dashboard",
-      "findInterpreter": "Find Interpreters",
+      "findInterpreter": "Interpreter service",
       "lawSearch": "Law Search"
     },
     "ecosystem": {
@@ -797,8 +789,7 @@
       "login": "Lawyer Login",
       "dashboard": "Lawyer Dashboard",
       "adminDashboard": "Admin Dashboard",
-      "adminView": "Lawyer Dashboard (Admin View)",
-      "joinInterpreter": "Join as an Interpreter"
+      "adminView": "Lawyer Dashboard (Admin View)"
     },
     "legal": {
       "title": "Legal",
@@ -1602,7 +1593,6 @@
     "reviews": "{count} reviews",
     "noReviews": "No reviews yet",
     "verifiedNote": "\"Documents verified\" means the Lawslane team has checked the documents this interpreter submitted. It is not a government certification.",
-    "becomeInterpreter": "Become an interpreter with Lawslane",
     "book": {
       "title": "Book an interpreter",
       "step1": "Job details",
@@ -1888,9 +1878,10 @@
       "saturday": "Sat",
       "sunday": "Sun"
     },
-    "notInterpreter": "This account is not registered as an interpreter yet",
+    "notInterpreter": "This page is only for interpreters already working with Lawslane.",
     "tabMessages": "Messages",
-    "contactAfterPayment": "Client contact details appear after payment is confirmed"
+    "contactAfterPayment": "Client contact details appear after payment is confirmed",
+    "goToService": "Go to interpreter service"
   },
   "InterpreterChat": {
     "offer": "Quote",

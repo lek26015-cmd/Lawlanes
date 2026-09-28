@@ -310,7 +310,6 @@ function BankTab({ profile }: { profile: MyInterpreterProfile }) {
 
 export default function InterpreterDashboardPage() {
     const t = useTranslations('InterpreterDashboard');
-    const tFor = useTranslations('ForInterpreters');
     const [profile, setProfile] = useState<MyInterpreterProfile | null | undefined>(undefined);
     const [data, setData] = useState<DashboardData | null>(null);
     const [gpPercent, setGpPercent] = useState(0);
@@ -340,7 +339,7 @@ export default function InterpreterDashboardPage() {
         return (
             <div className="container mx-auto px-4 py-24 max-w-md text-center space-y-4">
                 <p>{t('notInterpreter')}</p>
-                <Button asChild className="bg-[#0B3979]"><Link href="/for-interpreters#apply">{tFor('formTitle')}</Link></Button>
+                <Button asChild className="bg-[#0B3979]"><Link href="/interpreters">{t('goToService')}</Link></Button>
             </div>
         );
     }

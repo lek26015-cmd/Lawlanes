@@ -5,7 +5,7 @@ import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { MessageSquare, Users, ShieldCheck, ArrowRight, Briefcase, UserCheck, FileText, Download, Check, Camera, Languages } from 'lucide-react';
+import { MessageSquare, Users, ShieldCheck, ArrowRight, Briefcase, UserCheck, FileText, Download, Check, Camera } from 'lucide-react';
 import Image from 'next/image';
 import { Link } from '@/navigation';
 import { getAllArticles, getAdsByPlacement, getImageUrl, getImageHint } from '@/lib/data';
@@ -417,10 +417,10 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                 </p>
               </div>
             </FadeIn>
-            <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
+            {/* เลิกรับสมัครล่ามบนเว็บแล้ว — เหลือการ์ดรับสมัครทนาย (บริการล่ามมี CTA ของตัวเองด้านบน) */}
+            <div className="grid gap-6 max-w-2xl mx-auto">
               {[
                 { icon: Briefcase, title: t('forLawyersFooter.title'), description: t('forLawyersFooter.description'), button: t('forLawyersFooter.button'), href: '/for-lawyers', ButtonIcon: UserCheck },
-                { icon: Languages, title: t('forInterpretersFooter.title'), description: t('forInterpretersFooter.description'), button: t('forInterpretersFooter.button'), href: '/for-interpreters', ButtonIcon: ArrowRight },
               ].map(({ icon: Icon, title, description, button, href, ButtonIcon }, index) => (
                 <FadeIn key={href} direction="up" delay={index * 150} className="h-full">
                   <div className="h-full rounded-3xl border border-background/15 bg-background/5 p-8 md:p-10 flex flex-col items-center text-center">

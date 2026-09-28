@@ -163,7 +163,7 @@ const nextConfig: NextConfig = {
     // เดิม next-intl ส่ง 307 ชั่วคราว อันดับจึงไม่ย้ายตามไป URL ใหม่ · หน้าแรก / ยังให้ next-intl เลือกภาษาเอง
     const publicPagesWithoutLocale = [
       'lawyers', 'interpreters', 'law-search', 'articles', 'forms', 'for-lawyers',
-      'for-interpreters', 'verify-lawyer', 'about', 'help', 'guide', 'ai-disclaimer', 'privacy', 'terms',
+      'verify-lawyer', 'about', 'help', 'guide', 'ai-disclaimer', 'privacy', 'terms',
     ].flatMap((page) => [
       // แยก 2 แบบ: `/:path*` ตอนว่างจะได้ปลายทางมี / ต่อท้าย → redirect ซ้ำอีกทอด
       { source: `/${page}`, destination: `/th/${page}`, permanent: true },
@@ -174,6 +174,9 @@ const nextConfig: NextConfig = {
     // ลิงก์เก่าที่คนบุ๊กมาร์กไว้ต้องไม่ 404 — permanent: false เผื่อย้ายกลับ/เปลี่ยนปลายทาง
     return [
       ...publicPagesWithoutLocale,
+      // เลิกรับสมัครล่ามบนเว็บแล้ว — หน้ารับสมัครเดิมไปหน้าบริการล่ามแทน
+      { source: '/for-interpreters/:path*', destination: '/th/interpreters', permanent: true },
+      { source: '/:locale(th|en|zh)/for-interpreters/:path*', destination: '/:locale/interpreters', permanent: true },
       // ไม่แสดงรายชื่อ/โปรไฟล์ล่ามและการจองเองบนเว็บแล้ว — ลูกค้าส่งคำขอแล้วคุยกับแอดมินที่ /interpreters
       // permanent: false เผื่อกลับมาเปิดโปรไฟล์ล่ามอีก
       {

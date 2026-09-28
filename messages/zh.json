@@ -69,10 +69,7 @@
     "recommendedInterpreters": {
       "title": "法律口译与笔译服务",
       "subtitle": "法院、警察局、律师会谈、商务会议及法律文件翻译——告诉我们您的需求，团队为您安排译员并报价。",
-      "viewAll": "申请译员",
-      "emptyTitle": "暂无翻译员",
-      "emptyDescription": "我们正在招募翻译员。如现在需要，请联系我们的团队协助寻找。",
-      "becomeInterpreter": "成为 Lawslane 翻译员 →"
+      "viewAll": "申请译员"
     },
     "services": {
       "title": "我们的服务",
@@ -115,11 +112,6 @@
       "title": "律师专用",
       "description": "加入我们，扩大您的客户群并建立在线信誉。",
       "button": "申请成为律师"
-    },
-    "forInterpretersFooter": {
-      "title": "翻译员与笔译员",
-      "description": "承接法院、警察局、律师会谈口译及法律文件翻译，自定价格，可现场或线上工作。",
-      "button": "申请成为翻译员"
     },
     "stats": {
       "247": "24/7 服务",
@@ -780,7 +772,7 @@
       "findLawyer": "查找律师",
       "verifyLawyer": "验证律师状态",
       "customerDashboard": "客户仪表板",
-      "findInterpreter": "查找翻译",
+      "findInterpreter": "译员服务",
       "lawSearch": "法律检索",
       "forms": "法律表格"
     },
@@ -796,8 +788,7 @@
       "login": "律师登录",
       "dashboard": "律师仪表板",
       "adminDashboard": "管理员仪表板",
-      "adminView": "律师仪表板 (管理员视图)",
-      "joinInterpreter": "成为翻译"
+      "adminView": "律师仪表板 (管理员视图)"
     },
     "legal": {
       "title": "法律",
@@ -1602,7 +1593,6 @@
     "reviews": "{count} 条评价",
     "noReviews": "暂无评价",
     "verifiedNote": "\"文件已核验\"表示 Lawslane 团队已检查该译员提交的文件，并非政府认证。",
-    "becomeInterpreter": "成为 Lawslane 译员",
     "book": {
       "title": "预约译员",
       "step1": "工作详情",
@@ -1888,9 +1878,10 @@
       "saturday": "周六",
       "sunday": "周日"
     },
-    "notInterpreter": "此账户尚未注册为译员",
+    "notInterpreter": "此页面仅供已在 Lawslane 系统中的译员使用。",
     "tabMessages": "消息",
-    "contactAfterPayment": "付款确认后显示客户联系方式"
+    "contactAfterPayment": "付款确认后显示客户联系方式",
+    "goToService": "前往译员服务"
   },
   "InterpreterChat": {
     "offer": "报价",
