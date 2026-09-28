@@ -573,7 +573,9 @@
       "typeCase": "案件聊天",
       "typePreliminary": "初步咨询",
       "noMessages": "暂无消息"
-    }
+    },
+    "realtimeError": "此页面无法自动更新新消息，请刷新以查看最新消息。",
+    "refresh": "刷新"
   },
   "CaseRoom": {
     "proTools": "专业工具 (PRO)",

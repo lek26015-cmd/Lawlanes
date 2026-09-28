@@ -88,6 +88,9 @@ export default function DashboardPage() {
     const [isLoading, setIsLoading] = useState(true);
     // ห้องที่ server ตั้งใจไม่แสดง (ผู้ใช้เป็นทนายของห้องนั้นเอง) — listener ต้องไม่นับเป็นห้องใหม่
     const excludedChatIds = useRef<Set<string>>(new Set());
+    // สถานะการฟังแชทแบบ realtime — เดิมไม่มี error handler ถ้า listener ถูกปฏิเสธ (เช่น rules)
+    // หน้าก็เงียบ ลูกความไม่รู้ว่าต้องรีเฟรชเองถึงจะเห็นข้อความใหม่ (PLAN-06 รอบ 3)
+    const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'live' | 'error'>('connecting');
 
     const dateLocale = locale === 'th' ? th : locale === 'zh' ? zhCN : enUS;
 
@@ -148,6 +151,7 @@ export default function DashboardPage() {
 
         let isFirstRun = true;
         const unsubscribe = onSnapshot(q, (snapshot) => {
+            setRealtimeStatus('live');
             if (isFirstRun) {
                 isFirstRun = false;
                 return;
@@ -196,6 +200,9 @@ export default function DashboardPage() {
                     audio.play().catch(() => {});
                 }
             }
+        }, (error) => {
+            console.warn('[dashboard] realtime chat listener failed:', error.code, error.message);
+            setRealtimeStatus('error');
         });
 
         return () => {
@@ -226,8 +233,16 @@ export default function DashboardPage() {
     ];
 
     return (
-        <div className="bg-gray-100/50 min-h-screen">
+        <div className="bg-gray-100/50 min-h-screen" data-realtime-status={realtimeStatus}>
             <div className="max-w-6xl mx-auto px-0 md:px-6 py-0 md:py-8">
+                {realtimeStatus === 'error' && (
+                    <div role="status" className="mx-4 md:mx-0 mb-4 mt-4 md:mt-0 flex items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                        <span>{t('realtimeError')}</span>
+                        <Button size="sm" variant="outline" className="rounded-full shrink-0" onClick={() => window.location.reload()}>
+                            {t('refresh')}
+                        </Button>
+                    </div>
+                )}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
                     {/* Main Content */}
