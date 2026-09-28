@@ -222,7 +222,7 @@ export default function VerifyResultCard({ result }: VerifyResultCardProps) {
                 </div>
 
                 {/* CTA Banner — Growth Engine */}
-                <div className="mt-5 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-5 border border-blue-100">
+                <div className="mt-5 bg-gradient-to-br from-blue-50 to-blue-50 rounded-xl p-5 border border-blue-100">
                     <div className="flex items-start gap-3">
                         <div className="mt-0.5 bg-blue-100 p-2 rounded-full flex-shrink-0">
                             <UserPlus className="w-4 h-4 text-[#0B3979]" />
