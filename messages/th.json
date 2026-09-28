@@ -529,7 +529,14 @@
     "description": "รายการ / เคส",
     "amount": "จำนวนเงิน",
     "status": "สถานะ",
-    "nextAction": "ขั้นตอนถัดไป"
+    "nextAction": "ขั้นตอนถัดไป",
+    "appointmentStatus": {
+      "pending_payment": "รอตรวจสอบการชำระเงิน",
+      "paid": "รอทนายยืนยัน",
+      "confirmed": "ยืนยันแล้ว",
+      "completed": "เสร็จสิ้น",
+      "other": "กำลังดำเนินการ"
+    }
   },
   "CaseRoom": {
     "proTools": "เครื่องมือระดับโปร (PRO)",

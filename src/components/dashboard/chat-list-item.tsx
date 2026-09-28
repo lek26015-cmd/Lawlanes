@@ -66,9 +66,17 @@ export function ChatListItem({
           </Badge>
         );
       case 'closed':
+      case 'completed':
         return (
           <Badge variant="outline" className="bg-slate-50 text-slate-500 border-slate-200 text-[10px] py-0 px-1.5 font-bold rounded-md">
             เสร็จสิ้น
+          </Badge>
+        );
+      case 'cancelled':
+        // เดิมตกไป default → เคสที่ยกเลิกแล้วขึ้นป้าย "ดำเนินการอยู่"
+        return (
+          <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200 text-[10px] py-0 px-1.5 font-bold rounded-md">
+            ยกเลิกแล้ว
           </Badge>
         );
       case 'active':
@@ -119,7 +127,7 @@ export function ChatListItem({
           {/* Status indicator dot */}
           <div className={cn(
             "absolute bottom-0 right-0 h-5 w-5 rounded-full border-[3px] border-white shadow-sm transition-transform duration-500 group-hover:scale-110",
-            isOnline ? "bg-green-500 animate-pulse" : (status === 'closed' ? "bg-slate-300" : "bg-slate-200")
+            isOnline ? "bg-green-500 animate-pulse" : (['closed', 'completed', 'cancelled'].includes(status) ? "bg-slate-300" : "bg-slate-200")
           )} />
         </div>
 

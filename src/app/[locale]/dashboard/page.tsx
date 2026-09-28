@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -60,6 +60,18 @@ function mapChatDocToCasePatch(data: any): Omit<Case, 'id' | 'lawyer'> {
     };
 }
 
+// สถานะห้องแชทที่ถือว่า "จบแล้ว" — ที่เหลือทั้งหมด (รวมสถานะที่ไม่รู้จัก) อยู่กลุ่มกำลังดำเนินการ
+// เดิมเลือกเป็นรายสถานะ (active/pending_payment/...) ทั้งสองกลุ่ม เคสที่ยกเลิก/เสร็จสิ้นเลยหายไปจากหน้า
+const FINISHED_CASE_STATUSES = ['closed', 'cancelled', 'completed'];
+const HIDDEN_CASE_STATUSES = ['deleted'];
+
+const APPOINTMENT_STATUS_STYLES: Record<string, string> = {
+    pending_payment: 'bg-amber-50 text-amber-700 border-amber-200',
+    paid: 'bg-blue-50 text-blue-700 border-blue-200',
+    confirmed: 'bg-green-50 text-green-700 border-green-200',
+    completed: 'bg-slate-50 text-slate-500 border-slate-200',
+};
+
 export default function DashboardPage() {
     const router = useRouter();
     const { user, isUserLoading } = useUser();
@@ -74,6 +86,8 @@ export default function DashboardPage() {
     const [capDeals, setCapDeals] = useState<any[]>([]);
     const [invoices, setInvoices] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    // ห้องที่ server ตั้งใจไม่แสดง (ผู้ใช้เป็นทนายของห้องนั้นเอง) — listener ต้องไม่นับเป็นห้องใหม่
+    const excludedChatIds = useRef<Set<string>>(new Set());
 
     const dateLocale = locale === 'th' ? th : locale === 'zh' ? zhCN : enUS;
 
@@ -85,6 +99,7 @@ export default function DashboardPage() {
                 setCases(data.cases);
                 setAppointments(data.appointments);
                 setTickets(data.tickets);
+                excludedChatIds.current = new Set(data.excludedChatIds || []);
 
                 if (data.capDeals) {
                     setCapDeals(data.capDeals);
@@ -153,6 +168,7 @@ export default function DashboardPage() {
                             next = next.filter(c => c.id !== change.doc.id);
                             continue;
                         }
+                        if (excludedChatIds.current.has(change.doc.id)) continue;
                         const existing = next.find(c => c.id === change.doc.id);
                         if (!existing) {
                             needsFullRefetch = true;
@@ -195,18 +211,14 @@ export default function DashboardPage() {
         );
     }
 
-    const activeCases = cases.filter(c => c.status === 'active' || c.status === 'pending_payment' || c.status === 'rejected' || c.status === 'approved' || c.status === 'pending');
-    const closedCases = cases.filter(c => c.status === 'closed');
+    const visibleCases = cases.filter(c => !HIDDEN_CASE_STATUSES.includes(c.status));
+    const activeCases = visibleCases.filter(c => !FINISHED_CASE_STATUSES.includes(c.status));
+    const closedCases = visibleCases.filter(c => FINISHED_CASE_STATUSES.includes(c.status));
 
-    // Filter appointments (show all, including pending_payment)
-    const visibleAppointments = appointments;
-
-    const caseColors: { [key: string]: string } = {
-        blue: 'border-l-4 border-blue-500',
-        yellow: 'border-l-4 border-yellow-500',
-        gray: 'border-l-4 border-gray-400',
-        red: 'border-l-4 border-red-500',
-    };
+    // server กรองนัดที่ผ่านไปแล้ว/ยกเลิกออกแล้ว — เรียงนัดที่ใกล้ที่สุดขึ้นก่อน
+    const visibleAppointments = [...appointments].sort(
+        (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    );
 
     const quickServices = [
         { icon: <Search />, text: t('findLawyer'), href: `/${locale}/lawyers` },
@@ -281,7 +293,7 @@ export default function DashboardPage() {
                                                 unreadCount={0}
                                                 status={caseItem.status}
                                                 type={caseItem.isOfficial ? 'case' : 'preliminary'}
-                                                href={`/${locale}/chat/${caseItem.id}?lawyerId=${caseItem.lawyer.id}&status=closed`}
+                                                href={`/${locale}/chat/${caseItem.id}?lawyerId=${caseItem.lawyer.id}&status=${caseItem.status}`}
                                                 className="opacity-70 grayscale-[0.5]"
                                                 isOnline={caseItem.isOnline}
                                             />
@@ -291,6 +303,52 @@ export default function DashboardPage() {
                             </Card>
                         )}
 
+
+                        {/* Upcoming Appointments — เดิมดึงข้อมูลมาแล้วแต่ไม่เคยแสดง */}
+                        {visibleAppointments.length > 0 && (
+                            <Card className="rounded-none md:rounded-3xl shadow-none md:shadow-sm border-none">
+                                <CardHeader>
+                                    <CardTitle className="flex items-center gap-2 font-bold">
+                                        <Calendar className="w-5 h-5" />
+                                        {t('upcomingAppointments')}
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="space-y-3">
+                                        {visibleAppointments.map((apt) => {
+                                            const status = apt.status || 'other';
+                                            const statusKey = APPOINTMENT_STATUS_STYLES[status] ? status : 'other';
+                                            return (
+                                                <Link href={`/${locale}/appointment/${apt.id}`} key={apt.id} className="block">
+                                                    <div className="flex items-center gap-4 p-4 rounded-3xl bg-slate-50 border border-slate-100 hover:bg-blue-50/50 transition-colors">
+                                                        <Avatar className="h-12 w-12 shrink-0">
+                                                            {apt.lawyer.imageUrl && <AvatarImage src={apt.lawyer.imageUrl} />}
+                                                            <AvatarFallback>{apt.lawyer.name?.charAt(0) || '?'}</AvatarFallback>
+                                                        </Avatar>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="font-semibold text-slate-900 truncate">
+                                                                {t('appointmentWith')} {apt.lawyer.name}
+                                                            </p>
+                                                            <p className="text-sm text-slate-600 flex items-center gap-1.5">
+                                                                <Clock className="w-3.5 h-3.5 shrink-0" />
+                                                                {format(new Date(apt.date), 'd MMM yyyy', { locale: dateLocale })}
+                                                                {apt.time && apt.time !== 'N/A' ? ` · ${apt.time}` : ''}
+                                                            </p>
+                                                        </div>
+                                                        <Badge variant="outline" className={cn(
+                                                            'shrink-0 text-xs',
+                                                            APPOINTMENT_STATUS_STYLES[status] || 'bg-slate-50 text-slate-600 border-slate-200'
+                                                        )}>
+                                                            {t(`appointmentStatus.${statusKey}`)}
+                                                        </Badge>
+                                                    </div>
+                                                </Link>
+                                            );
+                                        })}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
 
                         <MyInterpreterBookingsCard />
                         <InterpreterConversationsList as="customer" card />

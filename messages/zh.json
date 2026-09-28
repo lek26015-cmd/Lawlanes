@@ -531,7 +531,14 @@
     "description": "项目 / 案件",
     "amount": "金额",
     "status": "状态",
-    "nextAction": "下一步"
+    "nextAction": "下一步",
+    "appointmentStatus": {
+      "pending_payment": "正在核实付款",
+      "paid": "等待律师确认",
+      "confirmed": "已确认",
+      "completed": "已完成",
+      "other": "处理中"
+    }
   },
   "CaseRoom": {
     "proTools": "专业工具 (PRO)",
