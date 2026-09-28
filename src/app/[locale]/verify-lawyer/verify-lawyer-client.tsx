@@ -7,79 +7,49 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Search, ShieldCheck, Loader2, ArrowLeft, FileText, AlertCircle, ExternalLink } from 'lucide-react';
 import { Link } from '@/navigation';
-import { useFirebase } from '@/firebase';
 import { searchApprovedLawyersAction } from '@/app/actions/lawyer-directory-actions';
-import { collection, query, where, getDocs, orderBy, limit, getCountFromServer } from 'firebase/firestore';
+import { searchRegistryAction } from '@/app/actions/verify-registry-actions';
 import { useTranslations, useLocale } from 'next-intl';
 import VerifyResultCard, { type VerifyResult } from '@/components/verify-result-card';
 import { VerifyNoticeDialog } from './verify-notice-dialog';
-
-// status ที่แสดงในผลค้นหา: active = มีเลขจากทะเบียน · announced = มีชื่อในประกาศรับใบอนุญาต (ไม่มีเลข)
-const SEARCHABLE_STATUSES = ['active', 'announced'];
 
 // ช่องทางตรวจสอบทางการ (สภาทนายความในพระบรมราชูปถัมภ์)
 const LAWYERS_COUNCIL_URL = 'https://www.lawyerscouncil.or.th/';
 
 // ไม่ใช้ useSearchParams — ทำให้ทั้งหน้าหลุดเป็น client render (HTML ที่ Google เห็นเหลือแค่ fallback)
 // อ่าน ?licenseNumber= จาก window หลัง mount แทน
-export function VerifyLawyerClient() {
+// verifiedLawyers อ่านผ่าน server action/server component เท่านั้น (rules ปิด list จาก browser)
+// จำนวนรายชื่อ + วันที่อัปเดตล่าสุดคำนวณที่ server แล้วส่งมาเป็น props
+export function VerifyLawyerClient({ registryCount, lastUpdatedIso }: { registryCount: number; lastUpdatedIso: string | null }) {
     const [licenseNumberFromQuery, setLicenseNumberFromQuery] = useState<string | null>(null);
-    const { firestore } = useFirebase();
     const t = useTranslations('VerifyLawyer');
     const locale = useLocale();
 
     const [lastUpdated, setLastUpdated] = useState<string>('');
 
+    // จัดรูปวันที่ฝั่ง browser (ตาม timezone ผู้ใช้) — ก่อน mount แสดง "กำลังโหลด..."
     useEffect(() => {
-        const fetchLastUpdated = async () => {
-            if (!firestore) return;
-            try {
-                const q = query(collection(firestore, 'verifiedLawyers'), orderBy('updatedAt', 'desc'), limit(1));
-                const snapshot = await getDocs(q);
-                if (!snapshot.empty) {
-                    const data = snapshot.docs[0].data();
-                    const date = data.updatedAt?.toDate ? data.updatedAt.toDate() : new Date(data.updatedAt);
-                    const dateLocale = locale === 'zh' ? 'zh-CN' : locale === 'en' ? 'en-US' : 'th-TH';
-                    const formattedDate = date.toLocaleDateString(dateLocale, {
-                        year: 'numeric',
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                    });
-                    setLastUpdated(`${t('lastUpdated')} ${formattedDate}`);
-                } else {
-                    setLastUpdated(t('lastUpdatedToday'));
-                }
-            } catch (error) {
-                console.error("Error fetching last updated:", error);
-                setLastUpdated(t('lastUpdatedToday'));
-            }
-        };
-        fetchLastUpdated();
-    }, [firestore, t, locale]);
+        if (!lastUpdatedIso) {
+            setLastUpdated(t('lastUpdatedToday'));
+            return;
+        }
+        const dateLocale = locale === 'zh' ? 'zh-CN' : locale === 'en' ? 'en-US' : 'th-TH';
+        const formattedDate = new Date(lastUpdatedIso).toLocaleDateString(dateLocale, {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+        });
+        setLastUpdated(`${t('lastUpdated')} ${formattedDate}`);
+    }, [lastUpdatedIso, t, locale]);
 
     const [licenseNumber, setLicenseNumber] = useState('');
     const [lawyerName, setLawyerName] = useState('');
     const [isVerifying, setIsVerifying] = useState(false);
     const [results, setResults] = useState<VerifyResult[]>([]);
     const [hasSearched, setHasSearched] = useState(false);
-    const [lawyerCount, setLawyerCount] = useState<number>(0);
-
-    // Fetch total registry lawyer count
-    useEffect(() => {
-        const fetchCount = async () => {
-            if (!firestore) return;
-            try {
-                const q = query(collection(firestore, 'verifiedLawyers'));
-                const snapshot = await getCountFromServer(q);
-                setLawyerCount(snapshot.data().count);
-            } catch (error) {
-                console.error('Error fetching lawyer count:', error);
-            }
-        };
-        fetchCount();
-    }, [firestore]);
+    const lawyerCount = registryCount;
 
     useEffect(() => {
         const fromQuery = new URLSearchParams(window.location.search).get('licenseNumber');
@@ -90,14 +60,13 @@ export function VerifyLawyerClient() {
     }, []);
 
     useEffect(() => {
-        if (licenseNumberFromQuery && firestore) {
+        if (licenseNumberFromQuery) {
             handleVerify(licenseNumberFromQuery, '');
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [licenseNumberFromQuery, firestore]);
+    }, [licenseNumberFromQuery]);
 
     const handleVerify = async (licenseInput: string = licenseNumber, nameInput: string = lawyerName) => {
-        if (!firestore) return;
         if (!licenseInput && !nameInput) return;
 
         setIsVerifying(true);
@@ -105,129 +74,51 @@ export function VerifyLawyerClient() {
         setHasSearched(false);
 
         try {
-            const verifiedRef = collection(firestore, 'verifiedLawyers');
+            const search = licenseInput
+                ? { licenseNumber: licenseInput.trim() }
+                : { name: nameInput.trim() };
+            const [profileMatches, registryMatches] = await Promise.all([
+                searchApprovedLawyersAction(search),
+                searchRegistryAction(search),
+            ]);
 
             const foundResults: VerifyResult[] = [];
             const seenLicenseNumbers = new Set<string>();
 
-            if (licenseInput) {
-                // === Search by license number ===
-                // lawyerProfiles อ่านผ่าน server action แล้ว (Admin SDK + projection สาธารณะ)
-                // เพราะ rules ปิด list ของ lawyerProfiles ไม่ให้ยิงจาก browser อีก
-                const q2 = query(verifiedRef, where('licenseNumber', '==', licenseInput), where('status', '==', 'active'), limit(5));
-
-                const [profileMatches, snap2] = await Promise.all([
-                    searchApprovedLawyersAction({ licenseNumber: licenseInput }),
-                    getDocs(q2),
-                ]);
-
-                // Lawslane registered lawyers
-                profileMatches.forEach(data => {
-                    const ln = data.licenseNumber;
-                    seenLicenseNumbers.add(ln);
-                    foundResults.push({
-                        id: data.id,
-                        name: data.name,
-                        licenseNumber: ln,
-                        status: 'active',
-                        province: data.serviceProvinces?.[0] || undefined,
-                        isOnLawslane: true,
-                        lawslaneProfileId: data.id,
-                        imageUrl: data.imageUrl,
-                        specialty: data.specialty,
-                        source: 'both',
-                    });
+            // ทนายที่ลงทะเบียนกับ Lawslane
+            profileMatches.forEach(data => {
+                if (data.licenseNumber) seenLicenseNumbers.add(data.licenseNumber);
+                foundResults.push({
+                    id: data.id,
+                    name: data.name,
+                    licenseNumber: data.licenseNumber,
+                    status: 'active',
+                    province: data.serviceProvinces?.[0] || undefined,
+                    isOnLawslane: true,
+                    lawslaneProfileId: data.id,
+                    imageUrl: data.imageUrl,
+                    specialty: data.specialty,
+                    source: 'both',
                 });
+            });
 
-                // Registry-only lawyers (that are not already in Lawslane)
-                snap2.docs.forEach(doc => {
-                    const data = doc.data();
-                    const ln = data.licenseNumber;
-                    if (!seenLicenseNumbers.has(ln)) {
-                        foundResults.push({
-                            id: doc.id,
-                            name: `${data.firstName} ${data.lastName}`,
-                            licenseNumber: ln,
-                            status: data.status || 'active',
-                            province: data.province || undefined,
-                            announcementDate: data.announcementDate || undefined,
-                            sourceUrl: data.sourceUrl || undefined,
-                            isOnLawslane: false,
-                            source: 'registry',
-                        });
-                    }
+            // รายชื่อจากทะเบียน/ประกาศที่ยังไม่อยู่ใน Lawslane
+            // ไม่มีเลขใบอนุญาต → กันซ้ำด้วย doc id (server กันซ้ำระหว่างคำค้นให้แล้ว)
+            registryMatches.forEach(data => {
+                if (data.licenseNumber && seenLicenseNumbers.has(data.licenseNumber)) return;
+                if (data.licenseNumber) seenLicenseNumbers.add(data.licenseNumber);
+                foundResults.push({
+                    id: data.id,
+                    name: `${data.firstName} ${data.lastName}`,
+                    licenseNumber: data.licenseNumber,
+                    status: (data.status || 'active') as VerifyResult['status'],
+                    province: data.province || undefined,
+                    announcementDate: data.announcementDate || undefined,
+                    sourceUrl: data.sourceUrl || undefined,
+                    isOnLawslane: false,
+                    source: 'registry',
                 });
-            } else if (nameInput) {
-                // === Search by name ===
-                const trimmedName = nameInput.trim();
-                const names = trimmedName.split(' ').filter(Boolean);
-
-                // 1) Search lawyerProfiles by name (ผ่าน server action — ดูหมายเหตุด้านบน)
-                const profileMatches = await searchApprovedLawyersAction({ name: trimmedName });
-
-                profileMatches.forEach(data => {
-                    seenLicenseNumbers.add(data.licenseNumber);
-                    foundResults.push({
-                        id: data.id,
-                        name: data.name,
-                        licenseNumber: data.licenseNumber,
-                        status: 'active',
-                        province: data.serviceProvinces?.[0] || undefined,
-                        isOnLawslane: true,
-                        lawslaneProfileId: data.id,
-                        imageUrl: data.imageUrl,
-                        specialty: data.specialty,
-                        source: 'both',
-                    });
-                });
-
-                // 2) Search verifiedLawyers by firstName and/or lastName
-                const verifiedQueries = [];
-
-                if (names.length >= 2) {
-                    // Exact firstName + lastName
-                    verifiedQueries.push(
-                        query(verifiedRef, where('firstName', '==', names[0]), where('lastName', '==', names.slice(1).join(' ')), where('status', 'in', SEARCHABLE_STATUSES), limit(10))
-                    );
-                } else {
-                    // Search by firstName only
-                    verifiedQueries.push(
-                        query(verifiedRef, where('firstName', '==', names[0]), where('status', 'in', SEARCHABLE_STATUSES), limit(10))
-                    );
-                    // Also search by lastName only
-                    verifiedQueries.push(
-                        query(verifiedRef, where('lastName', '==', names[0]), where('status', 'in', SEARCHABLE_STATUSES), limit(10))
-                    );
-                }
-
-                const verifiedSnaps = await Promise.all(verifiedQueries.map(q => getDocs(q)));
-
-                verifiedSnaps.forEach(snap => {
-                    snap.docs.forEach(doc => {
-                        const data = doc.data();
-                        // รายชื่อจากประกาศไม่มีเลขใบอนุญาต → กันซ้ำด้วย doc id (เดิม '' ซ้ำกันทำให้ผลหาย)
-                        const ln = data.licenseNumber || '';
-                        const dedupeKey = ln || `doc:${doc.id}`;
-                        if (!seenLicenseNumbers.has(dedupeKey)) {
-                            seenLicenseNumbers.add(dedupeKey);
-
-                            // Cross-reference: check if this lawyer is also on Lawslane
-                            // (We already checked lawyerProfiles by name above, so if licenseNumber isn't seen, they're registry-only)
-                            foundResults.push({
-                                id: doc.id,
-                                name: `${data.firstName} ${data.lastName}`,
-                                licenseNumber: ln,
-                                status: data.status || 'active',
-                                province: data.province || undefined,
-                                announcementDate: data.announcementDate || undefined,
-                                sourceUrl: data.sourceUrl || undefined,
-                                isOnLawslane: false,
-                                source: 'registry',
-                            });
-                        }
-                    });
-                });
-            }
+            });
 
             // Sort: Lawslane lawyers first
             foundResults.sort((a, b) => {

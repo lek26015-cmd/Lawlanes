@@ -428,7 +428,12 @@ service cloud.firestore {
     }
     
     match /verifiedLawyers/{lawyerId} {
-        allow read: if true;
+        // เดิม `allow read: if true` — ใครก็ list ได้ทั้ง collection (ชื่อ-สกุลทนายทุกคน
+        // รวมรายชื่อที่นำเข้าจากประกาศสภาทนายความหลายพันคน) ในคำสั่งเดียว
+        // ตอนนี้หน้าเว็บอ่านผ่าน Admin SDK เท่านั้น: ค้นแบบระบุชื่อ/เลข
+        // (src/app/actions/verify-registry-actions.ts) + ไดเรกทอรี/สถิติ
+        // (src/lib/verified-lawyers-server.ts) · หลังบ้านอ่าน/แก้ด้วยสิทธิ์แอดมิน
+        allow read: if isAdmin();
         allow write: if isAdmin();
     }
 
