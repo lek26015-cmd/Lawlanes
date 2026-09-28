@@ -5,6 +5,7 @@ import { getRegistryLawyersForDirectory } from '@/lib/verified-lawyers-server';
 import { getApprovedLawyersAction } from '@/app/actions/lawyer-directory-actions';
 import type { LawyerProfile } from '@/lib/types';
 import { LawyersPageClient } from './lawyers-page-client';
+import { LawyersGuide } from './lawyers-guide';
 
 // The approved/registry lawyer lists are identical for every visitor regardless of
 // query string (only the client-side matchmaking sort depends on that), so this is
@@ -34,5 +35,10 @@ export default async function LawyersPage({ params }: { params: Promise<{ locale
 
   // ไม่ครอบ Suspense แล้ว — useSearchParams อยู่ใน SearchParamsBridge ที่มี Suspense ของตัวเอง
   // (เดิม Suspense ตรงนี้ทำให้ HTML ส่ง fallback ก่อน แล้วเนื้อหาจริงไปอยู่ใน <div hidden> รอ JS สลับ → h1 ซ้ำ)
-  return <LawyersPageClient initialLawyers={lawyers} initialRegistryLawyers={registryLawyers} />;
+  return (
+    <>
+      <LawyersPageClient initialLawyers={lawyers} initialRegistryLawyers={registryLawyers} />
+      <LawyersGuide locale={locale} />
+    </>
+  );
 }

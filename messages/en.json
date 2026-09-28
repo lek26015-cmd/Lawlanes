@@ -461,7 +461,29 @@
     },
     "heroTitle": "Professional Lawyers Center",
     "heroSubtitle": "Experienced lawyers with specialized expertise, ready to advise you and take care of your case closely.",
-    "heroImageAlt": "Male and female lawyers in gowns holding a law book and a tablet"
+    "heroImageAlt": "Male and female lawyers in gowns holding a law book and a tablet",
+    "guide": {
+      "heading": "How to find the right lawyer in Thailand",
+      "step1Title": "Tell Lalin your problem",
+      "step1Body": "Our AI assistant Lalin summarises your issue and suggests which kind of lawyer to consult. Free to use (general information, not advice from a lawyer).",
+      "step2Title": "Choose by practice area",
+      "step2Body": "Filter by type of case and province, and review each lawyer’s background, experience and reviews.",
+      "step3Title": "Message or book a consultation",
+      "step3Body": "Ask about the scope and fees before you agree, and check the lawyer’s license on our lawyer verification page.",
+      "faqHeading": "Frequently asked questions about finding a lawyer",
+      "faq1Q": "Can I consult a lawyer online?",
+      "faq1A": "Yes. Pick a lawyer on this page, then message them or book a consultation through Lawslane without visiting an office.",
+      "faq2Q": "Is there free legal advice?",
+      "faq2A": "You can ask our AI assistant Lalin for free to understand your issue. Fees for consulting a lawyer depend on each lawyer. Government agencies and the Lawyers Council of Thailand also offer legal aid to eligible people.",
+      "faq3Q": "How much does a lawyer cost in Thailand?",
+      "faq3A": "It depends on the type and complexity of the case and on the lawyer. Ask for the fee and scope of work, and agree in writing before work starts.",
+      "faq4Q": "How do I know a lawyer is real?",
+      "faq4A": "Every lawyer on Lawslane has their license number checked before their profile goes live, and you can check a lawyer’s name yourself on our verification page.",
+      "faq5Q": "Can foreigners or non-Thai speakers use Lawslane?",
+      "faq5A": "Yes. Check the languages each lawyer offers in their profile, or request a legal interpreter or translator from the Lawslane team.",
+      "verifyLink": "Verify a lawyer",
+      "interpreterLink": "Legal interpreter service"
+    }
   },
   "LawyerProfile": {
     "backToList": "Back to Lawyers",
