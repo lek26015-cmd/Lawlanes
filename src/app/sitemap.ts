@@ -1,6 +1,7 @@
 import { MetadataRoute } from 'next'
 import { locales } from '@/navigation'
 import { SITE_URL } from '@/lib/seo'
+import { getApprovedLawyersAction } from '@/app/actions/lawyer-directory-actions'
 
 // โดเมนจริงคือ www (lawslane.com redirect มา www) และทุกหน้ามี locale นำหน้า (localePrefix: 'always')
 // URL ที่ไม่มี /th จะโดน redirect — ใส่ URL ปลายทางตรง ๆ พร้อม hreflang ของอีกสองภาษา
@@ -23,9 +24,11 @@ const pages: { path: string; changeFrequency: 'daily' | 'weekly' | 'monthly'; pr
   { path: '/terms', changeFrequency: 'monthly', priority: 0.2 },
 ]
 
-export default function sitemap(): MetadataRoute.Sitemap {
-  const lastModified = new Date()
-  return pages.map(({ path, changeFrequency, priority }) => ({
+// รายชื่อทนายเปลี่ยนได้ทุกวัน — สร้าง sitemap ใหม่อย่างมากวันละครั้ง
+export const revalidate = 86400
+
+function localized(path: string, lastModified: Date, changeFrequency: 'daily' | 'weekly' | 'monthly', priority: number) {
+  return {
     url: `${baseUrl}/th${path}`,
     lastModified,
     changeFrequency,
@@ -33,5 +36,22 @@ export default function sitemap(): MetadataRoute.Sitemap {
     alternates: {
       languages: Object.fromEntries(locales.map((l) => [l, `${baseUrl}/${l}${path}`])),
     },
-  }))
+  }
 }
+
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const lastModified = new Date()
+  const staticPages = pages.map(({ path, changeFrequency, priority }) => localized(path, lastModified, changeFrequency, priority))
+
+  // โปรไฟล์ทนายที่อนุมัติแล้วเท่านั้น (หน้าโปรไฟล์ของ status อื่นเป็น 404) — ทนายจากทะเบียนไม่มีหน้าของตัวเอง
+  let lawyerPages: MetadataRoute.Sitemap = []
+  try {
+    const lawyers = await getApprovedLawyersAction(1000)
+    lawyerPages = lawyers.map((l) => localized(`/lawyers/${l.id}`, lastModified, 'weekly', 0.6))
+  } catch (error) {
+    console.error('[sitemap] lawyers failed', error)
+  }
+
+  return [...staticPages, ...lawyerPages]
+}
+
