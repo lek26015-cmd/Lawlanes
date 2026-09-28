@@ -712,7 +712,9 @@
       "inheritance": "I need advice on inheritance.",
       "company": "What do I need for company registration?",
       "land": "I have a land-related issue."
-    }
+    },
+    "disclaimer": "Lalin is an AI that gives general legal information, not advice from a lawyer, and can make mistakes. Please verify anything important.",
+    "disclaimerLink": "Read AI limitations"
   },
   "SupportTicket": {
     "detailsTitle": "Ticket Details",

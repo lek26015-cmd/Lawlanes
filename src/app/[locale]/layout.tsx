@@ -2,6 +2,7 @@
 import type { Metadata } from 'next';
 import { locales } from '@/navigation';
 import '../globals.css';
+import { Prompt } from 'next/font/google';
 import React from 'react';
 import { useTranslations } from 'next-intl';
 import { setRequestLocale } from 'next-intl/server';
@@ -15,6 +16,15 @@ export function generateStaticParams() {
 }
 
 export const dynamicParams = false;
+
+// ฟอนต์ Prompt แบบ self-host ผ่าน next/font — เดิมโหลดจาก fonts.googleapis.com ทำให้ Google ได้ IP ผู้เข้าชม
+// (รายการตรวจเอกสารกฎหมาย ข้อ 6) และเป็น render-blocking CSS
+const prompt = Prompt({
+  subsets: ['thai', 'latin'],
+  weight: ['400', '500', '600', '700'],
+  display: 'swap',
+  variable: '--font-prompt',
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.lawslane.com'),
@@ -68,16 +78,13 @@ export default async function RootLayout({
   const domainType = 'main'; // Default for SSR, will be updated on client
 
   return (
-    <html lang={locale} suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning className={prompt.variable}>
       <head>
         {/* Preconnect to critical third-party origins */}
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://identitytoolkit.googleapis.com" />
         <link rel="preconnect" href="https://securetoken.googleapis.com" />
         <link rel="preconnect" href="https://firestore.googleapis.com" />
         <link rel="preconnect" href="https://www.googleapis.com" />
-        <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;500;600;700&display=swap" rel="stylesheet" />
 
         {/* JSON-LD Structured Data for Google Search Logo */}
         <script
