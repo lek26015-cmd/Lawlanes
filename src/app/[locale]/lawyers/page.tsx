@@ -2,8 +2,7 @@ import type { Metadata } from 'next';
 import { pageMetadata } from '@/lib/seo';
 import { Suspense } from 'react';
 import { setRequestLocale } from 'next-intl/server';
-import { initializeFirebase } from '@/firebase';
-import { getRegistryLawyers } from '@/lib/data';
+import { getRegistryLawyersForDirectory } from '@/lib/verified-lawyers-server';
 import { getApprovedLawyersAction } from '@/app/actions/lawyer-directory-actions';
 import type { LawyerProfile } from '@/lib/types';
 import { LawyersPageClient } from './lawyers-page-client';
@@ -26,14 +25,14 @@ export default async function LawyersPage({ params }: { params: Promise<{ locale
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const { firestore: db } = initializeFirebase();
   // อ่านผ่าน Admin SDK + projection สาธารณะ (ดู lawyer-directory-actions.ts)
   const lawyers = (await getApprovedLawyersAction()) as unknown as LawyerProfile[];
 
   const approvedLicenseNumbers = new Set(
     lawyers.map(l => l.licenseNumber).filter(Boolean)
   );
-  const registryLawyers = db ? await getRegistryLawyers(db, approvedLicenseNumbers, 100) : [];
+  // ทะเบียนทนายอ่านผ่าน Admin SDK (rules ปิด list ของ verifiedLawyers แล้ว)
+  const registryLawyers = await getRegistryLawyersForDirectory(approvedLicenseNumbers, 100);
 
   return (
     <Suspense
