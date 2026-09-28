@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocale } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { Check, Crown, Loader2 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Link } from '@/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
@@ -27,6 +29,7 @@ export function ProviderPlanPanel({ kind }: { kind: ProviderKind }) {
     const searchParams = useSearchParams();
     const [data, setData] = useState<PlanData | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [acceptedTerms, setAcceptedTerms] = useState(false);
     const [busy, setBusy] = useState<string | null>(null);
     const handledReturn = useRef(false);
 
@@ -58,7 +61,7 @@ export function ProviderPlanPanel({ kind }: { kind: ProviderKind }) {
 
     const subscribe = async (tier: PaidTier) => {
         setBusy(tier);
-        const res = await startPlanCheckoutAction(kind, tier, locale);
+        const res = await startPlanCheckoutAction(kind, tier, locale, acceptedTerms);
         if (res.success) { window.location.href = res.url; return; }
         setBusy(null);
         toast({ variant: 'destructive', title: res.error });
@@ -109,6 +112,18 @@ export function ProviderPlanPanel({ kind }: { kind: ProviderKind }) {
                 </CardContent>
             </Card>
 
+            {/* ยอมรับข้อกำหนดก่อนสมัคร — แพลนต่ออายุอัตโนมัติ (รายการตรวจเอกสารกฎหมาย ข้อ 8) */}
+            {data.tier === 'free' && (
+                <label className="flex items-start gap-3 rounded-xl border bg-white p-4 text-sm cursor-pointer">
+                    <Checkbox checked={acceptedTerms} onCheckedChange={v => setAcceptedTerms(v === true)} className="mt-0.5" />
+                    <span>
+                        {L('ฉันได้อ่านและยอมรับ', 'I have read and accept the ')}
+                        <Link href="/terms#plans" target="_blank" className="underline text-[#0B3979]">{L('ข้อกำหนดการใช้งาน (หมวดแพลนรายเดือน)', 'Terms of Service (monthly plans)')}</Link>
+                        {L(' — แพลนต่ออายุและตัดเงินอัตโนมัติทุกรอบจนกว่าจะยกเลิก', ' — plans renew and are charged automatically each period until cancelled.')}
+                    </span>
+                </label>
+            )}
+
             <div className="grid md:grid-cols-3 gap-4">
                 {TIERS.map(tier => {
                     const isCurrent = data.tier === tier;
@@ -139,7 +154,7 @@ export function ProviderPlanPanel({ kind }: { kind: ProviderKind }) {
                                 ) : tier === 'free' ? null : data.tier !== 'free' ? (
                                     <Button variant="outline" onClick={manage} disabled={!!busy}>{L('เปลี่ยนแพลน', 'Change plan')}</Button>
                                 ) : (
-                                    <Button onClick={() => subscribe(tier)} disabled={!price || !!busy} className="bg-[#0B3979] hover:bg-[#0B3979]/90">
+                                    <Button onClick={() => subscribe(tier)} disabled={!price || !!busy || !acceptedTerms} className="bg-[#0B3979] hover:bg-[#0B3979]/90">
                                         {busy === tier && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                                         {L('สมัครแพลนนี้', 'Subscribe')}
                                     </Button>

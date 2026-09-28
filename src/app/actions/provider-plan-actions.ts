@@ -90,7 +90,7 @@ export async function getMyPlanAction(kind: ProviderKind): Promise<Result<{
     }
 }
 
-export async function startPlanCheckoutAction(kind: ProviderKind, tier: PaidTier, locale: string): Promise<Result<{ url: string }>> {
+export async function startPlanCheckoutAction(kind: ProviderKind, tier: PaidTier, locale: string, acceptedTerms?: boolean): Promise<Result<{ url: string }>> {
     try {
         // เลิกขายแพลนล่ามแล้ว (ไม่แสดงรายชื่อล่ามบนเว็บ ป้ายแนะนำ/อันดับจึงไม่มีผล) — portal ยังเปิดให้จัดการของเดิมได้
         if (kind === 'interpreter') return { success: false, error: 'ไม่มีแพลนรายเดือนสำหรับล่ามแล้ว' };
@@ -99,6 +99,8 @@ export async function startPlanCheckoutAction(kind: ProviderKind, tier: PaidTier
             return { success: false, error: 'บัญชีทนายต้องผ่านการอนุมัติก่อนสมัครแพลน' };
         }
         if (tier !== 'pro' && tier !== 'top') return { success: false, error: 'แพลนไม่ถูกต้อง' };
+        // แพลนต่ออายุอัตโนมัติ — ต้องยอมรับข้อกำหนด (หมวดแพลนรายเดือน) ก่อนไปหน้าชำระเงิน
+        if (acceptedTerms !== true) return { success: false, error: 'กรุณายอมรับข้อกำหนดการใช้งานก่อนสมัครแพลน' };
         const stripe = getStripe();
         const priceId = priceIdFor(kind, tier);
         if (!stripe || !priceId) return { success: false, error: 'ยังไม่เปิดให้สมัครแพลนนี้' };
@@ -112,7 +114,9 @@ export async function startPlanCheckoutAction(kind: ProviderKind, tier: PaidTier
             return { success: false, error: 'คุณมีแพลนอยู่แล้ว กด "จัดการการชำระเงิน" เพื่อเปลี่ยนหรือยกเลิกแพลน' };
         }
 
-        const metadata = { product: PLAN_PRODUCT[kind], profileId };
+        const termsAcceptedAt = new Date().toISOString();
+        const metadata = { product: PLAN_PRODUCT[kind], profileId, terms_accepted_at: termsAcceptedAt };
+        await ref.update({ planTermsAcceptedAt: termsAcceptedAt });
         let customerId = plan?.customerId;
         if (!customerId) {
             const customer = await stripe.customers.create({
