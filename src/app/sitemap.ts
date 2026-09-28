@@ -14,7 +14,6 @@ const pages: { path: string; changeFrequency: 'daily' | 'weekly' | 'monthly'; pr
   { path: '/articles', changeFrequency: 'daily', priority: 0.7 },
   { path: '/forms', changeFrequency: 'weekly', priority: 0.7 },
   { path: '/for-lawyers', changeFrequency: 'monthly', priority: 0.6 },
-  { path: '/for-interpreters', changeFrequency: 'monthly', priority: 0.6 },
   { path: '/verify-lawyer', changeFrequency: 'monthly', priority: 0.5 },
   { path: '/about', changeFrequency: 'monthly', priority: 0.4 },
   { path: '/help', changeFrequency: 'monthly', priority: 0.4 },

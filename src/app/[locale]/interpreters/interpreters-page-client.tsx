@@ -215,11 +215,6 @@ export function InterpretersPageClient() {
                     </div>
                 </section>
 
-                <div className="text-center">
-                    <Link href="/for-interpreters" className="text-sm font-semibold text-[#0B3979] hover:underline">
-                        {t('becomeInterpreter')} →
-                    </Link>
-                </div>
             </div>
         </div>
     );
