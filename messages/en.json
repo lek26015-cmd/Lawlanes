@@ -573,7 +573,9 @@
       "typeCase": "Case chat",
       "typePreliminary": "Initial consultation",
       "noMessages": "No messages yet"
-    }
+    },
+    "realtimeError": "This page isn't updating new messages automatically. Refresh to see the latest.",
+    "refresh": "Refresh"
   },
   "CaseRoom": {
     "titleInitial": "Initial Consultation Chat",
