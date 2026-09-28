@@ -80,11 +80,7 @@ function OfferCard({ offer, viewerRole, interpreterId, conversationId, onChanged
             {offer.status === 'open' && offer.expiresAt && (
                 <p className="text-xs text-muted-foreground">{t('offerExpires', { date: l.dateTime(offer.expiresAt) })}</p>
             )}
-            {offer.status === 'open' && viewerRole === 'customer' && (
-                <Button asChild className="w-full bg-[#0B3979]">
-                    <Link href={`/interpreters/${interpreterId}/book?offer=${offer.id}`}>{t('payOffer')}</Link>
-                </Button>
-            )}
+            {/* ปิดการจอง/ชำระเงินเองบนเว็บแล้ว — ลูกค้าติดต่อแอดมินที่ /interpreters แทน */}
             {offer.status === 'open' && viewerRole === 'interpreter' && (
                 <Button variant="outline" size="sm" disabled={busy} onClick={cancel}>{t('cancelOffer')}</Button>
             )}
@@ -247,7 +243,7 @@ export default function InterpreterChatPage() {
     }
 
     const isInterpreter = conv.viewerRole === 'interpreter';
-    const backHref = isInterpreter ? '/interpreter-dashboard' : `/interpreters/${conv.interpreterId}`;
+    const backHref = isInterpreter ? '/interpreter-dashboard' : '/interpreters';
 
     return (
         <div className="bg-gray-50 min-h-screen">
@@ -258,7 +254,7 @@ export default function InterpreterChatPage() {
                     </Link>
                     {!isInterpreter && (
                         <Button asChild size="sm" className="bg-[#0B3979]">
-                            <Link href={`/interpreters/${conv.interpreterId}/book`}>{t('bookFromRateCard')}</Link>
+                            <Link href="/interpreters#request">{t('contactAdmin')}</Link>
                         </Button>
                     )}
                 </div>
