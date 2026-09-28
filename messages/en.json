@@ -582,7 +582,7 @@
     "loginRequiredDescription": "You must login before reporting an issue",
     "problemTypes": {
       "communication": "Communication problem with lawyer",
-      "payment": "Payment/Escrow problem",
+      "payment": "Payment problem",
       "technical": "System technical problem",
       "quality": "Dissatisfied with service quality",
       "other": "Other"
@@ -598,7 +598,7 @@
       },
       {
         "question": "What is the process for hiring a lawyer through Lawslane?",
-        "answer": "You can start by using AI to analyze the problem, searching for a lawyer from the list, or making an appointment to talk directly. Once you have chosen the lawyer you want, you can open a case and pay through our Escrow system to start working immediately."
+        "answer": "You can start by using AI to analyze the problem, searching for a lawyer from the list, or making an appointment to talk directly. Once you have chosen a lawyer, they will propose their fee in the chat and you pay it directly into the lawyer's bank account — Lawslane does not receive or hold service fees."
       },
       {
         "question": "Will my information be kept confidential?",
