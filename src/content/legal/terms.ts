@@ -99,10 +99,11 @@ export const TERMS: Record<LegalLocale, LegalDoc> = {
             },
             {
                 id: 'plans',
-                title: 'แพลนรายเดือนสำหรับทนายความและล่าม/นักแปล',
+                title: 'แพลนรายเดือนสำหรับทนายความ',
                 blocks: [
                     {
                         ul: [
+                            'แพลนรายเดือนมีเฉพาะทนายความ ล่าม/นักแปลไม่มีแพลนรายเดือนและไม่มีการแสดงผลแบบชำระเงิน',
                             'การมีโปรไฟล์ในรายชื่อและการรับแชทใช้ได้ฟรี แพลนแบบชำระเงิน (Pro และระดับสูงสุด) เป็นทางเลือก',
                             '**การแสดงผลแบบชำระเงิน:** ผู้ให้บริการที่สมัครแพลนแบบชำระเงินจะได้ป้าย "แนะนำ" กรอบรูปพิเศษ และแสดงก่อนผู้ให้บริการแพลนฟรีในรายชื่อ ระดับสูงสุดจะแสดงในหน้าแรกด้วย ป้ายและลำดับนี้มาจากการสมัครแพลน **ไม่ใช่การประเมินคุณภาพหรือการรับรองโดย Lawslane**',
                             'ราคาและรอบบิล (รายเดือน/รายปี) เป็นไปตามที่แสดงก่อนชำระ ชำระด้วยบัตรผ่าน Stripe และ**ต่ออายุอัตโนมัติ**ทุกรอบจนกว่าจะยกเลิก',
@@ -310,10 +311,11 @@ export const TERMS: Record<LegalLocale, LegalDoc> = {
             },
             {
                 id: 'plans',
-                title: 'Monthly plans for lawyers and interpreters/translators',
+                title: 'Monthly plans for lawyers',
                 blocks: [
                     {
                         ul: [
+                            'Monthly plans are for lawyers only. Interpreters/translators have no monthly plans and no paid placement.',
                             'A directory profile and chat are free. Paid plans (Pro and the top tier) are optional.',
                             '**Paid placement:** providers on a paid plan get a "Recommended" badge and a highlighted photo, and are listed above free-plan providers; the top tier is also featured on the home page. This badge and ranking come from the plan purchase and **are not a quality assessment or endorsement by Lawslane**.',
                             'Prices and billing periods (monthly/yearly) are as shown before payment. Payment is by card through Stripe and **renews automatically** each period until cancelled.',
@@ -521,10 +523,11 @@ export const TERMS: Record<LegalLocale, LegalDoc> = {
             },
             {
                 id: 'plans',
-                title: '律师及口译/笔译员月度方案',
+                title: '律师月度方案',
                 blocks: [
                     {
                         ul: [
+                            '月度方案仅适用于律师。口译/笔译员没有月度方案，也没有付费展示。',
                             '名录资料和聊天功能免费。付费方案（Pro 及最高级别）为可选项。',
                             '**付费展示：**付费方案的服务提供者会获得"推荐"标志和特殊头像边框，并排在免费方案之前；最高级别还会在首页展示。该标志和排名来自方案购买，**并非 Lawslane 的质量评估或认可**。',
                             '价格和计费周期（月付/年付）以付款前显示为准。通过 Stripe 以银行卡付款，并在取消前**自动续订**。',
