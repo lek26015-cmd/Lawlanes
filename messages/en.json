@@ -531,7 +531,14 @@
     "invoiceNumber": "Invoice no.",
     "description": "Item / case",
     "amount": "Amount",
-    "status": "Status"
+    "status": "Status",
+    "appointmentStatus": {
+      "pending_payment": "Verifying payment",
+      "paid": "Awaiting lawyer confirmation",
+      "confirmed": "Confirmed",
+      "completed": "Completed",
+      "other": "In progress"
+    }
   },
   "CaseRoom": {
     "titleInitial": "Initial Consultation Chat",
