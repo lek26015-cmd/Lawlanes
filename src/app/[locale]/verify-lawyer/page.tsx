@@ -1,7 +1,6 @@
 import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { ArrowLeft, ShieldAlert, FileText, Search, Landmark } from 'lucide-react';
-import { Link } from '@/navigation';
+import { ShieldAlert, FileText, Search, Landmark } from 'lucide-react';
 import { pageMetadata, SITE_URL } from '@/lib/seo';
 import { getRegistryStats } from '@/lib/verified-lawyers-server';
 import { VerifyLawyerClient } from './verify-lawyer-client';
@@ -68,38 +67,32 @@ export default async function VerifyLawyerPage({ params }: { params: Promise<{ l
     ];
 
     return (
-        <div className="min-h-screen bg-[#F4F6F9] p-4 md:p-8 relative overflow-hidden">
+        <div className="min-h-screen bg-[#F4F6F9] relative overflow-hidden">
             <script
                 type="application/ld+json"
                 dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
             />
 
-            {/* Decorative Background Elements */}
-            <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
-                <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[40%] rounded-full bg-blue-100/50 blur-3xl animate-pulse" />
-                <div className="absolute bottom-[-10%] left-[-5%] w-[30%] h-[30%] rounded-full bg-indigo-100/50 blur-3xl" />
-            </div>
-
-            <div className="container mx-auto max-w-6xl relative z-10">
-                {/* Header Section */}
-                <div className="mb-8 pt-4 md:pt-8">
-                    <Link href="/" className="inline-flex items-center text-sm text-slate-500 hover:text-[#0B3979] transition-colors mb-6 font-medium">
-                        <ArrowLeft className="w-4 h-4 mr-2" />
-                        {t('backToHome')}
-                    </Link>
-
-                    <div className="text-center space-y-4 mb-8">
-                        <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight font-headline text-[#0B3979] leading-tight">
-                            {t('title')}<br />{t('titleLine2')}
+            {/* hero (ภาพ + หัวเรื่อง + ฟอร์มค้นหา) และผลค้นหาอยู่ใน client component */}
+            <VerifyLawyerClient
+                registryCount={stats.count}
+                lastUpdatedIso={stats.lastUpdated}
+                heading={
+                    <>
+                        <h1 className="font-headline leading-tight">
+                            <span className="block text-5xl sm:text-6xl lg:text-7xl font-extrabold tracking-tighter text-white">Lawslane</span>{' '}
+                            <span className="block mt-2 text-2xl sm:text-3xl lg:text-4xl font-bold tracking-tight text-white text-balance">
+                                {t('title')}{locale === 'en' ? ' ' : ''}{t('titleLine2')}
+                            </span>
                         </h1>
-                        <p className="text-slate-500 text-lg md:text-xl leading-relaxed max-w-2xl mx-auto">
+                        <p className="text-gray-400 text-base md:text-lg lg:text-xl leading-relaxed max-w-[550px] mx-auto lg:mx-0">
                             {t('description')}
                         </p>
-                    </div>
-                </div>
+                    </>
+                }
+            />
 
-                <VerifyLawyerClient registryCount={stats.count} lastUpdatedIso={stats.lastUpdated} />
-
+            <div className="container mx-auto max-w-6xl px-4 md:px-8 relative z-10">
                 {/* วิธีตรวจสอบ */}
                 <section className="max-w-4xl mx-auto mt-6">
                     <h2 className="text-2xl md:text-3xl font-bold text-[#0B3979] text-center mb-6">{t('guide.heading')}</h2>

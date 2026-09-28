@@ -50,8 +50,8 @@ export default function AnalyzeContractPage() {
             <div className="max-w-5xl mx-auto space-y-8">
                 {/* Header */}
                 <div className="text-center space-y-4">
-                    <div className="inline-flex items-center justify-center p-4 bg-indigo-50 rounded-2xl mb-2">
-                        <FileText className="w-10 h-10 text-indigo-600" />
+                    <div className="inline-flex items-center justify-center p-4 bg-blue-50 rounded-2xl mb-2">
+                        <FileText className="w-10 h-10 text-[#0B3979]" />
                     </div>
                     <h1 className="text-3xl md:text-4xl font-bold text-slate-900 tracking-tight">
                         ระบบตรวจสอบสัญญาด้วย AI
@@ -83,7 +83,7 @@ export default function AnalyzeContractPage() {
                             <Button 
                                 onClick={handleAnalyze} 
                                 disabled={isAnalyzing || contractText.length < 50}
-                                className="w-full h-14 text-lg rounded-xl font-semibold bg-indigo-600 hover:bg-indigo-700 text-white shadow-sm transition-all"
+                                className="w-full h-14 text-lg rounded-xl font-semibold bg-[#0B3979] hover:bg-[#082a5a] text-white shadow-sm transition-all"
                             >
                                 {isAnalyzing ? (
                                     <>
@@ -106,7 +106,7 @@ export default function AnalyzeContractPage() {
                     <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden h-[600px] flex flex-col">
                         <div className="bg-slate-50 border-b border-slate-200 px-6 py-4">
                             <h2 className="font-semibold text-slate-800 flex items-center gap-2">
-                                <CheckCircle className="w-5 h-5 text-indigo-500" /> ผลการวิเคราะห์จาก AI
+                                <CheckCircle className="w-5 h-5 text-[#0B3979]" /> ผลการวิเคราะห์จาก AI
                             </h2>
                         </div>
                         
@@ -140,7 +140,7 @@ export default function AnalyzeContractPage() {
                                         <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider">คีย์เวิร์ดกฎหมายที่ค้นพบ</h3>
                                         <div className="flex flex-wrap gap-2">
                                             {result.keywords.map((kw, idx) => (
-                                                <span key={idx} className="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-sm font-medium border border-indigo-100">
+                                                <span key={idx} className="px-3 py-1 bg-blue-50 text-[#082a5a] rounded-full text-sm font-medium border border-blue-100">
                                                     {kw}
                                                 </span>
                                             ))}
