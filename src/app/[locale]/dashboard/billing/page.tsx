@@ -8,16 +8,24 @@ import { useUser } from '@/firebase';
 import { getUserInvoicesAction } from '@/app/actions/billing-actions';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { useLocale } from 'next-intl';
 
 export default function ClientBillingPage() {
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
   const router = useRouter();
+  const locale = useLocale();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (isUserLoading || !user) return;
+    if (isUserLoading) return;
+    // เดิม return เฉยๆ ตอนไม่มี user → isLoading ค้าง true หมุนโหลดไม่จบ
+    if (!user) {
+      router.push('/login');
+      return;
+    }
 
     async function fetchData() {
       setIsLoading(true);
@@ -34,9 +42,9 @@ export default function ClientBillingPage() {
     }
 
     fetchData();
-  }, [user, isUserLoading]);
+  }, [user, isUserLoading, router]);
 
-  if (isUserLoading || isLoading) {
+  if (isUserLoading || isLoading || !user) {
     return (
       <div className="flex justify-center items-center h-screen">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -72,8 +80,8 @@ export default function ClientBillingPage() {
             <ShieldCheck className="w-6 h-6" />
           </div>
           <div>
-            <div className="text-sm text-slate-400 font-medium">การชำระเงินที่ปลอดภัย</div>
-            <div className="text-slate-600 text-sm">เชื่อมต่อผ่าน HTTPS และแสดงเฉพาะรายการในบัญชีของคุณ</div>
+            <div className="text-sm text-slate-400 font-medium">ชำระให้ทนายโดยตรง</div>
+            <div className="text-slate-600 text-sm">Lawslane ไม่ได้รับหรือถือเงินค่าบริการ — โอนเข้าบัญชีของทนายตามใบแจ้งหนี้ แล้วทนายเป็นผู้ยืนยันรับเงิน</div>
           </div>
         </div>
       </div>
@@ -86,7 +94,7 @@ export default function ClientBillingPage() {
           <InvoiceList 
             invoices={invoices} 
             role="client" 
-            onAction={(id) => router.push(`/payment?chatId=${invoices.find(i => i.id === id)?.case_id}&type=case`)} 
+            onAction={(id) => router.push(`/payment?chatId=${invoices.find(i => i.id === id)?.case_id}`)} 
             onViewEvidence={(inv) => {
               if (inv.evidence_url) {
                 window.open(inv.evidence_url, '_blank');
@@ -99,7 +107,7 @@ export default function ClientBillingPage() {
       </div>
 
       <div className="mt-6 text-center text-slate-400 text-xs">
-        มีปัญหาในการชำระเงิน? <a href="#" className="text-blue-600 underline">ติดต่อฝ่ายสนับสนุน</a>
+        มีปัญหาในการชำระเงิน? <Link href={`/${locale}/help`} className="text-blue-600 underline">ติดต่อฝ่ายสนับสนุน</Link>
       </div>
     </div>
   );

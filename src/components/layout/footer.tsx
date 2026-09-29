@@ -5,7 +5,7 @@ import Logo from '@/components/logo';
 import { usePathname } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import { useState, useEffect } from 'react';
-import { getMainLink, getBusinessLink, getAdminLink, getEducationLink, getRootDomain } from '@/lib/domain-utils';
+import { getMainLink, getAdminLink, getEducationLink, getRootDomain } from '@/lib/domain-utils';
 import { MonthlyVisitorBadge } from '@/components/monthly-visitor-badge';
 
 // Helper component to handle absolute vs relative links
@@ -59,7 +59,8 @@ export default function Footer({ userRole, domainType = 'main' }: { userRole: st
   const ecosystemLinks = [
     { href: getEducationLink('/'), label: t('ecosystem.wittaya') },
     { href: `https://capdeal.${getRootDomain()}`, label: t('ecosystem.capdeal') },
-    { href: getBusinessLink('/', domainType, !isMounted), label: t('ecosystem.business') },
+    // Business ซ่อนไว้ก่อน — ยังเป็นร่างแยก ไม่รวมกับระบบในเครือจนกว่าจะพร้อม
+    // { href: getBusinessLink('/', domainType, !isMounted), label: t('ecosystem.business') },
   ];
 
   let forLawyersLinks = [

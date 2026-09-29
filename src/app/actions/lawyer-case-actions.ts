@@ -656,7 +656,7 @@ export async function closeCaseAction(caseId: string, data: {
 }
 
 /**
- * Cancel a case: update chat status and mark refund as pending.
+ * Cancel a case: update chat status. การคืนเงิน (ถ้ามี) เป็นเรื่องระหว่างลูกความกับทนายโดยตรง
  */
 export async function cancelCaseAction(caseId: string) {
     // caseId ตรงนี้คือ chatId — ต้องเป็นทนายของเคสนี้จริง
@@ -676,14 +676,20 @@ export async function cancelCaseAction(caseId: string) {
         }
 
         const chatData = chatDoc.data();
-        const paidAmount = chatData?.paidAmount || chatData?.amount || 0;
+        // ยอดที่ทนายยืนยันว่าได้รับแล้วจริง (งวดที่ 'paid' หรือ paidAmount) — ไม่ใช่ chat.amount
+        // ซึ่งเป็นแค่ยอดที่เสนอ ลูกความอาจยังไม่ได้โอนเลย
+        const insts: any[] = Array.isArray(chatData?.installments) ? chatData!.installments : [];
+        const paidAmount = insts.length > 0
+            ? insts.filter(i => i?.status === 'paid').reduce((sum, i) => sum + (parseFloat(String(i?.amount ?? 0).replace(/,/g, '')) || 0), 0)
+            : (Number(chatData?.paidAmount) || 0);
 
         const batch = db.batch();
         batch.update(chatRef, {
             status: 'cancelled',
             cancelledAt: new Date(),
             cancelledBy: actorUid,
-            refundStatus: paidAmount > 0 ? 'pending_refund' : 'no_refund_needed',
+            // Lawslane ไม่ได้ถือเงิน → ไม่มีคิวคืนเงินของแพลตฟอร์ม การคืน (ถ้ามี) ตกลงกันเองระหว่างลูกความกับทนาย
+            refundStatus: paidAmount > 0 ? 'direct_with_lawyer' : 'no_refund_needed',
             refundAmount: paidAmount,
             lastMessage: '❌ เคสถูกยกเลิกโดยทนายความ',
             lastMessageAt: new Date(),
@@ -693,7 +699,7 @@ export async function cancelCaseAction(caseId: string) {
         // Add system message
         const systemMsgRef = chatRef.collection('messages').doc();
         batch.set(systemMsgRef, {
-            text: `❌ เคสถูกยกเลิกโดยทนายความ${paidAmount > 0 ? ` — ระบบจะดำเนินการคืนเงิน ฿${paidAmount.toLocaleString()} ให้ลูกความ` : ''}`,
+            text: `❌ เคสถูกยกเลิกโดยทนายความ${paidAmount > 0 ? ` — ลูกความชำระให้ทนายไปแล้ว ฿${paidAmount.toLocaleString()} การคืนเงินให้ตกลงกับทนายโดยตรง (Lawslane ไม่ได้ถือเงินก้อนนี้)` : ''}`,
             senderId: 'system',
             timestamp: new Date(),
             type: 'case_cancelled'

@@ -3,7 +3,7 @@
 import { initAdmin } from '@/lib/firebase-admin';
 import type { Case, UpcomingAppointment, ReportedTicket, LawyerCase, LawyerAppointmentRequest } from '@/lib/types';
 import { requireUser, requireAdmin, requireLawyer, AuthError } from '@/lib/auth-guard';
-import { reduceLawyerBalance } from '@/lib/lawyer-balance';
+import { summarizeLawyerReceipts } from '@/lib/lawyer-receipts';
 
 /** ผู้เรียกเป็นทนายคนนี้เองหรือเป็นแอดมินหรือไม่ (lawyerId เป็น id ของ lawyerProfiles) */
 async function callerIsThisLawyerOrAdmin(lawyerId: string): Promise<boolean> {
@@ -43,8 +43,11 @@ export async function getUserDashboardData() {
         // Resolve each chat's lawyer id up front so lawyer profiles can be
         // batch-fetched below instead of one Firestore read per chat/appointment
         // (see LAWSLANE-PLAN-01 2.2).
+        // ห้องแชทเก็บทนายไว้หลายแบบ: lawyerId (id โปรไฟล์), lawyer_id (รุ่นเก่า) หรือไม่มีเลย
+        // มีแค่ uid ทนายใน participants — id โปรไฟล์ที่แอดมินสร้างเป็น id สุ่ม ไม่เท่ากับ uid
+        // เดิมเช็คแค่ lawyerId แล้วหา lawyerProfiles ด้วย doc id อย่างเดียว → "Unknown Lawyer"
         const resolveLawyerId = (data: FirebaseFirestore.DocumentData): string | undefined => {
-            let lawyerId = data.lawyerId;
+            let lawyerId = data.lawyerId || data.lawyer_id;
             if (!lawyerId && data.participants && Array.isArray(data.participants)) {
                 lawyerId = data.participants.find((p: string) => p !== userId);
             }
@@ -65,50 +68,81 @@ export async function getUserDashboardData() {
             if (id) lawyerIds.add(id);
         }
 
+        const chunk30 = (ids: string[]) => {
+            const out: string[][] = [];
+            for (let i = 0; i < ids.length; i += 30) out.push(ids.slice(i, i + 30));
+            return out;
+        };
+
         const DEFAULT_LAWYER = { name: 'Unknown Lawyer', imageUrl: '', imageHint: '' };
-        const lawyerProfileMap: Record<string, { name: string; imageUrl: string; imageHint: string }> = {};
+        type LawyerInfo = { name: string; imageUrl: string; imageHint: string; ownerUid?: string };
+        const lawyerProfileMap: Record<string, LawyerInfo> = {};
+        const fromProfile = (d: FirebaseFirestore.DocumentData): LawyerInfo => ({
+            name: d?.name || 'Unknown Lawyer', imageUrl: d?.imageUrl || '', imageHint: d?.imageHint || '', ownerUid: d?.userId,
+        });
         if (lawyerIds.size > 0) {
             const idsArray = Array.from(lawyerIds);
-            const chunks: string[][] = [];
-            for (let i = 0; i < idsArray.length; i += 30) {
-                chunks.push(idsArray.slice(i, i + 30));
-            }
 
-            // Try lawyerProfiles first...
-            const profileSnaps = await Promise.all(chunks.map(chunk =>
+            // 1) id เป็น id ของ lawyerProfiles
+            const profileSnaps = await Promise.all(chunk30(idsArray).map(chunk =>
                 db.collection('lawyerProfiles').where('__name__', 'in', chunk).get()
             ));
             profileSnaps.forEach(snap => snap.docs.forEach(doc => {
-                const d = doc.data();
-                lawyerProfileMap[doc.id] = { name: d?.name || 'Unknown Lawyer', imageUrl: d?.imageUrl || '', imageHint: d?.imageHint || '' };
+                lawyerProfileMap[doc.id] = fromProfile(doc.data());
             }));
 
-            // ...then fall back to users for any id not found there.
-            const missingIds = idsArray.filter(id => !lawyerProfileMap[id]);
+            // 2) id เป็น uid ของทนาย → หาโปรไฟล์ที่ userId ตรงกัน
+            let missingIds = idsArray.filter(id => !lawyerProfileMap[id]);
             if (missingIds.length > 0) {
-                const missingChunks: string[][] = [];
-                for (let i = 0; i < missingIds.length; i += 30) {
-                    missingChunks.push(missingIds.slice(i, i + 30));
-                }
-                const userSnaps = await Promise.all(missingChunks.map(chunk =>
+                const byOwnerSnaps = await Promise.all(chunk30(missingIds).map(chunk =>
+                    db.collection('lawyerProfiles').where('userId', 'in', chunk).get()
+                ));
+                byOwnerSnaps.forEach(snap => snap.docs.forEach(doc => {
+                    const owner = doc.data()?.userId;
+                    if (owner && !lawyerProfileMap[owner]) lawyerProfileMap[owner] = fromProfile(doc.data());
+                }));
+            }
+
+            // 3) ไม่มีโปรไฟล์ทนายเลย → ใช้ชื่อจาก users
+            missingIds = idsArray.filter(id => !lawyerProfileMap[id]);
+            if (missingIds.length > 0) {
+                const userSnaps = await Promise.all(chunk30(missingIds).map(chunk =>
                     db.collection('users').where('__name__', 'in', chunk).get()
                 ));
                 userSnaps.forEach(snap => snap.docs.forEach(doc => {
                     const d = doc.data();
-                    lawyerProfileMap[doc.id] = { name: d?.name || 'Unknown Lawyer', imageUrl: '', imageHint: '' };
+                    lawyerProfileMap[doc.id] = {
+                        name: d?.name || d?.displayName || 'Unknown Lawyer',
+                        imageUrl: d?.avatar || d?.imageUrl || '',
+                        imageHint: '',
+                        ownerUid: doc.id,
+                    };
                 }));
             }
         }
 
         const getLawyerDetails = (lawyerIdParam: string | undefined): any => {
             if (!lawyerIdParam) return { id: 'unknown', ...DEFAULT_LAWYER };
-            return { id: lawyerIdParam, ...(lawyerProfileMap[lawyerIdParam] || DEFAULT_LAWYER) };
+            const { ownerUid: _ownerUid, ...info } = lawyerProfileMap[lawyerIdParam] || DEFAULT_LAWYER;
+            return { id: lawyerIdParam, ...info };
+        };
+
+        // ห้องที่ผู้ใช้เป็น "ทนาย" เอง (ทนายเปิดแดชบอร์ดลูกความ) อยู่ในแดชบอร์ดทนายแล้ว
+        // เดิมโผล่ที่นี่ด้วย โดยเอาชื่อลูกความมาแสดงเป็นชื่อทนาย
+        const isOwnLawyerChat = (data: FirebaseFirestore.DocumentData): boolean => {
+            const id = data.lawyerId || data.lawyer_id;
+            if (!id) return false;
+            return id === userId || lawyerProfileMap[id]?.ownerUid === userId;
         };
 
         const cases: Case[] = [];
+        // ส่งให้หน้าเว็บรู้ว่าห้องไหนตั้งใจไม่แสดง — ไม่งั้น realtime listener เห็นว่าเป็นห้องใหม่
+        // แล้วดึงข้อมูลทั้งหมดใหม่ทุกข้อความ
+        const excludedChatIds: string[] = [];
 
         for (const d of chatDocs.values()) {
             const data = d.data();
+            if (isOwnLawyerChat(data)) { excludedChatIds.push(d.id); continue; }
             const lawyerId = resolveLawyerId(data);
 
             const lawyer = getLawyerDetails(lawyerId);
@@ -163,7 +197,7 @@ export async function getUserDashboardData() {
             const todayStart = new Date();
             todayStart.setHours(0, 0, 0, 0);
 
-            if (date >= todayStart) {
+            if (date >= todayStart && data.status !== 'cancelled') {
                 appointments.push({
                     id: d.id,
                     date: date,
@@ -211,26 +245,39 @@ export async function getUserDashboardData() {
         // Bounded to 200 then sorted+sliced in JS below — an indexed orderBy() would let
         // Firestore do this directly, but that needs a (userId + createdAt) composite index
         // that doesn't exist yet; adding orderBy() without it would make this query fail outright.
+        // ใบแจ้งหนี้มีชื่อช่อง 2 ชุด (userId/dueDate จากแชท, client_id/due_date จากหน้า billing
+        // ของทนาย) — เดิมค้นแค่ userId การ์ดนี้กับหน้า billing จึงเห็นใบแจ้งหนี้คนละชุด
         const invoicesRef = db.collection('invoices');
-        const invoiceSnap = await invoicesRef
-            .where('userId', '==', userId)
-            .limit(200)
-            .get();
+        const [invByUserId, invByClientId] = await Promise.all([
+            invoicesRef.where('userId', '==', userId).limit(200).get(),
+            invoicesRef.where('client_id', '==', userId).limit(200).get(),
+        ]);
+        const invoiceDocs = new Map<string, FirebaseFirestore.QueryDocumentSnapshot>();
+        [...invByUserId.docs, ...invByClientId.docs].forEach(d => invoiceDocs.set(d.id, d));
 
-        const invoices = invoiceSnap.docs
+        const toIso = (v: any): string | null => {
+            if (!v) return null;
+            const date = v.toDate ? v.toDate() : new Date(v);
+            return isNaN(date.getTime()) ? null : date.toISOString();
+        };
+
+        const invoices = Array.from(invoiceDocs.values())
             .map(d => {
                 const data = d.data();
                 return {
                     id: d.id,
                     ...data,
-                    createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : new Date().toISOString(),
-                    dueDate: data.dueDate?.toDate ? data.dueDate.toDate().toISOString() : (data.dueDate || new Date().toISOString()),
+                    chatId: data.chatId || data.case_id || data.caseId || data.chat_id || null,
+                    createdAt: toIso(data.createdAt) || new Date().toISOString(),
+                    dueDate: toIso(data.dueDate ?? data.due_date),
+                    paidAt: toIso(data.paidAt),
+                    updatedAt: toIso(data.updatedAt),
                 };
             })
             .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
             .slice(0, 5);
 
-        return { cases, appointments, tickets, capDeals, invoices };
+        return { cases, appointments, tickets, capDeals, invoices, excludedChatIds };
     } catch (error) {
         throw new Error('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
     }
@@ -257,42 +304,18 @@ export async function getLawyerStatsAction(lawyerId: string) {
                 .get()
         ]);
 
-        let incomeThisMonth = 0;
-        let totalIncome = 0;
         let completedCases = 0;
         let rating = 0;
         let responseRate = 0;
 
-        const now = new Date();
-        const currentMonth = now.getMonth();
-        const currentYear = now.getFullYear();
+        // เดิมรายได้เป็นตัวเลขสมมติ (นัดหมาย 3,500 × 85% / แชทปิด 500 × 85% = หัก GP 15%)
+        // ตอนนี้ไม่มี GP และแพลตฟอร์มไม่ถือเงิน → รายได้ = ยอดที่ทนายกดยืนยันรับเอง (lib/lawyer-receipts)
+        const { totalReceived: totalIncome, receivedThisMonth: incomeThisMonth } =
+            summarizeLawyerReceipts(chatsSnap.docs.map(d => ({ id: d.id, data: d.data() })));
 
-        appointmentsSnap.docs.forEach(doc => {
-            const data = doc.data();
-            const amount = 3500; // Fixed price logic from original
-            const lawyerShare = amount * 0.85;
-            totalIncome += lawyerShare;
-
-            const date = data.createdAt?.toDate ? data.createdAt.toDate() : new Date();
-            if (date.getMonth() === currentMonth && date.getFullYear() === currentYear) {
-                incomeThisMonth += lawyerShare;
-            }
-            completedCases++;
-        });
-
+        completedCases += appointmentsSnap.size;
         chatsSnap.docs.forEach(doc => {
-            const data = doc.data();
-            if (data.status === 'closed') {
-                const amount = 500; // Fixed price logic from original
-                const lawyerShare = amount * 0.85;
-                totalIncome += lawyerShare;
-
-                const date = data.createdAt?.toDate ? data.createdAt.toDate() : new Date();
-                if (date.getMonth() === currentMonth && date.getFullYear() === currentYear) {
-                    incomeThisMonth += lawyerShare;
-                }
-                completedCases++;
-            }
+            if (doc.data().status === 'closed') completedCases++;
         });
 
         if (!reviewsSnap.empty) {
@@ -358,10 +381,9 @@ export async function getLawyerDashboardDataAction(): Promise<{ newRequests: Law
         // 1. Fetch appointments and chats
         const requestsSnap = await db.collection('appointments')
             .where('lawyerId', '==', lawyerProfileId)
-            // คำขอที่ทนายรับได้คือนัดที่ "จ่ายแล้ว" เท่านั้น (respondToAppointmentRequestAction
-            // ยอมรับเฉพาะ status 'paid') — เดิมดึง 'pending' ซึ่ง createAppointment ไม่เคย
-            // สร้าง คำขอที่ลูกความจ่ายแล้วจึงไม่เคยขึ้นให้ทนายเห็น
-            .where('status', '==', 'paid')
+            // คำขอนัดหมายฟรีที่รอตอบรับ (requestAppointmentAction สร้างที่ 'pending')
+            // คำขอรุ่นเก่าที่ค้าง 'paid' (จ่ายผ่านแพลตฟอร์มแล้วแต่ยังไม่มีคนรับ) ก็ต้องขึ้นให้เห็นด้วย
+            .where('status', 'in', ['pending', 'paid'])
             .limit(50)
             .get();
 
@@ -485,110 +507,53 @@ export async function getLawyerDashboardDataAction(): Promise<{ newRequests: Law
 }
 
 
+/**
+ * หน้าการเงินของทนาย — บัญชีรับเงิน + บันทึกยอดที่ทนายยืนยันรับเอง
+ *
+ * เดิมคำนวณ "ยอดคงเหลือที่ถอนได้" จาก transactions (หลังหัก GP) − withdrawals เพราะแพลตฟอร์ม
+ * ถือเงินไว้ให้ ตอนนี้ลูกความโอนเข้าบัญชีทนายโดยตรง ไม่มียอดคงเหลือ/การถอน/GP อีกแล้ว
+ * (transactions / withdrawals ไม่ถูกอ่านหรือเขียนจากเว็บหลักแล้ว — ดู LAWSLANE-PLAN-05)
+ */
 export async function getLawyerFinancialsAction() {
-    // ข้อมูลการเงินของทนาย — uid มาจาก session เท่านั้น
-    const { uid: lawyerId } = await requireUser();
-    const adminApp = await initAdmin();
-    if (!adminApp) throw new Error('Firebase Admin not initialized.');
+    // uid จาก session · โปรไฟล์จาก requireLawyer (doc id ของโปรไฟล์ไม่จำเป็นต้องเท่ากับ uid)
+    const { uid, lawyerProfileId, adminApp } = await requireLawyer();
     const db = adminApp.firestore();
 
     try {
-        const appointmentsRef = db.collection('appointments');
-        const chatsRef = db.collection('chats');
-        const withdrawalsRef = db.collection('withdrawals');
-        const lawyerRef = db.collection('lawyerProfiles').doc(lawyerId);
-
-        const [transactionsSnapshot, withdrawSnapshot, lawyerDoc] = await Promise.all([
-            db.collection('transactions').where('lawyerId', '==', lawyerId).get(),
-            withdrawalsRef.where('lawyerId', '==', lawyerId).get(),
-            lawyerRef.get()
+        const [lawyerDoc, byProfile, byParticipant] = await Promise.all([
+            db.collection('lawyerProfiles').doc(lawyerProfileId).get(),
+            db.collection('chats').where('lawyerId', '==', lawyerProfileId).limit(500).get(),
+            db.collection('chats').where('participants', 'array-contains', uid).limit(500).get(),
         ]);
+
+        // ห้องที่ผู้เรียกเป็นทนายจริง (lawyerId = โปรไฟล์ของผู้เรียก) — participants อย่างเดียวไม่พอ
+        // เพราะทนายอาจเป็นลูกความในห้องอื่นได้
+        const chats = new Map<string, FirebaseFirestore.DocumentData>();
+        for (const d of [...byProfile.docs, ...byParticipant.docs]) {
+            const data = d.data();
+            if ((data.lawyerId || data.lawyer_id) === lawyerProfileId) chats.set(d.id, data);
+        }
+
+        const summary = summarizeLawyerReceipts([...chats].map(([id, data]) => ({ id, data })));
+
+        const clientIds = [...new Set(summary.receipts.map(r => r.clientId).filter(Boolean))];
+        const clientNames: Record<string, string> = {};
+        for (let i = 0; i < clientIds.length; i += 30) {
+            const snap = await db.collection('users').where('__name__', 'in', clientIds.slice(i, i + 30)).get();
+            snap.docs.forEach(doc => { clientNames[doc.id] = doc.data()?.name || 'ลูกความ'; });
+        }
 
         const lawyerProfile = lawyerDoc.data();
 
-        // Collect user IDs for batch fetching mapped to transactions
-        const userIds = new Set<string>();
-        transactionsSnapshot.docs.forEach(d => { if (d.get('clientId')) userIds.add(d.get('clientId')); });
-
-        const userProfiles: Record<string, any> = {};
-        if (userIds.size > 0) {
-            const idsArray = Array.from(userIds);
-            const chunks = [];
-            for (let i = 0; i < idsArray.length; i += 30) {
-                chunks.push(idsArray.slice(i, i + 30));
-            }
-            const userSnaps = await Promise.all(chunks.map(chunk =>
-                db.collection('users').where('__name__', 'in', chunk).get()
-            ));
-            userSnaps.forEach(snap => {
-                snap.docs.forEach(doc => { userProfiles[doc.id] = doc.data(); });
-            });
-        }
-
-        const allTransactions: any[] = [];
-        let thisMonth = 0;
-        const now = new Date();
-
-        // Process Transactions
-        transactionsSnapshot.docs.forEach(d => {
-            const data = d.data();
-
-            const netAmount = data.netAmount || 0;
-            const isCompleted = data.status === 'completed';
-
-            const date = data.createdAt?.toDate ? data.createdAt.toDate() : new Date();
-            if (isCompleted && date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()) {
-                thisMonth += netAmount;
-            }
-
-            // Derive description from id (e.g. "apt_xxx" -> "นัดหมายปรึกษา", "chat_xxx" -> "ปรึกษาผ่านแชท")
-            let description = 'ทำรายการ';
-            if (d.id.startsWith('apt_')) description = 'นัดหมายปรึกษา';
-            else if (d.id.startsWith('chat_')) description = 'ปรึกษาผ่านแชท';
-
-            allTransactions.push({
-                id: d.id,
-                date: date.toISOString(),
-                description: description,
-                amount: netAmount, // Dashboard uses amount strictly to display revenue
-                type: data.type || 'revenue',
-                status: isCompleted ? 'completed' : 'pending',
-                clientName: userProfiles[data.clientId]?.name || 'ลูกความ',
-                rawDateValue: date.getTime()
-            });
-        });
-
-        // ยอดรวมทั้งหมดคิดด้วยสูตรกลาง (lib/lawyer-balance) ตัวเดียวกับที่ด่านขอถอน
-        // และหน้าอนุมัติของแอดมินใช้ — ห้ามคิดซ้ำเองตรงนี้ ไม่งั้นตัวเลขจะเพี้ยนกันได้
-        const balance = reduceLawyerBalance(transactionsSnapshot.docs, withdrawSnapshot.docs);
-
-        const withdrawals: any[] = [];
-
-        withdrawSnapshot.docs.forEach(doc => {
-            const data = doc.data();
-            withdrawals.push({
-                id: doc.id,
-                amount: data.amount,
-                status: data.status,
-                requestedAt: data.requestedAt?.toDate ? data.requestedAt.toDate().toISOString() : new Date().toISOString(),
-                bankName: data.bankName,
-                accountNumber: data.accountNumber,
-                rawDateValue: data.requestedAt?.toDate ? data.requestedAt.toDate().getTime() : 0
-            });
-        });
-
-        allTransactions.sort((a, b) => b.rawDateValue - a.rawDateValue);
-        withdrawals.sort((a, b) => b.rawDateValue - a.rawDateValue);
-
         return JSON.parse(JSON.stringify({
-            transactions: allTransactions,
-            withdrawals: withdrawals,
+            receipts: summary.receipts.map(r => ({
+                ...r,
+                clientName: clientNames[r.clientId] || 'ลูกความ',
+            })),
             stats: {
-                totalIncome: balance.totalIncome,
-                pendingIncome: balance.pendingIncome,
-                incomeThisMonth: thisMonth,
-                withdrawnAmount: balance.withdrawnAmount,
-                availableBalance: balance.availableBalance
+                totalReceived: summary.totalReceived,
+                receivedThisMonth: summary.receivedThisMonth,
+                outstanding: summary.outstanding,
             },
             profile: {
                 bankName: lawyerProfile?.bankName || '',

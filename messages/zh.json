@@ -531,7 +531,51 @@
     "description": "项目 / 案件",
     "amount": "金额",
     "status": "状态",
-    "nextAction": "下一步"
+    "nextAction": "下一步",
+    "appointmentStatus": {
+      "pending_payment": "正在核实付款",
+      "paid": "等待律师确认",
+      "confirmed": "已确认",
+      "completed": "已完成",
+      "other": "处理中"
+    },
+    "capdeal": {
+      "title": "CapDeal — 最近的合同",
+      "defaultTitle": "承揽合同",
+      "status": {
+        "signed": "已签署",
+        "draft": "草稿",
+        "pending": "待签署"
+      },
+      "task": "工作：{task}",
+      "noDetails": "无详细信息",
+      "price": "价格：{price} 泰铢",
+      "view": "查看合同",
+      "create": "新建合同",
+      "empty": "还没有通过 CapDeal 创建的合同",
+      "start": "截图即可签约！"
+    },
+    "invoiceCard": {
+      "defaultDescription": "诉讼费用",
+      "paid": "已付款",
+      "pending": "待付款",
+      "dueDate": "到期日：{date}",
+      "empty": "暂无账单",
+      "help": "付款遇到问题？联系我们"
+    },
+    "chatItem": {
+      "yesterday": "昨天",
+      "pendingPayment": "待付款",
+      "pendingVerification": "正在核对付款凭证",
+      "completed": "已完成",
+      "cancelled": "已取消",
+      "active": "进行中",
+      "typeCase": "案件聊天",
+      "typePreliminary": "初步咨询",
+      "noMessages": "暂无消息"
+    },
+    "realtimeError": "此页面无法自动更新新消息，请刷新以查看最新消息。",
+    "refresh": "刷新"
   },
   "CaseRoom": {
     "proTools": "专业工具 (PRO)",
@@ -582,7 +626,7 @@
     "loginRequiredDescription": "您必须登录后才能报告问题",
     "problemTypes": {
       "communication": "与律师的沟通问题",
-      "payment": "付款/托管问题",
+      "payment": "付款问题",
       "technical": "系统技术问题",
       "quality": "对服务质量不满意",
       "other": "其他"
@@ -598,15 +642,15 @@
       },
       {
         "question": "通过 Lawslane 聘请律师的流程是怎样的？",
-        "answer": "您可以从使用 AI 分析问题、从列表中搜索律师或预约直接交谈开始。一旦您选择了想要的律师，您就可以开启案件并通过我们的托管系统付款，立即开始工作。"
+        "answer": "您可以从使用 AI 分析问题、从列表中搜索律师或预约直接交谈开始。选定律师后，律师会在聊天中提出服务费用，您直接将费用转入律师的银行账户 — Lawslane 不收取也不代管服务费。"
       },
       {
         "question": "我的信息会保密吗？",
         "answer": "当然，我们高度重视客户的隐私和保密。您与我们平台上律师的所有信息和对话都将根据最高标准进行加密和保密。您可以在我们的隐私政策中阅读更多详情。"
       },
       {
-        "question": "托管付款系统是什么，它是如何工作的？",
-        "answer": "托管是一个系统，Lawslane 在其中充当中间人来持有服务费。您的资金在我们这里将保持安全，只有在您确认工作已完成且对服务满意时，才会转账给律师。这种方法有助于建立双方的信心。"
+        "question": "如果与律师之间出现问题该怎么办？",
+        "answer": "如果您遇到问题或对服务不满意，可以在该案件的聊天页面使用“报告问题”按钮，立即联系我们的客户支持团队。我们会尽快核查并提供帮助。"
       },
       {
         "question": "如果律师出现问题，我该怎么办？",

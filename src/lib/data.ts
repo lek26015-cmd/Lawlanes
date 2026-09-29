@@ -19,6 +19,7 @@ import type { LawyerProfile, ImagePlaceholder, Ad, Article, Case, UpcomingAppoin
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { format } from 'date-fns';
 import { th } from 'date-fns/locale';
+import { summarizeLawyerReceipts } from './lawyer-receipts';
 
 export const getImageUrl = (id: string) => PlaceHolderImages.find(img => img.id === id)?.imageUrl ?? '';
 export const getImageHint = (id: string) => PlaceHolderImages.find(img => img.id === id)?.imageHint ?? '';
@@ -118,7 +119,7 @@ export async function getLawyerDashboardData(db: Firestore, lawyerId: string): P
   try {
     // 1. Fetch appointments and chats in parallel
     const appointmentsRef = collection(db, 'appointments');
-    const requestsQuery = query(appointmentsRef, where('lawyerId', '==', lawyerId), where('status', '==', 'paid'), limit(50)); // รับได้เฉพาะนัดที่จ่ายแล้ว — ดู dashboard-actions.ts
+    const requestsQuery = query(appointmentsRef, where('lawyerId', '==', lawyerId), where('status', 'in', ['pending', 'paid']), limit(50)); // คำขอนัดหมายที่รอตอบรับ — ดู dashboard-actions.ts
 
     const chatsRef = collection(db, 'chats');
     const casesQuery = query(chatsRef, where('participants', 'array-contains', lawyerId), limit(100));
@@ -252,26 +253,21 @@ export async function getLawyerStats(db: Firestore, lawyerId: string) {
     const appointmentsQuery = query(collection(db, 'appointments'), where('lawyerId', '==', lawyerId), where('status', '==', 'completed'));
     const closedChatsQuery = query(collection(db, 'chats'), where('participants', 'array-contains', lawyerId), where('status', '==', 'closed'));
 
-    const [transactionsSnapshot, appointmentsCountSnap, closedChatsCountSnap, reviewsSnapshot, allChatsSnapshot] = await Promise.all([
-      getDocs(query(collection(db, 'transactions'), where('lawyerId', '==', lawyerId), where('status', '==', 'completed'), limit(1000))),
+    // `transactions` (รายได้หลังหัก GP ที่ webhook เขียน) เลิกใช้แล้ว — และ client อ่านไม่ได้อยู่แล้ว
+    // (ไม่มีกฎ → default deny ทำให้ Promise.all ทั้งก้อนล้ม ตัวเลขบนแดชบอร์ดเป็น 0 หมด)
+    const [appointmentsCountSnap, closedChatsCountSnap, reviewsSnapshot, allChatsSnapshot] = await Promise.all([
       getCountFromServer(appointmentsQuery),
       getCountFromServer(closedChatsQuery),
       getDocs(query(collection(db, 'reviews'), where('lawyerId', '==', lawyerId), limit(200))),
       getDocs(query(collection(db, 'chats'), where('participants', 'array-contains', lawyerId), limit(500)))
     ]);
 
-    // Calculate revenue from transactions
-    transactionsSnapshot.docs.forEach(doc => {
-      const data = doc.data();
-      const netAmount = data.netAmount || 0;
-      totalIncome += netAmount;
-
-      const date = data.createdAt?.toDate ? data.createdAt.toDate() : new Date();
-      const now = new Date();
-      if (date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()) {
-        incomeThisMonth += netAmount;
-      }
-    });
+    // รายได้ = ยอดที่ทนายกดยืนยันว่าได้รับเข้าบัญชีตัวเองแล้ว (ลูกความจ่ายทนายโดยตรง ไม่หัก GP)
+    {
+      const summary = summarizeLawyerReceipts(allChatsSnapshot.docs.map(d => ({ id: d.id, data: d.data() })));
+      totalIncome = summary.totalReceived;
+      incomeThisMonth = summary.receivedThisMonth;
+    }
 
     // Count completions
     completedCases = appointmentsCountSnap.data().count + closedChatsCountSnap.data().count;
