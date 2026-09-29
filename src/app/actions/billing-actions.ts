@@ -5,6 +5,7 @@ import * as admin from 'firebase-admin';
 import { Invoice, InvoiceStatus } from '@/lib/types/billing-types';
 import { requireUser, requireLawyer, requireChatRole, authErrorResult } from '@/lib/auth-guard';
 import { logCaseEvent } from '@/lib/telemetry/case-events';
+import { requireLawyerFeature } from '@/lib/lawyer-plan-access';
 
 /**
  * Fetches invoices for a specific user (client view).
@@ -60,9 +61,10 @@ export async function getUserInvoicesAction() {
  */
 export async function getLawyerInvoicesAction() {
     // uid มาจาก session — เดิมรับ lawyerId เป็น argument
+    // ใบแจ้งหนี้เป็นสิทธิ์ Pro/บริษัท — แพลนหมดอายุแล้วซ่อนของเดิมด้วย (ไม่ลบ)
     let lawyerId: string, adminApp;
     try {
-        ({ uid: lawyerId, adminApp } = await requireUser());
+        ({ uid: lawyerId, adminApp } = await requireLawyerFeature('invoices'));
     } catch (e) {
         return authErrorResult(e);
     }
@@ -106,6 +108,7 @@ export async function createInvoiceAction(data: Partial<Invoice>) {
     let callerUid: string, callerLawyerProfileId: string, adminApp;
     try {
         ({ uid: callerUid, lawyerProfileId: callerLawyerProfileId, adminApp } = await requireLawyer());
+        await requireLawyerFeature('invoices'); // ออกใบแจ้งหนี้เป็นสิทธิ์ Pro/บริษัท
     } catch (e) {
         return authErrorResult(e);
     }

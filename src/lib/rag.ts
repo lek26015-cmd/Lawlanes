@@ -129,6 +129,7 @@ const THAI_LAW_CSV_NAMES: Record<string, string> = {
     'Criminal Procedure': 'ประมวลกฎหมายวิธีพิจารณาความอาญา',
     'Land': 'ประมวลกฎหมายที่ดิน',
     'Revenue': 'ประมวลรัษฎากร',
+    'Computer Crime': 'พระราชบัญญัติว่าด้วยการกระทำความผิดเกี่ยวกับคอมพิวเตอร์',
 };
 
 function titleFromFirstChunk(text: string): string | null {
@@ -145,7 +146,8 @@ export async function resolveLawTitles(sources: string[]): Promise<Map<string, s
         const csv = source.match(/^ThaiLawCSV\/([^/]+)\/(.+)$/);
         if (csv) {
             const name = THAI_LAW_CSV_NAMES[csv[1]];
-            if (name) out.set(source, `${name} มาตรา ${csv[2]}`);
+            // แถว "มาตรา null" คือหมายเหตุท้าย พ.ร.บ. (เหตุผลในการประกาศใช้) ไม่ใช่มาตรา
+            if (name) out.set(source, csv[2] === 'null' ? name : `${name} มาตรา ${csv[2]}`);
             continue;
         }
         // "กฎหมาย/ประมวลกฎหมายที่ดิน (ฉบับ Update ล่าสุด)/..." — ชื่อกฎหมายอยู่ในโฟลเดอร์ชั้นแรก

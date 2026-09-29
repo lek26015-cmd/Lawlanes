@@ -3,14 +3,15 @@
 /**
  * Landing page ของทนาย — ดู src/lib/landing-page.ts
  * ตัวตนมาจาก session (requireLawyer) เท่านั้น ทนายแก้ได้เฉพาะหน้าของตัวเอง (doc id ผูกกับ lawyerProfileId)
- * แก้/เก็บแบบร่างได้ทุกแพลน · เผยแพร่ได้เฉพาะ Pro/บริษัท และทนายที่อนุมัติแล้ว
+ * แก้/เก็บแบบร่างได้ทุกแพลน · เผยแพร่ได้เฉพาะแพลนที่มีสิทธิ์ personalSite (ค่าเริ่มต้น Pro/บริษัท) และทนายที่อนุมัติแล้ว
  */
 
 import { revalidatePath } from 'next/cache';
 import { FieldValue } from 'firebase-admin/firestore';
 import { requireLawyer, authErrorResult } from '@/lib/auth-guard';
 import { checkRateLimit } from '@/lib/security/rate-limiter';
-import { effectiveTier, type PlanTier } from '@/lib/provider-plans';
+import { lawyerTier, type PlanTier } from '@/lib/provider-plans';
+import { getLawyerPlanConfig } from '@/lib/lawyer-plan-access';
 import { getPublicLawyerAction, type PublicLawyer } from '@/app/actions/lawyer-directory-actions';
 import { uploadToCloudflareImages } from '@/app/actions/upload';
 import { LANDING_LIMITS, normalizeSlug, sanitizeLandingInput, slugError, type LawyerLandingInput } from '@/lib/landing-page';
@@ -27,21 +28,26 @@ export async function getMyLandingPageAction(): Promise<Result<{
     page: LawyerLandingInput | null;
     suspended: boolean;
     tier: PlanTier;
+    /** แพลนนี้มีสิทธิ์เผยแพร่หน้าเว็บส่วนตัว (แอดมินปรับได้ — ดู lib/lawyer-entitlements) */
+    canPublishSite: boolean;
     lawyer: PublicLawyer | null;
 }>> {
     try {
         const { lawyerProfileId, adminApp } = await requireLawyer();
         const db = adminApp.firestore();
-        const [pageSnap, profileSnap, lawyer] = await Promise.all([
+        const [pageSnap, profileSnap, lawyer, config] = await Promise.all([
             db.collection('landingPages').doc(landingDocId(lawyerProfileId)).get(),
             db.collection('lawyerProfiles').doc(lawyerProfileId).get(),
             getPublicLawyerAction(lawyerProfileId),
+            getLawyerPlanConfig(db),
         ]);
+        const tier = lawyerTier(profileSnap.data());
         return {
             success: true,
             page: pageSnap.exists ? toLawyerLanding(pageSnap.data() || {}) : null,
             suspended: pageSnap.get('suspended') === true,
-            tier: effectiveTier(profileSnap.get('plan')),
+            tier,
+            canPublishSite: config[tier].personalSite,
             lawyer,
         };
     } catch (e) {
@@ -80,8 +86,9 @@ export async function saveMyLandingPageAction(input: unknown): Promise<Result<{ 
             if (profile.get('status') !== 'approved') {
                 return { success: false, error: 'เผยแพร่ได้หลังบัญชีทนายได้รับการอนุมัติแล้ว' };
             }
-            if (effectiveTier(profile.get('plan')) === 'free') {
-                return { success: false, error: 'การเผยแพร่หน้าเว็บเป็นสิทธิ์ของแพลน Pro และบริษัท — บันทึกเป็นแบบร่างไว้ก่อนได้' };
+            const config = await getLawyerPlanConfig(db);
+            if (!config[lawyerTier(profile.data())].personalSite) {
+                return { success: false, error: 'แพลนปัจจุบันของคุณยังไม่รวมการเผยแพร่หน้าเว็บส่วนตัว — บันทึกเป็นแบบร่างไว้ก่อนได้' };
             }
         }
 

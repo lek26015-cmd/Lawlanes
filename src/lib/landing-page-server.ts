@@ -1,6 +1,7 @@
 import 'server-only';
 import { initAdmin } from '@/lib/firebase-admin';
-import { effectiveTier } from '@/lib/provider-plans';
+import { lawyerTier } from '@/lib/provider-plans';
+import { getLawyerPlanConfig } from '@/lib/lawyer-plan-access';
 import { getPublicLawyerAction, type PublicLawyer } from '@/app/actions/lawyer-directory-actions';
 import { withLandingDefaults, type LawyerLandingInput } from '@/lib/landing-page';
 
@@ -69,8 +70,9 @@ export async function getPublishedLanding(slug: string): Promise<LandingLookup> 
     if (d.suspended === true || typeof d.lawyerId !== 'string') return null;
     const lawyer = await getPublicLawyerAction(d.lawyerId);
     if (!lawyer || lawyer.status !== 'approved') return null;
-    // planTier ของ PublicLawyer ผ่าน effectiveTier() มาแล้ว
-    if ((lawyer.planTier || 'free') === 'free') {
+    // planTier ของ PublicLawyer ผ่าน lawyerTier() มาแล้ว · สิทธิ์ personalSite แอดมินปรับได้ต่อแพลน
+    const config = await getLawyerPlanConfig(db);
+    if (!config[lawyer.planTier || 'free'].personalSite) {
         return { redirect: `/lawyers/${lawyer.id}` };
     }
     return { data: { kind: 'lawyer', page: toLawyerLanding(d), lawyer } };
@@ -86,11 +88,12 @@ export async function listPublishedLawyerSlugs(max = 1000): Promise<string[]> {
         .limit(max)
         .get();
     const slugs: string[] = [];
+    const config = await getLawyerPlanConfig(adminApp.firestore());
     await Promise.all(snap.docs.map(async doc => {
         const d = doc.data();
         if (d.suspended === true || typeof d.lawyerId !== 'string') return;
         const l = await adminApp.firestore().collection('lawyerProfiles').doc(d.lawyerId).get();
-        if (l.get('status') === 'approved' && l.get('hiddenFromDirectory') !== true && effectiveTier(l.get('plan')) !== 'free') slugs.push(d.slug);
+        if (l.get('status') === 'approved' && l.get('hiddenFromDirectory') !== true && config[lawyerTier(l.data())].personalSite) slugs.push(d.slug);
     }));
     return slugs;
 }

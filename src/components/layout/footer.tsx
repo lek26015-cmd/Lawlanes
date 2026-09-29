@@ -44,7 +44,6 @@ export default function Footer({ userRole, domainType = 'main' }: { userRole: st
     { href: `/${locale}`, label: t('quickLinks.home') },
     { href: `/${locale}/lawyers`, label: t('quickLinks.findLawyer') },
     { href: `/${locale}/interpreters`, label: t('quickLinks.findInterpreter') },
-    { href: `/${locale}/law-search`, label: t('quickLinks.lawSearch') },
     { href: `/${locale}/forms`, label: t('quickLinks.forms') },
     { href: `/${locale}/articles`, label: t('quickLinks.articles') },
     { href: `/${locale}/verify-lawyer`, label: t('quickLinks.verifyLawyer') },

@@ -16,8 +16,7 @@ import {
     FolderLock,
     CreditCard,
     CalendarDays,
-    Scale,
-    FileSearch,
+    Sparkles,
     ChevronLeft,
     ChevronRight,
     LogOut,
@@ -30,6 +29,9 @@ import {
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
+import { getMyLawyerPlanBadgeAction } from '@/app/actions/provider-plan-actions';
+import { PLAN_TIER_NAME } from '@/lib/lawyer-entitlements';
+import type { PlanTier } from '@/lib/provider-plans';
 
 type NavItem = {
     title: string;
@@ -49,7 +51,7 @@ const lawyerNavGroups: NavGroup[] = [
         items: [
             { title: 'ภาพรวม', icon: LayoutDashboard, href: '/lawyer-dashboard' },
             { title: 'แชทกับลูกความ', icon: MessageSquare, href: '/lawyer-dashboard/chats' },
-            { title: 'จัดการคดี', icon: Briefcase, href: '/lawyer-dashboard/cases' },
+            { title: 'จัดการคดี', icon: Briefcase, href: '/lawyer-dashboard/cases', badge: { label: 'Pro', color: 'amber' } },
             { title: 'คลังเอกสารคดี', icon: FolderLock, href: '/lawyer-dashboard/vault' },
             { title: 'ตารางนัดหมาย', icon: CalendarDays, href: '/lawyer-schedule' },
             { title: 'หน้าเว็บส่วนตัว', icon: Globe, href: '/lawyer-dashboard/site', badge: { label: 'Pro', color: 'amber' } },
@@ -58,7 +60,7 @@ const lawyerNavGroups: NavGroup[] = [
     {
         title: 'เอกสารการเงิน',
         items: [
-            { title: 'ใบแจ้งหนี้', icon: FileText, href: '/lawyer-dashboard/billing' },
+            { title: 'ใบแจ้งหนี้', icon: FileText, href: '/lawyer-dashboard/billing', badge: { label: 'Pro', color: 'amber' } },
             { title: 'บัญชีรับเงิน', icon: CreditCard, href: '/lawyer-dashboard/financials' },
             { title: 'แพลนสมาชิก', icon: Crown, href: '/lawyer-dashboard/plan' },
         ],
@@ -66,8 +68,7 @@ const lawyerNavGroups: NavGroup[] = [
     {
         title: 'AI ผู้ช่วยทนาย',
         items: [
-            { title: 'สืบค้นข้อกฎหมาย & ฎีกา', icon: Scale, href: '/law-search' },
-            { title: 'ตรวจร่างสัญญาด้วย AI', icon: FileSearch, href: '/analyze-contract' },
+            { title: 'ผู้ช่วย AI งานคดี', icon: Sparkles, href: '/lawyer-dashboard/ai', badge: { label: 'Pro', color: 'amber' } },
         ],
     },
 ];
@@ -81,7 +82,44 @@ export default function LawyerSidebar() {
     const [mobileOpen, setMobileOpen] = useState(false);
     const [mounted, setMounted] = useState(false);
 
+    const [plan, setPlan] = useState<{ tier: PlanTier; granted: boolean } | null>(null);
+
     useEffect(() => { setMounted(true); }, []);
+    // ป้ายแพลนปัจจุบัน (ที่สูงกว่าระหว่าง Stripe กับที่แอดมินมอบ) — โหลดครั้งเดียวต่อการเปิดหลังบ้าน
+    useEffect(() => { getMyLawyerPlanBadgeAction().then(setPlan).catch(() => setPlan(null)); }, []);
+
+    const planBadgeClass = (tier: PlanTier) => tier === 'top'
+        ? 'bg-gradient-to-r from-amber-300 to-yellow-200 text-amber-950'
+        : tier === 'pro' ? 'bg-amber-400/90 text-amber-950' : 'bg-white/15 text-white';
+
+    const renderPlanCard = (c: boolean, onNavigate?: () => void) => plan && (
+        <div className="px-3 pt-3">
+            <Link
+                href="/lawyer-dashboard/plan"
+                onClick={onNavigate}
+                title={c ? `แพลน${PLAN_TIER_NAME[plan.tier]}` : undefined}
+                className={cn(
+                    'flex items-center gap-2.5 rounded-xl border border-white/10 bg-white/[0.06] hover:bg-white/[0.1] transition-colors',
+                    c ? 'justify-center p-2' : 'px-3 py-2.5',
+                )}
+            >
+                <Crown className={cn('w-4 h-4 shrink-0', plan.tier === 'free' ? 'text-white/60' : 'text-amber-300')} />
+                {!c && (
+                    <>
+                        <span className="flex-1 min-w-0">
+                            <span className="block text-[10px] uppercase tracking-wider text-white/60">แพลนของคุณ</span>
+                            <span className="block text-[13px] font-semibold text-white truncate">
+                                {plan.granted ? 'ได้รับจากทีม Lawslane' : plan.tier === 'free' ? 'อัปเกรดเพื่อใช้ฟีเจอร์ Pro' : 'ใช้งานอยู่'}
+                            </span>
+                        </span>
+                        <span className={cn('text-[11px] font-bold px-2 py-0.5 rounded-md shrink-0', planBadgeClass(plan.tier))}>
+                            {PLAN_TIER_NAME[plan.tier]}
+                        </span>
+                    </>
+                )}
+            </Link>
+        </div>
+    );
 
     const handleLogout = async () => {
         if (!auth) return;
@@ -116,6 +154,7 @@ export default function LawyerSidebar() {
     // ใช้ร่วมกันระหว่าง sidebar (จอใหญ่) กับเมนูสไลด์ (มือถือ/แท็บเล็ต)
     const renderNav = (c: boolean, onNavigate?: () => void) => (
         <>
+            {renderPlanCard(c, onNavigate)}
             {/* Nav Menu */}
             <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-5 scrollbar-hide">
                 {mounted && lawyerNavGroups.map((group, gIdx) => (
@@ -248,6 +287,11 @@ export default function LawyerSidebar() {
             <div className="origin-left scale-[0.8]">
                 <Logo href="/lawyer-dashboard" variant="white" subtitle="lawyer portal" />
             </div>
+            {plan && (
+                <Link href="/lawyer-dashboard/plan" className={cn('ml-auto mr-2 inline-flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-md', planBadgeClass(plan.tier))}>
+                    <Crown className="w-3 h-3" />{PLAN_TIER_NAME[plan.tier]}
+                </Link>
+            )}
             <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
                 <SheetTrigger asChild>
                     <Button variant="ghost" size="icon" className="text-white hover:bg-white/10" aria-label="เปิดเมนู">
