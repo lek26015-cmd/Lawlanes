@@ -17,8 +17,8 @@ export type LawyerEntitlements = {
     invoices: boolean;
     /** ผู้ช่วย AI งานคดี */
     aiAssistant: boolean;
-    /** จำนวนคำถาม AI ต่อวัน (เวลาไทย) — null = ไม่จำกัด */
-    aiMessagesPerDay: number | null;
+    /** เครดิต AI ต่อเดือน (เดือนปฏิทินเวลาไทย) — null = ไม่จำกัด · ค่าต่องานดู AI_CREDIT_COST */
+    aiCreditsPerMonth: number | null;
     /** เผยแพร่หน้าเว็บส่วนตัว lawslane.com/p/... */
     personalSite: boolean;
 };
@@ -26,9 +26,33 @@ export type LawyerEntitlements = {
 export type LawyerFeature = 'caseManagement' | 'invoices' | 'aiAssistant' | 'personalSite';
 
 export const LAWYER_ENTITLEMENT_DEFAULTS: Record<PlanTier, LawyerEntitlements> = {
-    free: { caseManagement: false, invoices: false, aiAssistant: false, aiMessagesPerDay: 0, personalSite: false },
-    pro: { caseManagement: true, invoices: true, aiAssistant: true, aiMessagesPerDay: null, personalSite: true },
-    top: { caseManagement: true, invoices: true, aiAssistant: true, aiMessagesPerDay: null, personalSite: true },
+    free: { caseManagement: false, invoices: false, aiAssistant: false, aiCreditsPerMonth: 0, personalSite: false },
+    pro: { caseManagement: true, invoices: true, aiAssistant: true, aiCreditsPerMonth: 300, personalSite: true },
+    top: { caseManagement: true, invoices: true, aiAssistant: true, aiCreditsPerMonth: 1000, personalSite: true },
+};
+
+/**
+ * เครดิตที่ใช้ต่องาน — ตามต้นทุน AI คร่าว ๆ (ร่างเอกสาร/ตรวจสัญญาคำตอบยาวกว่า, อ่านไฟล์ด้วย AI คือ OCR ทั้งไฟล์)
+ * เปลี่ยนค่าตรงนี้ได้เลย เครดิตที่ใช้ไปแล้วถูกบันทึกเป็นตัวเลขใน ledger ไม่ย้อนคิดใหม่
+ */
+export const AI_CREDIT_COST = {
+    ask: 1,
+    statute: 1,
+    judgment: 1,
+    draft: 2,
+    contract: 2,
+    /** ไฟล์ PDF/รูปที่ต้องให้ AI อ่าน (.txt ไม่คิดเครดิต) */
+    attachment: 1,
+} as const;
+
+/** สถานะเครดิตที่ส่งให้หน้าจอ — remaining null = ไม่จำกัด */
+export type AiCreditStatus = {
+    period: string;
+    monthly: number | null;
+    monthlyUsed: number;
+    /** เครดิตที่ซื้อ/ได้เพิ่ม ไม่รีเซ็ตรายเดือน (ยังไม่มีระบบซื้อ — โครงรองรับไว้แล้ว) */
+    extra: number;
+    remaining: number | null;
 };
 
 export const LAWYER_FEATURE_LABEL: Record<LawyerFeature, string> = {
@@ -50,8 +74,8 @@ export function mergeLawyerEntitlements(stored: unknown): Record<PlanTier, Lawye
         for (const k of ['caseManagement', 'invoices', 'aiAssistant', 'personalSite'] as const) {
             if (typeof s[k] === 'boolean') v[k] = s[k] as boolean;
         }
-        const n = s.aiMessagesPerDay;
-        if (n === null || (typeof n === 'number' && Number.isInteger(n) && n >= 0)) v.aiMessagesPerDay = n as number | null;
+        const n = s.aiCreditsPerMonth;
+        if (n === null || (typeof n === 'number' && Number.isInteger(n) && n >= 0)) v.aiCreditsPerMonth = n as number | null;
         out[tier] = v;
     }
     return out;

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import {
-    AlertTriangle, ArrowUp, Briefcase, FileText, FolderOpen, Loader2, MessageSquare, PanelLeft, Paperclip, Plus, Sparkles, Trash2, X,
+    AlertTriangle, ArrowLeft, ArrowUp, Briefcase, FileText, FolderOpen, Loader2, MessageSquare, PanelLeft, Paperclip, Plus, Sparkles, Trash2, X,
 } from 'lucide-react';
 import { Link } from '@/navigation';
 import { cn } from '@/lib/utils';
@@ -15,6 +15,7 @@ import {
     AI_MODES, ATTACHMENT_ACCEPT, ATTACHMENT_MAX_BYTES, MESSAGE_MAX_CHARS,
     type AiAttachment, type AiCaseFolder, type AiCitation, type AiMessage, type AiMode, type AiStreamEvent, type AiThreadSummary,
 } from '@/lib/lawyer-ai/types';
+import { AI_CREDIT_COST, type AiCreditStatus } from '@/lib/lawyer-entitlements';
 
 type UiMessage = AiMessage & { streaming?: boolean; error?: string };
 type PendingFile = { key: string; name: string; status: 'reading' | 'ready' | 'error'; data?: AiAttachment; error?: string };
@@ -32,12 +33,13 @@ const ATTACHMENT_ERROR: Record<string, string> = {
     unsupported: 'รองรับเฉพาะ PDF, รูปภาพ และ .txt',
     empty: 'อ่านข้อความในไฟล์ไม่ได้',
     'rate-limited': 'แนบไฟล์ถี่เกินไป รอสักครู่',
+    'insufficient-credits': 'เครดิต AI ไม่พอสำหรับอ่านไฟล์นี้',
     error: 'อ่านไฟล์ไม่สำเร็จ',
 };
 
 const STREAM_ERROR: Record<string, string> = {
     'rate-limited': 'ใช้งานถี่เกินไป กรุณารอสักครู่แล้วลองใหม่',
-    quota: 'ใช้คำถาม AI ครบโควตาของวันนี้ตามแพลนแล้ว เริ่มใหม่ได้หลังเที่ยงคืน (เวลาไทย) หรืออัปเกรดแพลน',
+    'insufficient-credits': 'เครดิต AI ไม่พอ — เครดิตรายเดือนจะรีเซ็ตต้นเดือนหน้า หรืออัปเกรดแพลนเพื่อรับเครดิตเพิ่ม',
     'bad-request': 'ส่งคำถามไม่สำเร็จ (ไม่พบเธรดหรือแฟ้มคดีนี้)',
     error: 'AI ตอบไม่สำเร็จ กรุณาลองใหม่อีกครั้ง',
 };
@@ -67,6 +69,7 @@ export default function AiWorkspace() {
     const [sending, setSending] = useState(false);
     const [openCites, setOpenCites] = useState<Record<string, Set<number>>>({});
     const [panelOpen, setPanelOpen] = useState(false);
+    const [credits, setCredits] = useState<AiCreditStatus | null>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
     const autoSent = useRef(false);
 
@@ -110,6 +113,7 @@ export default function AiWorkspace() {
             }
             setCases(res.cases);
             setThreads(res.threads);
+            setCredits(res.credits);
             setLoading(false);
             const m = searchParams.get('mode') as AiMode | null;
             if (m && AI_MODES.some(x => x.id === m)) setMode(m);
@@ -142,6 +146,7 @@ export default function AiWorkspace() {
                 const res = await readAttachmentAction(fd);
                 if (res.status === 'ok') {
                     setFiles(f => f.map(x => x.key === key ? { ...x, status: 'ready', data: res.attachment } : x));
+                    if (res.credits) setCredits(res.credits);
                 } else if (isLockedStatus(res.status)) {
                     setLocked(res.status);
                 } else {
@@ -203,6 +208,7 @@ export default function AiWorkspace() {
                         patch(x => ({ ...x, content: x.content + e.text }));
                     } else if (e.type === 'done') {
                         patch(x => ({ ...x, streaming: false }));
+                        if (e.credits) setCredits(e.credits);
                         finished = true;
                     } else if (e.type === 'error') {
                         fail(e.code);
@@ -248,9 +254,16 @@ export default function AiWorkspace() {
         }
     };
 
-    if (locked) return <LawyerProLocked status={locked} feature="ผู้ช่วย AI งานคดี" />;
+    if (locked) {
+        return (
+            <div className="h-dvh overflow-y-auto p-4 md:p-8">
+                <BackToDashboard className="mb-6" />
+                <div className="max-w-2xl mx-auto"><LawyerProLocked status={locked} feature="ผู้ช่วย AI งานคดี" /></div>
+            </div>
+        );
+    }
     if (loading) {
-        return <div className="flex justify-center py-24 text-slate-400"><Loader2 className="w-6 h-6 animate-spin" /></div>;
+        return <div className="h-dvh flex items-center justify-center text-slate-400"><Loader2 className="w-6 h-6 animate-spin" /></div>;
     }
 
     const composer = (
@@ -265,11 +278,12 @@ export default function AiWorkspace() {
             sending={sending}
             onSend={() => send(input)}
             compact={messages.length > 0}
+            credits={credits}
         />
     );
 
     return (
-        <div className="relative flex h-[calc(100dvh-8.5rem)] lg:h-[calc(100dvh-4rem)] min-h-[520px] rounded-2xl border border-slate-200 dark:border-border bg-white dark:bg-card overflow-hidden shadow-sm">
+        <div className="relative flex h-dvh bg-white dark:bg-background overflow-hidden">
             <aside className={cn(
                 'w-72 shrink-0 border-r border-slate-200 dark:border-border bg-[#fafaf7] dark:bg-white/[0.03] flex-col',
                 panelOpen ? 'flex absolute inset-y-0 left-0 z-30 shadow-xl lg:static lg:shadow-none' : 'hidden lg:flex',
@@ -287,7 +301,7 @@ export default function AiWorkspace() {
             </aside>
 
             <section className="relative flex-1 min-w-0 flex flex-col">
-                <div className="flex items-center gap-2 px-4 py-2.5 border-b border-slate-100 dark:border-border">
+                <div className="flex items-center gap-2 px-4 h-14 border-b border-slate-100 dark:border-border">
                     <button type="button" onClick={() => setPanelOpen(true)} className="lg:hidden p-1.5 -ml-1 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10" aria-label="แฟ้มคดีและประวัติ">
                         <PanelLeft className="w-5 h-5" />
                     </button>
@@ -353,6 +367,17 @@ export default function AiWorkspace() {
     );
 }
 
+function BackToDashboard({ className }: { className?: string }) {
+    return (
+        <Link
+            href="/lawyer-dashboard"
+            className={cn('inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-900 dark:hover:text-white', className)}
+        >
+            <ArrowLeft className="w-4 h-4" />กลับแดชบอร์ด
+        </Link>
+    );
+}
+
 function ModelMessage({ m, open, onToggle, onCite }: { m: UiMessage; open: Set<number>; onToggle: (n: number) => void; onCite: (n: number) => void }) {
     const referenced = useMemo(() => referencedNumbers(m.content), [m.content]);
     return (
@@ -378,7 +403,7 @@ function ModelMessage({ m, open, onToggle, onCite }: { m: UiMessage; open: Set<n
     );
 }
 
-function Composer({ mode, setMode, input, setInput, files, removeFile, addFiles, sending, onSend, compact }: {
+function Composer({ mode, setMode, input, setInput, files, removeFile, addFiles, sending, onSend, compact, credits }: {
     mode: AiMode;
     setMode: (m: AiMode) => void;
     input: string;
@@ -389,10 +414,13 @@ function Composer({ mode, setMode, input, setInput, files, removeFile, addFiles,
     sending: boolean;
     onSend: () => void;
     compact: boolean;
+    credits: AiCreditStatus | null;
 }) {
     const fileRef = useRef<HTMLInputElement>(null);
     const reading = files.some(f => f.status === 'reading');
-    const canSend = !sending && !reading && (input.trim() !== '' || files.some(f => f.status === 'ready'));
+    const cost = AI_CREDIT_COST[mode];
+    const outOfCredits = credits?.remaining !== null && credits !== null && credits.remaining < cost;
+    const canSend = !sending && !reading && !outOfCredits && (input.trim() !== '' || files.some(f => f.status === 'ready'));
 
     const chips = (
         <div className={cn('flex flex-wrap gap-2', compact ? 'mb-2' : 'justify-center mt-5')}>
@@ -459,7 +487,7 @@ function Composer({ mode, setMode, input, setInput, files, removeFile, addFiles,
                             onClick={() => fileRef.current?.click()}
                             className="p-2 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10"
                             aria-label="แนบไฟล์"
-                            title="แนบไฟล์ PDF / รูป / .txt (ไม่เกิน 10 MB)"
+                            title="แนบไฟล์ PDF / รูป / .txt (ไม่เกิน 10 MB) · PDF และรูปใช้ไฟล์ละ 1 เครดิต"
                         >
                             <Plus className="w-5 h-5" />
                         </button>
@@ -482,9 +510,17 @@ function Composer({ mode, setMode, input, setInput, files, removeFile, addFiles,
                 </div>
             </div>
             {!compact && chips}
-            <p className={cn('text-[11px] text-slate-400 text-center', compact ? 'mt-2' : 'mt-6')}>
-                AI อาจผิดพลาดหรืออ้างตัวบทที่ไม่ใช่ฉบับล่าสุด ตรวจสอบก่อนใช้งานจริงทุกครั้ง
-            </p>
+            <div className={cn('flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px]', compact ? 'mt-2' : 'mt-6')}>
+                {credits && (
+                    <span className={cn('font-medium', outOfCredits ? 'text-red-600' : 'text-slate-500')} title="เครดิตรายเดือนรีเซ็ตต้นเดือน (เวลาไทย)">
+                        {credits.remaining === null
+                            ? 'เครดิต AI ไม่จำกัด'
+                            : `เหลือ ${credits.remaining.toLocaleString('th-TH')} เครดิต${credits.monthly ? ` (เดือนนี้ ${credits.monthly.toLocaleString('th-TH')})` : ''}`}
+                        {' · '}ครั้งนี้ใช้ {cost} เครดิต
+                    </span>
+                )}
+                <span className="text-slate-400">AI อาจผิดพลาดหรืออ้างตัวบทที่ไม่ใช่ฉบับล่าสุด ตรวจสอบก่อนใช้งานจริงทุกครั้ง</span>
+            </div>
         </div>
     );
 }
@@ -516,17 +552,21 @@ function ThreadPanel({ cases, threads, caseId, threadId, onNew, onOpen, onDelete
 
     return (
         <div className="flex flex-col h-full">
+            <div className="flex items-center justify-between gap-2 px-4 h-14 border-b border-slate-200/70 dark:border-white/10">
+                <span className="flex items-center gap-2 font-bold text-slate-900 dark:text-foreground">
+                    <span className="w-7 h-7 rounded-lg bg-[#002f4b] text-white flex items-center justify-center"><Sparkles className="w-4 h-4" /></span>
+                    Lawslane AI
+                </span>
+                <button type="button" onClick={onClose} className="lg:hidden p-2 rounded-lg text-slate-500 hover:bg-white" aria-label="ปิด"><X className="w-4 h-4" /></button>
+            </div>
             <div className="p-3 space-y-2">
-                <div className="flex items-center gap-2">
-                    <button
-                        type="button"
-                        onClick={() => onNew(null)}
-                        className="flex-1 flex items-center gap-2 rounded-xl bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 px-3.5 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 hover:shadow-sm"
-                    >
-                        <Plus className="w-4 h-4" />เริ่มงานใหม่
-                    </button>
-                    <button type="button" onClick={onClose} className="lg:hidden p-2 rounded-lg text-slate-500 hover:bg-white" aria-label="ปิด"><X className="w-4 h-4" /></button>
-                </div>
+                <button
+                    type="button"
+                    onClick={() => onNew(null)}
+                    className="w-full flex items-center gap-2 rounded-xl bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 px-3.5 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 hover:shadow-sm"
+                >
+                    <Plus className="w-4 h-4" />เริ่มงานใหม่
+                </button>
                 <Link href="/lawyer-dashboard/cases" className="flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-white/70 dark:hover:bg-white/5">
                     <Briefcase className="w-4 h-4" />แฟ้มคดีทั้งหมด
                 </Link>
@@ -576,6 +616,14 @@ function ThreadPanel({ cases, threads, caseId, threadId, onNew, onOpen, onDelete
                         <div className="space-y-0.5">{general.map(t => <ThreadRow key={t.id} t={t} />)}</div>
                     </div>
                 )}
+            </div>
+            <div className="p-3 border-t border-slate-200/70 dark:border-white/10">
+                <Link
+                    href="/lawyer-dashboard"
+                    className="flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-white/5"
+                >
+                    <ArrowLeft className="w-4 h-4" />กลับแดชบอร์ดทนาย
+                </Link>
             </div>
         </div>
     );

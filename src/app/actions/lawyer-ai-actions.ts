@@ -5,6 +5,8 @@ import { initAdmin } from '@/lib/firebase-admin';
 import { checkLawyerFeature } from '@/lib/lawyer-plan-access';
 import { limitUserAction } from '@/lib/security/action-rate-limit';
 import { listCaseFolders } from '@/lib/lawyer-ai/case-context';
+import { consumeCredits, getCreditStatus, refundCredits, type CreditCharge } from '@/lib/lawyer-ai/credits';
+import { AI_CREDIT_COST, type AiCreditStatus } from '@/lib/lawyer-entitlements';
 import {
     ATTACHMENT_MAX_BYTES,
     ATTACHMENT_MAX_CHARS,
@@ -28,13 +30,14 @@ async function db() {
 }
 
 export async function getAiWorkspaceAction(): Promise<
-    { status: 'ok'; cases: AiCaseFolder[]; threads: AiThreadSummary[] } | Locked
+    { status: 'ok'; cases: AiCaseFolder[]; threads: AiThreadSummary[]; credits: AiCreditStatus } | Locked
 > {
     const access = await checkLawyerFeature('aiAssistant');
     if (access.status !== 'ok') return access;
     const firestore = await db();
-    const [cases, threadSnap] = await Promise.all([
+    const [cases, credits, threadSnap] = await Promise.all([
         listCaseFolders(firestore, access.uid),
+        getCreditStatus(firestore, access.uid, access.entitlements.aiCreditsPerMonth),
         // ไม่ใช้ orderBy: where + orderBy ต้องสร้าง composite index บน Firebase production (ใช้ร่วมหลายเว็บ)
         // เรียงในหน่วยความจำแทน — ทนายหนึ่งคนมีเธรดไม่มาก
         firestore.collection('lawyerAiThreads').where('lawyerUid', '==', access.uid).limit(500).get(),
@@ -48,7 +51,7 @@ export async function getAiWorkspaceAction(): Promise<
         }))
         .sort((a, b) => b.updatedAt - a.updatedAt)
         .slice(0, 100);
-    return { status: 'ok', cases, threads };
+    return { status: 'ok', cases, threads, credits };
 }
 
 export async function getAiThreadAction(threadId: string): Promise<
@@ -102,7 +105,8 @@ const GEMINI_READABLE = ['application/pdf', 'image/png', 'image/jpeg', 'image/we
  * ไม่เก็บตัวไฟล์ เก็บแค่ข้อความที่ถอดได้ไว้ใน message ตอนส่งคำถาม
  */
 export async function readAttachmentAction(formData: FormData): Promise<
-    { status: 'ok'; attachment: AiAttachment } | Locked | { status: 'rate-limited' | 'too-large' | 'unsupported' | 'empty' | 'error' }
+    { status: 'ok'; attachment: AiAttachment; credits?: AiCreditStatus } | Locked
+    | { status: 'rate-limited' | 'too-large' | 'unsupported' | 'empty' | 'error' | 'insufficient-credits' }
 > {
     const access = await checkLawyerFeature('aiAssistant');
     if (access.status !== 'ok') return access;
@@ -114,6 +118,11 @@ export async function readAttachmentAction(formData: FormData): Promise<
     const name = file.name.slice(0, 200) || 'ไฟล์แนบ';
     const mimeType = file.type || '';
 
+    const firestore = await db();
+    let charge: CreditCharge | null = null;
+    let credits: AiCreditStatus | undefined;
+    const refund = () => charge && refundCredits(firestore, access.uid, charge, 'attachment-failed', { name });
+
     try {
         let text = '';
         if (mimeType.startsWith('text/')) {
@@ -121,6 +130,11 @@ export async function readAttachmentAction(formData: FormData): Promise<
         } else if (GEMINI_READABLE.includes(mimeType)) {
             const apiKey = process.env.GOOGLE_API_KEY || process.env.GOOGLE_GENAI_API_KEY || '';
             if (!apiKey) return { status: 'error' };
+            // ให้ AI อ่านไฟล์ = เรียก AI ทั้งไฟล์ จึงคิดเครดิต (.txt ไม่คิด)
+            const paid = await consumeCredits(firestore, access.uid, access.entitlements.aiCreditsPerMonth, AI_CREDIT_COST.attachment, 'attachment', { mimeType });
+            if (!paid.ok) return { status: 'insufficient-credits' };
+            charge = paid.charge;
+            credits = paid.status;
             const model = new GoogleGenerativeAI(apiKey).getGenerativeModel({ model: 'gemini-2.5-flash' });
             const data = Buffer.from(await file.arrayBuffer()).toString('base64');
             const res = await model.generateContent([
@@ -132,11 +146,15 @@ export async function readAttachmentAction(formData: FormData): Promise<
             return { status: 'unsupported' };
         }
         text = text.replace(/\r\n/g, '\n').trim();
-        if (!text) return { status: 'empty' };
+        if (!text) {
+            await refund();
+            return { status: 'empty' };
+        }
         const truncated = text.length > ATTACHMENT_MAX_CHARS;
-        return { status: 'ok', attachment: { name, mimeType, text: text.slice(0, ATTACHMENT_MAX_CHARS), truncated } };
+        return { status: 'ok', attachment: { name, mimeType, text: text.slice(0, ATTACHMENT_MAX_CHARS), truncated }, credits };
     } catch (e) {
         console.error('[lawyer-ai] readAttachment failed:', e instanceof Error ? e.message : e);
+        await refund();
         return { status: 'error' };
     }
 }

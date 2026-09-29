@@ -5,6 +5,8 @@ import { limitUserAction } from '@/lib/security/action-rate-limit';
 import { buildCaseContext, getOwnedCase } from '@/lib/lawyer-ai/case-context';
 import { findLawSources } from '@/lib/lawyer-ai/sources';
 import { retrievalQuery, systemPrompt } from '@/lib/lawyer-ai/prompts';
+import { consumeCredits, refundCredits } from '@/lib/lawyer-ai/credits';
+import { AI_CREDIT_COST } from '@/lib/lawyer-entitlements';
 import {
     ATTACHMENT_MAX_CHARS,
     MESSAGE_MAX_CHARS,
@@ -47,22 +49,6 @@ function cleanAttachments(raw: unknown): AiAttachment[] {
     });
 }
 
-/** วันที่ตามเวลาไทย — โควตารีเซ็ตเที่ยงคืนกรุงเทพฯ */
-function bangkokDate() {
-    return new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString().slice(0, 10);
-}
-
-async function consumeDailyQuota(db: FirebaseFirestore.Firestore, uid: string, limit: number): Promise<boolean> {
-    if (limit <= 0) return false;
-    const ref = db.collection('lawyerAiUsage').doc(`${uid}_${bangkokDate()}`);
-    return db.runTransaction(async tx => {
-        const count = Number((await tx.get(ref)).get('count')) || 0;
-        if (count >= limit) return false;
-        tx.set(ref, { uid, date: bangkokDate(), count: count + 1, updatedAt: Date.now() }, { merge: true });
-        return true;
-    });
-}
-
 function withAttachments(text: string, attachments: AiAttachment[]): string {
     if (attachments.length === 0) return text;
     const files = attachments.map(a => `--- เอกสารแนบ: ${a.name} ---\n${a.text}\n--- จบเอกสารแนบ: ${a.name} ---`).join('\n\n');
@@ -99,9 +85,6 @@ export async function POST(req: Request) {
     const db = adminApp.firestore();
     const uid = access.uid;
 
-    // โควตาคำถามต่อวันตามแพลน (แอดมินตั้งได้ — null = ไม่จำกัด) นับตอนรับคำถาม ไม่ใช่ตอนตอบเสร็จ
-    const dailyLimit = access.entitlements.aiMessagesPerDay;
-    if (dailyLimit !== null && !(await consumeDailyQuota(db, uid, dailyLimit))) return fail('quota', 429);
 
     // --- เธรด: ของเดิมต้องเป็นของผู้เรียก · ใหม่ผูกคดีได้เฉพาะคดีของตัวเอง
     let threadRef: FirebaseFirestore.DocumentReference;
@@ -147,6 +130,12 @@ export async function POST(req: Request) {
     }
     // Gemini ต้องเริ่มด้วย user เสมอ
     while (history.length > 0 && history[0].role !== 'user') history.shift();
+
+    // หักเครดิตหลังตรวจเธรด/คดีผ่านแล้ว ก่อนเรียก AI (คืนให้ถ้าตอบไม่สำเร็จ) — เครดิตรายเดือนตามแพลน แล้วค่อยเครดิตที่ซื้อเพิ่ม
+    const monthly = access.entitlements.aiCreditsPerMonth;
+    const cost = AI_CREDIT_COST[mode];
+    const credit = await consumeCredits(db, uid, monthly, cost, 'chat', { mode });
+    if (!credit.ok) return fail('insufficient-credits', 402);
 
     const stream = new ReadableStream<Uint8Array>({
         async start(controller) {
@@ -194,9 +183,10 @@ export async function POST(req: Request) {
                     role: 'model', content: answer, mode, citations: JSON.parse(JSON.stringify(citations)), createdAt: Date.now(),
                 });
                 await threadRef.update({ updatedAt: Date.now() });
-                send({ type: 'done', messageId: saved.id });
+                send({ type: 'done', messageId: saved.id, credits: credit.status });
             } catch (e) {
                 console.error('[lawyer-ai] chat failed:', e instanceof Error ? e.message : e);
+                await refundCredits(db, uid, credit.charge, 'chat-failed', { mode, threadId: threadRef.id });
                 send({ type: 'error', code: 'error' });
             } finally {
                 controller.close();

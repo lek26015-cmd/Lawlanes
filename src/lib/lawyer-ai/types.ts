@@ -1,3 +1,5 @@
+import type { AiCreditStatus } from '@/lib/lawyer-entitlements';
+
 /**
  * ผู้ช่วย AI งานคดีของทนาย (Pro/บริษัท) — type ที่ใช้ได้ทั้ง client และ server
  *
@@ -68,5 +70,5 @@ export type AiStreamEvent =
     | { type: 'thread'; threadId: string; title: string }
     | { type: 'citations'; citations: AiCitation[] }
     | { type: 'delta'; text: string }
-    | { type: 'done'; messageId: string }
-    | { type: 'error'; code: 'unauthenticated' | 'not-lawyer' | 'upgrade-required' | 'rate-limited' | 'quota' | 'bad-request' | 'error'; message?: string };
+    | { type: 'done'; messageId: string; credits?: AiCreditStatus }
+    | { type: 'error'; code: 'unauthenticated' | 'not-lawyer' | 'upgrade-required' | 'rate-limited' | 'insufficient-credits' | 'bad-request' | 'error'; message?: string };
