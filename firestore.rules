@@ -423,7 +423,10 @@ service cloud.firestore {
         );
     }
     match /landingPages/{pageId} {
-        allow read: if true;
+        // เดิม `allow read: if true` — หน้าสาธารณะกรอง status == 'published' ฝั่ง client เท่านั้น
+        // ใครยิง query เองก็อ่านหน้า draft ได้ · ตอนนี้คนทั่วไปอ่านได้เฉพาะหน้าที่เผยแพร่แล้ว
+        // (query ต้องมี where('status', '==', 'published') ซึ่งหน้า /p/[slug] ของเว็บหลักและ capdeal มีอยู่แล้ว)
+        allow read: if isAdmin() || resource.data.status == 'published';
         allow create, update, delete: if isAdmin();
     }
     
