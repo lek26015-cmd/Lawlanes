@@ -2,7 +2,7 @@
 import type { Metadata } from 'next';
 import { locales } from '@/navigation';
 import '../globals.css';
-import { Prompt } from 'next/font/google';
+import { Noto_Serif_Thai, Prompt, Sarabun } from 'next/font/google';
 import React from 'react';
 import { useTranslations } from 'next-intl';
 import { setRequestLocale } from 'next-intl/server';
@@ -24,6 +24,24 @@ const prompt = Prompt({
   weight: ['400', '500', '600', '700'],
   display: 'swap',
   variable: '--font-prompt',
+});
+
+// ฟอนต์หัวข้อที่ทนายเลือกได้ในหน้าเว็บส่วนตัว (/p/[slug]) — preload: false ไม่ให้หน้าอื่นโหลดไฟล์ฟอนต์
+// เบราว์เซอร์ดึงไฟล์เฉพาะตอนมีตัวอักษรใช้ฟอนต์นั้นจริง (ดู LANDING_FONT_FAMILY ใน landing-page-view.tsx)
+const notoSerifThai = Noto_Serif_Thai({
+  subsets: ['thai', 'latin'],
+  weight: ['500', '700'],
+  display: 'swap',
+  preload: false,
+  variable: '--font-landing-serif',
+});
+
+const sarabun = Sarabun({
+  subsets: ['thai', 'latin'],
+  weight: ['500', '700'],
+  display: 'swap',
+  preload: false,
+  variable: '--font-landing-sarabun',
 });
 
 export const metadata: Metadata = {
@@ -78,7 +96,7 @@ export default async function RootLayout({
   const domainType = 'main'; // Default for SSR, will be updated on client
 
   return (
-    <html lang={locale} suppressHydrationWarning className={prompt.variable}>
+    <html lang={locale} suppressHydrationWarning className={`${prompt.variable} ${notoSerifThai.variable} ${sarabun.variable}`}>
       <head>
         {/* Preconnect to critical third-party origins */}
         <link rel="preconnect" href="https://identitytoolkit.googleapis.com" />

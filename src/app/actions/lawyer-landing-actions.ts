@@ -93,15 +93,18 @@ export async function saveMyLandingPageAction(input: unknown): Promise<Result<{ 
             const dup = await tx.get(db.collection('landingPages').where('slug', '==', value.slug).limit(2));
             if (dup.docs.some(d => d.id !== ref.id)) throw new Error('SLUG_TAKEN');
 
+            // เขียนทับทั้งเอกสาร (ไม่ merge) — merge จะเก็บ key ที่ทนายลบออกแล้วไว้ใน map
+            // (เช่น เบอร์โทรใน contactInfo หรือชื่อหัวข้อที่รีเซ็ตกลับค่าเดิม) · คงค่าที่ทนายแก้ไม่ได้ไว้เอง
             tx.set(ref, {
                 ...value,
                 // หลังบ้านแอดมินและหน้า /p ของ capdeal อ่าน `content` — ใส่ข้อความแนะนำตัวไว้ให้แสดงได้
                 content: value.sections.about.text,
                 ownerType: 'lawyer',
                 lawyerId: lawyerProfileId,
+                suspended: existing.get('suspended') === true,
+                createdAt: existing.get('createdAt') ?? FieldValue.serverTimestamp(),
                 updatedAt: FieldValue.serverTimestamp(),
-                ...(existing.exists ? {} : { createdAt: FieldValue.serverTimestamp() }),
-            }, { merge: true });
+            });
             return (existing.get('slug') as string | undefined) || null;
         });
 
@@ -115,11 +118,11 @@ export async function saveMyLandingPageAction(input: unknown): Promise<Result<{ 
     }
 }
 
-/** อัปโหลดรูปปกขึ้น Cloudflare Images — รับเฉพาะรูป ≤ 5MB */
+/** อัปโหลดรูปของหน้า (ปก/โลโก้/โปรไฟล์/ทีมงาน/แกลเลอรี) ขึ้น Cloudflare Images — รับเฉพาะรูป ≤ 5MB */
 export async function uploadLandingImageAction(formData: FormData): Promise<Result<{ url: string }>> {
     try {
         const { uid } = await requireLawyer();
-        const limit = await checkRateLimit(`landing-image:${uid}`, 10, 60 * 60 * 1000);
+        const limit = await checkRateLimit(`landing-image:${uid}`, 30, 60 * 60 * 1000);
         if (!limit.success) return { success: false, error: 'อัปโหลดถี่เกินไป กรุณาลองใหม่ภายหลัง' };
 
         const file = formData.get('file');

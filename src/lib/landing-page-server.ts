@@ -2,7 +2,7 @@ import 'server-only';
 import { initAdmin } from '@/lib/firebase-admin';
 import { effectiveTier } from '@/lib/provider-plans';
 import { getPublicLawyerAction, type PublicLawyer } from '@/app/actions/lawyer-directory-actions';
-import { EMPTY_LANDING, type LawyerLandingInput } from '@/lib/landing-page';
+import { withLandingDefaults, type LawyerLandingInput } from '@/lib/landing-page';
 
 export type LandingViewData =
     | { kind: 'lawyer'; page: LawyerLandingInput; lawyer: PublicLawyer }
@@ -26,25 +26,9 @@ export function landingDocId(lawyerProfileId: string) {
 
 /** รวมค่าที่เก็บไว้กับค่าตั้งต้น — เอกสารเก่า/ฟิลด์ที่ขาดไม่ทำให้หน้าพัง */
 export function toLawyerLanding(d: FirebaseFirestore.DocumentData): LawyerLandingInput {
-    const s = d.sections || {};
-    return {
-        ...EMPTY_LANDING,
-        slug: d.slug || '',
-        title: d.title || '',
-        tagline: d.tagline || '',
-        template: d.template || 'classic',
-        themeColor: d.themeColor || EMPTY_LANDING.themeColor,
-        heroImage: d.heroImage || '',
-        sections: {
-            about: { ...EMPTY_LANDING.sections.about, ...s.about },
-            specialties: { ...EMPTY_LANDING.sections.specialties, ...s.specialties },
-            services: { ...EMPTY_LANDING.sections.services, ...s.services },
-            reviews: { ...EMPTY_LANDING.sections.reviews, ...s.reviews },
-            faq: { ...EMPTY_LANDING.sections.faq, ...s.faq },
-        },
-        contactInfo: d.contactInfo || {},
-        status: d.status === 'published' ? 'published' : 'draft',
-    };
+    // เอกสารใน Firestore ไม่ใช่ plain object (มี Timestamp) — ส่งเฉพาะฟิลด์ของหน้าเข้า withLandingDefaults
+    const { createdAt, updatedAt, ownerType, lawyerId, content, suspended, ...rest } = d;
+    return withLandingDefaults(rest);
 }
 
 /**
