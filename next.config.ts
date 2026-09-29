@@ -12,6 +12,12 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: false,
   },
 
+  // PDF ใบเสร็จอ่านฟอนต์ไทยด้วย fs ตอนรัน — ไฟล์ที่ไม่ได้ import ตรงๆ จะไม่ถูกแพ็กขึ้น
+  // serverless function ถ้าไม่บอกไว้ตรงนี้ (อ่านไม่เจอแล้ว 500 บน Vercel)
+  outputFileTracingIncludes: {
+    '/api/receipts/[id]/pdf': ['./src/assets/fonts/Sarabun-*.ttf'],
+  },
+
   images: {
     formats: ['image/avif', 'image/webp'],
     minimumCacheTTL: 31536000,
