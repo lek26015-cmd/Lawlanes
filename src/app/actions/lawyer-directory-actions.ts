@@ -52,6 +52,16 @@ export interface PublicLawyer {
     joinedAt: string | null;
     /** หน้าจองนัด (lawyers/[id]/schedule) ต้องรู้วันทำการ/วันหยุด — ตัดเหตุผลของวันหยุดทิ้ง */
     schedule?: LawyerSchedule;
+    /** ซ่อนจากรายชื่อ/ค้นหา/sitemap (เช่น บัญชีแอดมินที่เป็นทนายไว้ทดสอบ) — เปิดตรงด้วยลิงก์ได้แต่ noindex */
+    hidden?: true;
+}
+
+/**
+ * `lawyerProfiles.hiddenFromDirectory: true` — แอดมินตั้งผ่าน Admin SDK เท่านั้น
+ * (ไม่อยู่ใน ownerEditableLawyerFields ของ firestore.rules) ทุกช่องทางที่ list ทนายต้องกรองด้วยตัวนี้
+ */
+function isListed(d: FirebaseFirestore.DocumentData): boolean {
+    return d.hiddenFromDirectory !== true;
 }
 
 /** ตารางเวลาแบบสาธารณะ — override เก็บแค่วันที่ ไม่ส่ง reason (อาจเป็นเรื่องส่วนตัว เช่น ลาป่วย) */
@@ -100,6 +110,7 @@ function toPublicLawyer(id: string, d: FirebaseFirestore.DocumentData): PublicLa
             : (typeof d.joinedAt === 'string' ? d.joinedAt : null),
         schedule: toPublicSchedule(d.schedule),
         planTier: effectiveTier(d.plan),
+        hidden: d.hiddenFromDirectory === true ? true : undefined,
     };
 }
 
@@ -198,9 +209,13 @@ export async function getApprovedLawyersAction(limitCount: number = 50): Promise
         const snap = await adminApp.firestore()
             .collection('lawyerProfiles')
             .where('status', '==', 'approved')
-            .limit(limitCount)
+            // เผื่อโปรไฟล์ที่ซ่อนไว้ ไม่ให้หน้าแรกได้ทนายน้อยกว่าที่ขอ
+            .limit(limitCount + 5)
             .get();
-        return snap.docs.map(doc => toPublicLawyer(doc.id, doc.data()));
+        return snap.docs
+            .filter(doc => isListed(doc.data()))
+            .slice(0, limitCount)
+            .map(doc => toPublicLawyer(doc.id, doc.data()));
     } catch (error) {
         console.error('Error fetching approved lawyers:', error);
         return [];
@@ -217,6 +232,7 @@ export async function getLawyersByFirmAction(firmId: string): Promise<PublicLawy
             .where('firmId', '==', firmId)
             .get();
         return snap.docs
+            .filter(doc => isListed(doc.data()))
             .map(doc => toPublicLawyer(doc.id, doc.data()))
             .filter(l => l.status === 'approved');
     } catch (error) {
@@ -248,7 +264,7 @@ export async function searchApprovedLawyersAction(params: {
                 .where('status', '==', 'approved')
                 .limit(5)
                 .get();
-            return snap.docs.map(doc => toPublicLawyer(doc.id, doc.data()));
+            return snap.docs.filter(doc => isListed(doc.data())).map(doc => toPublicLawyer(doc.id, doc.data()));
         }
 
         // ค้นด้วยชื่อ: คงพฤติกรรมเดิมของหน้า /verify-lawyer คือ exact match
@@ -258,7 +274,7 @@ export async function searchApprovedLawyersAction(params: {
             .where('status', '==', 'approved')
             .limit(10)
             .get();
-        return snap.docs.map(doc => toPublicLawyer(doc.id, doc.data()));
+        return snap.docs.filter(doc => isListed(doc.data())).map(doc => toPublicLawyer(doc.id, doc.data()));
     } catch (error) {
         console.error('Error searching lawyers:', error);
         return [];

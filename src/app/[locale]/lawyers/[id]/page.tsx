@@ -31,6 +31,8 @@ export async function generateMetadata(
     return {
         title,
         description,
+        // โปรไฟล์ที่ซ่อนจากรายชื่อ เปิดด้วยลิงก์ตรงได้ แต่ไม่ให้ search engine เก็บ
+        ...(lawyer.hidden ? { robots: { index: false, follow: false } } : {}),
         openGraph: {
             title,
             description,
