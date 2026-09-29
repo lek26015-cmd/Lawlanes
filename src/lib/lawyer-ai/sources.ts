@@ -30,7 +30,8 @@ export async function findLawSources(query: string, mode: AiMode, limit = 8): Pr
         if (g) {
             if (g.content.length < 4000) g.content += `\n\n${content}`;
         } else if (groups.size < limit) {
-            groups.set(key, { n: groups.size + 1, title, type: sourceType(r.source), year: r.year, content });
+            // ไม่ใส่ year เมื่อไม่มีค่า — Firestore ไม่รับ undefined (บันทึกข้อความลงเธรดจะล้ม)
+            groups.set(key, { n: groups.size + 1, title, type: sourceType(r.source), ...(r.year ? { year: r.year } : {}), content });
         }
     }
     return [...groups.values()];

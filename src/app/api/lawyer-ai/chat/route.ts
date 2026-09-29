@@ -191,7 +191,7 @@ export async function POST(req: Request) {
                 if (!answer.trim()) throw new Error('empty answer');
 
                 const saved = await threadRef.collection('messages').add({
-                    role: 'model', content: answer, mode, citations, createdAt: Date.now(),
+                    role: 'model', content: answer, mode, citations: JSON.parse(JSON.stringify(citations)), createdAt: Date.now(),
                 });
                 await threadRef.update({ updatedAt: Date.now() });
                 send({ type: 'done', messageId: saved.id });
