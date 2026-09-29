@@ -69,6 +69,7 @@ export const PLAN_INFO: Record<ProviderKind, Record<PlanTier, { name: [string, s
             perks: [
                 ['ป้าย "ทนายแนะนำ" และกรอบรูปสีทอง', '"Recommended" badge and gold photo ring'],
                 ['ขึ้นก่อนทนายแพลนฟรีในรายชื่อ', 'Listed above Free-plan lawyers'],
+                ['หน้าเว็บส่วนตัว lawslane.com/p/ชื่อของคุณ', 'Personal page at lawslane.com/p/your-name'],
             ],
         },
         top: {
@@ -76,6 +77,7 @@ export const PLAN_INFO: Record<ProviderKind, Record<PlanTier, { name: [string, s
             perks: [
                 ['การ์ดกรอบทองขนาดใหญ่ อยู่บนสุดของหน้าแรกและรายชื่อทนาย', 'Large gold-framed card at the top of the home page and directory'],
                 ['ป้าย "ทนายแนะนำ"', '"Recommended" badge'],
+                ['หน้าเว็บส่วนตัว lawslane.com/p/ชื่อของคุณ', 'Personal page at lawslane.com/p/your-name'],
             ],
         },
     },

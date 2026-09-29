@@ -26,6 +26,7 @@ import {
     MessageSquare,
     FileText,
     Crown,
+    Globe,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
@@ -51,6 +52,7 @@ const lawyerNavGroups: NavGroup[] = [
             { title: 'จัดการคดี', icon: Briefcase, href: '/lawyer-dashboard/cases' },
             { title: 'คลังเอกสารคดี', icon: FolderLock, href: '/lawyer-dashboard/vault' },
             { title: 'ตารางนัดหมาย', icon: CalendarDays, href: '/lawyer-schedule' },
+            { title: 'หน้าเว็บส่วนตัว', icon: Globe, href: '/lawyer-dashboard/site', badge: { label: 'Pro', color: 'amber' } },
         ],
     },
     {
