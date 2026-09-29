@@ -4,6 +4,7 @@ import LawyerPageHeader, { LawyerPageLoading } from '@/components/lawyer/lawyer-
 import React, { useState, useEffect } from 'react';
 import { InvoiceGenerator } from '@/components/billing/lawyer/invoice-generator';
 import { InvoiceList } from '@/components/billing/invoice-list';
+import { ReceiptList } from '@/components/billing/receipt-list';
 import { Invoice } from '@/lib/types/billing-types';
 import { Wallet, TrendingUp, Loader2, FileText } from 'lucide-react';
 import { useUser } from '@/firebase';
@@ -135,6 +136,16 @@ export default function LawyerBillingPage() {
                   }
                 }}
               />
+            </div>
+          </div>
+
+          <div className="mt-8 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+            <div className="p-6 border-b border-slate-100">
+              <h2 className="font-bold text-slate-800">ใบเสร็จรับเงินที่ออกในนามคุณ</h2>
+              <p className="text-xs text-slate-500 mt-1">ระบบออกใบเสร็จให้อัตโนมัติเมื่อคุณกดยืนยันรับเงินในห้องแชท · ใช้ชื่อ ที่อยู่ และเลขผู้เสียภาษีจากโปรไฟล์ของคุณ</p>
+            </div>
+            <div className="p-4">
+              <ReceiptList role="lawyer" />
             </div>
           </div>
         </div>

@@ -2042,5 +2042,15 @@
     "loginRequired": "请使用提交申请的账户登录。",
     "login": "登录",
     "error": "付款失败，请重试。"
+  },
+  "Receipts": {
+    "title": "收据",
+    "empty": "暂无收据",
+    "void": "已作废",
+    "download": "下载收据 {no}",
+    "viewAll": "查看全部收据（{count}）",
+    "unknownPayer": "客户",
+    "clientNote": "收据以收款律师的名义开具，在律师确认收款后生成。",
+    "lawyerNote": "当您确认收款时，系统会自动以您的名义开具收据。"
   }
 }

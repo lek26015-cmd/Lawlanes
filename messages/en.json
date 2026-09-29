@@ -2042,5 +2042,15 @@
     "loginRequired": "Please log in with the account that sent the request.",
     "login": "Log in",
     "error": "Payment failed. Please try again."
+  },
+  "Receipts": {
+    "title": "Receipts",
+    "empty": "No receipts yet",
+    "void": "Void",
+    "download": "Download receipt {no}",
+    "viewAll": "View all receipts ({count})",
+    "unknownPayer": "Client",
+    "clientNote": "Receipts are issued in the name of the lawyer who received the payment, after they confirm it.",
+    "lawyerNote": "A receipt is issued in your name automatically when you confirm a payment."
   }
 }

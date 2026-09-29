@@ -20,6 +20,7 @@ import { useTranslations, useLocale } from 'next-intl';
 import { getUserDashboardData } from '@/app/actions/dashboard-actions';
 import { cn } from '@/lib/utils';
 import { ChatListItem } from '@/components/dashboard/chat-list-item';
+import { ReceiptList } from '@/components/billing/receipt-list';
 import { collection, query, where, onSnapshot } from 'firebase/firestore';
 import { useFirebase } from '@/firebase';
 
@@ -537,8 +538,8 @@ export default function DashboardPage() {
                                                             <p className="text-[9px] text-slate-400">{t('invoiceCard.dueDate', { date: format(new Date(inv.dueDate), 'dd MMM yyyy', { locale: dateLocale }) })}</p>
                                                         )}
                                                     </div>
-                                                    {/* ปุ่มดาวน์โหลดใบเสร็จซ่อนไว้จนกว่าจะมีระบบออกใบเสร็จ (PLAN-06 รอบ 5)
-                                                        ปุ่มชำระเงินพาไปห้องแชทของเคส — ยอด/งวดที่ต้องจ่ายเลือกได้ถูกต้องที่นั่น
+                                                    {/* ใบเสร็จแยกเป็นรายการด้านล่าง (ReceiptList) — ออกต่อการยืนยันรับเงินแต่ละครั้ง
+                                                        ไม่ใช่ต่อใบแจ้งหนี้ ปุ่มชำระเงินพาไปห้องแชทของเคส — ยอด/งวดที่ต้องจ่ายเลือกได้ถูกต้องที่นั่น
                                                         (หน้า /payment ต้องมี amount/installmentIndex ที่การ์ดนี้ไม่รู้) */}
                                                     {inv.status !== 'paid' && inv.chatId && (
                                                         <Link href={`/${locale}/chat/${inv.chatId}`}>
@@ -558,6 +559,8 @@ export default function DashboardPage() {
                                     </div>
                                 )}
                                 
+                                <ReceiptList role="client" limit={3} hideWhenEmpty viewAllHref={`/${locale}/dashboard/billing`} />
+
                                 <div className="text-center pt-1 border-t border-slate-50 mt-2">
                                     <Link href={`/${locale}/help`} className="text-[9px] text-slate-400 hover:text-blue-600 hover:underline font-medium">
                                         {t('invoiceCard.help')}

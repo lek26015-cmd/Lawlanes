@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { InvoiceList } from '@/components/billing/invoice-list';
+import { ReceiptList } from '@/components/billing/receipt-list';
 import { Invoice } from '@/lib/types/billing-types';
 import { CreditCard, ShieldCheck, Clock, Loader2 } from 'lucide-react';
 import { useUser } from '@/firebase';
@@ -103,6 +104,16 @@ export default function ClientBillingPage() {
               }
             }}
           />
+        </div>
+      </div>
+
+      <div className="mt-6 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="p-6 border-b border-slate-100">
+          <div className="font-bold text-slate-800">ใบเสร็จรับเงิน</div>
+          <p className="text-xs text-slate-500 mt-1">ใบเสร็จออกในนามทนายผู้รับเงิน หลังทนายยืนยันว่าได้รับเงินแล้ว</p>
+        </div>
+        <div className="p-4">
+          <ReceiptList role="client" />
         </div>
       </div>
 
