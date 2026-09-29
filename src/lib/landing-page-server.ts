@@ -106,7 +106,7 @@ export async function listPublishedLawyerSlugs(max = 1000): Promise<string[]> {
         const d = doc.data();
         if (d.suspended === true || typeof d.lawyerId !== 'string') return;
         const l = await adminApp.firestore().collection('lawyerProfiles').doc(d.lawyerId).get();
-        if (l.get('status') === 'approved' && effectiveTier(l.get('plan')) !== 'free') slugs.push(d.slug);
+        if (l.get('status') === 'approved' && l.get('hiddenFromDirectory') !== true && effectiveTier(l.get('plan')) !== 'free') slugs.push(d.slug);
     }));
     return slugs;
 }

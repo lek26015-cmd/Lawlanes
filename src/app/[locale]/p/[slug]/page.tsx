@@ -36,6 +36,8 @@ export async function generateMetadata(props: Props): Promise<Metadata> {
         title,
         description,
         alternates: { canonical: url },
+        // ทนายที่ซ่อนจากรายชื่อ (บัญชีทดสอบ) — เปิดด้วยลิงก์ได้แต่ไม่ให้ search engine เก็บ
+        ...(d.kind === 'lawyer' && d.lawyer.hidden ? { robots: { index: false, follow: false } } : {}),
         openGraph: { title, description, url, type: 'profile', images: image ? [{ url: image }] : undefined },
         twitter: { card: image ? 'summary_large_image' : 'summary', title, description, images: image ? [image] : undefined },
     };
