@@ -40,8 +40,8 @@ export function InvoicePreviewModal({ isOpen, onOpenChange, invoiceData, chatId,
                     {invoiceData.status !== 'paid' && !isLawyerView && (
                         <div className="pt-2">
                             <Button className="w-full rounded-2xl h-12 font-bold bg-blue-600 hover:bg-blue-700" asChild>
-                                <a href={`/payment?chatId=${chatId}&type=case&amount=${invoiceData.amount}`}>
-                                    <CreditCard className="w-4 h-4 mr-2" /> ไปหน้าชำระเงิน
+                                <a href={`/payment?chatId=${chatId}`}>
+                                    <CreditCard className="w-4 h-4 mr-2" /> ดูบัญชีทนายเพื่อโอนโดยตรง
                                 </a>
                             </Button>
                         </div>

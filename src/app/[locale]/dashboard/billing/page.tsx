@@ -80,8 +80,8 @@ export default function ClientBillingPage() {
             <ShieldCheck className="w-6 h-6" />
           </div>
           <div>
-            <div className="text-sm text-slate-400 font-medium">การชำระเงินที่ปลอดภัย</div>
-            <div className="text-slate-600 text-sm">เชื่อมต่อผ่าน HTTPS และแสดงเฉพาะรายการในบัญชีของคุณ</div>
+            <div className="text-sm text-slate-400 font-medium">ชำระให้ทนายโดยตรง</div>
+            <div className="text-slate-600 text-sm">Lawslane ไม่ได้รับหรือถือเงินค่าบริการ — โอนเข้าบัญชีของทนายตามใบแจ้งหนี้ แล้วทนายเป็นผู้ยืนยันรับเงิน</div>
           </div>
         </div>
       </div>
@@ -94,11 +94,7 @@ export default function ClientBillingPage() {
           <InvoiceList 
             invoices={invoices} 
             role="client" 
-            // ไปห้องแชทของเคส — เดิมไป /payment?type=case โดยไม่มียอด/งวด เคสแบ่งงวดจึงอาจเรียกเก็บผิดยอด
-            onAction={(id) => {
-              const caseId = invoices.find(i => i.id === id)?.case_id;
-              if (caseId) router.push(`/${locale}/chat/${caseId}`);
-            }}
+            onAction={(id) => router.push(`/payment?chatId=${invoices.find(i => i.id === id)?.case_id}`)} 
             onViewEvidence={(inv) => {
               if (inv.evidence_url) {
                 window.open(inv.evidence_url, '_blank');

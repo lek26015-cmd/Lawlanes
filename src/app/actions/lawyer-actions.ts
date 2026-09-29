@@ -80,39 +80,8 @@ export async function getLawyerProfileAction(lawyerId: string): Promise<LawyerPr
     }
 }
 
-/**
- * Updates lawyer pricing settings.
- */
-export async function updateLawyerPricingAction(pricing: { 
-    appointmentFee: number, 
-    chatFee: number, 
-    platformFeeRate: number 
-}) {
-    // ต้องเป็นทนายเจ้าของโปรไฟล์ — เดิมรับ lawyerId เป็น argument
-    // จึงแก้ค่าบริการของทนายคนอื่นได้
-    const { lawyerProfileId: lawyerId, adminApp } = await requireLawyer();
-    const db = adminApp.firestore();
-
-    // platformFeeRate คือส่วนแบ่งของแพลตฟอร์ม (GP) — แอดมินเป็นคนกำหนด ทนายห้ามตั้งเอง
-    // เดิมเขียน pricing ทั้งก้อนที่ส่งมา ทนายจึงตั้ง platformFeeRate: 0 ให้ตัวเองได้
-    const appointmentFee = Number(pricing?.appointmentFee);
-    const chatFee = Number(pricing?.chatFee);
-    if (![appointmentFee, chatFee].every(v => Number.isFinite(v) && v >= 0 && v <= 1_000_000)) {
-        return { success: false, error: 'ค่าบริการไม่ถูกต้อง' };
-    }
-
-    try {
-        await db.collection('lawyerProfiles').doc(lawyerId).update({
-            'pricing.appointmentFee': appointmentFee,
-            'pricing.chatFee': chatFee,
-            updatedAt: new Date().toISOString()
-        });
-        return { success: true };
-    } catch (error: any) {
-        console.error("Error updating lawyer pricing action:", error);
-        return { success: false, error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' };
-    }
-}
+// updateLawyerPricingAction (ค่านัด/ค่าแชทของทนาย + กัน platformFeeRate) ถูกลบ — ไม่มีหน้าไหนเรียก
+// และแชท/นัดหมายไม่มีค่าใช้จ่ายผ่านระบบแล้ว ค่าบริการทนายเสนอในแชทแล้วลูกความจ่ายทนายโดยตรง
 
 /**
  * ดึงตารางเวลาของทนายที่ล็อกอินอยู่ — ใช้เติมค่าเริ่มต้นในหน้า lawyer-schedule
@@ -160,28 +129,7 @@ export async function updateLawyerScheduleAction(schedule: LawyerSchedule) {
     }
 }
 
-/**
- * Fetches global platform settings (like GP rate).
- */
-export async function getPlatformSettingsAction() {
-    const adminApp = await initAdmin();
-    if (!adminApp) throw new Error('Firebase Admin not initialized.');
-    const db = adminApp.firestore();
-
-    try {
-        const settingsDoc = await db.collection('settings').doc('platform').get();
-        if (settingsDoc.exists) {
-            // action นี้ไม่มีด่าน (Admin SDK ข้าม rules ที่ให้อ่านได้เฉพาะคนล็อกอิน) —
-            // คืนเฉพาะค่าที่หน้าเว็บใช้ ไม่คืนเอกสารตั้งค่าทั้งก้อน
-            const rate = Number(settingsDoc.data()?.platformFeeRate);
-            return { platformFeeRate: Number.isFinite(rate) ? rate : 0.15 };
-        }
-        return { platformFeeRate: 0.15 }; // Default fallback
-    } catch (error) {
-        console.error("Error fetching platform settings action:", error);
-        return { platformFeeRate: 0.15 };
-    }
-}
+// getPlatformSettingsAction (อัตรา GP จาก settings/platform) ถูกลบ — ยกเลิก GP แล้ว
 
 /**
  * Checks the role of a specific user.
@@ -367,7 +315,10 @@ export async function createManualCaseAction(data: {
             description: data.description,
             category: data.category,
             amount: data.amount,
-            status: 'pending_payment',
+            // เดิม 'pending_payment' + กำแพงในหน้าแชทให้ลูกความจ่ายเข้าบัญชีแพลตฟอร์มก่อนเริ่มงาน
+            // ตอนนี้แชทฟรีเสมอและลูกความจ่ายทนายโดยตรง → เคสเปิดใช้งานทันที ยอดที่ทนายเสนอเป็นแค่ข้อมูล
+            // (ทนายยืนยันรับเงินเองผ่าน confirmDirectPaymentReceivedAction)
+            status: 'active',
             isManualCase: true,
             installments: (data.installments || []).map((inst, idx) => ({
                 ...inst,
@@ -402,7 +353,7 @@ export async function createManualCaseAction(data: {
 
         const chatRes = await chatRef.set(chatPayload, { merge: true });
 
-        // BILLING FIX: Reset pending payment flags to prevent old consultation slips from being inherited
+        // ล้างฟิลด์คิวตรวจสลิปของโมเดลเดิม (ห้องที่เคยแนบสลิปค่า Ticket) ไม่ให้ติดมากับเคสใหม่
         await chatRef.update({
             hasNewPayment: false,
             pendingPaymentDetails: admin.firestore.FieldValue.delete(),
@@ -439,7 +390,7 @@ export async function createManualCaseAction(data: {
         const newMessageRef = messagesRef.doc();
         const proposalMessage = {
             chatId: chatId,
-            text: `📄 **เอกสารใบเสนอราคาใหม่**\n\n**หัวข้อ:** ${data.title}\n**ยอดรวมทั้งสิ้น:** ฿${data.amount.toLocaleString()}\n\nคุณสามารถตรวจสอบรายละเอียดใบเสนอราคาอย่างเป็นทางการและดาวน์โหลดเอกสาร PDF ได้ที่ลิงก์ด้านล่างนี้:\n\n🔗 [ดูใบเสนอราคาที่นี่](${invoiceLink})\n\nกรุณาตรวจสอบและดำเนินการชำระเงินตามงวดงานในเมนู "ข้อเสนอคดี" เพื่อเริ่มดำเนินคดีครับ`,
+            text: `📄 **เอกสารใบเสนอราคาใหม่**\n\n**หัวข้อ:** ${data.title}\n**ยอดรวมทั้งสิ้น:** ฿${data.amount.toLocaleString()}\n\nคุณสามารถตรวจสอบรายละเอียดใบเสนอราคาอย่างเป็นทางการและดาวน์โหลดเอกสาร PDF ได้ที่ลิงก์ด้านล่างนี้:\n\n🔗 [ดูใบเสนอราคาที่นี่](${invoiceLink})\n\nค่าบริการโอนให้ทนายโดยตรงตามข้อมูลบัญชีในเมนู "จัดการ" ของห้องนี้ (Lawslane ไม่ได้รับหรือถือเงินก้อนนี้)`,
             senderId: 'system',
             senderName: 'System',
             timestamp: admin.firestore.FieldValue.serverTimestamp(),
@@ -459,7 +410,7 @@ export async function createManualCaseAction(data: {
             const contractMsgRef = messagesRef.doc();
             await contractMsgRef.set({
                 chatId: chatId,
-                text: `📄 **ร่างสัญญาจ้างทนายความ**\n\n${data.contractText}\n\n*หมายเหตุ: สัญญาฉบับนี้จะมีผลสมบูรณ์เมื่อมีการชำระเงินงวดแรกเข้าระบบ*`,
+                text: `📄 **ร่างสัญญาจ้างทนายความ**\n\n${data.contractText}\n\n*หมายเหตุ: สัญญาฉบับนี้จะมีผลสมบูรณ์เมื่อทนายยืนยันว่าได้รับเงินงวดแรกแล้ว*`,
                 senderId: 'system',
                 senderName: 'System',
                 timestamp: admin.firestore.FieldValue.serverTimestamp(),
@@ -469,10 +420,10 @@ export async function createManualCaseAction(data: {
 
         // (C) The Payment Instruction Message (NEW)
         const paymentMsgRef = messagesRef.doc();
-        const paymentLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://lawslane.com'}/payment?chatId=${chatId}&type=case`;
+        const paymentLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://lawslane.com'}/payment?chatId=${chatId}`;
         await paymentMsgRef.set({
             chatId: chatId,
-            text: `💳 **ช่องทางการชำระเงิน**\n\nคุณสามารถชำระเงินผ่านระบบ Thai QR Payment หรือบัตรเครดิตได้โดยตรงที่ลิงก์ด้านล่างนี้:\n\n🔗 [ชำระเงินที่นี่](${paymentLink})\n\n*เงินของคุณจะถูกเก็บไว้ในระบบ Escrow ของ Lawslane และจะโอนให้ทนายความตามงวดงานที่ตกลงกันเท่านั้น*`,
+            text: `💳 **ช่องทางการชำระเงิน**\n\nโอนค่าบริการเข้าบัญชีของทนายความโดยตรง ดูเลขบัญชีและแจ้งโอนได้ที่ลิงก์ด้านล่างนี้:\n\n🔗 [ดูบัญชีทนาย](${paymentLink})\n\n*Lawslane ไม่ได้รับและไม่ได้ถือเงินก้อนนี้ ทนายความเป็นผู้ยืนยันเมื่อได้รับเงินแล้ว*`,
             senderId: 'system',
             senderName: 'System',
             timestamp: admin.firestore.FieldValue.serverTimestamp(),
@@ -487,11 +438,11 @@ export async function createManualCaseAction(data: {
                 await notificationRef.set({
                     type: 'payment',
                     title: `ใบเสนอราคาเปิดคดีใหม่`,
-                    message: `คุณได้รับข้อเสนอคดี: ${data.title} จำนวน ฿${data.amount.toLocaleString()} กรุณากดเพื่อตรวจสอบและชำระเงิน`,
+                    message: `คุณได้รับข้อเสนอคดี: ${data.title} จำนวน ฿${data.amount.toLocaleString()} — ค่าบริการโอนให้ทนายโดยตรง`,
                     createdAt: admin.firestore.FieldValue.serverTimestamp(),
                     read: false,
                     recipient: resolvedClientId,
-                    link: `/payment?chatId=${chatId}&type=case`,
+                    link: `/chat/${chatId}`,
                     relatedId: chatId
                 });
 
@@ -656,12 +607,14 @@ export async function repairChatDocumentsAction(chatId: string) {
                 lawyerId: chatData.lawyerId || 'unknown',
                 title: `สัญญาจ้างทนายความ: ${chatData.caseTitle || 'เคส'}`,
                 amount: chatData.amount || 0,
-                // ใบแจ้งหนี้ "จ่ายแล้ว" ต่อเมื่อจ่ายครบจริง — ห้อง active แค่แปลว่าจ่ายงวดแรกแล้ว
+                // ใบแจ้งหนี้ "จ่ายแล้ว" ต่อเมื่อทนายยืนยันรับเงินครบจริง — ห้อง active ไม่ได้แปลว่าจ่ายแล้ว
+                // (เคสที่ทนายสร้างเองเปิดเป็น active ทันทีตั้งแต่เลิกให้แพลตฟอร์มถือเงิน)
                 status: (() => {
                     const insts = chatData.installments || [];
-                    const activeOrPaid = chatData.status === 'active' || chatData.status === 'paid';
                     if (insts.length > 0) return insts.every((i: any) => i?.status === 'paid') ? 'paid' : 'pending';
-                    return activeOrPaid ? 'paid' : 'pending';
+                    const amt = Number(chatData.amount) || 0;
+                    const settled = !!chatData.paymentConfirmedAt || !!chatData.paidAt || (amt > 0 && (Number(chatData.paidAmount) || 0) >= amt);
+                    return settled ? 'paid' : 'pending';
                 })(),
                 type: 'proposal',
                 items: (chatData.installments || []).map((inst: any) => ({
@@ -731,10 +684,10 @@ export async function repairChatDocumentsAction(chatId: string) {
  * ของ chats — กฎเดียวกับที่ทำให้ใครก็สร้างเคสพร้อม `amount: 0, status: 'paid'` ได้
  * ย้ายมาที่นี่เพื่อให้ปิดกฎนั้นได้ และเพื่อยืนยันว่าคนกดรับเป็นทนายเจ้าของคำขอจริง
  *
- * รับเคสได้เฉพาะนัดหมายที่ **ชำระเงินแล้ว** ('paid' — ตั้งโดย createAppointment เมื่อ
- * สลิปผ่าน SlipOK หรือโดย approvePaymentSlipAction ของแอดมิน) และยังไม่มีห้องแชท
- * เดิมรับได้ทุกสถานะและไม่เช็คว่าเคยรับแล้วหรือยัง → รับนัดหมายที่ยังไม่จ่าย
- * (pending_payment) ได้เป็นห้อง 'active' และกดรับซ้ำ = ห้องซ้ำหลายห้อง
+ * รับเคสได้เฉพาะคำขอที่ยังรอตอบรับ ('pending' — สร้างโดย requestAppointmentAction ซึ่งฟรี
+ * ไม่ผ่านการชำระเงินของแพลตฟอร์มแล้ว) และยังไม่มีห้องแชท · คำขอรุ่นเก่าที่จ่ายผ่านแพลตฟอร์ม
+ * ('paid') ยังรับได้ · 'pending_payment' รุ่นเก่า (ยังไม่ได้จ่ายตามโมเดลเดิม) ก็รับได้เพราะ
+ * ตอนนี้นัดหมายไม่มีค่าใช้จ่ายผ่านระบบแล้ว · กดรับซ้ำไม่ได้ (chatId / confirmed)
  * อ่าน + เขียนอยู่ใน transaction เดียว กันกดพร้อมกันสองแท็บแล้วได้สองห้อง
  */
 export async function respondToAppointmentRequestAction(input: {
@@ -773,8 +726,8 @@ export async function respondToAppointmentRequestAction(input: {
                 return undefined;
             }
 
-            if (appt.status !== 'paid') {
-                throw new AppointmentRejected('คำขอนี้ยังไม่ได้ชำระเงิน รอให้แอดมินตรวจสอบสลิปก่อน');
+            if (!['pending', 'paid', 'pending_payment'].includes(appt.status ?? 'pending')) {
+                throw new AppointmentRejected('คำขอนี้ไม่อยู่ในสถานะที่รับได้');
             }
 
             const clientId = appt.userId || appt.clientId;
@@ -794,8 +747,8 @@ export async function respondToAppointmentRequestAction(input: {
                 userId: clientId,
                 caseTitle: appt.caseTitle || appt.description || 'เคสจากคำขอนัดหมาย',
                 status: 'active',
-                // ห้องนี้เกิดจากนัดหมายที่ชำระเงินแล้ว ยอดอยู่ที่เอกสาร appointments
-                // ไม่ตั้ง amount ซ้ำตรงนี้เพื่อไม่ให้ถูกนับรายได้สองรอบ
+                // แชทฟรี — ค่าบริการ (ถ้ามี) ทนายเสนอในห้องนี้ภายหลัง และลูกความจ่ายทนายโดยตรง
+                amount: 0,
                 appointmentId: input.appointmentId,
                 createdAt: admin.firestore.FieldValue.serverTimestamp(),
                 lastMessageAt: admin.firestore.FieldValue.serverTimestamp(),
