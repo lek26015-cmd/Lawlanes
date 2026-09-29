@@ -163,17 +163,24 @@ const nextConfig: NextConfig = {
     // เดิม next-intl ส่ง 307 ชั่วคราว อันดับจึงไม่ย้ายตามไป URL ใหม่ · หน้าแรก / ยังให้ next-intl เลือกภาษาเอง
     const publicPagesWithoutLocale = [
       'lawyers', 'interpreters', 'law-search', 'articles', 'forms', 'for-lawyers',
-      'verify-lawyer', 'about', 'help', 'guide', 'ai-disclaimer', 'privacy', 'terms',
+      'verify-lawyer', 'about', 'help', 'ai-disclaimer', 'privacy', 'terms',
     ].flatMap((page) => [
       // แยก 2 แบบ: `/:path*` ตอนว่างจะได้ปลายทางมี / ต่อท้าย → redirect ซ้ำอีกทอด
       { source: `/${page}`, destination: `/th/${page}`, permanent: true },
       { source: `/${page}/:path+`, destination: `/th/${page}/:path+`, permanent: true },
     ]);
 
+    // คู่มือย้ายไปเว็บแยก docs.lawslane.com (repo lawslane-docs) — ภาษาเดียวกับที่เปิดมา
+    const guideMoved = [
+      { source: '/guide', destination: 'https://docs.lawslane.com/th', permanent: true },
+      { source: '/:locale(th|en|zh)/guide', destination: 'https://docs.lawslane.com/:locale', permanent: true },
+    ];
+
     // หลังยกหลังบ้านไป admin.lawslane.com แล้ว (แผนรวมหลังบ้าน Module 1)
     // ลิงก์เก่าที่คนบุ๊กมาร์กไว้ต้องไม่ 404 — permanent: false เผื่อย้ายกลับ/เปลี่ยนปลายทาง
     return [
       ...publicPagesWithoutLocale,
+      ...guideMoved,
       // เลิกรับสมัครล่ามบนเว็บแล้ว — หน้ารับสมัครเดิมไปหน้าบริการล่ามแทน
       { source: '/for-interpreters/:path*', destination: '/th/interpreters', permanent: true },
       { source: '/:locale(th|en|zh)/for-interpreters/:path*', destination: '/:locale/interpreters', permanent: true },

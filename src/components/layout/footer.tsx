@@ -82,7 +82,7 @@ export default function Footer({ userRole, domainType = 'main' }: { userRole: st
     { href: `/${locale}/terms`, label: t('legal.terms') },
     { href: `/${locale}/ai-disclaimer`, label: t('legal.aiDisclaimer') },
     { href: `/${locale}/help`, label: t('legal.help') },
-    { href: `/${locale}/guide`, label: t('legal.guide') },
+    { href: `https://docs.lawslane.com/${locale}`, label: t('legal.guide') },
   ];
 
   if (isAuthPage) {
