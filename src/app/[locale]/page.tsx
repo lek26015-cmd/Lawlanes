@@ -27,7 +27,7 @@ import { FadeIn } from '@/components/fade-in';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import lawslaneCoverPhoto from '@/pic/lawslane-cover-photo.webp';
 import lawslaneHeroCover from '@/pic/Lawlanes-Hero-cover.jpg';
-import wittayaEducationImg from '@/pic/wittaya-education.webp';
+import wittayaHeroImg from '@/pic/wittaya-hero-cartoon.webp';
 import { getEducationLink } from '@/lib/domain-utils';
 
 export const dynamic = 'error';
@@ -169,21 +169,25 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         <HomeRecommendedLawyers initialLawyers={initialLawyers} />
 
         {/* Lawslane Wittaya CTA — เตรียมสอบตั๋วทนาย (แอปแยก ลิงก์ข้ามโดเมน) */}
-        <section className="w-full py-16 md:py-24 bg-[#E8E8F8] overflow-hidden">
+        <section className="w-full py-16 md:py-24 bg-white overflow-hidden">
           <div className="container mx-auto px-4 md:px-6">
-            <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center max-w-6xl mx-auto">
+            <div className="grid lg:grid-cols-2 gap-12 items-center">
               <FadeIn direction="right">
-                <Image
-                  src={wittayaEducationImg}
-                  alt={t('wittaya.imageAlt')}
-                  sizes="(max-width: 1024px) 100vw, 560px"
-                  className="w-full h-auto max-w-lg mx-auto"
-                />
+                {/* ภาพการ์ตูนเดียวกับ hero ของ Wittaya (PNG พื้นใส) บนการ์ดพื้น slate-900 เดียวกับ hero หน้าแรก */}
+                <div className="relative overflow-hidden rounded-[2.5rem] bg-slate-900 shadow-xl aspect-[5/4] flex items-end justify-center">
+                  <div className="absolute top-0 right-0 -mr-16 -mt-16 w-72 h-72 bg-white/5 rounded-full blur-3xl pointer-events-none" />
+                  <Image
+                    src={wittayaHeroImg}
+                    alt={t('wittaya.imageAlt')}
+                    sizes="(max-width: 1024px) 80vw, 480px"
+                    className="relative w-[80%] max-w-[480px] h-auto"
+                  />
+                </div>
               </FadeIn>
 
               <FadeIn direction="left" delay={200}>
                 <div className="space-y-6">
-                  <Badge variant="outline" className="text-[#4B3FA8] border-[#4B3FA8] font-bold px-4 py-1">{t('wittaya.badge')}</Badge>
+                  <Badge variant="outline" className="text-[#0B3979] border-[#0B3979] font-bold px-4 py-1">{t('wittaya.badge')}</Badge>
                   <h2 className="text-3xl md:text-4xl font-bold font-headline text-[#0B3979]">
                     {t('wittaya.title')}
                   </h2>
@@ -197,8 +201,8 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                       t('wittaya.features.ai')
                     ].map((item, index) => (
                       <div key={index} className="flex items-center gap-4 bg-white px-6 py-4 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
-                        <div className="w-8 h-8 rounded-full bg-[#EEEBFB] flex items-center justify-center shrink-0">
-                          <Check className="w-4 h-4 text-[#4B3FA8]" />
+                        <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+                          <Check className="w-4 h-4 text-[#0B3979]" />
                         </div>
                         <span className="text-slate-700 font-medium">{item}</span>
                       </div>
@@ -259,7 +263,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
 
               {/* Right Card: Verify Status */}
               <FadeIn direction="up" delay={200}>
-                <div className="h-full bg-gradient-to-br from-[#0B3979] to-[#082a5a] text-white rounded-[2.5rem] p-8 md:p-12 shadow-xl hover:shadow-2xl transition-all duration-300 flex flex-col justify-between relative overflow-hidden group">
+                <div className="h-full bg-slate-900 text-white rounded-[2.5rem] p-8 md:p-12 shadow-xl hover:shadow-2xl transition-all duration-300 flex flex-col justify-between relative overflow-hidden group">
                   {/* Subtle Background Pattern */}
                   <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-white/5 rounded-full blur-3xl group-hover:bg-white/10 transition-colors duration-500"></div>
                   
@@ -271,13 +275,13 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                       <h2 className="text-2xl md:text-3xl font-bold font-headline text-white">
                         {t('verifyStatus.title')}
                       </h2>
-                      <p className="text-blue-100 text-lg leading-relaxed">
+                      <p className="text-gray-400 text-lg leading-relaxed">
                         {t('verifyStatus.description')}
                       </p>
                     </div>
                     
                     <div className="bg-white/5 rounded-2xl p-6 border border-white/10 backdrop-blur-sm">
-                      <p className="text-sm text-blue-200 uppercase font-semibold tracking-wider mb-2">{t('stats.experts')}</p>
+                      <p className="text-sm text-gray-400 uppercase font-semibold tracking-wider mb-2">{t('stats.experts')}</p>
                       <div className="text-3xl font-bold text-white">50+ {t('stats.experts')}</div>
                     </div>
                   </div>

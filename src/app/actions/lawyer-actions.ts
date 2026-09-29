@@ -365,6 +365,10 @@ export async function createManualCaseAction(data: {
         const invoicePayload = {
             chatId: chatId,
             userId: resolvedClientId || 'unknown',
+            // ชื่อช่องชุดที่ createInvoiceAction / หน้า billing ใช้ — เดิมมีแค่ userId/chatId
+            // หน้า billing ของลูกความ (ค้นด้วย client_id) จึงไม่เห็นใบนี้
+            client_id: resolvedClientId || 'unknown',
+            case_id: chatId,
             lawyerId: lawyerId,
             title: `ใบเสนอราคา: ${data.title}`,
             amount: data.amount,
@@ -598,6 +602,8 @@ export async function repairChatDocumentsAction(chatId: string) {
             await invoiceRef.set({
                 chatId: chatId,
                 userId: chatData.userId || chatData.clientId || 'unknown',
+                client_id: chatData.userId || chatData.clientId || 'unknown',
+                case_id: chatId,
                 lawyerId: chatData.lawyerId || 'unknown',
                 title: `สัญญาจ้างทนายความ: ${chatData.caseTitle || 'เคส'}`,
                 amount: chatData.amount || 0,

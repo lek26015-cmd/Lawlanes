@@ -43,8 +43,11 @@ export async function getUserDashboardData() {
         // Resolve each chat's lawyer id up front so lawyer profiles can be
         // batch-fetched below instead of one Firestore read per chat/appointment
         // (see LAWSLANE-PLAN-01 2.2).
+        // ห้องแชทเก็บทนายไว้หลายแบบ: lawyerId (id โปรไฟล์), lawyer_id (รุ่นเก่า) หรือไม่มีเลย
+        // มีแค่ uid ทนายใน participants — id โปรไฟล์ที่แอดมินสร้างเป็น id สุ่ม ไม่เท่ากับ uid
+        // เดิมเช็คแค่ lawyerId แล้วหา lawyerProfiles ด้วย doc id อย่างเดียว → "Unknown Lawyer"
         const resolveLawyerId = (data: FirebaseFirestore.DocumentData): string | undefined => {
-            let lawyerId = data.lawyerId;
+            let lawyerId = data.lawyerId || data.lawyer_id;
             if (!lawyerId && data.participants && Array.isArray(data.participants)) {
                 lawyerId = data.participants.find((p: string) => p !== userId);
             }
@@ -65,50 +68,81 @@ export async function getUserDashboardData() {
             if (id) lawyerIds.add(id);
         }
 
+        const chunk30 = (ids: string[]) => {
+            const out: string[][] = [];
+            for (let i = 0; i < ids.length; i += 30) out.push(ids.slice(i, i + 30));
+            return out;
+        };
+
         const DEFAULT_LAWYER = { name: 'Unknown Lawyer', imageUrl: '', imageHint: '' };
-        const lawyerProfileMap: Record<string, { name: string; imageUrl: string; imageHint: string }> = {};
+        type LawyerInfo = { name: string; imageUrl: string; imageHint: string; ownerUid?: string };
+        const lawyerProfileMap: Record<string, LawyerInfo> = {};
+        const fromProfile = (d: FirebaseFirestore.DocumentData): LawyerInfo => ({
+            name: d?.name || 'Unknown Lawyer', imageUrl: d?.imageUrl || '', imageHint: d?.imageHint || '', ownerUid: d?.userId,
+        });
         if (lawyerIds.size > 0) {
             const idsArray = Array.from(lawyerIds);
-            const chunks: string[][] = [];
-            for (let i = 0; i < idsArray.length; i += 30) {
-                chunks.push(idsArray.slice(i, i + 30));
-            }
 
-            // Try lawyerProfiles first...
-            const profileSnaps = await Promise.all(chunks.map(chunk =>
+            // 1) id เป็น id ของ lawyerProfiles
+            const profileSnaps = await Promise.all(chunk30(idsArray).map(chunk =>
                 db.collection('lawyerProfiles').where('__name__', 'in', chunk).get()
             ));
             profileSnaps.forEach(snap => snap.docs.forEach(doc => {
-                const d = doc.data();
-                lawyerProfileMap[doc.id] = { name: d?.name || 'Unknown Lawyer', imageUrl: d?.imageUrl || '', imageHint: d?.imageHint || '' };
+                lawyerProfileMap[doc.id] = fromProfile(doc.data());
             }));
 
-            // ...then fall back to users for any id not found there.
-            const missingIds = idsArray.filter(id => !lawyerProfileMap[id]);
+            // 2) id เป็น uid ของทนาย → หาโปรไฟล์ที่ userId ตรงกัน
+            let missingIds = idsArray.filter(id => !lawyerProfileMap[id]);
             if (missingIds.length > 0) {
-                const missingChunks: string[][] = [];
-                for (let i = 0; i < missingIds.length; i += 30) {
-                    missingChunks.push(missingIds.slice(i, i + 30));
-                }
-                const userSnaps = await Promise.all(missingChunks.map(chunk =>
+                const byOwnerSnaps = await Promise.all(chunk30(missingIds).map(chunk =>
+                    db.collection('lawyerProfiles').where('userId', 'in', chunk).get()
+                ));
+                byOwnerSnaps.forEach(snap => snap.docs.forEach(doc => {
+                    const owner = doc.data()?.userId;
+                    if (owner && !lawyerProfileMap[owner]) lawyerProfileMap[owner] = fromProfile(doc.data());
+                }));
+            }
+
+            // 3) ไม่มีโปรไฟล์ทนายเลย → ใช้ชื่อจาก users
+            missingIds = idsArray.filter(id => !lawyerProfileMap[id]);
+            if (missingIds.length > 0) {
+                const userSnaps = await Promise.all(chunk30(missingIds).map(chunk =>
                     db.collection('users').where('__name__', 'in', chunk).get()
                 ));
                 userSnaps.forEach(snap => snap.docs.forEach(doc => {
                     const d = doc.data();
-                    lawyerProfileMap[doc.id] = { name: d?.name || 'Unknown Lawyer', imageUrl: '', imageHint: '' };
+                    lawyerProfileMap[doc.id] = {
+                        name: d?.name || d?.displayName || 'Unknown Lawyer',
+                        imageUrl: d?.avatar || d?.imageUrl || '',
+                        imageHint: '',
+                        ownerUid: doc.id,
+                    };
                 }));
             }
         }
 
         const getLawyerDetails = (lawyerIdParam: string | undefined): any => {
             if (!lawyerIdParam) return { id: 'unknown', ...DEFAULT_LAWYER };
-            return { id: lawyerIdParam, ...(lawyerProfileMap[lawyerIdParam] || DEFAULT_LAWYER) };
+            const { ownerUid: _ownerUid, ...info } = lawyerProfileMap[lawyerIdParam] || DEFAULT_LAWYER;
+            return { id: lawyerIdParam, ...info };
+        };
+
+        // ห้องที่ผู้ใช้เป็น "ทนาย" เอง (ทนายเปิดแดชบอร์ดลูกความ) อยู่ในแดชบอร์ดทนายแล้ว
+        // เดิมโผล่ที่นี่ด้วย โดยเอาชื่อลูกความมาแสดงเป็นชื่อทนาย
+        const isOwnLawyerChat = (data: FirebaseFirestore.DocumentData): boolean => {
+            const id = data.lawyerId || data.lawyer_id;
+            if (!id) return false;
+            return id === userId || lawyerProfileMap[id]?.ownerUid === userId;
         };
 
         const cases: Case[] = [];
+        // ส่งให้หน้าเว็บรู้ว่าห้องไหนตั้งใจไม่แสดง — ไม่งั้น realtime listener เห็นว่าเป็นห้องใหม่
+        // แล้วดึงข้อมูลทั้งหมดใหม่ทุกข้อความ
+        const excludedChatIds: string[] = [];
 
         for (const d of chatDocs.values()) {
             const data = d.data();
+            if (isOwnLawyerChat(data)) { excludedChatIds.push(d.id); continue; }
             const lawyerId = resolveLawyerId(data);
 
             const lawyer = getLawyerDetails(lawyerId);
@@ -163,7 +197,7 @@ export async function getUserDashboardData() {
             const todayStart = new Date();
             todayStart.setHours(0, 0, 0, 0);
 
-            if (date >= todayStart) {
+            if (date >= todayStart && data.status !== 'cancelled') {
                 appointments.push({
                     id: d.id,
                     date: date,
@@ -211,26 +245,39 @@ export async function getUserDashboardData() {
         // Bounded to 200 then sorted+sliced in JS below — an indexed orderBy() would let
         // Firestore do this directly, but that needs a (userId + createdAt) composite index
         // that doesn't exist yet; adding orderBy() without it would make this query fail outright.
+        // ใบแจ้งหนี้มีชื่อช่อง 2 ชุด (userId/dueDate จากแชท, client_id/due_date จากหน้า billing
+        // ของทนาย) — เดิมค้นแค่ userId การ์ดนี้กับหน้า billing จึงเห็นใบแจ้งหนี้คนละชุด
         const invoicesRef = db.collection('invoices');
-        const invoiceSnap = await invoicesRef
-            .where('userId', '==', userId)
-            .limit(200)
-            .get();
+        const [invByUserId, invByClientId] = await Promise.all([
+            invoicesRef.where('userId', '==', userId).limit(200).get(),
+            invoicesRef.where('client_id', '==', userId).limit(200).get(),
+        ]);
+        const invoiceDocs = new Map<string, FirebaseFirestore.QueryDocumentSnapshot>();
+        [...invByUserId.docs, ...invByClientId.docs].forEach(d => invoiceDocs.set(d.id, d));
 
-        const invoices = invoiceSnap.docs
+        const toIso = (v: any): string | null => {
+            if (!v) return null;
+            const date = v.toDate ? v.toDate() : new Date(v);
+            return isNaN(date.getTime()) ? null : date.toISOString();
+        };
+
+        const invoices = Array.from(invoiceDocs.values())
             .map(d => {
                 const data = d.data();
                 return {
                     id: d.id,
                     ...data,
-                    createdAt: data.createdAt?.toDate ? data.createdAt.toDate().toISOString() : new Date().toISOString(),
-                    dueDate: data.dueDate?.toDate ? data.dueDate.toDate().toISOString() : (data.dueDate || new Date().toISOString()),
+                    chatId: data.chatId || data.case_id || data.caseId || data.chat_id || null,
+                    createdAt: toIso(data.createdAt) || new Date().toISOString(),
+                    dueDate: toIso(data.dueDate ?? data.due_date),
+                    paidAt: toIso(data.paidAt),
+                    updatedAt: toIso(data.updatedAt),
                 };
             })
             .sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
             .slice(0, 5);
 
-        return { cases, appointments, tickets, capDeals, invoices };
+        return { cases, appointments, tickets, capDeals, invoices, excludedChatIds };
     } catch (error) {
         throw new Error('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
     }

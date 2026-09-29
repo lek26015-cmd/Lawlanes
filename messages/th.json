@@ -139,7 +139,7 @@
         "ai": "AI ช่วยตรวจข้อสอบอัตนัย"
       },
       "cta": "ไปที่ Lawslane Wittaya",
-      "imageAlt": "นักศึกษากฎหมายสองคนกำลังอ่านหนังสือเตรียมสอบ"
+      "imageAlt": "บัณฑิตนิติศาสตร์ในชุดครุยถือปริญญาบัตร"
     }
   },
   "NotFound": {
@@ -529,7 +529,51 @@
     "description": "รายการ / เคส",
     "amount": "จำนวนเงิน",
     "status": "สถานะ",
-    "nextAction": "ขั้นตอนถัดไป"
+    "nextAction": "ขั้นตอนถัดไป",
+    "appointmentStatus": {
+      "pending_payment": "รอตรวจสอบการชำระเงิน",
+      "paid": "รอทนายยืนยัน",
+      "confirmed": "ยืนยันแล้ว",
+      "completed": "เสร็จสิ้น",
+      "other": "กำลังดำเนินการ"
+    },
+    "capdeal": {
+      "title": "แคปดีล — สัญญาล่าสุด",
+      "defaultTitle": "สัญญาจ้างทำของ",
+      "status": {
+        "signed": "เซ็นแล้ว",
+        "draft": "ร่าง",
+        "pending": "รอเซ็น"
+      },
+      "task": "งาน: {task}",
+      "noDetails": "ไม่มีรายละเอียด",
+      "price": "ราคา: {price} บาท",
+      "view": "ดูสัญญา",
+      "create": "สร้างสัญญาใหม่",
+      "empty": "ยังไม่มีสัญญาที่สร้างจากแคปดีล",
+      "start": "เริ่มแคปแล้วดีลเลย!"
+    },
+    "invoiceCard": {
+      "defaultDescription": "ค่าดำเนินคดี",
+      "paid": "ชำระแล้ว",
+      "pending": "รอชำระ",
+      "dueDate": "ครบกำหนด: {date}",
+      "empty": "ยังไม่มีรายการแจ้งหนี้",
+      "help": "มีปัญหาเรื่องการเงิน? ติดต่อเรา"
+    },
+    "chatItem": {
+      "yesterday": "เมื่อวาน",
+      "pendingPayment": "รอชำระเงิน",
+      "pendingVerification": "รอตรวจสอบสลิป",
+      "completed": "เสร็จสิ้น",
+      "cancelled": "ยกเลิกแล้ว",
+      "active": "ดำเนินการอยู่",
+      "typeCase": "แชทคดี",
+      "typePreliminary": "ปรึกษาเบื้องต้น",
+      "noMessages": "ยังไม่มีข้อความ"
+    },
+    "realtimeError": "หน้านี้ไม่อัปเดตข้อความใหม่อัตโนมัติ กดรีเฟรชเพื่อดูข้อความล่าสุด",
+    "refresh": "รีเฟรช"
   },
   "CaseRoom": {
     "proTools": "เครื่องมือระดับโปร (PRO)",
