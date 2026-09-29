@@ -2,6 +2,7 @@ import { MetadataRoute } from 'next'
 import { locales } from '@/navigation'
 import { SITE_URL } from '@/lib/seo'
 import { getApprovedLawyersAction } from '@/app/actions/lawyer-directory-actions'
+import { listPublishedLawyerSlugs } from '@/lib/landing-page-server'
 
 // โดเมนจริงคือ www (lawslane.com redirect มา www) และทุกหน้ามี locale นำหน้า (localePrefix: 'always')
 // URL ที่ไม่มี /th จะโดน redirect — ใส่ URL ปลายทางตรง ๆ พร้อม hreflang ของอีกสองภาษา
@@ -51,6 +52,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     console.error('[sitemap] lawyers failed', error)
   }
 
-  return [...staticPages, ...lawyerPages]
+  // หน้าเว็บส่วนตัวของทนาย (แพลน Pro/บริษัท ที่เผยแพร่อยู่)
+  let landingPages: MetadataRoute.Sitemap = []
+  try {
+    const slugs = await listPublishedLawyerSlugs()
+    landingPages = slugs.map((slug) => localized(`/p/${slug}`, lastModified, 'weekly', 0.6))
+  } catch (error) {
+    console.error('[sitemap] landing pages failed', error)
+  }
+
+  return [...staticPages, ...lawyerPages, ...landingPages]
 }
 

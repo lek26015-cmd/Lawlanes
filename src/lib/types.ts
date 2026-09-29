@@ -307,6 +307,11 @@ export interface LandingPage {
     facebook?: string;
   };
   status: 'published' | 'draft';
+  // หน้าเว็บส่วนตัวของทนาย (ดู src/lib/landing-page.ts) — หน้าที่แอดมินสร้างไม่มีฟิลด์เหล่านี้
+  ownerType?: 'lawyer';
+  lawyerId?: string;
+  /** แอดมินระงับหน้า — ทนายเผยแพร่เองไม่ได้จนกว่าแอดมินปลด */
+  suspended?: boolean;
   createdAt: any;
   updatedAt: any;
 }

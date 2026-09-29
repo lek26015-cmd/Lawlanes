@@ -75,7 +75,39 @@ export function ProviderPlanPanel({ kind }: { kind: ProviderKind }) {
         toast({ variant: 'destructive', title: res.error });
     };
 
-    if (error) return <p className="text-sm text-destructive">{error}</p>;
+    if (error) {
+        // บัญชีที่ไม่มีโปรไฟล์ทนาย/ล่าม (หรือโหลดไม่สำเร็จ) — เดิมโชว์แค่ข้อความ error ดิบ ไม่เห็นแพลนเลย
+        // ตอนนี้แสดงสิทธิ์ของแต่ละแพลนให้ดูได้ แต่ไม่มีราคา/ปุ่มสมัคร (สมัครได้เฉพาะเจ้าของโปรไฟล์)
+        const forbidden = error.startsWith('Forbidden');
+        return (
+            <div className="space-y-6">
+                <p className={`text-sm rounded-xl border p-4 ${forbidden ? 'bg-slate-50 text-slate-700' : 'bg-red-50 border-red-200 text-destructive'}`}>
+                    {forbidden
+                        ? (kind === 'lawyer'
+                            ? L('บัญชีนี้ยังไม่มีโปรไฟล์ทนาย — สมัครแพลนได้หลังลงทะเบียนเป็นทนาย', 'This account has no lawyer profile — register as a lawyer to subscribe')
+                            : L('บัญชีนี้ยังไม่ใช่ล่ามที่ได้รับการอนุมัติ — สมัครแพลนได้หลังได้รับอนุมัติ', 'This account is not an approved interpreter yet'))
+                        : L('โหลดข้อมูลแพลนไม่สำเร็จ กรุณาลองใหม่อีกครั้ง', 'Could not load your plan. Please try again.')}
+                </p>
+                <div className="grid md:grid-cols-3 gap-4">
+                    {TIERS.map(tier => (
+                        <Card key={tier} className={`rounded-2xl shadow-sm ${tier === 'top' ? 'border-2 border-amber-300 bg-gradient-to-b from-amber-50/60 to-white' : 'border-none'}`}>
+                            <CardContent className="p-5 space-y-4">
+                                <p className="font-bold text-lg flex items-center gap-2">
+                                    {tier !== 'free' && <Crown className="w-4 h-4 text-amber-500" />}
+                                    {L(...PLAN_INFO[kind][tier].name)}
+                                </p>
+                                <ul className="space-y-2 text-sm">
+                                    {PLAN_INFO[kind][tier].perks.map(p => (
+                                        <li key={p[0]} className="flex gap-2"><Check className="w-4 h-4 text-emerald-600 mt-0.5 flex-shrink-0" />{L(...p)}</li>
+                                    ))}
+                                </ul>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+            </div>
+        );
+    }
     if (!data) return <div className="flex justify-center py-16"><Loader2 className="animate-spin text-muted-foreground" /></div>;
 
     const info = PLAN_INFO[kind];
