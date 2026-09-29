@@ -24,6 +24,7 @@ import { initializeFirebase } from '@/firebase';
 import { HomeRecommendedLawyers } from '@/components/home-recommended-lawyers';
 import { HomeServicesSection } from '@/components/home-services-section';
 import { FadeIn } from '@/components/fade-in';
+import { SilkBackground } from '@/components/silk-background';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import lawslaneCoverPhoto from '@/pic/lawslane-cover-photo.webp';
 import lawslaneHeroCover from '@/pic/Lawlanes-Hero-cover.jpg';
@@ -82,6 +83,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
     <>
       <div className="flex flex-col">
         <section className="relative w-full -mt-20 pt-20 lg:pt-32 pb-0 bg-slate-900 text-white rounded-b-[60px] md:rounded-b-[80px] overflow-hidden">
+          <SilkBackground />
           {/* Container for Desktop Image - only visible and positioned relative to the center on large screens */}
           <div className="hidden lg:block absolute inset-0 pointer-events-none">
             <div className="relative w-full h-full max-w-screen-2xl mx-auto">
