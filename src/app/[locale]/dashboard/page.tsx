@@ -7,6 +7,9 @@ import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { PlanAvatar } from '@/components/plan-avatar';
+import { useMyPlan } from '@/hooks/use-my-plan';
+import { userPlanDisplay } from '@/lib/plan-display';
 import { Calendar, Briefcase, FileText, Loader2, Search, MessageSquare, Building, FileUp, HelpCircle, CheckCircle, User, Ticket, FileSignature, Camera, CreditCard, Clock, ShieldCheck, FileDown, Receipt } from 'lucide-react';
 import type { Case, UpcomingAppointment, ReportedTicket } from '@/lib/types';
 import { MyInterpreterBookingsCard } from '@/components/interpreter/my-interpreter-bookings-card';
@@ -76,6 +79,7 @@ const APPOINTMENT_STATUS_STYLES: Record<string, string> = {
 export default function DashboardPage() {
     const router = useRouter();
     const { user, isUserLoading } = useUser();
+    const myPlan = useMyPlan();
     const t = useTranslations('Dashboard');
     const tHelp = useTranslations('Help');
     const locale = useLocale();
@@ -433,10 +437,13 @@ export default function DashboardPage() {
                     <div className="lg:col-span-1 space-y-6">
                         <Card className="rounded-none md:rounded-3xl shadow-none md:shadow-sm border-none">
                             <CardContent className="pt-6 flex flex-col items-center text-center">
-                                <Avatar className="w-20 h-20 mb-4">
-                                    {user.photoURL && <AvatarImage src={user.photoURL} />}
-                                    <AvatarFallback>{user.displayName?.charAt(0) || user.email?.charAt(0)}</AvatarFallback>
-                                </Avatar>
+                                <PlanAvatar
+                                    src={user.photoURL}
+                                    fallback={user.displayName?.charAt(0) || user.email?.charAt(0) || ''}
+                                    size="lg"
+                                    className="mb-5"
+                                    {...userPlanDisplay(myPlan)}
+                                />
                                 <p className="font-semibold text-lg">{user.displayName || user.email}</p>
                                 <p className="text-sm text-muted-foreground mb-4">{user.email}</p>
                                 <Link href={`/${locale}/account`} className="w-full">

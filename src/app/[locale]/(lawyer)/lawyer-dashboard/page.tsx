@@ -6,7 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { PlanAvatar } from '@/components/plan-avatar';
+import { useMyPlan } from '@/hooks/use-my-plan';
+import { userPlanDisplay } from '@/lib/plan-display';
 import { Badge } from '@/components/ui/badge';
 import {
   Briefcase,
@@ -58,6 +60,7 @@ export default function LawyerDashboardPage() {
   const router = useRouter();
   const { auth, firestore } = useFirebase();
   const { user, isUserLoading } = useUser();
+  const myPlan = useMyPlan();
 
   const [requests, setRequests] = useState<LawyerAppointmentRequest[]>([]);
   const [activeCases, setActiveCases] = useState<LawyerCase[]>([]);
@@ -341,10 +344,13 @@ export default function LawyerDashboardPage() {
             {/* Profile Card */}
             <Card className="rounded-2xl border shadow-sm">
               <CardContent className="p-5 flex flex-col items-center text-center">
-                <Avatar className="w-20 h-20 mb-3 border-2 border-primary/20">
-                  <AvatarImage src={lawyerProfile?.imageUrl || user.photoURL || profileLawyerImg.src} />
-                  <AvatarFallback>{user.displayName?.charAt(0) || 'L'}</AvatarFallback>
-                </Avatar>
+                <PlanAvatar
+                  src={lawyerProfile?.imageUrl || user.photoURL || profileLawyerImg.src}
+                  fallback={user.displayName?.charAt(0) || 'L'}
+                  size="lg"
+                  className="mb-4"
+                  {...userPlanDisplay(myPlan)}
+                />
                 <p className="font-bold text-base text-foreground">{lawyerProfile?.name || user.displayName}</p>
                 <p className="text-xs text-muted-foreground">{lawyerProfile?.specialty || 'ทนายความผู้เชี่ยวชาญ'}</p>
                 <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] mt-2">
