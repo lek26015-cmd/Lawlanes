@@ -4,6 +4,7 @@ import { initAdmin } from '@/lib/firebase-admin';
 import * as admin from 'firebase-admin';
 import type { LawyerProfile, LawyerSchedule } from '@/lib/types';
 import { requireUser, requireLawyer, requireChatRole, AuthError } from '@/lib/auth-guard';
+import { requireLawyerFeature } from '@/lib/lawyer-plan-access';
 
 const DEFAULT_SCHEDULE: LawyerSchedule = {
     workingHours: { start: '09:00', end: '18:00' },
@@ -289,8 +290,9 @@ export async function createManualCaseAction(data: {
     clientId?: string;
     contractText?: string;
 }) {
-    // ต้องเป็นทนายจริง และเคสถูกผูกกับโปรไฟล์ของผู้เรียกเอง
+    // ต้องเป็นทนายจริง และเคสถูกผูกกับโปรไฟล์ของผู้เรียกเอง · สร้างเคสเองเป็นสิทธิ์ Pro/บริษัท (จัดการคดี)
     const { lawyerProfileId: lawyerId, adminApp } = await requireLawyer();
+    await requireLawyerFeature('caseManagement');
     if (!adminApp) throw new Error('Firebase Admin not initialized.');
     const db = adminApp.firestore();
 

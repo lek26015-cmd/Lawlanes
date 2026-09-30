@@ -124,7 +124,15 @@ export function ProviderPlanPanel({ kind }: { kind: ProviderKind }) {
                             {data.tier !== 'free' && <Crown className="w-5 h-5 text-amber-500" />}
                             {L(...info[data.tier].name)}
                         </p>
-                        {data.tier !== 'free' && data.currentPeriodEnd && (
+                        {data.grant && (
+                            <p className="text-sm text-muted-foreground mt-1">
+                                {data.grant.expiresAt
+                                    ? L(`ได้รับแพลน ${info[data.grant.tier].name[0]} จากทีม Lawslane ถึง ${dateFmt(data.grant.expiresAt)}`, `${info[data.grant.tier].name[1]} plan granted by Lawslane until ${dateFmt(data.grant.expiresAt)}`)
+                                    : L(`ได้รับแพลน ${info[data.grant.tier].name[0]} จากทีม Lawslane`, `${info[data.grant.tier].name[1]} plan granted by Lawslane`)}
+                            </p>
+                        )}
+                        {/* แสดงรอบบิลเฉพาะตอน subscription ยังใช้งานอยู่ — ถ้าได้แพลนจากแอดมิน รอบบิลเก่าที่ยกเลิกแล้วไม่ควรโผล่ */}
+                        {data.tier !== 'free' && data.currentPeriodEnd && (data.status === 'active' || data.status === 'trialing') && (
                             <p className="text-sm text-muted-foreground mt-1">
                                 {data.cancelAtPeriodEnd
                                     ? L(`ใช้ได้ถึง ${dateFmt(data.currentPeriodEnd)} แล้วจะกลับเป็นแพลนฟรี`, `Active until ${dateFmt(data.currentPeriodEnd)}, then returns to Free`)

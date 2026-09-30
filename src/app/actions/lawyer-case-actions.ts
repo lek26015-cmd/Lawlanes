@@ -6,6 +6,9 @@ import { revalidatePath } from 'next/cache';
 import { callTyphoonAI } from '@/lib/typhoon';
 import { NotificationService } from '@/services/notification-service';
 import { requireUser, requireChatRole, AuthError } from '@/lib/auth-guard';
+import { requireLawyerFeature } from '@/lib/lawyer-plan-access';
+
+const requireCasePlan = () => requireLawyerFeature('caseManagement');
 import { checkRateLimit } from '@/lib/security/rate-limiter';
 import { addCaseEventToBatch, isTelemetryEnabled, logCaseEvent, resolveLawyerProfileId } from '@/lib/telemetry/case-events';
 import { uploadToR2 } from '@/app/actions/upload';
@@ -17,7 +20,8 @@ import { v4 as uuidv4 } from 'uuid';
  * legalCases เก็บเจ้าของไว้ที่ฟิลด์ lawyer_id ซึ่งเป็น auth uid
  */
 async function requireCaseOwner(caseId: string) {
-    const { uid, token, adminApp } = await requireUser();
+    // จัดการคดีต้องอยู่ในสิทธิ์ของแพลน (แอดมินผ่านได้) — แพลนหมดอายุแล้วข้อมูลเดิมถูกซ่อน ไม่ลบ
+    const { uid, token, adminApp } = await requireCasePlan();
     const db = adminApp.firestore();
     const isAdmin = token.admin === true || token.role === 'admin';
 
@@ -251,7 +255,12 @@ export async function createLegalCaseAction(data: {
     court?: string;
     fee?: number;
 }) {
-    const { uid: lawyerId, adminApp } = await requireUser();
+    let lawyerId: string, adminApp: Awaited<ReturnType<typeof requireCasePlan>>['adminApp'];
+    try {
+        ({ uid: lawyerId, adminApp } = await requireCasePlan());
+    } catch (e) {
+        return { success: false, error: e instanceof AuthError && e.status === 402 ? 'แพลนปัจจุบันของคุณยังไม่รวมระบบจัดการคดี' : 'ไม่มีสิทธิ์ทำรายการนี้' };
+    }
     const db = adminApp.firestore();
 
     if (!data.title?.trim() || !data.clientName?.trim()) {
@@ -291,7 +300,14 @@ export async function createLegalCaseAction(data: {
  */
 export async function getLawyerLegalCases(): Promise<Case[]> {
     // uid มาจาก session — เดิมรับ lawyerId เป็น argument จึงดูเคสของทนายคนอื่นได้
-    const { uid: lawyerId, adminApp } = await requireUser();
+    // แพลนฟรี/หมดอายุ → ไม่คืนข้อมูล (หน้าถูกล็อกอยู่แล้ว กันยิง action ตรง)
+    let lawyerId: string, adminApp: Awaited<ReturnType<typeof requireCasePlan>>['adminApp'];
+    try {
+        ({ uid: lawyerId, adminApp } = await requireCasePlan());
+    } catch (e) {
+        if (e instanceof AuthError) return [];
+        throw e;
+    }
     const db = adminApp.firestore();
 
     try {
@@ -348,7 +364,7 @@ export async function getCaseMilestones(caseId?: string): Promise<Milestone[]> {
     // โหมด "ทุกเคสของฉัน" — หา legalCases ของตัวเองก่อน แล้วค่อยดึง milestone
     // ด้วย `in` ทีละ 30 id (เพดานของ Firestore) เพื่อไม่ให้หลุดไปอ่านของคนอื่น
     try {
-        const { uid, adminApp } = await requireUser();
+        const { uid, adminApp } = await requireCasePlan();
         const db = adminApp.firestore();
 
         const casesSnap = await db.collection('legalCases')

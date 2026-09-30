@@ -49,6 +49,33 @@ export function effectiveTier(plan: unknown, now: Date = new Date()): PlanTier {
 
 export const TIER_RANK: Record<PlanTier, number> = { free: 0, pro: 1, top: 2 };
 
+/**
+ * แพลนที่แอดมินมอบให้ทนาย (หลังบ้าน /lawyer-plans) — `lawyerProfiles.planGrant`
+ * { tier, expiresAt: Timestamp|null, grantedAt } · เขียนได้จาก Admin SDK เท่านั้น (ไม่อยู่ใน ownerEditableLawyerFields)
+ * หมายเหตุ/ผู้มอบอยู่ที่ `planGrantRecords/lawyer_{profileId}` · โครงนี้ต้องตรงกับ lawslane-admin/src/lib/plan-entitlements.ts
+ */
+export function grantTier(grant: unknown, now: Date = new Date()): PlanTier {
+    const g = grant as { tier?: unknown; expiresAt?: unknown } | null | undefined;
+    if (!g || (g.tier !== 'pro' && g.tier !== 'top')) return 'free';
+    const exp = g.expiresAt as { toMillis?: () => number; _seconds?: number; seconds?: number } | string | null | undefined;
+    if (exp) {
+        const ms = typeof exp === 'string' ? new Date(exp).getTime()
+            : typeof exp.toMillis === 'function' ? exp.toMillis()
+            : typeof exp._seconds === 'number' ? exp._seconds * 1000
+            : typeof exp.seconds === 'number' ? exp.seconds * 1000
+            : NaN;
+        if (!Number.isFinite(ms) || ms <= now.getTime()) return 'free';
+    }
+    return g.tier;
+}
+
+/** แพลนที่ใช้จริงของทนาย = ที่สูงกว่าระหว่าง Stripe (`plan`) กับที่แอดมินมอบ (`planGrant`) */
+export function lawyerTier(profile: { plan?: unknown; planGrant?: unknown } | null | undefined, now: Date = new Date()): PlanTier {
+    const paid = effectiveTier(profile?.plan, now);
+    const granted = grantTier(profile?.planGrant, now);
+    return TIER_RANK[granted] > TIER_RANK[paid] ? granted : paid;
+}
+
 /** เรียงให้แพลนสูงขึ้นก่อน แล้วคงลำดับเดิมภายในกลุ่ม */
 export function sortByTier<T extends { planTier?: PlanTier }>(list: T[]): T[] {
     return list
@@ -70,6 +97,8 @@ export const PLAN_INFO: Record<ProviderKind, Record<PlanTier, { name: [string, s
                 ['ป้าย "ทนายแนะนำ" และกรอบรูปสีทอง', '"Recommended" badge and gold photo ring'],
                 ['ขึ้นก่อนทนายแพลนฟรีในรายชื่อ', 'Listed above Free-plan lawyers'],
                 ['หน้าเว็บส่วนตัว lawslane.com/p/ชื่อของคุณ', 'Personal page at lawslane.com/p/your-name'],
+                ['ระบบจัดการคดีและใบแจ้งหนี้', 'Case management and invoicing'],
+                ['ผู้ช่วย AI งานคดี: ค้นมาตรา/ฎีกา ร่างเอกสาร ตรวจสัญญา', 'AI case assistant: statutes, judgments, drafting and contract review'],
             ],
         },
         top: {
@@ -78,6 +107,8 @@ export const PLAN_INFO: Record<ProviderKind, Record<PlanTier, { name: [string, s
                 ['การ์ดกรอบทองขนาดใหญ่ อยู่บนสุดของหน้าแรกและรายชื่อทนาย', 'Large gold-framed card at the top of the home page and directory'],
                 ['ป้าย "ทนายแนะนำ"', '"Recommended" badge'],
                 ['หน้าเว็บส่วนตัว lawslane.com/p/ชื่อของคุณ', 'Personal page at lawslane.com/p/your-name'],
+                ['ระบบจัดการคดีและใบแจ้งหนี้', 'Case management and invoicing'],
+                ['ผู้ช่วย AI งานคดี: ค้นมาตรา/ฎีกา ร่างเอกสาร ตรวจสัญญา', 'AI case assistant: statutes, judgments, drafting and contract review'],
             ],
         },
     },

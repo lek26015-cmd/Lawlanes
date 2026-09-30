@@ -11,7 +11,7 @@
 import { headers } from 'next/headers';
 import type Stripe from 'stripe';
 import { requireInterpreter, requireLawyer, authErrorResult } from '@/lib/auth-guard';
-import { effectiveTier, PLAN_PRODUCT, type PaidTier, type PlanTier, type ProviderKind, type StoredPlan } from '@/lib/provider-plans';
+import { effectiveTier, grantTier, lawyerTier, PLAN_PRODUCT, type PaidTier, type PlanTier, type ProviderKind, type StoredPlan } from '@/lib/provider-plans';
 import { getStripe, priceIdFor } from '@/lib/stripe-plans';
 import { planFromSubscription, planTarget, PROFILE_COLLECTION, savePlan } from '@/lib/provider-plan-sync';
 
@@ -51,6 +51,8 @@ type PriceView = { amount: number; currency: string; interval: string } | null;
 
 export async function getMyPlanAction(kind: ProviderKind): Promise<Result<{
     tier: PlanTier;
+    /** แพลนที่แอดมินมอบ (ทนายเท่านั้น) — tier ด้านบนคือที่สูงกว่าระหว่าง Stripe กับที่มอบ */
+    grant: { tier: PlanTier; expiresAt: string | null } | null;
     status: string | null;
     currentPeriodEnd: string | null;
     cancelAtPeriodEnd: boolean;
@@ -76,9 +78,14 @@ export async function getMyPlanAction(kind: ProviderKind): Promise<Result<{
                 }
             }));
         }
+        const granted = kind === 'lawyer' ? grantTier(profile.planGrant) : 'free';
+        const exp = profile.planGrant?.expiresAt;
         return {
             success: true,
-            tier: effectiveTier(plan),
+            tier: kind === 'lawyer' ? lawyerTier(profile) : effectiveTier(plan),
+            grant: granted !== 'free'
+                ? { tier: granted, expiresAt: exp?.toDate ? exp.toDate().toISOString() : (typeof exp === 'string' ? exp : null) }
+                : null,
             status: plan?.status || null,
             currentPeriodEnd: plan?.currentPeriodEnd || null,
             cancelAtPeriodEnd: plan?.cancelAtPeriodEnd === true,
@@ -188,5 +195,16 @@ export async function syncPlanFromCheckoutAction(kind: ProviderKind, sessionId: 
     } catch (e) {
         console.error('syncPlanFromCheckoutAction', e);
         return authErrorResult(e);
+    }
+}
+
+/** ป้ายแพลนบน sidebar หลังบ้านทนาย — อ่านแค่โปรไฟล์ ไม่เรียก Stripe (ถูกเรียกทุกหน้า) */
+export async function getMyLawyerPlanBadgeAction(): Promise<{ tier: PlanTier; granted: boolean } | null> {
+    try {
+        const { profile } = await caller('lawyer');
+        const tier = lawyerTier(profile);
+        return { tier, granted: tier !== 'free' && grantTier(profile.planGrant) === tier && effectiveTier(profile.plan) !== tier };
+    } catch {
+        return null;
     }
 }

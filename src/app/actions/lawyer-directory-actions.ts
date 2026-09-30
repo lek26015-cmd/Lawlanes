@@ -20,7 +20,7 @@
  * (แอดมินอ่านเต็มผ่าน lawslane-admin อยู่แล้ว)
  */
 
-import { effectiveTier, type PlanTier } from '@/lib/provider-plans';
+import { lawyerTier, type PlanTier } from '@/lib/provider-plans';
 import { initAdmin } from '@/lib/firebase-admin';
 import { requireChatRole, requireLawyer } from '@/lib/auth-guard';
 import type { LawyerProfile, LawyerSchedule } from '@/lib/types';
@@ -109,7 +109,8 @@ function toPublicLawyer(id: string, d: FirebaseFirestore.DocumentData): PublicLa
             ? d.joinedAt.toDate().toISOString()
             : (typeof d.joinedAt === 'string' ? d.joinedAt : null),
         schedule: toPublicSchedule(d.schedule),
-        planTier: effectiveTier(d.plan),
+        // ที่สูงกว่าระหว่าง Stripe กับแพลนที่แอดมินมอบ
+        planTier: lawyerTier(d),
         hidden: d.hiddenFromDirectory === true ? true : undefined,
     };
 }

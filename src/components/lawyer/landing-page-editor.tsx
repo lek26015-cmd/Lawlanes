@@ -19,7 +19,6 @@ import {
     uploadLandingImageAction,
 } from '@/app/actions/lawyer-landing-actions';
 import type { PublicLawyer } from '@/app/actions/lawyer-directory-actions';
-import type { PlanTier } from '@/lib/provider-plans';
 import {
     DEFAULT_SECTION_TITLES,
     EMPTY_LANDING,
@@ -130,14 +129,13 @@ export default function LandingPageEditor() {
     const [form, setForm] = useState<LawyerLandingInput>(EMPTY_LANDING);
     const [savedStatus, setSavedStatus] = useState<'published' | 'draft' | null>(null);
     const [savedSlug, setSavedSlug] = useState('');
-    const [tier, setTier] = useState<PlanTier>('free');
+    const [paid, setPaid] = useState(false);
     const [suspended, setSuspended] = useState(false);
     const [lawyer, setLawyer] = useState<PublicLawyer | null>(null);
     const [slugState, setSlugState] = useState<SlugState>({ checking: false, message: null, ok: false });
     const [openSection, setOpenSection] = useState<SectionKey | null>('about');
     const [colorInput, setColorInput] = useState<string>(EMPTY_LANDING.themeColor);
 
-    const paid = tier !== 'free';
     const approved = lawyer?.status === 'approved';
 
     useEffect(() => {
@@ -148,7 +146,7 @@ export default function LandingPageEditor() {
                 setLoading(false);
                 return;
             }
-            setTier(res.tier);
+            setPaid(res.canPublishSite);
             setSuspended(res.suspended);
             setLawyer(res.lawyer);
             if (res.page) {
@@ -330,7 +328,7 @@ export default function LandingPageEditor() {
                     <div className="flex items-start gap-3">
                         <Crown className="w-5 h-5 text-amber-600 mt-0.5 shrink-0" />
                         <p className="text-sm text-amber-900 dark:text-amber-200">
-                            หน้าเว็บส่วนตัวเป็นสิทธิ์ของแพลน <b>Pro</b> และ <b>บริษัท</b> — ตอนนี้ลองจัดหน้าและบันทึกแบบร่างได้ เผยแพร่ได้หลังอัปเกรด
+                            แพลนปัจจุบันของคุณยังไม่รวมการเผยแพร่หน้าเว็บส่วนตัว — ตอนนี้ลองจัดหน้าและบันทึกแบบร่างได้ เผยแพร่ได้หลังอัปเกรด
                         </p>
                     </div>
                     <Button asChild size="sm" className="bg-amber-500 hover:bg-amber-600 text-white shrink-0">
