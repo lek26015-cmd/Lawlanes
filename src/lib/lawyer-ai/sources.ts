@@ -20,21 +20,76 @@ export async function findLawSources(query: string, mode: AiMode, limit = 8): Pr
     if (top.length === 0) return [];
 
     const titles = await resolveLawTitles(top.map(r => r.source));
-    const groups = new Map<string, AiCitation>();
+    const groups = new Map<string, { citation: Omit<AiCitation, 'content'>; chunks: string[] }>();
     for (const r of top) {
         const title = titles.get(r.source) || sourceLabel(r.source);
         // หาชื่อไม่ได้ ("เอกสารกฎหมาย") → แยกตาม source ไม่งั้นเอกสารคนละฉบับถูกรวมกัน
         const key = titles.has(r.source) ? `${title}|${r.year ?? ''}` : r.source;
-        const content = tidyExcerpt(r.content);
         const g = groups.get(key);
-        if (g) {
-            if (g.content.length < 4000) g.content += `\n\n${content}`;
-        } else if (groups.size < limit) {
+        if (g) g.chunks.push(r.content);
+        else if (groups.size < limit) {
             // ไม่ใส่ year เมื่อไม่มีค่า — Firestore ไม่รับ undefined (บันทึกข้อความลงเธรดจะล้ม)
-            groups.set(key, { n: groups.size + 1, title, type: sourceType(r.source), ...(r.year ? { year: r.year } : {}), content });
+            groups.set(key, { citation: { n: groups.size + 1, title, type: sourceType(r.source), ...(r.year ? { year: r.year } : {}) }, chunks: [r.content] });
         }
     }
-    return [...groups.values()];
+    return [...groups.values()].map(g => ({ ...g.citation, content: mergeChunks(g.chunks) }));
+}
+
+const THAI_DIGIT = '๐๑๒๓๔๕๖๗๘๙';
+// หัวมาตรา — ไม่นับ "ตามมาตรา ๒๖" / "โดยมาตรา ๔ แห่ง…" ซึ่งเป็นการอ้างถึง
+const SECTION_HEAD = /มาตรา\s*([๐-๙\d]+(?:\/[๐-๙\d]+)?)(?:\s*(ทวิ|ตรี|จัตวา|เบญจ))?/g;
+const REFERENCE_BEFORE = /(ตาม|ใน|แห่ง|และ|หรือ|ถึง|ดัง|โดย|,)\s*$/;
+const ORPHAN_MARKS = /^[\u0E31\u0E34-\u0E3A\u0E47-\u0E4E]+/;
+
+function sectionOrder(num: string): number {
+    const arabic = num.replace(/[๐-๙]/g, d => String(THAI_DIGIT.indexOf(d)));
+    const [main, sub] = arabic.split('/');
+    return Number(main) * 1000 + (Number(sub) || 0);
+}
+
+/**
+ * chunk ในฐานข้อมูลถูกตัดตามจำนวนตัวอักษรและซ้อนทับกัน — รวมหลาย chunk ของกฎหมายฉบับเดียวกันให้อ่านรู้เรื่อง
+ * แยกเป็นรายมาตราตามหัว "มาตรา n" → ทิ้งเศษต้น chunk → มาตราซ้ำเก็บฉบับที่ยาวที่สุด → เรียงตามเลขมาตรา
+ * ไม่มีหัวมาตราเลย (ฎีกา / ราชกิจจาฯ) ใช้ tidyExcerpt ทีละ chunk เหมือนเดิม
+ */
+export function mergeChunks(chunks: string[]): string {
+    const sections = new Map<string, { order: number; text: string; cut: boolean }>();
+    const loose: string[] = [];
+    for (const raw of chunks) {
+        const text = cleanChunk(raw);
+        const heads = [...text.matchAll(SECTION_HEAD)].filter(m => !REFERENCE_BEFORE.test(text.slice(0, m.index)));
+        if (heads.length === 0) {
+            loose.push(tidyExcerpt(raw));
+            continue;
+        }
+        heads.forEach((m, i) => {
+            const end = i + 1 < heads.length ? heads[i + 1].index : text.length;
+            const body = text.slice(m.index, end).trim();
+            const num = m[1] + (m[2] ? ` ${m[2]}` : '');
+            // มาตราสุดท้ายของ chunk อาจถูกตัดกลางคำ — ถ้าไม่มีฉบับเต็มจาก chunk อื่นจะใส่ … ต่อท้าย
+            const cut = i === heads.length - 1 && !ENDS_CLEAN.test(body);
+            const prev = sections.get(num);
+            if (!prev || body.length > prev.text.length) sections.set(num, { order: sectionOrder(m[1]), text: body, cut });
+        });
+    }
+    const ordered = [...sections.values()].sort((a, b) => a.order - b.order).map(s => (s.cut ? `${s.text}…` : s.text));
+    return [...ordered, ...loose].join('\n').slice(0, 6000);
+}
+
+const ENDS_CLEAN = /([.)\]”"]|นั้น|แล้ว|ได้|บาท|ด้วย|นี้|ก็ได้|ปรับ|ไม่ได้|เป็นต้น)$/;
+
+function cleanChunk(text: string): string {
+    let t = text
+        .replace(/<\/(td|th)>/gi, ' ')
+        .replace(/<\/tr>|<br\s*\/?>/gi, '\n')
+        .replace(/<[^>]+>/g, '')
+        .replace(/^--\s*\d+\s*of\s*\d+\s*--$/gm, '')
+        .replace(/[ \t]+/g, ' ')
+        .replace(/\n\s*\n+/g, '\n')
+        .trim();
+    const csvBody = t.match(/^กฎหมาย:[^\n]*\n\s*มาตรา:[^\n]*\n\s*เนื้อหา:\s*([\s\S]*)$/);
+    if (csvBody) t = csvBody[1].replace(/^null\s*/, '').trim();
+    return t.replace(ORPHAN_MARKS, '');
 }
 
 // chunk ในฐานข้อมูลถูกตัดตามจำนวนตัวอักษร จึงมักเริ่ม/จบกลางคำ ("อร์ซึ่งข้อมูล...")

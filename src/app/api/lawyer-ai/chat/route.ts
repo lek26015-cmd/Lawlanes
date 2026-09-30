@@ -1,6 +1,5 @@
 import { GoogleGenerativeAI, type Content } from '@google/generative-ai';
-import { initAdmin } from '@/lib/firebase-admin';
-import { checkLawyerFeature } from '@/lib/lawyer-plan-access';
+import { getAiAccess, parseAudience } from '@/lib/lawyer-ai/access';
 import { limitUserAction } from '@/lib/security/action-rate-limit';
 import { buildCaseContext, getOwnedCase } from '@/lib/lawyer-ai/case-context';
 import { findLawSources } from '@/lib/lawyer-ai/sources';
@@ -17,7 +16,7 @@ import {
 } from '@/lib/lawyer-ai/types';
 
 /**
- * ผู้ช่วย AI งานคดี (Pro/บริษัท) — ถาม-ตอบแบบสตรีม NDJSON (ดู AiStreamEvent)
+ * ผู้ช่วย AI กฎหมาย (ทนาย + ลูกค้าทั่วไป) — ถาม-ตอบแบบสตรีม NDJSON (ดู AiStreamEvent)
  * ใช้ route handler แทน server action เพราะคำตอบยาวและ Gemini ใช้เวลานาน ต้องทยอยส่งให้เห็นระหว่างเขียน
  */
 export const runtime = 'nodejs';
@@ -30,6 +29,7 @@ const HISTORY_ATTACHMENT_BUDGET = 80_000;
 type Body = {
     threadId?: unknown;
     caseId?: unknown;
+    audience?: unknown;
     mode?: unknown;
     message?: unknown;
     attachments?: unknown;
@@ -64,26 +64,26 @@ export async function POST(req: Request) {
             headers: { 'Content-Type': 'application/x-ndjson; charset=utf-8' },
         });
 
-    const access = await checkLawyerFeature('aiAssistant');
-    if (access.status !== 'ok') return fail(access.status, access.status === 'unauthenticated' ? 401 : 403);
-    if (!(await limitUserAction('ai-lawyer-chat', access.uid, 40)).success) return fail('rate-limited', 429);
-
     let body: Body;
     try {
         body = await req.json();
     } catch {
         return fail('bad-request', 400);
     }
+    // ทนายหรือลูกค้า — สิทธิ์และเครดิตตัดสินที่ server ตาม audience (ลูกค้าทั่วไปส่ง 'lawyer' มาก็ไม่ผ่านด่านทนาย)
+    const audience = parseAudience(body.audience);
+    const access = await getAiAccess(audience);
+    if (access.status !== 'ok') return fail(access.status, access.status === 'unauthenticated' ? 401 : 403);
+    if (!(await limitUserAction(`ai-chat-${audience}`, access.uid, 40)).success) return fail('rate-limited', 429);
     const message = typeof body.message === 'string' ? body.message.trim().slice(0, MESSAGE_MAX_CHARS) : '';
     const mode: AiMode = MODES.includes(body.mode as AiMode) ? (body.mode as AiMode) : 'ask';
     const attachments = cleanAttachments(body.attachments);
     if (!message && attachments.length === 0) return fail('bad-request', 400);
 
     const apiKey = process.env.GOOGLE_API_KEY || process.env.GOOGLE_GENAI_API_KEY || '';
-    const adminApp = await initAdmin();
-    if (!apiKey || !adminApp) return fail('error', 500);
-    const db = adminApp.firestore();
-    const uid = access.uid;
+    if (!apiKey) return fail('error', 500);
+    const { db, uid } = access;
+    const account = { audience, uid };
 
 
     // --- เธรด: ของเดิมต้องเป็นของผู้เรียก · ใหม่ผูกคดีได้เฉพาะคดีของตัวเอง
@@ -92,16 +92,17 @@ export async function POST(req: Request) {
     let isNewThread = false;
     const title = (message || attachments[0]?.name || 'งานใหม่').replace(/\s+/g, ' ').slice(0, 60);
     if (typeof body.threadId === 'string' && body.threadId) {
-        threadRef = db.collection('lawyerAiThreads').doc(body.threadId);
+        threadRef = db.collection('aiThreads').doc(body.threadId);
         const snap = await threadRef.get();
-        if (!snap.exists || snap.get('lawyerUid') !== uid) return fail('bad-request', 404);
-        caseId = snap.get('caseId') || null;
+        if (!snap.exists || snap.get('ownerUid') !== uid || snap.get('audience') !== audience) return fail('bad-request', 404);
+        caseId = access.canUseCases ? snap.get('caseId') || null : null;
     } else {
-        if (typeof body.caseId === 'string' && body.caseId) {
+        // แฟ้มคดีเป็นของทนายเท่านั้น
+        if (access.canUseCases && typeof body.caseId === 'string' && body.caseId) {
             if (!(await getOwnedCase(db, uid, body.caseId))) return fail('bad-request', 404);
             caseId = body.caseId;
         }
-        threadRef = db.collection('lawyerAiThreads').doc();
+        threadRef = db.collection('aiThreads').doc();
         isNewThread = true;
     }
 
@@ -132,9 +133,9 @@ export async function POST(req: Request) {
     while (history.length > 0 && history[0].role !== 'user') history.shift();
 
     // หักเครดิตหลังตรวจเธรด/คดีผ่านแล้ว ก่อนเรียก AI (คืนให้ถ้าตอบไม่สำเร็จ) — เครดิตรายเดือนตามแพลน แล้วค่อยเครดิตที่ซื้อเพิ่ม
-    const monthly = access.entitlements.aiCreditsPerMonth;
+    const monthly = access.monthlyCredits;
     const cost = AI_CREDIT_COST[mode];
-    const credit = await consumeCredits(db, uid, monthly, cost, 'chat', { mode });
+    const credit = await consumeCredits(db, account, monthly, cost, 'chat', { mode });
     if (!credit.ok) return fail('insufficient-credits', 402);
 
     const stream = new ReadableStream<Uint8Array>({
@@ -143,7 +144,7 @@ export async function POST(req: Request) {
             try {
                 const now = Date.now();
                 if (isNewThread) {
-                    await threadRef.set({ lawyerUid: uid, caseId, title, createdAt: now, updatedAt: now });
+                    await threadRef.set({ ownerUid: uid, audience, caseId, title, createdAt: now, updatedAt: now });
                 }
                 send({ type: 'thread', threadId: threadRef.id, title: isNewThread ? title : '' });
 
@@ -163,7 +164,7 @@ export async function POST(req: Request) {
 
                 const model = new GoogleGenerativeAI(apiKey).getGenerativeModel({
                     model: 'gemini-2.5-flash',
-                    systemInstruction: systemPrompt(mode, caseContext, citations),
+                    systemInstruction: systemPrompt(audience, mode, caseContext, citations),
                 });
                 const result = await model.generateContentStream({
                     contents: [...history, { role: 'user', parts: [{ text: withAttachments(message || 'ช่วยดูเอกสารที่แนบ', attachments) }] }],
@@ -186,7 +187,7 @@ export async function POST(req: Request) {
                 send({ type: 'done', messageId: saved.id, credits: credit.status });
             } catch (e) {
                 console.error('[lawyer-ai] chat failed:', e instanceof Error ? e.message : e);
-                await refundCredits(db, uid, credit.charge, 'chat-failed', { mode, threadId: threadRef.id });
+                await refundCredits(db, account, credit.charge, 'chat-failed', { mode, threadId: threadRef.id });
                 send({ type: 'error', code: 'error' });
             } finally {
                 controller.close();

@@ -1,21 +1,28 @@
 import 'server-only';
 
 import type { AiCreditStatus } from '@/lib/lawyer-entitlements';
+import type { AiAudience } from '@/lib/lawyer-ai/types';
 
 /**
- * เครดิต AI ของทนาย — สองกระเป๋า
+ * เครดิต AI — ทนาย และลูกค้าทั่วไป แยกกระเป๋ากันตาม audience · แต่ละ audience มีสองกระเป๋า
  *   - รายเดือน: ตามสิทธิ์แพลน (aiCreditsPerMonth) รีเซ็ตต้นเดือนปฏิทินเวลาไทย
  *   - extra: เครดิตที่ซื้อ/ได้เพิ่ม ไม่หมดอายุรายเดือน — หักหลังรายเดือนหมด
  *     (ยังไม่มีระบบซื้อ: การเติมในอนาคตให้บวก `extra` ใน transaction และเขียน ledger reason 'purchase')
  *
- * `lawyerAiCredits/{uid}`     { period: 'YYYY-MM', monthlyUsed, extra, updatedAt }
- * `lawyerAiCreditLedger/{id}` { uid, delta, fromMonthly, fromExtra, reason, period, meta, at } — ทุกการหัก/คืน/เติม
+ * `aiCredits/{audience}_{uid}` { audience, uid, period: 'YYYY-MM', monthlyUsed, extra, updatedAt }
+ * `aiCreditLedger/{id}`         { audience, uid, delta, fromMonthly, fromExtra, reason, period, meta, at } — ทุกการหัก/คืน/เติม
  * ทั้งสองคอลเลกชันเขียนผ่าน Admin SDK เท่านั้น (ไม่มี rules = client อ่าน/เขียนไม่ได้)
  */
 
 type Db = FirebaseFirestore.Firestore;
 
+/** เจ้าของเครดิต — ทนายคนเดียวกันที่ใช้หน้าลูกค้าด้วยมีสองกระเป๋าแยกกัน */
+export type CreditAccount = { audience: AiAudience; uid: string };
+
 export type CreditCharge = { period: string; fromMonthly: number; fromExtra: number };
+
+const creditRef = (db: Db, a: CreditAccount) => db.collection('aiCredits').doc(`${a.audience}_${a.uid}`);
+const ledgerRef = (db: Db) => db.collection('aiCreditLedger').doc();
 
 /** เดือนปฏิทินตามเวลาไทย */
 export function creditPeriod(now = Date.now()) {
@@ -40,19 +47,18 @@ function read(snap: FirebaseFirestore.DocumentSnapshot, period: string) {
     };
 }
 
-export async function getCreditStatus(db: Db, uid: string, monthly: number | null): Promise<AiCreditStatus> {
+export async function getCreditStatus(db: Db, account: CreditAccount, monthly: number | null): Promise<AiCreditStatus> {
     const period = creditPeriod();
-    const snap = await db.collection('lawyerAiCredits').doc(uid).get();
-    const { monthlyUsed, extra } = read(snap, period);
+    const { monthlyUsed, extra } = read(await creditRef(db, account).get(), period);
     return status(period, monthly, monthlyUsed, extra);
 }
 
 /** หักเครดิตก่อนเรียก AI — ไม่พอคืน ok:false (ไม่หักอะไร) · monthly null = ไม่จำกัด แต่ยังนับยอดใช้ไว้ดู */
 export async function consumeCredits(
-    db: Db, uid: string, monthly: number | null, cost: number, reason: string, meta: Record<string, unknown> = {},
+    db: Db, account: CreditAccount, monthly: number | null, cost: number, reason: string, meta: Record<string, unknown> = {},
 ): Promise<{ ok: true; charge: CreditCharge; status: AiCreditStatus } | { ok: false; status: AiCreditStatus }> {
     const period = creditPeriod();
-    const ref = db.collection('lawyerAiCredits').doc(uid);
+    const ref = creditRef(db, account);
     return db.runTransaction(async tx => {
         const { monthlyUsed, extra } = read(await tx.get(ref), period);
         let fromMonthly = cost;
@@ -63,29 +69,26 @@ export async function consumeCredits(
             if (fromExtra > extra) return { ok: false as const, status: status(period, monthly, monthlyUsed, extra) };
         }
         const next = { monthlyUsed: monthlyUsed + fromMonthly, extra: extra - fromExtra };
-        tx.set(ref, { uid, period, ...next, updatedAt: Date.now() }, { merge: true });
-        tx.create(db.collection('lawyerAiCreditLedger').doc(), {
-            uid, delta: -cost, fromMonthly, fromExtra, reason, period, meta, at: Date.now(),
-        });
+        tx.set(ref, { ...account, period, ...next, updatedAt: Date.now() }, { merge: true });
+        tx.create(ledgerRef(db), { ...account, delta: -cost, fromMonthly, fromExtra, reason, period, meta, at: Date.now() });
         return { ok: true as const, charge: { period, fromMonthly, fromExtra }, status: status(period, monthly, next.monthlyUsed, next.extra) };
     });
 }
 
 /** คืนเครดิตเมื่อ AI ทำงานไม่สำเร็จ — ข้ามเดือนแล้วคืนเฉพาะส่วน extra (ยอดรายเดือนของเดือนเก่ารีเซ็ตไปแล้ว) */
-export async function refundCredits(db: Db, uid: string, charge: CreditCharge, reason: string, meta: Record<string, unknown> = {}) {
-    const ref = db.collection('lawyerAiCredits').doc(uid);
+export async function refundCredits(db: Db, account: CreditAccount, charge: CreditCharge, reason: string, meta: Record<string, unknown> = {}) {
+    const ref = creditRef(db, account);
     try {
         await db.runTransaction(async tx => {
-            const snap = await tx.get(ref);
             const period = creditPeriod();
-            const cur = read(snap, period);
+            const cur = read(await tx.get(ref), period);
             const backMonthly = charge.period === period ? Math.min(charge.fromMonthly, cur.monthlyUsed) : 0;
-            tx.set(ref, { uid, period, monthlyUsed: cur.monthlyUsed - backMonthly, extra: cur.extra + charge.fromExtra, updatedAt: Date.now() }, { merge: true });
-            tx.create(db.collection('lawyerAiCreditLedger').doc(), {
-                uid, delta: backMonthly + charge.fromExtra, fromMonthly: -backMonthly, fromExtra: -charge.fromExtra, reason, period, meta, at: Date.now(),
+            tx.set(ref, { ...account, period, monthlyUsed: cur.monthlyUsed - backMonthly, extra: cur.extra + charge.fromExtra, updatedAt: Date.now() }, { merge: true });
+            tx.create(ledgerRef(db), {
+                ...account, delta: backMonthly + charge.fromExtra, fromMonthly: -backMonthly, fromExtra: -charge.fromExtra, reason, period, meta, at: Date.now(),
             });
         });
     } catch (e) {
-        console.error('[lawyer-ai] refund failed:', e instanceof Error ? e.message : e);
+        console.error('[ai] refund failed:', e instanceof Error ? e.message : e);
     }
 }

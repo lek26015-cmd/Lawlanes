@@ -1,11 +1,15 @@
 import type { AiCreditStatus } from '@/lib/lawyer-entitlements';
 
 /**
- * ผู้ช่วย AI งานคดีของทนาย (Pro/บริษัท) — type ที่ใช้ได้ทั้ง client และ server
+ * ผู้ช่วย AI กฎหมาย (ทนาย + ลูกค้าทั่วไป) — type ที่ใช้ได้ทั้ง client และ server
  *
- * ข้อมูลเก็บที่ `lawyerAiThreads/{threadId}` + `messages/{messageId}` อ่าน/เขียนผ่าน Admin SDK เท่านั้น
- * (ไม่มี rules เปิดให้ client → ตก default deny) · เธรดผูกกับคดีใน legalCases ได้ (caseId) หรือไม่ผูกก็ได้
+ * ข้อมูลเก็บที่ `aiThreads/{threadId}` { ownerUid, audience, caseId, title, createdAt, updatedAt } + `messages/{messageId}`
+ * อ่าน/เขียนผ่าน Admin SDK เท่านั้น (ไม่มี rules เปิดให้ client → ตก default deny)
+ * เธรดของทนายผูกกับคดีใน legalCases ได้ (caseId) · ของลูกค้า caseId เป็น null เสมอ
  */
+
+/** ผู้ใช้สองกลุ่ม: ทนาย (หลังบ้าน, มีแฟ้มคดี) และลูกค้าทั่วไป (หน้า /ai แทนลลิน) */
+export type AiAudience = 'lawyer' | 'customer';
 
 export type AiMode = 'ask' | 'statute' | 'judgment' | 'draft' | 'contract';
 

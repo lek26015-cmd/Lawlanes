@@ -130,6 +130,12 @@ const THAI_LAW_CSV_NAMES: Record<string, string> = {
     'Land': 'ประมวลกฎหมายที่ดิน',
     'Revenue': 'ประมวลรัษฎากร',
     'Computer Crime': 'พระราชบัญญัติว่าด้วยการกระทำความผิดเกี่ยวกับคอมพิวเตอร์',
+    'Electronic Transactions': 'พระราชบัญญัติว่าด้วยธุรกรรมทางอิเล็กทรอนิกส์',
+    'Labour Protection': 'พระราชบัญญัติคุ้มครองแรงงาน',
+    'Labor Protection': 'พระราชบัญญัติคุ้มครองแรงงาน',
+    'Consumer Protection': 'พระราชบัญญัติคุ้มครองผู้บริโภค',
+    'Personal Data Protection': 'พระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล',
+    'Copyright': 'พระราชบัญญัติลิขสิทธิ์',
 };
 
 function titleFromFirstChunk(text: string): string | null {

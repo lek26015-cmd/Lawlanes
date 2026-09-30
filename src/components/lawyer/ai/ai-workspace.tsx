@@ -15,7 +15,7 @@ import { CitationList, citationAnchor } from '@/components/lawyer/ai/citations';
 import { deleteAiThreadAction, getAiThreadAction, getAiWorkspaceAction, readAttachmentAction } from '@/app/actions/lawyer-ai-actions';
 import {
     AI_MODES, ATTACHMENT_ACCEPT, ATTACHMENT_MAX_BYTES, MESSAGE_MAX_CHARS,
-    type AiAttachment, type AiCaseFolder, type AiCitation, type AiMessage, type AiMode, type AiStreamEvent, type AiThreadSummary,
+    type AiAttachment, type AiAudience, type AiCaseFolder, type AiCitation, type AiMessage, type AiMode, type AiStreamEvent, type AiThreadSummary,
 } from '@/lib/lawyer-ai/types';
 import { AI_CREDIT_COST, type AiCreditStatus } from '@/lib/lawyer-entitlements';
 
@@ -59,6 +59,46 @@ const ATTACHMENT_ERROR: Record<string, string> = {
     error: 'อ่านไฟล์ไม่สำเร็จ',
 };
 
+const CUSTOMER_PLACEHOLDER: Record<AiMode, string> = {
+    ask: 'เล่าเรื่องของคุณ เช่น เพื่อนยืมเงินแล้วไม่คืน ทำอะไรได้บ้าง…',
+    statute: 'เล่าเรื่องของคุณ แล้ว AI จะอธิบายว่ากฎหมายมาตราไหนเกี่ยวข้อง…',
+    judgment: 'เล่าเรื่องของคุณ เพื่อหาคดีที่ศาลเคยตัดสินในเรื่องคล้ายกัน…',
+    draft: 'เช่น ร่างหนังสือทวงถามเงินที่ให้ยืม 30,000 บาท…',
+    contract: 'แนบไฟล์สัญญา (+) หรือวางข้อความสัญญา แล้วบอกว่าคุณเป็นฝ่ายไหน…',
+};
+
+/** ข้อความที่ต่างกันระหว่างหน้าทนายกับหน้าลูกค้า */
+const COPY = {
+    lawyer: {
+        home: '/lawyer-dashboard',
+        homeLabel: 'กลับแดชบอร์ดทนาย',
+        subtitle: 'AI ผู้ช่วยงานคดี',
+        feature: 'ผู้ช่วย AI งานคดี',
+        title: 'ให้ Lawslane AI ช่วยงานคดียังไงดีครับ',
+        intro: 'ค้นมาตราและฎีกาจากฐานข้อมูลกฎหมาย ร่างเอกสาร หรือแนบสัญญาให้ตรวจ — เลือกแฟ้มคดีทางซ้ายเพื่อให้ AI รู้บริบทคดี',
+        newLabel: 'เริ่มงานใหม่',
+        historyLabel: 'งานทั่วไป',
+        noCredits: 'เครดิต AI ไม่พอ — เครดิตรายเดือนจะรีเซ็ตต้นเดือนหน้า หรืออัปเกรดแพลนเพื่อรับเครดิตเพิ่ม',
+        disclaimer: 'AI อาจผิดพลาดหรืออ้างตัวบทที่ไม่ใช่ฉบับล่าสุด ตรวจสอบก่อนใช้งานจริงทุกครั้ง',
+        placeholder: PLACEHOLDER,
+    },
+    customer: {
+        home: '/',
+        homeLabel: 'กลับหน้าหลัก Lawslane',
+        subtitle: 'AI ผู้ช่วยกฎหมาย',
+        feature: 'Lawslane AI',
+        title: 'มีเรื่องกฎหมายอะไรให้ช่วยไหมครับ',
+        intro: 'เล่าเรื่องของคุณเป็นภาษาปกติ Lawslane AI จะอธิบายกฎหมายที่เกี่ยวข้องพร้อมตัวบทอ้างอิง ช่วยร่างหนังสือ หรืออ่านสัญญาก่อนเซ็นให้',
+        newLabel: 'คุยเรื่องใหม่',
+        historyLabel: 'ประวัติการคุย',
+        noCredits: 'เครดิต AI ของเดือนนี้หมดแล้ว — จะได้เครดิตใหม่ต้นเดือนหน้า',
+        disclaimer: 'Lawslane AI ให้ข้อมูลกฎหมายทั่วไป ไม่ใช่คำปรึกษาจากทนายความ และอาจผิดพลาดได้ เรื่องสำคัญควรปรึกษาทนาย',
+        placeholder: CUSTOMER_PLACEHOLDER,
+    },
+} as const;
+
+type Copy = (typeof COPY)[AiAudience];
+
 const STREAM_ERROR: Record<string, string> = {
     'rate-limited': 'ใช้งานถี่เกินไป กรุณารอสักครู่แล้วลองใหม่',
     'insufficient-credits': 'เครดิต AI ไม่พอ — เครดิตรายเดือนจะรีเซ็ตต้นเดือนหน้า หรืออัปเกรดแพลนเพื่อรับเครดิตเพิ่ม',
@@ -75,7 +115,8 @@ function setUrl(params: Record<string, string | null>) {
     window.history.replaceState(null, '', url.pathname + url.search);
 }
 
-export default function AiWorkspace() {
+export default function AiWorkspace({ audience = 'lawyer' }: { audience?: AiAudience }) {
+    const copy: Copy = COPY[audience];
     const searchParams = useSearchParams();
     const [locked, setLocked] = useState<LockedStatus | null>(null);
     const [loading, setLoading] = useState(true);
@@ -100,7 +141,7 @@ export default function AiWorkspace() {
     const openThread = useCallback(async (id: string) => {
         setLoadingThread(true);
         setPanelOpen(false);
-        const res = await getAiThreadAction(id);
+        const res = await getAiThreadAction(audience, id);
         setLoadingThread(false);
         if (res.status === 'ok') {
             setThreadId(res.thread.id);
@@ -127,7 +168,7 @@ export default function AiWorkspace() {
     // โหลดแฟ้มคดี + เธรด แล้วเปิดตาม URL (?thread= / ?case= / ?mode= / ?q= จากลิงก์เก่าของหน้าค้นหากฎหมาย)
     useEffect(() => {
         (async () => {
-            const res = await getAiWorkspaceAction();
+            const res = await getAiWorkspaceAction(audience);
             if (res.status !== 'ok') {
                 setLocked(res.status);
                 setLoading(false);
@@ -165,7 +206,7 @@ export default function AiWorkspace() {
             const fd = new FormData();
             fd.append('file', file);
             try {
-                const res = await readAttachmentAction(fd);
+                const res = await readAttachmentAction(audience, fd);
                 if (res.status === 'ok') {
                     setFiles(f => f.map(x => x.key === key ? { ...x, status: 'ready', data: res.attachment } : x));
                     if (res.credits) setCredits(res.credits);
@@ -196,14 +237,14 @@ export default function AiWorkspace() {
         const patch = (fn: (m: UiMessage) => UiMessage) => setMessages(list => list.map(x => x.id === modelId ? fn(x) : x));
         const fail = (code: string) => {
             if (isLockedStatus(code)) setLocked(code);
-            patch(x => ({ ...x, streaming: false, error: STREAM_ERROR[code] || STREAM_ERROR.error }));
+            patch(x => ({ ...x, streaming: false, error: code === 'insufficient-credits' ? copy.noCredits : STREAM_ERROR[code] || STREAM_ERROR.error }));
         };
 
         try {
             const res = await fetch('/api/lawyer-ai/chat', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ threadId, caseId: threadId ? undefined : caseId, mode, message, attachments: ready }),
+                body: JSON.stringify({ audience, threadId, caseId: threadId ? undefined : caseId, mode, message, attachments: ready }),
             });
             if (!res.body) throw new Error('no body');
             const reader = res.body.getReader();
@@ -245,7 +286,7 @@ export default function AiWorkspace() {
         } finally {
             setSending(false);
         }
-    }, [caseId, files, mode, sending, threadId]);
+    }, [audience, caseId, copy.noCredits, files, mode, sending, threadId]);
 
     // มาจากลิงก์ "ค้นหากฎหมาย" เดิม (?q=) — ส่งให้เลยครั้งเดียว
     useEffect(() => {
@@ -269,7 +310,7 @@ export default function AiWorkspace() {
 
     const removeThread = async (id: string) => {
         if (!window.confirm('ลบประวัติการสนทนานี้? ลบแล้วกู้คืนไม่ได้')) return;
-        const res = await deleteAiThreadAction(id);
+        const res = await deleteAiThreadAction(audience, id);
         if (res.status === 'ok' || res.status === 'not-found') {
             setThreads(t => t.filter(x => x.id !== id));
             if (threadId === id) newThread(caseId);
@@ -279,8 +320,10 @@ export default function AiWorkspace() {
     if (locked) {
         return (
             <div className="h-dvh overflow-y-auto p-4 md:p-8">
-                <BackToDashboard className="mb-6" />
-                <div className="max-w-2xl mx-auto"><LawyerProLocked status={locked} feature="ผู้ช่วย AI งานคดี" /></div>
+                <BackToDashboard href={copy.home} label={copy.homeLabel} className="mb-6" />
+                <div className="max-w-2xl mx-auto">
+                    {audience === 'customer' ? <CustomerLoginPrompt /> : <LawyerProLocked status={locked} feature={copy.feature} />}
+                </div>
             </div>
         );
     }
@@ -301,6 +344,7 @@ export default function AiWorkspace() {
             onSend={() => send(input)}
             compact={messages.length > 0}
             credits={credits}
+            copy={copy}
         />
     );
 
@@ -311,6 +355,8 @@ export default function AiWorkspace() {
                 panelOpen ? 'flex absolute inset-y-0 left-0 z-30 shadow-xl lg:static lg:shadow-none' : 'hidden lg:flex',
             )}>
                 <ThreadPanel
+                    copy={copy}
+                    showCases={audience === 'lawyer'}
                     cases={cases}
                     threads={threads}
                     caseId={caseId}
@@ -327,12 +373,12 @@ export default function AiWorkspace() {
                     <button type="button" onClick={() => setPanelOpen(true)} className="lg:hidden p-1.5 -ml-1 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10" aria-label="แฟ้มคดีและประวัติ">
                         <PanelLeft className="w-5 h-5" />
                     </button>
-                    <span className={cn(
+                    {audience === 'lawyer' && <span className={cn(
                         'min-w-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[13px] font-medium truncate',
                         activeCase ? 'bg-amber-50 text-amber-800 dark:bg-amber-500/10 dark:text-amber-300' : 'text-slate-500 dark:text-slate-400',
                     )}>
                         {activeCase ? <><FolderOpen className="w-3.5 h-3.5 shrink-0" /><span className="truncate">{activeCase.title}</span></> : 'งานทั่วไป · ไม่ผูกแฟ้มคดี'}
-                    </span>
+                    </span>}
                     {credits && (
                         <span
                             className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-slate-200 dark:border-white/10 px-3 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 shrink-0"
@@ -351,12 +397,12 @@ export default function AiWorkspace() {
                         <div className="max-w-3xl mx-auto min-h-full flex flex-col justify-center py-10">
                             <LawslaneMark size={64} className="mx-auto mb-5 shadow-sm" />
                             <h2 className="text-center text-[26px] md:text-4xl font-bold tracking-tight text-slate-900 dark:text-foreground mb-3">
-                                ให้ Lawslane AI ช่วยงานคดียังไงดีครับ
+                                {copy.title}
                             </h2>
                             <p className="text-center text-sm md:text-[15px] text-slate-500 max-w-xl mx-auto mb-8 leading-relaxed">
                                 {activeCase
                                     ? `AI จะใช้ข้อเท็จจริง พยานหลักฐาน และขั้นตอนงานในแฟ้ม “${activeCase.title}” ประกอบคำตอบ`
-                                    : 'ค้นมาตราและฎีกาจากฐานข้อมูลกฎหมาย ร่างเอกสาร หรือแนบสัญญาให้ตรวจ — เลือกแฟ้มคดีทางซ้ายเพื่อให้ AI รู้บริบทคดี'}
+                                    : copy.intro}
                             </p>
                             {composer}
                             <div className="mt-8 grid gap-2 sm:grid-cols-3">
@@ -413,13 +459,26 @@ export default function AiWorkspace() {
     );
 }
 
-function BackToDashboard({ className }: { className?: string }) {
+function CustomerLoginPrompt() {
+    return (
+        <div className="text-center py-14 px-6 bg-white dark:bg-card rounded-3xl border border-slate-200 dark:border-border shadow-sm">
+            <LawslaneMark size={56} className="mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-slate-800 dark:text-foreground mb-2">เข้าสู่ระบบเพื่อใช้ Lawslane AI</h3>
+            <p className="text-slate-500 max-w-md mx-auto mb-6">ใช้ฟรีทุกเดือนหลังเข้าสู่ระบบ ระบบจะเก็บประวัติการคุยไว้ให้กลับมาดูต่อได้</p>
+            <Link href="/login?redirect=%2Fai" className="inline-flex items-center justify-center rounded-full bg-[#002f4b] hover:bg-[#00243a] px-6 py-2.5 text-sm font-semibold text-white">
+                เข้าสู่ระบบ / สมัครสมาชิก
+            </Link>
+        </div>
+    );
+}
+
+function BackToDashboard({ href, label, className }: { href: string; label: string; className?: string }) {
     return (
         <Link
-            href="/lawyer-dashboard"
+            href={href}
             className={cn('inline-flex items-center gap-1.5 text-sm font-medium text-slate-500 hover:text-slate-900 dark:hover:text-white', className)}
         >
-            <ArrowLeft className="w-4 h-4" />กลับแดชบอร์ด
+            <ArrowLeft className="w-4 h-4" />{label}
         </Link>
     );
 }
@@ -449,7 +508,7 @@ function ModelMessage({ m, open, onToggle, onCite }: { m: UiMessage; open: Set<n
     );
 }
 
-function Composer({ mode, setMode, input, setInput, files, removeFile, addFiles, sending, onSend, compact, credits }: {
+function Composer({ mode, setMode, input, setInput, files, removeFile, addFiles, sending, onSend, compact, credits, copy }: {
     mode: AiMode;
     setMode: (m: AiMode) => void;
     input: string;
@@ -461,6 +520,7 @@ function Composer({ mode, setMode, input, setInput, files, removeFile, addFiles,
     onSend: () => void;
     compact: boolean;
     credits: AiCreditStatus | null;
+    copy: Copy;
 }) {
     const fileRef = useRef<HTMLInputElement>(null);
     const reading = files.some(f => f.status === 'reading');
@@ -523,7 +583,7 @@ function Composer({ mode, setMode, input, setInput, files, removeFile, addFiles,
                     }}
                     maxLength={MESSAGE_MAX_CHARS}
                     rows={compact ? 2 : 3}
-                    placeholder={PLACEHOLDER[mode]}
+                    placeholder={copy.placeholder[mode]}
                     className="block w-full resize-none bg-transparent px-4 pt-3.5 pb-1 text-[15px] leading-relaxed text-slate-800 dark:text-foreground placeholder:text-slate-400 focus:outline-none max-h-60"
                 />
                 <div className="flex items-center justify-between px-3 pb-3">
@@ -563,13 +623,15 @@ function Composer({ mode, setMode, input, setInput, files, removeFile, addFiles,
                         {outOfCredits ? 'เครดิตไม่พอสำหรับงานนี้' : `ครั้งนี้ใช้ ${cost} เครดิต`}
                     </span>
                 )}
-                <span className="text-slate-400">AI อาจผิดพลาดหรืออ้างตัวบทที่ไม่ใช่ฉบับล่าสุด ตรวจสอบก่อนใช้งานจริงทุกครั้ง</span>
+                <span className="text-slate-400">{copy.disclaimer}</span>
             </div>
         </div>
     );
 }
 
-function ThreadPanel({ cases, threads, caseId, threadId, onNew, onOpen, onDelete, onClose }: {
+function ThreadPanel({ copy, showCases, cases, threads, caseId, threadId, onNew, onOpen, onDelete, onClose }: {
+    copy: Copy;
+    showCases: boolean;
     cases: AiCaseFolder[];
     threads: AiThreadSummary[];
     caseId: string | null;
@@ -597,11 +659,11 @@ function ThreadPanel({ cases, threads, caseId, threadId, onNew, onOpen, onDelete
     return (
         <div className="flex flex-col h-full">
             <div className="flex items-center justify-between gap-2 px-4 h-14 border-b border-slate-200/70 dark:border-white/10">
-                <Link href="/lawyer-dashboard" className="flex items-center gap-2.5 min-w-0">
+                <Link href={copy.home} className="flex items-center gap-2.5 min-w-0">
                     <Image src={logoMark} alt="Lawslane" width={28} height={28} className="h-7 w-auto" />
                     <span className="flex flex-col leading-none min-w-0">
                         <span className="font-bold text-[17px] text-[#002f4b] dark:text-white">Lawslane</span>
-                        <span className="mt-0.5 text-[10px] font-bold tracking-widest text-blue-600 dark:text-blue-300">AI ผู้ช่วยงานคดี</span>
+                        <span className="mt-0.5 text-[10px] font-bold tracking-widest text-blue-600 dark:text-blue-300">{copy.subtitle}</span>
                     </span>
                 </Link>
                 <button type="button" onClick={onClose} className="lg:hidden p-2 rounded-lg text-slate-500 hover:bg-white" aria-label="ปิด"><X className="w-4 h-4" /></button>
@@ -612,15 +674,17 @@ function ThreadPanel({ cases, threads, caseId, threadId, onNew, onOpen, onDelete
                     onClick={() => onNew(null)}
                     className="w-full flex items-center gap-2 rounded-xl bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 px-3.5 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 hover:shadow-sm"
                 >
-                    <Plus className="w-4 h-4" />เริ่มงานใหม่
+                    <Plus className="w-4 h-4" />{copy.newLabel}
                 </button>
-                <Link href="/lawyer-dashboard/cases" className="flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-white/70 dark:hover:bg-white/5">
-                    <Briefcase className="w-4 h-4" />แฟ้มคดีทั้งหมด
-                </Link>
+                {showCases && (
+                    <Link href="/lawyer-dashboard/cases" className="flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-white/70 dark:hover:bg-white/5">
+                        <Briefcase className="w-4 h-4" />แฟ้มคดีทั้งหมด
+                    </Link>
+                )}
             </div>
 
             <div className="flex-1 overflow-y-auto px-3 pb-4 space-y-5">
-                <div>
+                {showCases && <div>
                     <p className="px-2 mb-1.5 text-[11px] font-bold tracking-wider text-slate-400">แฟ้มคดี</p>
                     {cases.length === 0 ? (
                         <p className="px-2 text-xs text-slate-400 leading-relaxed">
@@ -655,21 +719,21 @@ function ThreadPanel({ cases, threads, caseId, threadId, onNew, onOpen, onDelete
                             })}
                         </div>
                     )}
-                </div>
+                </div>}
 
                 {general.length > 0 && (
                     <div>
-                        <p className="px-2 mb-1.5 text-[11px] font-bold tracking-wider text-slate-400">งานทั่วไป</p>
+                        <p className="px-2 mb-1.5 text-[11px] font-bold tracking-wider text-slate-400">{copy.historyLabel}</p>
                         <div className="space-y-0.5">{general.map(t => <ThreadRow key={t.id} t={t} />)}</div>
                     </div>
                 )}
             </div>
             <div className="p-3 border-t border-slate-200/70 dark:border-white/10">
                 <Link
-                    href="/lawyer-dashboard"
+                    href={copy.home}
                     className="flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-white/5"
                 >
-                    <ArrowLeft className="w-4 h-4" />กลับแดชบอร์ดทนาย
+                    <ArrowLeft className="w-4 h-4" />{copy.homeLabel}
                 </Link>
             </div>
         </div>
