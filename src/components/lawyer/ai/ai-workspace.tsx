@@ -2,8 +2,10 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import Image from 'next/image';
+import logoMark from '@/pic/logo-lawslane-transparent-color.png';
 import {
-    AlertTriangle, ArrowLeft, ArrowUp, Briefcase, FileText, FolderOpen, Loader2, MessageSquare, PanelLeft, Paperclip, Plus, Sparkles, Trash2, X,
+    AlertTriangle, ArrowLeft, ArrowUp, Briefcase, Coins, FileSearch, FileText, FolderOpen, Gavel, Loader2, MessageSquare, PanelLeft, Plus, ScrollText, Trash2, X,
 } from 'lucide-react';
 import { Link } from '@/navigation';
 import { cn } from '@/lib/utils';
@@ -16,6 +18,26 @@ import {
     type AiAttachment, type AiCaseFolder, type AiCitation, type AiMessage, type AiMode, type AiStreamEvent, type AiThreadSummary,
 } from '@/lib/lawyer-ai/types';
 import { AI_CREDIT_COST, type AiCreditStatus } from '@/lib/lawyer-entitlements';
+
+const MODE_ICON = { statute: ScrollText, judgment: Gavel, draft: FileText, contract: FileSearch } as const;
+
+const EXAMPLES = [
+    'ลูกหนี้ยืมเงิน 50,000 บาท ไม่มีสัญญากู้ มีแค่แชท LINE ฟ้องได้ไหม',
+    'นายจ้างเลิกจ้างโดยไม่บอกล่วงหน้า ลูกจ้างเรียกค่าชดเชยอะไรได้บ้าง',
+    'ถูกโพสต์หมิ่นประมาทในเฟซบุ๊ก ต้องแจ้งความภายในกี่วัน',
+];
+
+/** เครื่องหมาย Lawslane ในวงกลม — ใช้แทนไอคอน AI ทั่วไป */
+function LawslaneMark({ size = 32, className }: { size?: number; className?: string }) {
+    return (
+        <span
+            className={cn('inline-flex items-center justify-center rounded-full bg-white ring-1 ring-slate-200 dark:bg-white/10 dark:ring-white/10 shrink-0', className)}
+            style={{ width: size, height: size }}
+        >
+            <Image src={logoMark} alt="Lawslane" width={size} height={size} className="w-[62%] h-auto" />
+        </span>
+    );
+}
 
 type UiMessage = AiMessage & { streaming?: boolean; error?: string };
 type PendingFile = { key: string; name: string; status: 'reading' | 'ready' | 'error'; data?: AiAttachment; error?: string };
@@ -285,7 +307,7 @@ export default function AiWorkspace() {
     return (
         <div className="relative flex h-dvh bg-white dark:bg-background overflow-hidden">
             <aside className={cn(
-                'w-72 shrink-0 border-r border-slate-200 dark:border-border bg-[#fafaf7] dark:bg-white/[0.03] flex-col',
+                'w-72 shrink-0 border-r border-slate-200/80 dark:border-border bg-[#f7f7f4] dark:bg-white/[0.03] flex-col',
                 panelOpen ? 'flex absolute inset-y-0 left-0 z-30 shadow-xl lg:static lg:shadow-none' : 'hidden lg:flex',
             )}>
                 <ThreadPanel
@@ -305,41 +327,65 @@ export default function AiWorkspace() {
                     <button type="button" onClick={() => setPanelOpen(true)} className="lg:hidden p-1.5 -ml-1 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10" aria-label="แฟ้มคดีและประวัติ">
                         <PanelLeft className="w-5 h-5" />
                     </button>
-                    <span className="min-w-0 truncate text-sm font-medium text-slate-600 dark:text-slate-300">
-                        {activeCase ? <><FolderOpen className="inline w-4 h-4 mr-1.5 -mt-0.5 text-amber-500" />แฟ้ม: {activeCase.title}</> : 'งานทั่วไป (ไม่ผูกแฟ้มคดี)'}
+                    <span className={cn(
+                        'min-w-0 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[13px] font-medium truncate',
+                        activeCase ? 'bg-amber-50 text-amber-800 dark:bg-amber-500/10 dark:text-amber-300' : 'text-slate-500 dark:text-slate-400',
+                    )}>
+                        {activeCase ? <><FolderOpen className="w-3.5 h-3.5 shrink-0" /><span className="truncate">{activeCase.title}</span></> : 'งานทั่วไป · ไม่ผูกแฟ้มคดี'}
                     </span>
+                    {credits && (
+                        <span
+                            className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-slate-200 dark:border-white/10 px-3 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 shrink-0"
+                            title={credits.monthly !== null ? `เครดิตรายเดือน ${credits.monthly.toLocaleString('th-TH')} · รีเซ็ตต้นเดือน (เวลาไทย)` : undefined}
+                        >
+                            <Coins className="w-3.5 h-3.5 text-amber-500" />
+                            {credits.remaining === null ? 'ไม่จำกัด' : `${credits.remaining.toLocaleString('th-TH')} เครดิต`}
+                        </span>
+                    )}
                 </div>
 
                 {loadingThread ? (
                     <div className="flex-1 flex items-center justify-center text-slate-400"><Loader2 className="w-6 h-6 animate-spin" /></div>
                 ) : messages.length === 0 ? (
-                    <div className="flex-1 overflow-y-auto px-4 md:px-8">
+                    <div className="flex-1 overflow-y-auto px-4 md:px-8 bg-[radial-gradient(ellipse_at_top,rgba(0,47,75,0.06),transparent_60%)] dark:bg-none">
                         <div className="max-w-3xl mx-auto min-h-full flex flex-col justify-center py-10">
-                            <h2 className="flex items-center justify-center gap-3 text-2xl md:text-3xl font-bold text-slate-900 dark:text-foreground text-center mb-3">
-                                <span className="w-10 h-10 rounded-xl bg-[#002f4b] text-white flex items-center justify-center shrink-0"><Sparkles className="w-5 h-5" /></span>
+                            <LawslaneMark size={64} className="mx-auto mb-5 shadow-sm" />
+                            <h2 className="text-center text-[26px] md:text-4xl font-bold tracking-tight text-slate-900 dark:text-foreground mb-3">
                                 ให้ Lawslane AI ช่วยงานคดียังไงดีครับ
                             </h2>
-                            <p className="text-center text-sm text-slate-500 mb-8">
+                            <p className="text-center text-sm md:text-[15px] text-slate-500 max-w-xl mx-auto mb-8 leading-relaxed">
                                 {activeCase
                                     ? `AI จะใช้ข้อเท็จจริง พยานหลักฐาน และขั้นตอนงานในแฟ้ม “${activeCase.title}” ประกอบคำตอบ`
                                     : 'ค้นมาตราและฎีกาจากฐานข้อมูลกฎหมาย ร่างเอกสาร หรือแนบสัญญาให้ตรวจ — เลือกแฟ้มคดีทางซ้ายเพื่อให้ AI รู้บริบทคดี'}
                             </p>
                             {composer}
+                            <div className="mt-8 grid gap-2 sm:grid-cols-3">
+                                {EXAMPLES.map(ex => (
+                                    <button
+                                        key={ex}
+                                        type="button"
+                                        onClick={() => setInput(ex)}
+                                        className="text-left rounded-2xl border border-slate-200/80 dark:border-white/10 bg-white/70 dark:bg-white/5 px-4 py-3 text-[13px] leading-snug text-slate-600 dark:text-slate-300 hover:border-slate-300 hover:bg-white hover:shadow-sm transition"
+                                    >
+                                        {ex}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
                     </div>
                 ) : (
                     <>
                         <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 md:px-8 py-6">
-                            <div className="max-w-3xl mx-auto space-y-6">
+                            <div className="max-w-3xl mx-auto space-y-8">
                                 {messages.map(m => m.role === 'user' ? (
                                     <div key={m.id} className="flex justify-end">
-                                        <div className="max-w-[85%] rounded-2xl rounded-br-md bg-[#002f4b] text-white px-4 py-2.5">
-                                            {m.mode !== 'ask' && <span className="block text-[11px] font-semibold text-blue-200 mb-1">{AI_MODES.find(x => x.id === m.mode)?.label}</span>}
+                                        <div className="max-w-[85%] rounded-3xl rounded-br-lg bg-slate-100 dark:bg-white/10 text-slate-900 dark:text-foreground px-4 py-2.5">
+                                            {m.mode !== 'ask' && <span className="inline-block mb-1 rounded-full bg-white dark:bg-white/10 px-2 py-0.5 text-[11px] font-semibold text-[#002f4b] dark:text-blue-300">{AI_MODES.find(x => x.id === m.mode)?.label}</span>}
                                             {m.content && <p className="whitespace-pre-wrap break-words text-[15px]">{m.content}</p>}
                                             {m.attachments && m.attachments.length > 0 && (
                                                 <div className="mt-2 flex flex-wrap gap-1.5">
                                                     {m.attachments.map((a, i) => (
-                                                        <span key={i} className="inline-flex items-center gap-1 rounded-md bg-white/15 px-2 py-0.5 text-xs"><FileText className="w-3 h-3" />{a.name}</span>
+                                                        <span key={i} className="inline-flex items-center gap-1 rounded-md bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 px-2 py-0.5 text-xs"><FileText className="w-3 h-3" />{a.name}</span>
                                                     ))}
                                                 </div>
                                             )}
@@ -356,7 +402,7 @@ export default function AiWorkspace() {
                                 ))}
                             </div>
                         </div>
-                        <div className="px-4 md:px-8 pb-4 pt-2 border-t border-slate-100 dark:border-border">
+                        <div className="px-4 md:px-8 pb-4 pt-3 bg-gradient-to-t from-white via-white dark:from-background dark:via-background">
                             <div className="max-w-3xl mx-auto">{composer}</div>
                         </div>
                     </>
@@ -382,7 +428,7 @@ function ModelMessage({ m, open, onToggle, onCite }: { m: UiMessage; open: Set<n
     const referenced = useMemo(() => referencedNumbers(m.content), [m.content]);
     return (
         <div className="flex gap-3">
-            <span className="w-8 h-8 rounded-lg bg-[#002f4b] text-white flex items-center justify-center shrink-0"><Sparkles className="w-4 h-4" /></span>
+            <LawslaneMark size={32} className="mt-0.5" />
             <div className="min-w-0 flex-1">
                 {m.content ? (
                     <AiAnswer content={m.content} streaming={!!m.streaming} onCite={onCite} />
@@ -431,13 +477,14 @@ function Composer({ mode, setMode, input, setInput, files, removeFile, addFiles,
                     title={m.hint}
                     onClick={() => setMode(mode === m.id ? 'ask' : m.id)}
                     className={cn(
-                        'rounded-full border transition-colors',
-                        compact ? 'px-3 py-1 text-xs' : 'px-5 py-2 text-sm',
+                        'inline-flex items-center gap-1.5 rounded-full border transition-colors',
+                        compact ? 'px-3 py-1 text-xs' : 'px-4 py-2 text-sm',
                         mode === m.id
                             ? 'border-[#002f4b] bg-[#002f4b] text-white'
                             : 'border-slate-200 dark:border-border text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/5',
                     )}
                 >
+                    {(() => { const Icon = MODE_ICON[m.id]; return <Icon className={compact ? 'w-3.5 h-3.5' : 'w-4 h-4'} />; })()}
                     {m.label}
                 </button>
             ))}
@@ -447,7 +494,7 @@ function Composer({ mode, setMode, input, setInput, files, removeFile, addFiles,
     return (
         <div>
             {compact && chips}
-            <div className="rounded-2xl border border-slate-200 dark:border-border bg-white dark:bg-card shadow-[0_8px_30px_rgba(15,23,42,0.06)] focus-within:border-slate-300">
+            <div className="rounded-3xl border border-slate-200 dark:border-border bg-white dark:bg-card shadow-[0_10px_40px_-12px_rgba(15,23,42,0.18)] focus-within:border-slate-300 focus-within:shadow-[0_10px_40px_-10px_rgba(0,47,75,0.25)] transition-shadow">
                 {files.length > 0 && (
                     <div className="flex flex-wrap gap-2 px-4 pt-3">
                         {files.map(f => (
@@ -512,11 +559,8 @@ function Composer({ mode, setMode, input, setInput, files, removeFile, addFiles,
             {!compact && chips}
             <div className={cn('flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11px]', compact ? 'mt-2' : 'mt-6')}>
                 {credits && (
-                    <span className={cn('font-medium', outOfCredits ? 'text-red-600' : 'text-slate-500')} title="เครดิตรายเดือนรีเซ็ตต้นเดือน (เวลาไทย)">
-                        {credits.remaining === null
-                            ? 'เครดิต AI ไม่จำกัด'
-                            : `เหลือ ${credits.remaining.toLocaleString('th-TH')} เครดิต${credits.monthly ? ` (เดือนนี้ ${credits.monthly.toLocaleString('th-TH')})` : ''}`}
-                        {' · '}ครั้งนี้ใช้ {cost} เครดิต
+                    <span className={cn('font-medium', outOfCredits ? 'text-red-600' : 'text-slate-500')}>
+                        {outOfCredits ? 'เครดิตไม่พอสำหรับงานนี้' : `ครั้งนี้ใช้ ${cost} เครดิต`}
                     </span>
                 )}
                 <span className="text-slate-400">AI อาจผิดพลาดหรืออ้างตัวบทที่ไม่ใช่ฉบับล่าสุด ตรวจสอบก่อนใช้งานจริงทุกครั้ง</span>
@@ -553,10 +597,13 @@ function ThreadPanel({ cases, threads, caseId, threadId, onNew, onOpen, onDelete
     return (
         <div className="flex flex-col h-full">
             <div className="flex items-center justify-between gap-2 px-4 h-14 border-b border-slate-200/70 dark:border-white/10">
-                <span className="flex items-center gap-2 font-bold text-slate-900 dark:text-foreground">
-                    <span className="w-7 h-7 rounded-lg bg-[#002f4b] text-white flex items-center justify-center"><Sparkles className="w-4 h-4" /></span>
-                    Lawslane AI
-                </span>
+                <Link href="/lawyer-dashboard" className="flex items-center gap-2.5 min-w-0">
+                    <Image src={logoMark} alt="Lawslane" width={28} height={28} className="h-7 w-auto" />
+                    <span className="flex flex-col leading-none min-w-0">
+                        <span className="font-bold text-[17px] text-[#002f4b] dark:text-white">Lawslane</span>
+                        <span className="mt-0.5 text-[10px] font-bold tracking-widest text-blue-600 dark:text-blue-300">AI ผู้ช่วยงานคดี</span>
+                    </span>
+                </Link>
                 <button type="button" onClick={onClose} className="lg:hidden p-2 rounded-lg text-slate-500 hover:bg-white" aria-label="ปิด"><X className="w-4 h-4" /></button>
             </div>
             <div className="p-3 space-y-2">
