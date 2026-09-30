@@ -10,7 +10,36 @@ export function ragAuthHeaders(): Record<string, string> {
     return key ? { Authorization: `Bearer ${key}` } : {};
 }
 
-export async function retrieveDocuments(query: string, topK: number = 5): Promise<Array<{ source: string, content: string, score: number, year?: number }>> {
+/** ทำความสะอาดข้อความจาก RAG (ตัวอักษรเพี้ยนจาก PDF, "\\n" ที่เก็บเป็นตัวอักษร, ช่องว่างซ้ำ) — ใช้ทั้ง /query และ /get */
+export function cleanRagText(raw: string): string {
+    let content = raw || '';
+    // 1. Remove "Tofu" / Box characters that come from PDF extraction
+    content = content.replace(/[\uFFFD\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
+    content = content.replace(/□/g, '');
+    // 2. Fix common "broken" Thai character patterns from encoding issues
+    content = content.replace(/([ก-ฮ])\s+([่้๊๋ะาิีึืุูัํ])/g, '$1$2');
+    content = content.replace(/([่้๊๋ะาิีึืุูัํ])\s+([ก-ฮ])/g, '$1$2');
+    content = content.replace(/อำ\s+นาจ/g, 'อำนาจ');
+    content = content.replace(/พิจาร\s+ณา/g, 'พิจารณา');
+    content = content.replace(/พิ\s+จารณา/g, 'พิจารณา');
+    // 2.5 บางชุดข้อมูลเก็บ "\\n" เป็นตัวอักษรจริง (ไม่ใช่ขึ้นบรรทัด)
+    content = content.replace(/\\n/g, '\n');
+    // 3. Clean up excessive whitespace/newlines
+    content = content.replace(/\n\s*\n/g, '\n').trim();
+    return content.replace(/[ ]{2,}/g, ' ');
+}
+
+export type RagDocument = {
+    source: string;
+    content: string;
+    score: number;
+    year?: number;
+    /** ลำดับ chunk ในไฟล์ (ชุดกฤษฎีกา/ราชกิจจาฯ) — ใช้ดึง chunk ข้างเคียงมาต่อให้ครบมาตรา */
+    chunkIndex?: number;
+    totalChunks?: number;
+};
+
+export async function retrieveDocuments(query: string, topK: number = 5): Promise<RagDocument[]> {
     const MAX_RETRIES = 2;
     let attempt = 0;
 
@@ -45,26 +74,7 @@ export async function retrieveDocuments(query: string, topK: number = 5): Promis
             }
 
             return data.matches.map((match: any) => {
-                let content = match.metadata?.text || '';
-                
-                // --- Simple Thai Text Repair (Heuristic) ---
-                // 1. Remove "Tofu" / Box characters that come from PDF extraction
-                content = content.replace(/[\uFFFD\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '');
-                content = content.replace(/□/g, '');
-                
-                // 2. Fix common "broken" Thai character patterns from encoding issues
-                content = content.replace(/([ก-ฮ])\s+([่้๊๋ะาิีึืุูัํ])/g, '$1$2'); // Fix spaces between consonant and vowel/tone
-                content = content.replace(/([่้๊๋ะาิีึืุูัํ])\s+([ก-ฮ])/g, '$1$2'); // Fix spaces after vowel/tone
-                content = content.replace(/อำ\s+นาจ/g, 'อำนาจ'); // Common word fragment fix
-                content = content.replace(/พิจาร\s+ณา/g, 'พิจารณา');
-                content = content.replace(/พิ\s+จารณา/g, 'พิจารณา');
-                
-                // 2.5 บางชุดข้อมูลเก็บ "\\n" เป็นตัวอักษรจริง (ไม่ใช่ขึ้นบรรทัด)
-                content = content.replace(/\\n/g, '\n');
-
-                // 3. Clean up excessive whitespace/newlines
-                content = content.replace(/\n\s*\n/g, '\n').trim();
-                content = content.replace(/[ ]{2,}/g, ' '); // Remove double spaces
+                const content = cleanRagText(match.metadata?.text || '');
 
                 // ปีของกฎหมายสำคัญมาก: ฐานข้อมูลมีทั้งฉบับเดิมและฉบับแก้ไข
                 // ถ้าไม่ส่งปีไปด้วย ผู้เรียกจะแยกไม่ออกว่าฉบับไหนยังใช้อยู่
@@ -73,11 +83,15 @@ export async function retrieveDocuments(query: string, topK: number = 5): Promis
                     ? rawYear
                     : (typeof rawYear === 'string' && /^\d{4}$/.test(rawYear) ? parseInt(rawYear, 10) : undefined);
 
+                const chunkIndex = match.metadata?.chunkIndex;
+                const totalChunks = match.metadata?.totalChunks;
                 return {
                     source: match.metadata?.source || 'Unknown',
                     content: content,
                     score: match.score || 0,
-                    year
+                    year,
+                    ...(Number.isInteger(chunkIndex) ? { chunkIndex } : {}),
+                    ...(Number.isInteger(totalChunks) ? { totalChunks } : {}),
                 };
             });
 
@@ -142,6 +156,38 @@ function titleFromFirstChunk(text: string): string | null {
     // "ประมวลกฎหมายที่ดิน  พระราชบัญญัติ ให้ใช้..." — ชื่อคือข้อความก่อนเว้นวรรคคู่แรก
     const title = text.split(/\s{2,}|\n/)[0]?.trim();
     return title && title.length >= 4 && title.length <= 150 ? title : null;
+}
+
+/**
+ * ดึง chunk ของไฟล์กฤษฎีกาตามลำดับ (id คำนวณได้: md5("kd-{file}-{i}")) — ใช้ต่อมาตราที่ถูกตัดกลางคำให้ครบ
+ * ไม่ใช่ไฟล์กฤษฎีกา / worker ช้า → คืน Map ว่าง (ผู้เรียกแสดงเท่าที่มี)
+ */
+export async function getKrisdikaChunks(source: string, indexes: number[]): Promise<Map<number, string>> {
+    const out = new Map<number, string>();
+    const kd = source.match(KRISDIKA_SOURCE);
+    if (!kd || indexes.length === 0) return out;
+    const wanted = [...new Set(indexes)].slice(0, 20).map(i => ({ i, id: createHash('md5').update(`kd-${kd[1]}-${i}`).digest('hex') }));
+    try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+        const res = await fetch(`${WORKER_URL}/get`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...ragAuthHeaders() },
+            body: JSON.stringify({ ids: wanted.map(w => w.id) }),
+            signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+        if (!res.ok) return out;
+        const vectors = await res.json() as Array<{ id: string; metadata?: { text?: string } }>;
+        const byId = new Map(vectors.map(v => [v.id, v.metadata?.text || '']));
+        for (const w of wanted) {
+            const text = byId.get(w.id);
+            if (text) out.set(w.i, cleanRagText(text));
+        }
+    } catch (e) {
+        console.warn('[RAG] getKrisdikaChunks failed:', e instanceof Error ? e.message : e);
+    }
+    return out;
 }
 
 export async function resolveLawTitles(sources: string[]): Promise<Map<string, string>> {

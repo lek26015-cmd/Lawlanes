@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Image from 'next/image';
 import logoMark from '@/pic/logo-lawslane-transparent-color.png';
+import logoMarkWhite from '@/pic/logo-lawslane-transparent-white.png';
 import {
     AlertTriangle, ArrowLeft, ArrowUp, Briefcase, Coins, FileSearch, FileText, FolderOpen, Gavel, Loader2, MessageSquare, PanelLeft, Plus, ScrollText, Trash2, X,
 } from 'lucide-react';
@@ -351,7 +352,8 @@ export default function AiWorkspace({ audience = 'lawyer' }: { audience?: AiAudi
     return (
         <div className="relative flex h-dvh bg-white dark:bg-background overflow-hidden">
             <aside className={cn(
-                'w-72 shrink-0 border-r border-slate-200/80 dark:border-border bg-[#f7f7f4] dark:bg-white/[0.03] flex-col',
+                // สีเดียวกับ sidebar แดชบอร์ดทนาย (lawyer-sidebar.tsx)
+                'w-72 shrink-0 bg-[#002f4b] text-white flex-col',
                 panelOpen ? 'flex absolute inset-y-0 left-0 z-30 shadow-xl lg:static lg:shadow-none' : 'hidden lg:flex',
             )}>
                 <ThreadPanel
@@ -369,7 +371,7 @@ export default function AiWorkspace({ audience = 'lawyer' }: { audience?: AiAudi
             </aside>
 
             <section className="relative flex-1 min-w-0 flex flex-col">
-                <div className="flex items-center gap-2 px-4 h-14 border-b border-slate-100 dark:border-border">
+                <div className="flex items-center gap-2 px-4 h-16 border-b border-slate-100 dark:border-border">
                     <button type="button" onClick={() => setPanelOpen(true)} className="lg:hidden p-1.5 -ml-1 rounded-lg text-slate-500 hover:bg-slate-100 dark:hover:bg-white/10" aria-label="แฟ้มคดีและประวัติ">
                         <PanelLeft className="w-5 h-5" />
                     </button>
@@ -645,12 +647,12 @@ function ThreadPanel({ copy, showCases, cases, threads, caseId, threadId, onNew,
     const byCase = (id: string) => threads.filter(t => t.caseId === id);
 
     const ThreadRow = ({ t }: { t: AiThreadSummary }) => (
-        <div className={cn('group flex items-center rounded-lg', t.id === threadId ? 'bg-white dark:bg-white/10 shadow-sm' : 'hover:bg-white/70 dark:hover:bg-white/5')}>
-            <button type="button" onClick={() => onOpen(t.id)} className="flex-1 min-w-0 flex items-center gap-2 px-2.5 py-1.5 text-left text-[13px] text-slate-600 dark:text-slate-300">
-                <MessageSquare className="w-3.5 h-3.5 shrink-0 text-slate-400" />
+        <div className={cn('group flex items-center rounded-lg', t.id === threadId ? 'bg-white/15' : 'hover:bg-white/[0.07]')}>
+            <button type="button" onClick={() => onOpen(t.id)} className="flex-1 min-w-0 flex items-center gap-2 px-2.5 py-1.5 text-left text-[13px] text-white/85 hover:text-white">
+                <MessageSquare className="w-3.5 h-3.5 shrink-0 text-white/50" />
                 <span className="truncate">{t.title}</span>
             </button>
-            <button type="button" onClick={() => onDelete(t.id)} aria-label="ลบ" className="p-1.5 mr-1 rounded text-slate-300 opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-red-500">
+            <button type="button" onClick={() => onDelete(t.id)} aria-label="ลบ" className="p-1.5 mr-1 rounded text-white/40 opacity-0 group-hover:opacity-100 focus:opacity-100 hover:text-red-300">
                 <Trash2 className="w-3.5 h-3.5" />
             </button>
         </div>
@@ -658,26 +660,26 @@ function ThreadPanel({ copy, showCases, cases, threads, caseId, threadId, onNew,
 
     return (
         <div className="flex flex-col h-full">
-            <div className="flex items-center justify-between gap-2 px-4 h-14 border-b border-slate-200/70 dark:border-white/10">
+            <div className="flex items-center justify-between gap-2 px-4 h-16 border-b border-white/10">
                 <Link href={copy.home} className="flex items-center gap-2.5 min-w-0">
-                    <Image src={logoMark} alt="Lawslane" width={28} height={28} className="h-7 w-auto" />
+                    <Image src={logoMarkWhite} alt="Lawslane" width={28} height={28} className="h-7 w-auto" />
                     <span className="flex flex-col leading-none min-w-0">
-                        <span className="font-bold text-[17px] text-[#002f4b] dark:text-white">Lawslane</span>
-                        <span className="mt-0.5 text-[10px] font-bold tracking-widest text-blue-600 dark:text-blue-300">{copy.subtitle}</span>
+                        <span className="font-bold text-[17px] text-white">Lawslane</span>
+                        <span className="mt-0.5 text-[10px] font-bold tracking-widest text-white/60">{copy.subtitle}</span>
                     </span>
                 </Link>
-                <button type="button" onClick={onClose} className="lg:hidden p-2 rounded-lg text-slate-500 hover:bg-white" aria-label="ปิด"><X className="w-4 h-4" /></button>
+                <button type="button" onClick={onClose} className="lg:hidden p-2 rounded-lg text-white/70 hover:bg-white/10" aria-label="ปิด"><X className="w-4 h-4" /></button>
             </div>
             <div className="p-3 space-y-2">
                 <button
                     type="button"
                     onClick={() => onNew(null)}
-                    className="w-full flex items-center gap-2 rounded-xl bg-white dark:bg-white/10 border border-slate-200 dark:border-white/10 px-3.5 py-2.5 text-sm font-medium text-slate-700 dark:text-slate-200 hover:shadow-sm"
+                    className="w-full flex items-center gap-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 px-3.5 py-2.5 text-sm font-medium text-white transition-colors"
                 >
                     <Plus className="w-4 h-4" />{copy.newLabel}
                 </button>
                 {showCases && (
-                    <Link href="/lawyer-dashboard/cases" className="flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-white/70 dark:hover:bg-white/5">
+                    <Link href="/lawyer-dashboard/cases" className="flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm text-white/80 hover:text-white hover:bg-white/[0.07]">
                         <Briefcase className="w-4 h-4" />แฟ้มคดีทั้งหมด
                     </Link>
                 )}
@@ -685,10 +687,10 @@ function ThreadPanel({ copy, showCases, cases, threads, caseId, threadId, onNew,
 
             <div className="flex-1 overflow-y-auto px-3 pb-4 space-y-5">
                 {showCases && <div>
-                    <p className="px-2 mb-1.5 text-[11px] font-bold tracking-wider text-slate-400">แฟ้มคดี</p>
+                    <p className="px-2 mb-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-white/60">แฟ้มคดี</p>
                     {cases.length === 0 ? (
-                        <p className="px-2 text-xs text-slate-400 leading-relaxed">
-                            ยังไม่มีคดี — <Link href="/lawyer-dashboard/cases" className="text-blue-600 hover:underline">เปิดแฟ้มคดี</Link> แล้ว AI จะใช้ข้อมูลในแฟ้มประกอบคำตอบได้
+                        <p className="px-2 text-xs text-white/55 leading-relaxed">
+                            ยังไม่มีคดี — <Link href="/lawyer-dashboard/cases" className="text-blue-300 hover:underline">เปิดแฟ้มคดี</Link> แล้ว AI จะใช้ข้อมูลในแฟ้มประกอบคำตอบได้
                         </p>
                     ) : (
                         <div className="space-y-0.5">
@@ -702,15 +704,15 @@ function ThreadPanel({ copy, showCases, cases, threads, caseId, threadId, onNew,
                                             onClick={() => (active && !threadId ? undefined : onNew(c.id))}
                                             className={cn(
                                                 'w-full flex items-center gap-2 rounded-lg px-2.5 py-2 text-left text-[13px]',
-                                                active ? 'bg-white dark:bg-white/10 font-semibold text-slate-900 dark:text-foreground shadow-sm' : 'text-slate-700 dark:text-slate-300 hover:bg-white/70 dark:hover:bg-white/5',
+                                                active ? 'bg-white/15 font-semibold text-white' : 'text-white/85 hover:text-white hover:bg-white/[0.07]',
                                             )}
                                         >
-                                            <FolderOpen className={cn('w-4 h-4 shrink-0', active ? 'text-amber-500' : 'text-slate-400')} />
+                                            <FolderOpen className={cn('w-4 h-4 shrink-0', active ? 'text-amber-300' : 'text-white/60')} />
                                             <span className="truncate flex-1">{c.title}</span>
-                                            {list.length > 0 && <span className="text-[10px] text-slate-400">{list.length}</span>}
+                                            {list.length > 0 && <span className="text-[10px] text-white/50">{list.length}</span>}
                                         </button>
                                         {active && list.length > 0 && (
-                                            <div className="ml-4 pl-2 border-l border-slate-200 dark:border-white/10 mt-0.5 space-y-0.5">
+                                            <div className="ml-4 pl-2 border-l border-white/15 mt-0.5 space-y-0.5">
                                                 {list.map(t => <ThreadRow key={t.id} t={t} />)}
                                             </div>
                                         )}
@@ -723,15 +725,15 @@ function ThreadPanel({ copy, showCases, cases, threads, caseId, threadId, onNew,
 
                 {general.length > 0 && (
                     <div>
-                        <p className="px-2 mb-1.5 text-[11px] font-bold tracking-wider text-slate-400">{copy.historyLabel}</p>
+                        <p className="px-2 mb-1.5 text-[10px] font-bold uppercase tracking-[0.15em] text-white/60">{copy.historyLabel}</p>
                         <div className="space-y-0.5">{general.map(t => <ThreadRow key={t.id} t={t} />)}</div>
                     </div>
                 )}
             </div>
-            <div className="p-3 border-t border-slate-200/70 dark:border-white/10">
+            <div className="p-3 border-t border-white/10">
                 <Link
                     href={copy.home}
-                    className="flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-white dark:hover:bg-white/5"
+                    className="flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-medium text-white/80 hover:text-white hover:bg-white/[0.07]"
                 >
                     <ArrowLeft className="w-4 h-4" />{copy.homeLabel}
                 </Link>

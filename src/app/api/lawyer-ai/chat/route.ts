@@ -6,6 +6,7 @@ import { findLawSources } from '@/lib/lawyer-ai/sources';
 import { retrievalQuery, systemPrompt } from '@/lib/lawyer-ai/prompts';
 import { consumeCredits, refundCredits } from '@/lib/lawyer-ai/credits';
 import { AI_CREDIT_COST } from '@/lib/lawyer-entitlements';
+import { AI_MODEL_ATTEMPTS, isRetryableAiError } from '@/lib/lawyer-ai/models';
 import {
     ATTACHMENT_MAX_CHARS,
     MESSAGE_MAX_CHARS,
@@ -162,23 +163,34 @@ export async function POST(req: Request) {
                     role: 'user', content: message, mode, attachments, createdAt: now,
                 });
 
-                const model = new GoogleGenerativeAI(apiKey).getGenerativeModel({
-                    model: 'gemini-2.5-flash',
-                    systemInstruction: systemPrompt(audience, mode, caseContext, citations),
-                });
-                const result = await model.generateContentStream({
-                    contents: [...history, { role: 'user', parts: [{ text: withAttachments(message || 'ช่วยดูเอกสารที่แนบ', attachments) }] }],
-                });
+                const genAI = new GoogleGenerativeAI(apiKey);
+                const systemInstruction = systemPrompt(audience, mode, caseContext, citations);
+                const contents = [...history, { role: 'user', parts: [{ text: withAttachments(message || 'ช่วยดูเอกสารที่แนบ', attachments) }] }];
 
+                // Gemini ตอบ 503 "high demand" เป็นช่วง ๆ — ถ้ายังไม่ได้ส่งข้อความสักตัว ลองใหม่/สลับรุ่นสำรองได้
+                // ส่งไปบางส่วนแล้วห้ามลองใหม่ (ผู้ใช้จะเห็นคำตอบซ้ำซ้อน) ให้ถือว่าล้มแล้วคืนเครดิต
                 let answer = '';
-                for await (const chunk of result.stream) {
-                    const text = chunk.text();
-                    if (text) {
-                        answer += text;
-                        send({ type: 'delta', text });
+                let lastError: unknown = null;
+                for (const [i, modelName] of AI_MODEL_ATTEMPTS.entries()) {
+                    if (i > 0) await new Promise(r => setTimeout(r, 1200));
+                    try {
+                        const model = genAI.getGenerativeModel({ model: modelName, systemInstruction });
+                        const result = await model.generateContentStream({ contents });
+                        for await (const chunk of result.stream) {
+                            const text = chunk.text();
+                            if (text) {
+                                answer += text;
+                                send({ type: 'delta', text });
+                            }
+                        }
+                        break;
+                    } catch (e) {
+                        lastError = e;
+                        console.warn(`[lawyer-ai] ${modelName} failed:`, e instanceof Error ? e.message.slice(0, 160) : e);
+                        if (answer || !isRetryableAiError(e)) throw e;
                     }
                 }
-                if (!answer.trim()) throw new Error('empty answer');
+                if (!answer.trim()) throw lastError ?? new Error('empty answer');
 
                 const saved = await threadRef.collection('messages').add({
                     role: 'model', content: answer, mode, citations: JSON.parse(JSON.stringify(citations)), createdAt: Date.now(),

@@ -102,16 +102,27 @@ function CitationCard({ messageId, c, open, onToggle }: { messageId: string; c: 
 }
 
 // ทำหัว "มาตรา ๓๒๖" ให้เด่นและขึ้นบรรทัดใหม่ — ตัวบทที่ติดกันเป็นพืดอ่านยากมาก
+const THAI_DIGIT = '๐๑๒๓๔๕๖๗๘๙';
+function sectionOrder(num: string) {
+    const [main, sub] = num.replace(/[๐-๙]/g, d => String(THAI_DIGIT.indexOf(d))).split('/');
+    return Number(main) * 1000 + (Number(sub) || 0);
+}
+
+// กติกาเดียวกับ splitSections ใน lib/lawyer-ai/sources.ts: หัวมาตราจริงเลขต้องเพิ่มขึ้น และไม่ตามหลังคำอ้างถึง
 function Excerpt({ text }: { text: string }) {
     const parts = text.split(/(มาตรา\s*[๐-๙\d]+(?:\/[๐-๙\d]+)?(?:\s*(?:ทวิ|ตรี|จัตวา))?)/g);
+    let last = -1;
     return (
         <>
             {parts.map((p, i) => {
                 if (i % 2 === 0) return <span key={i}>{p}</span>;
                 const prev = parts[i - 1];
-                // "ตามมาตรา ๓๒๖" / "ในมาตรา ๑๔" คือการอ้างถึง ไม่ใช่หัวมาตราใหม่ — ไม่ต้องขึ้นบรรทัด
-                const isReference = /(ตาม|ใน|แห่ง|และ|หรือ|ถึง|ดัง|โดย|,)\s*$/.test(prev) || /^\s*แห่ง/.test(parts[i + 1] ?? '');
-                const breakBefore = prev.trim() !== '' && !prev.endsWith('\n') && !isReference;
+                const order = sectionOrder(p.replace(/^มาตรา\s*/, '').split(/\s/)[0]);
+                const isReference = /(ตาม|ใน|แห่ง|และ|หรือ|ถึง|ดัง|โดย|บัญญัติ|วรรค|,)\s*$/.test(prev)
+                    || /^\s*แห่ง/.test(parts[i + 1] ?? '')
+                    || order <= last;
+                if (!isReference) last = order;
+                const breakBefore = !isReference && prev.trim() !== '' && !prev.endsWith('\n');
                 return (
                     <span key={i}>
                         {breakBefore ? '\n' : ''}

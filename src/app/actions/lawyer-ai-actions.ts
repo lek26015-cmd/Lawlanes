@@ -6,6 +6,7 @@ import { listCaseFolders } from '@/lib/lawyer-ai/case-context';
 import { getAiAccess, parseAudience } from '@/lib/lawyer-ai/access';
 import { consumeCredits, getCreditStatus, refundCredits, type CreditCharge } from '@/lib/lawyer-ai/credits';
 import { AI_CREDIT_COST, type AiCreditStatus } from '@/lib/lawyer-entitlements';
+import { AI_MODEL_ATTEMPTS, isRetryableAiError } from '@/lib/lawyer-ai/models';
 import {
     ATTACHMENT_MAX_BYTES,
     ATTACHMENT_MAX_CHARS,
@@ -135,13 +136,21 @@ export async function readAttachmentAction(rawAudience: AiAudience, formData: Fo
             if (!paid.ok) return { status: 'insufficient-credits' };
             charge = paid.charge;
             credits = paid.status;
-            const model = new GoogleGenerativeAI(apiKey).getGenerativeModel({ model: 'gemini-2.5-flash' });
+            const genAI = new GoogleGenerativeAI(apiKey);
             const data = Buffer.from(await file.arrayBuffer()).toString('base64');
-            const res = await model.generateContent([
+            const parts = [
                 { inlineData: { data, mimeType } },
                 { text: 'ถอดข้อความทั้งหมดในเอกสารนี้ออกมาตามต้นฉบับทุกตัวอักษร คงเลขข้อ/ย่อหน้า ห้ามสรุป ห้ามแปล ห้ามเติมความเห็น ถ้าเป็นรูปที่ไม่มีข้อความให้บรรยายสั้น ๆ ว่าเป็นรูปอะไร' },
-            ]);
-            text = res.response.text();
+            ];
+            for (const [i, modelName] of AI_MODEL_ATTEMPTS.entries()) {
+                try {
+                    if (i > 0) await new Promise(r => setTimeout(r, 1200));
+                    text = (await genAI.getGenerativeModel({ model: modelName }).generateContent(parts)).response.text();
+                    break;
+                } catch (e) {
+                    if (i === AI_MODEL_ATTEMPTS.length - 1 || !isRetryableAiError(e)) throw e;
+                }
+            }
         } else {
             return { status: 'unsupported' };
         }
