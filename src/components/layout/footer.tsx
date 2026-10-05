@@ -178,7 +178,7 @@ export default function Footer({ userRole, domainType = 'main' }: { userRole: st
               target="_blank"
             >
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src="https://dbdregistered.dbd.go.th/api/public/banner?param=828390F773FD2FAC120D0E78B4E074266E39ADCEE2BC4A00E2703BF0044FEAAE" alt="DBD Registered" />
+              <img src="https://dbdregistered.dbd.go.th/api/public/banner?param=828390F773FD2FAC120D0E78B4E074266E39ADCEE2BC4A00E2703BF0044FEAAE" alt="DBD Registered" className="h-12 w-auto" />
             </a>
           )}
           <p className="text-[10px] font-bold uppercase tracking-widest opacity-50">{t('copyright', { year: new Date().getFullYear(), version: '4.3.0' })}</p>
