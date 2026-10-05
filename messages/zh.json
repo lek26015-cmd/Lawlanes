@@ -853,6 +853,7 @@
       "help": "帮助中心",
       "guide": "用户指南"
     },
+    "dbdCertifiedBy": "认证机构",
     "copyright": "© {year} Lawslane. 版权所有。 · v{version}",
     "totalVisitors": "总访问量 {count} 次"
   },

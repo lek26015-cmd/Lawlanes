@@ -851,6 +851,7 @@
       "help": "ศูนย์ช่วยเหลือ",
       "guide": "คู่มือการใช้งาน"
     },
+    "dbdCertifiedBy": "ได้รับการรับรองจาก",
     "copyright": "© {year} Lawslane. สงวนลิขสิทธิ์ · v{version}",
     "totalVisitors": "ยอดเข้าชมทั้งหมด {count} ครั้ง"
   },

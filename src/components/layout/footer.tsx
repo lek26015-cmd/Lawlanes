@@ -112,14 +112,16 @@ export default function Footer({ userRole, domainType = 'main' }: { userRole: st
             </div>
             {/* เครื่องหมาย DBD Registered — ต้องวางเฉพาะบนโดเมนที่จดทะเบียนพาณิชย์อิเล็กทรอนิกส์ (lawslane.com) และห้ามแก้ URL/param ที่กรมฯ ส่งมา */}
             {domainType === 'main' && (
-              <a
-                href="https://dbdregistered.dbd.go.th/api/public/shopinfo?param=828390F773FD2FAC120D0E78B4E074266E39ADCEE2BC4A00E2703BF0044FEAAE"
-                target="_blank"
-                className="mt-4 inline-block self-start"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src="https://dbdregistered.dbd.go.th/api/public/banner?param=828390F773FD2FAC120D0E78B4E074266E39ADCEE2BC4A00E2703BF0044FEAAE" alt="DBD Registered" className="h-12 w-auto" />
-              </a>
+              <div className="mt-4 flex flex-col items-start gap-1.5">
+                <span className="text-xs text-gray-400">{t('dbdCertifiedBy')}</span>
+                <a
+                  href="https://dbdregistered.dbd.go.th/api/public/shopinfo?param=828390F773FD2FAC120D0E78B4E074266E39ADCEE2BC4A00E2703BF0044FEAAE"
+                  target="_blank"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="https://dbdregistered.dbd.go.th/api/public/banner?param=828390F773FD2FAC120D0E78B4E074266E39ADCEE2BC4A00E2703BF0044FEAAE" alt="DBD Registered" className="h-16 w-auto" />
+                </a>
+              </div>
             )}
           </div>
 

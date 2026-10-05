@@ -854,6 +854,7 @@
       "help": "Help Center",
       "guide": "User Guide"
     },
+    "dbdCertifiedBy": "Certified by",
     "copyright": "© {year} Lawslane. All rights reserved. · v{version}",
     "totalVisitors": "{count} total visits"
   },
