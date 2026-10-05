@@ -171,6 +171,16 @@ export default function Footer({ userRole, domainType = 'main' }: { userRole: st
       <div className="bg-transparent text-slate-500 py-12 border-t border-gray-800/10 mt-12">
         <div className="container mx-auto px-4 flex flex-col items-center gap-3">
           <MonthlyVisitorBadge />
+          {/* เครื่องหมาย DBD Registered — ต้องวางเฉพาะบนโดเมนที่จดทะเบียนพาณิชย์อิเล็กทรอนิกส์ (lawslane.com) และห้ามแก้ URL/param ที่กรมฯ ส่งมา */}
+          {domainType === 'main' && (
+            <a
+              href="https://dbdregistered.dbd.go.th/api/public/shopinfo?param=828390F773FD2FAC120D0E78B4E074266E39ADCEE2BC4A00E2703BF0044FEAAE"
+              target="_blank"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="https://dbdregistered.dbd.go.th/api/public/banner?param=828390F773FD2FAC120D0E78B4E074266E39ADCEE2BC4A00E2703BF0044FEAAE" alt="DBD Registered" />
+            </a>
+          )}
           <p className="text-[10px] font-bold uppercase tracking-widest opacity-50">{t('copyright', { year: new Date().getFullYear(), version: '4.3.0' })}</p>
         </div>
       </div>
