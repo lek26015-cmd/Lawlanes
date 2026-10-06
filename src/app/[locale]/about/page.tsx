@@ -1,8 +1,6 @@
 import type { Metadata } from 'next';
 import { pageMetadata } from '@/lib/seo';
 import { Shield, Award, Heart, Globe, Mail, Phone, MapPin, Scale, ArrowRight } from 'lucide-react';
-import Image from 'next/image';
-import groupPhoto from '@/pic/lawslane-photo-group.webp';
 import { Link } from '@/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -60,24 +58,6 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
                         </div>
                     </FadeIn>
 
-                    {/* Mobile Only Image - Appears First */}
-                    <div className="lg:hidden mb-12">
-                        <FadeIn direction="up">
-                            <div className="relative">
-                                <div className="absolute -inset-4 bg-gradient-to-r from-blue-100 to-cyan-100 rounded-[2.5rem] -z-10 transform rotate-2 opacity-70"></div>
-                                <div className="relative overflow-hidden rounded-[2rem] shadow-2xl border-4 border-white w-full">
-                                    <Image
-                                        src={groupPhoto}
-                                        alt="Team Lawslane Group Photo"
-                                        className="w-full h-auto"
-                                        placeholder="blur"
-                                        priority
-                                    />
-                                </div>
-                                <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl"></div>
-                            </div>
-                        </FadeIn>
-                    </div>
 
                     <div className="grid lg:grid-cols-12 gap-12 items-start">
                         {/* Text Content - Spanning 5 columns */}
@@ -169,24 +149,6 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
 
                         {/* Image Content - Spanning 7 columns (Larger) */}
                         <div className="lg:col-span-7">
-                            <FadeIn direction="left" delay={200} className="hidden lg:block">
-                                <div className="relative">
-                                    <div className="absolute -inset-4 bg-gradient-to-r from-blue-100 to-cyan-100 rounded-[2.5rem] -z-10 transform rotate-2 opacity-70"></div>
-                                    <div className="relative overflow-hidden rounded-[2rem] shadow-2xl border-4 border-white w-full">
-                                        <Image
-                                            src={groupPhoto}
-                                            alt="Team Lawslane Group Photo"
-                                            className="w-full h-auto"
-                                            placeholder="blur"
-                                            priority
-                                        />
-                                    </div>
-
-                                    {/* Optional Decoration */}
-                                    <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl"></div>
-                                </div>
-                            </FadeIn>
-
                             {/* Core Values (Moved here) */}
                             <div className="mt-12">
                                 <FadeIn direction="up">
