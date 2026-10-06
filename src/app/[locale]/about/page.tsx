@@ -1,6 +1,8 @@
 import type { Metadata } from 'next';
 import { pageMetadata } from '@/lib/seo';
 import { Shield, Award, Heart, Globe, Mail, Phone, MapPin, Scale, ArrowRight } from 'lucide-react';
+import Image from 'next/image';
+import logoWhite from '@/pic/logo-lawslane-transparent-white.png';
 import { Link } from '@/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -58,6 +60,28 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
                         </div>
                     </FadeIn>
 
+                    {/* Mobile Only Image - Appears First */}
+                    <div className="lg:hidden mb-12">
+                        <FadeIn direction="up">
+                            <div className="relative">
+                                <div className="absolute -inset-4 bg-gradient-to-r from-blue-100 to-cyan-100 rounded-[2.5rem] -z-10 transform rotate-2 opacity-70"></div>
+                                <div className="relative overflow-hidden rounded-[2rem] shadow-2xl border-4 border-white w-full">
+                                    <div className="relative flex aspect-[16/10] w-full flex-col items-center justify-center gap-5 bg-gradient-to-br from-[#0B3979] via-[#0f4a94] to-[#1e6fb8] px-6 text-white">
+                                        <div className="absolute -top-16 -right-16 h-56 w-56 rounded-full bg-white/10 blur-3xl"></div>
+                                        <div className="absolute -bottom-20 -left-10 h-56 w-56 rounded-full bg-cyan-300/20 blur-3xl"></div>
+                                        <div className="relative flex items-center gap-4 sm:gap-6">
+                                            <Image src={logoWhite} alt="Lawslane Logo" className="h-20 w-auto sm:h-28 lg:h-32" priority />
+                                            <div>
+                                                <p className="font-headline text-4xl font-bold leading-none sm:text-6xl lg:text-7xl">Lawslane</p>
+                                                <p className="mt-2 text-xs tracking-[0.4em] text-white/70 sm:text-sm">www.lawslane.com</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl"></div>
+                            </div>
+                        </FadeIn>
+                    </div>
 
                     <div className="grid lg:grid-cols-12 gap-12 items-start">
                         {/* Text Content - Spanning 5 columns */}
@@ -149,6 +173,28 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
 
                         {/* Image Content - Spanning 7 columns (Larger) */}
                         <div className="lg:col-span-7">
+                            <FadeIn direction="left" delay={200} className="hidden lg:block">
+                                <div className="relative">
+                                    <div className="absolute -inset-4 bg-gradient-to-r from-blue-100 to-cyan-100 rounded-[2.5rem] -z-10 transform rotate-2 opacity-70"></div>
+                                    <div className="relative overflow-hidden rounded-[2rem] shadow-2xl border-4 border-white w-full">
+                                        <div className="relative flex aspect-[16/10] w-full flex-col items-center justify-center gap-5 bg-gradient-to-br from-[#0B3979] via-[#0f4a94] to-[#1e6fb8] px-6 text-white">
+                                        <div className="absolute -top-16 -right-16 h-56 w-56 rounded-full bg-white/10 blur-3xl"></div>
+                                        <div className="absolute -bottom-20 -left-10 h-56 w-56 rounded-full bg-cyan-300/20 blur-3xl"></div>
+                                        <div className="relative flex items-center gap-4 sm:gap-6">
+                                            <Image src={logoWhite} alt="Lawslane Logo" className="h-20 w-auto sm:h-28 lg:h-32" priority />
+                                            <div>
+                                                <p className="font-headline text-4xl font-bold leading-none sm:text-6xl lg:text-7xl">Lawslane</p>
+                                                <p className="mt-2 text-xs tracking-[0.4em] text-white/70 sm:text-sm">www.lawslane.com</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    </div>
+
+                                    {/* Optional Decoration */}
+                                    <div className="absolute -bottom-6 -right-6 w-24 h-24 bg-blue-500/10 rounded-full blur-2xl"></div>
+                                </div>
+                            </FadeIn>
+
                             {/* Core Values (Moved here) */}
                             <div className="mt-12">
                                 <FadeIn direction="up">
