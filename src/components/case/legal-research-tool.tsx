@@ -204,8 +204,20 @@ export function LegalResearchTool({ onCite, className }: LegalResearchToolProps)
         </AnimatePresence>
       </div>
       
+      {/* เครดิตข้อมูลตามเงื่อนไข CC-BY-4.0 ของ Open Law Data Thailand */}
+      <div className="px-4 pt-3 text-center border-t border-white/10">
+         <p className="text-[10px] leading-relaxed text-slate-500 dark:text-slate-400">
+           ข้อมูลจาก{' '}
+           <a href="https://huggingface.co/open-law-data-thailand" target="_blank" rel="noopener noreferrer" className="underline">Open Law Data Thailand</a>
+           {' '}(สำนักเลขาธิการคณะรัฐมนตรี) ใช้ตามสัญญาอนุญาต{' '}
+           <a href="https://creativecommons.org/licenses/by/4.0/deed.th" target="_blank" rel="noopener noreferrer" className="underline">CC BY 4.0</a>
+           {' '}· การอ้างอิงทางกฎหมายต้องตรวจกับต้นฉบับที่{' '}
+           <a href="https://ratchakitcha.soc.go.th" target="_blank" rel="noopener noreferrer" className="underline">ratchakitcha.soc.go.th</a>
+         </p>
+      </div>
+
       {/* Footer Branding */}
-      <div className="p-4 text-center opacity-20 border-t border-white/10">
+      <div className="p-4 text-center opacity-20">
          <p className="text-[8px] font-black uppercase tracking-[0.4em] italic text-slate-900 dark:text-white">Lawslane Neural Legal Search</p>
       </div>
     </div>
