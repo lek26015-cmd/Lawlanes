@@ -9,6 +9,9 @@
  *   เก็บไว้:  การชำระเงิน ใบแจ้งหนี้ การถอนเงิน payout สลิป (กฎหมายบัญชี/ภาษี) และแชทเคส
  *             ที่คู่กรณีอีกฝ่ายยังใช้อยู่ (ข้อความของท่านในแชทยังอยู่ แต่บัญชีถูกลบแล้ว)
  *
+ * แพลนรายเดือน (Stripe): ยกเลิก subscription ของทนาย/ล่ามก่อนลบ (ยกเลิกไม่ได้ = ไม่ลบ กันตัดบัตรต่อหลังลบบัญชี)
+ *             และเก็บ plan.customerId ไว้บนโปรไฟล์ที่ถูกปกปิด เพื่อตามประวัติการชำระเงินใน Stripe ได้
+ *
  * กันพลาด: ต้องล็อกอินใหม่ภายใน 15 นาที + พิมพ์คำยืนยัน · ห้ามลบเมื่อยังมีงานค้าง
  * (เคส/นัด/งานล่ามที่ยังไม่จบ, payout ที่ยังไม่ได้รับ, เป็นเจ้าของบริษัท B2B) · แอดมินลบตัวเองไม่ได้
  */
@@ -17,6 +20,9 @@ import * as admin from 'firebase-admin';
 import { requireUser } from '@/lib/auth-guard';
 import { SLOT_HOLDING_STATUSES } from '@/lib/interpreter-types';
 import { DELETE_CONFIRM_PHRASE } from '@/lib/account-deletion';
+import type { StoredPlan } from '@/lib/provider-plans';
+import { planTarget } from '@/lib/provider-plan-sync';
+import { getStripe } from '@/lib/stripe-plans';
 
 const RECENT_LOGIN_SECONDS = 15 * 60;
 
@@ -80,6 +86,42 @@ async function lawyerProfileIdsFor(db: Db, uid: string): Promise<string[]> {
     return [...ids];
 }
 
+/** subscription ที่จบแล้ว ไม่ต้องยกเลิกซ้ำ */
+const ENDED_SUB_STATUSES = ['canceled', 'incomplete_expired'];
+
+/**
+ * ยกเลิกแพลนรายเดือนทุกตัวของ customer ที่โปรไฟล์ผูกไว้ (เฉพาะของเรา: metadata.product ทนาย/ล่าม)
+ * throw เมื่อยกเลิกไม่ได้ — ผู้เรียกต้องหยุดการลบบัญชี
+ */
+async function cancelProviderSubscriptions(plans: (Partial<StoredPlan> | undefined)[]): Promise<void> {
+    const customers = [...new Set(plans.map((p) => p?.customerId).filter((c): c is string => !!c))];
+    if (!customers.length) return;
+    const stripe = getStripe();
+    if (!stripe) throw new Error('stripe not configured — cannot cancel provider plan');
+    for (const customer of customers) {
+        const subs = await stripe.subscriptions.list({ customer, status: 'all', limit: 100 });
+        for (const sub of subs.data) {
+            if (!planTarget(sub.metadata) || ENDED_SUB_STATUSES.includes(sub.status)) continue;
+            await stripe.subscriptions.cancel(sub.id);
+        }
+    }
+}
+
+/** แพลนที่เหลือบนโปรไฟล์ที่ถูกปกปิด — เก็บแค่ id ของ Stripe (ไม่มี PII) */
+function retainedPlan(plan: Partial<StoredPlan> | undefined): { plan: StoredPlan } | Record<string, never> {
+    if (!plan?.customerId) return {};
+    return {
+        plan: {
+            tier: 'free',
+            status: 'canceled',
+            currentPeriodEnd: null,
+            customerId: plan.customerId,
+            subscriptionId: plan.subscriptionId ?? null,
+            updatedAt: new Date().toISOString(),
+        },
+    };
+}
+
 /** เขียนเป็นชุด ๆ ละไม่เกิน 400 (ขีดจำกัด batch 500) */
 async function commitInChunks(db: Db, ops: ((b: FirebaseFirestore.WriteBatch) => void)[]) {
     for (let i = 0; i < ops.length; i += 400) {
@@ -101,6 +143,16 @@ export async function deleteMyAccountAction(confirmPhrase: string): Promise<Dele
         const blockers = await blockersFor(db, uid, lawyerIds);
         if (blockers.length) return { ok: false, reason: 'blocked', blockers };
 
+        // แพลนรายเดือน — ยกเลิกใน Stripe ก่อนแตะข้อมูลใด ๆ
+        const interp = db.collection('interpreterProfiles').doc(uid);
+        const [lawyerSnaps, interpSnap] = await Promise.all([
+            Promise.all(lawyerIds.map((id) => db.collection('lawyerProfiles').doc(id).get())),
+            interp.get(),
+        ]);
+        const lawyerPlans = new Map(lawyerSnaps.map((d) => [d.id, d.get('plan') as Partial<StoredPlan> | undefined]));
+        const interpPlan = interpSnap.exists ? (interpSnap.get('plan') as Partial<StoredPlan> | undefined) : undefined;
+        await cancelProviderSubscriptions([...lawyerPlans.values(), interpPlan]);
+
         const now = admin.firestore.FieldValue.serverTimestamp();
         const ops: ((b: FirebaseFirestore.WriteBatch) => void)[] = [];
         const userRef = db.collection('users').doc(uid);
@@ -114,15 +166,16 @@ export async function deleteMyAccountAction(confirmPhrase: string): Promise<Dele
         // โปรไฟล์ทนาย — status อื่นที่ไม่ใช่ approved ไม่แสดงบนเว็บ (หน้าโปรไฟล์เป็น 404)
         for (const id of lawyerIds) {
             const ref = db.collection('lawyerProfiles').doc(id);
-            ops.push((b) => b.set(ref, { userId: uid, status: 'deleted', deletedAt: now, name: DELETED_NAME }));
+            const kept = retainedPlan(lawyerPlans.get(id));
+            ops.push((b) => b.set(ref, { userId: uid, status: 'deleted', deletedAt: now, name: DELETED_NAME, ...kept }));
         }
 
         // โปรไฟล์ล่าม + ข้อมูลติดต่อ/เอกสาร/บัญชีธนาคารใน private
-        const interp = db.collection('interpreterProfiles').doc(uid);
-        if ((await interp.get()).exists) {
+        if (interpSnap.exists) {
             const priv = await interp.collection('private').get();
             priv.docs.forEach((d) => ops.push((b) => b.delete(d.ref)));
-            ops.push((b) => b.set(interp, { userId: uid, status: 'deleted', deletedAt: now, name: DELETED_NAME }));
+            const kept = retainedPlan(interpPlan);
+            ops.push((b) => b.set(interp, { userId: uid, status: 'deleted', deletedAt: now, name: DELETED_NAME, ...kept }));
         }
 
         const [notifs, reviews, comments, tickets, verifyTokens] = await Promise.all([

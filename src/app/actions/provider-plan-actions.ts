@@ -11,9 +11,10 @@
 import { headers } from 'next/headers';
 import type Stripe from 'stripe';
 import { requireInterpreter, requireLawyer, authErrorResult } from '@/lib/auth-guard';
-import { effectiveTier, grantTier, lawyerTier, PLAN_PRODUCT, type PaidTier, type PlanTier, type ProviderKind, type StoredPlan } from '@/lib/provider-plans';
+import { effectiveTier, grantTier, lawyerTier, LIVE_STATUSES, PLAN_PRODUCT, type PaidTier, type PlanTier, type ProviderKind, type StoredPlan } from '@/lib/provider-plans';
 import { getStripe, priceIdFor } from '@/lib/stripe-plans';
 import { planFromSubscription, planTarget, PROFILE_COLLECTION, savePlan } from '@/lib/provider-plan-sync';
+import { checkRateLimit } from '@/lib/security/rate-limiter';
 
 type Result<T = {}> = ({ success: true } & T) | { success: false; error: string };
 
@@ -49,6 +50,28 @@ async function siteOrigin(): Promise<string> {
 
 type PriceView = { amount: number; currency: string; interval: string } | null;
 
+/** cache ราคาจาก Stripe 60 วินาที (ต่อ instance) — หน้าแพลนไม่ต้องเรียก prices.retrieve ทุกครั้งที่เปิด */
+const PRICE_CACHE_MS = 60 * 1000;
+const priceCache = new Map<string, { at: number; view: PriceView }>();
+
+async function priceView(stripe: Stripe, id: string): Promise<PriceView> {
+    const hit = priceCache.get(id);
+    if (hit && Date.now() - hit.at < PRICE_CACHE_MS) return hit.view;
+    const p = await stripe.prices.retrieve(id);
+    const view = p.active && typeof p.unit_amount === 'number'
+        ? { amount: p.unit_amount / 100, currency: p.currency, interval: p.recurring?.interval || 'month' }
+        : null;
+    priceCache.set(id, { at: Date.now(), view });
+    return view;
+}
+
+/** จำกัดการสร้างหน้าชำระเงิน 5 ครั้ง / 10 นาที ต่อโปรไฟล์ (กันการสุ่มทดลองบัตร — หลักความปลอดภัยข้อ 11) */
+const CHECKOUT_LIMIT = 5;
+const CHECKOUT_WINDOW_MS = 10 * 60 * 1000;
+
+/** การกดสมัครซ้ำแพลนเดิมภายในช่วงนี้ใช้ idempotency key เดิม → Stripe คืน Checkout Session เดิม */
+const CHECKOUT_REUSE_MS = 10 * 60 * 1000;
+
 export async function getMyPlanAction(kind: ProviderKind): Promise<Result<{
     tier: PlanTier;
     /** แพลนที่แอดมินมอบ (ทนายเท่านั้น) — tier ด้านบนคือที่สูงกว่าระหว่าง Stripe กับที่มอบ */
@@ -69,10 +92,7 @@ export async function getMyPlanAction(kind: ProviderKind): Promise<Result<{
                 const id = priceIdFor(kind, tier);
                 if (!id) return;
                 try {
-                    const p = await stripe.prices.retrieve(id);
-                    if (p.active && typeof p.unit_amount === 'number') {
-                        prices[tier] = { amount: p.unit_amount / 100, currency: p.currency, interval: p.recurring?.interval || 'month' };
-                    }
+                    prices[tier] = await priceView(stripe, id);
                 } catch (e) {
                     console.error('price retrieve failed', tier, e);
                 }
@@ -116,28 +136,62 @@ export async function startPlanCheckoutAction(kind: ProviderKind, tier: PaidTier
         const ref = db.collection(PROFILE_COLLECTION[kind]).doc(profileId);
         const plan = (profile.plan || null) as StoredPlan | null;
 
-        // มีแพลนเสียเงินอยู่แล้ว → เปลี่ยน/ยกเลิกผ่าน billing portal (กันการสมัครซ้อนสอง subscription)
-        if (plan?.subscriptionId && effectiveTier(plan) !== 'free') {
-            return { success: false, error: 'คุณมีแพลนอยู่แล้ว กด "จัดการการชำระเงิน" เพื่อเปลี่ยนหรือยกเลิกแพลน' };
+        // มี subscription ที่ยังมีผลอยู่แล้ว (รวม past_due ที่เกิน 3 วัน) → เปลี่ยน/ยกเลิกผ่าน billing portal
+        // (กันการสมัครซ้อนสอง subscription)
+        const hasPlanMsg = 'คุณมีแพลนอยู่แล้ว กด "จัดการการชำระเงิน" เพื่อเปลี่ยนหรือยกเลิกแพลน';
+        if (plan?.subscriptionId && (LIVE_STATUSES.includes(plan.status) || effectiveTier(plan) !== 'free')) {
+            return { success: false, error: hasPlanMsg };
         }
 
-        const termsAcceptedAt = new Date().toISOString();
+        const limit = await checkRateLimit(`plan-checkout:${kind}:${profileId}`, CHECKOUT_LIMIT, CHECKOUT_WINDOW_MS);
+        if (!limit.success) return { success: false, error: 'สร้างหน้าชำระเงินบ่อยเกินไป กรุณารอสักครู่แล้วลองใหม่' };
+
+        const l = LOCALES.includes(locale) ? locale : 'th';
+        // จองการกดสมัคร: กดซ้ำแพลนเดิมภายใน 10 นาทีใช้เวลา/คีย์เดิม → พารามิเตอร์เหมือนเดิม Stripe คืน session เดิม
+        const attemptRef = db.collection('providerPlanCheckouts').doc(`${kind}_${profileId}`);
+        const termsAcceptedAt = await db.runTransaction(async tx => {
+            const prev = (await tx.get(attemptRef)).data() as { tier?: string; locale?: string; termsAcceptedAt?: string; at?: number } | undefined;
+            if (prev?.termsAcceptedAt && prev.tier === tier && prev.locale === l && Date.now() - Number(prev.at || 0) < CHECKOUT_REUSE_MS) {
+                return prev.termsAcceptedAt;
+            }
+            const at = Date.now();
+            const fresh = new Date(at).toISOString();
+            tx.set(attemptRef, { tier, locale: l, termsAcceptedAt: fresh, at });
+            return fresh;
+        });
         const metadata = { product: PLAN_PRODUCT[kind], profileId, terms_accepted_at: termsAcceptedAt };
         await ref.update({ planTermsAcceptedAt: termsAcceptedAt });
+
         let customerId = plan?.customerId;
         if (!customerId) {
+            // metadata ของ customer ไม่ใส่เวลา (คงที่) — idempotency key เดียวกันต้องส่งพารามิเตอร์เหมือนเดิม
             const customer = await stripe.customers.create({
                 email: token.email || profile.email || undefined,
                 name: profile.name || undefined,
-                metadata,
-            });
+                metadata: { product: PLAN_PRODUCT[kind], profileId },
+            }, { idempotencyKey: `lawslane-plan-customer:${kind}:${profileId}` });
             customerId = customer.id;
             const initial: StoredPlan = { tier: 'free', status: 'none', currentPeriodEnd: null, customerId, subscriptionId: null, updatedAt: new Date().toISOString() };
             await ref.update({ plan: initial });
+        } else {
+            // ถามสถานะจริงจาก Stripe ด้วย — จ่ายแล้วแต่ webhook ยังไม่มา โปรไฟล์ยังไม่รู้
+            const subs = await stripe.subscriptions.list({ customer: customerId, status: 'all', limit: 20 });
+            if (subs.data.some(sub => planTarget(sub.metadata) && LIVE_STATUSES.includes(sub.status))) {
+                return { success: false, error: hasPlanMsg };
+            }
+        }
+
+        // Checkout ที่ยัง open ของโปรไฟล์นี้: แพลนเดียวกัน → ใช้อันเดิม · คนละแพลน → ปิดทิ้ง (กันจ่ายสองใบ)
+        const open = await stripe.checkout.sessions.list({ customer: customerId, status: 'open', limit: 10, expand: ['data.line_items'] });
+        for (const cs of open.data) {
+            const t = planTarget(cs.metadata);
+            if (!t || t.kind !== kind || t.profileId !== profileId) continue;
+            if (cs.url && cs.line_items?.data?.[0]?.price?.id === priceId) return { success: true, url: cs.url };
+            await stripe.checkout.sessions.expire(cs.id);
         }
 
         const origin = await siteOrigin();
-        const back = returnPath(kind, locale);
+        const back = returnPath(kind, l);
         const sep = back.includes('?') ? '&' : '?';
         const session = await stripe.checkout.sessions.create({
             mode: 'subscription',
@@ -149,7 +203,7 @@ export async function startPlanCheckoutAction(kind: ProviderKind, tier: PaidTier
             allow_promotion_codes: true,
             success_url: `${origin}${back}${sep}checkout=success&session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: `${origin}${back}${sep}checkout=cancel`,
-        });
+        }, { idempotencyKey: `lawslane-plan-checkout:${kind}:${profileId}:${tier}:${termsAcceptedAt}:${origin}${back}` });
         if (!session.url) return { success: false, error: 'สร้างหน้าชำระเงินไม่สำเร็จ' };
         return { success: true, url: session.url };
     } catch (e) {
@@ -164,10 +218,13 @@ export async function openPlanPortalAction(kind: ProviderKind, locale: string): 
         const customerId = (profile.plan as StoredPlan | undefined)?.customerId;
         const stripe = getStripe();
         if (!stripe || !customerId) return { success: false, error: 'ยังไม่มีบัญชีการชำระเงิน' };
+        // กดซ้ำภายในนาทีเดียวกันได้ session เดิม (portal session อายุสั้น ไม่ต้องจองนานกว่านี้)
+        const minute = Math.floor(Date.now() / 60000);
+        const returnUrl = `${await siteOrigin()}${returnPath(kind, locale)}`;
         const session = await stripe.billingPortal.sessions.create({
             customer: customerId,
-            return_url: `${await siteOrigin()}${returnPath(kind, locale)}`,
-        });
+            return_url: returnUrl,
+        }, { idempotencyKey: `lawslane-plan-portal:${customerId}:${minute}:${returnUrl}` });
         return { success: true, url: session.url };
     } catch (e) {
         console.error('openPlanPortalAction', e);
