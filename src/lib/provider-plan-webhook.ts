@@ -11,6 +11,8 @@ import {
     type MergeSkipReason,
 } from '@/lib/provider-plan-sync';
 import { idOf } from '@/lib/stripe-webhook';
+import type { PlanPricingRead } from '@/lib/plan-pricing-core';
+import type { ProviderKind } from '@/lib/provider-plans';
 
 /**
  * ประมวลผล event ของ webhook แพลนทนาย/ล่าม (แยกจาก route เพื่อทดสอบได้โดยไม่เรียก Stripe จริง)
@@ -20,6 +22,9 @@ import { idOf } from '@/lib/stripe-webhook';
  *   ข้อมูลใน event.data.object ใช้แค่หา id ของ subscription และยอดเงินสำหรับแจ้งแอดมิน
  * - ไม่ใช่ของเรา (metadata.product ไม่ใช่ lawyer_plan / interpreter_plan เช่นของ CapDeal) → ignored
  * - Price ไม่รู้จัก → ไม่ให้แพลน (tier free) + billingAlerts ห้ามเดา
+ * - Price ที่รู้จัก = ราคากลาง planPricing (ปัจจุบัน + previousPriceIds) + env + env `_PREVIOUS`
+ *   อ่านราคากลางไม่ได้แล้ว Price ไม่อยู่ใน env → throw (ตอบ 500 ให้ Stripe retry) แทนการลดเป็น free
+ *   เพราะอาจเป็นราคาใหม่จากหน้า admin ที่ env ยังไม่รู้จัก — ห้ามลดแพลนคนที่จ่ายจริงเพราะ Firestore ล่มชั่วคราว
  * - คืนเงิน / dispute / สมัครซ้อน → billingAlerts ให้แอดมินตัดสินใจ ไม่คืนเงินหรือยกเลิกเอง
  */
 
@@ -126,7 +131,13 @@ function isMissing(e: unknown): boolean {
 /**
  * ประมวลผล event ที่ตรวจลายเซ็นแล้ว — throw = ให้ route ตอบ 500 (Stripe retry · ไม่มีอะไรถูกเขียน)
  */
-export async function processPlanEvent(stripe: Stripe, db: FirebaseFirestore.Firestore, event: Stripe.Event): Promise<PlanEventResult> {
+export async function processPlanEvent(
+    stripe: Stripe,
+    db: FirebaseFirestore.Firestore,
+    event: Stripe.Event,
+    /** ราคากลางของแต่ละแบบ (route ส่ง pricingForKind จาก plan-pricing.ts · เทสต์ส่งตัวปลอม) */
+    loadPricing: (kind: ProviderKind) => Promise<PlanPricingRead>,
+): Promise<PlanEventResult> {
     if (!HANDLED_EVENTS.has(event.type)) return { status: 'ignored' };
 
     // เช็คก่อนเรียก Stripe (ประหยัด) — transaction ด้านล่างเช็คซ้ำอีกครั้งตอนจองจริง
@@ -140,8 +151,13 @@ export async function processPlanEvent(stripe: Stripe, db: FirebaseFirestore.Fir
     const target = planTarget(sub.metadata);
     if (!target) return { status: 'ignored' };
 
-    const plan = planFromSubscription(target.kind, sub);
-    const unknown = unknownPriceId(target.kind, plan);
+    const pricing = await loadPricing(target.kind);
+    const plan = planFromSubscription(target.kind, sub, pricing.doc);
+    const unknown = unknownPriceId(target.kind, plan, pricing.doc);
+    if (unknown && pricing.status === 'error') {
+        // ไม่จอง event → Stripe ส่งซ้ำภายหลังเมื่อ Firestore กลับมา
+        throw new Error('plan pricing unavailable — cannot verify price');
+    }
     if (unknown) {
         console.error('provider plan: unknown price — no tier granted', { eventId: event.id, subscriptionId: sub.id, priceId: unknown });
         alerts.push({ type: 'unknown_price', detail: unknown });
