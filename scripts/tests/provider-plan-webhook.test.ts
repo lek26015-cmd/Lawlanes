@@ -77,6 +77,11 @@ const ev = (id: string, type: string, object: any): any => ({ id, type, data: { 
 
 (async () => {
     const { processPlanEvent } = await import('../../src/lib/provider-plan-webhook');
+    const { createPlanPricingReader } = await import('../../src/lib/plan-pricing-core');
+    // ไม่มีราคากลาง = env อย่างเดียว (พฤติกรรมเดิมของเฟส 1)
+    const envOnly = async () => ({ doc: null, status: 'missing' as const });
+    const run = (stripe: any, db: any, event: any, loadPricing: (kind: any) => Promise<any> = envOnly) =>
+        processPlanEvent(stripe, db, event, loadPricing);
 
     const profilePath = 'lawyerProfiles/L1';
     const seed = (db: any, plan?: any) => db.store.set(profilePath, { name: 'x', status: 'approved', ...(plan ? { plan } : {}) });
@@ -86,7 +91,7 @@ const ev = (id: string, type: string, object: any): any => ({ id, type, data: { 
         const db = fakeDb(); seed(db, { customerId: 'cus_1', subscriptionId: 'sub_1', status: 'active', tier: 'pro' });
         const stripe = fakeStripe({ sub_1: sub('sub_1', { status: 'canceled' }) });
         const stalePayload = sub('sub_1', { status: 'active', price: 'price_lt' });
-        const r = await processPlanEvent(stripe, db, ev('evt_1', 'customer.subscription.updated', stalePayload));
+        const r = await run(stripe, db, ev('evt_1', 'customer.subscription.updated', stalePayload));
         assert.equal(r.status, 'saved');
         const plan = db.store.get(profilePath).plan;
         assert.equal(plan.status, 'canceled', 'state comes from retrieve, not payload');
@@ -100,23 +105,23 @@ const ev = (id: string, type: string, object: any): any => ({ id, type, data: { 
     {
         const db = fakeDb(); seed(db);
         const stripe = fakeStripe({ sub_c: sub('sub_c', { product: '' }) });
-        const r = await processPlanEvent(stripe, db, ev('evt_2', 'invoice.paid', { parent: { subscription_details: { subscription: 'sub_c' } } }));
+        const r = await run(stripe, db, ev('evt_2', 'invoice.paid', { parent: { subscription_details: { subscription: 'sub_c' } } }));
         assert.equal(r.status, 'ignored');
         assert.equal(db.store.has('providerPlanStripeEvents/evt_2'), false, 'no marker for foreign events');
         assert.equal(db.store.get(profilePath).plan, undefined);
         // checkout ของ CapDeal กรองตั้งแต่ metadata ของ session (ไม่ต้องเรียก Stripe)
-        const r2 = await processPlanEvent(stripe, db, ev('evt_2b', 'checkout.session.completed', { mode: 'subscription', metadata: { userId: 'u1' }, subscription: 'sub_c' }));
+        const r2 = await run(stripe, db, ev('evt_2b', 'checkout.session.completed', { mode: 'subscription', metadata: { userId: 'u1' }, subscription: 'sub_c' }));
         assert.equal(r2.status, 'ignored');
         assert.equal(stripe.calls.filter((c: string) => c === 'retrieve:sub_c').length, 1);
         // event ที่ไม่ได้รับมือ
-        assert.equal((await processPlanEvent(stripe, db, ev('evt_2c', 'customer.created', {}))).status, 'ignored');
+        assert.equal((await run(stripe, db, ev('evt_2c', 'customer.created', {}))).status, 'ignored');
     }
 
     // 3) Price ไม่รู้จัก → tier free + billingAlerts
     {
         const db = fakeDb(); seed(db);
         const stripe = fakeStripe({ sub_u: sub('sub_u', { price: 'price_bogus' }) });
-        const r = await processPlanEvent(stripe, db, ev('evt_3', 'customer.subscription.created', { id: 'sub_u' }));
+        const r = await run(stripe, db, ev('evt_3', 'customer.subscription.created', { id: 'sub_u' }));
         assert.equal(r.status, 'saved');
         assert.equal((r as any).tier, 'free');
         assert.equal(db.store.get(profilePath).plan.tier, 'free', 'unknown price never grants a tier');
@@ -131,9 +136,9 @@ const ev = (id: string, type: string, object: any): any => ({ id, type, data: { 
     {
         const db = fakeDb(); seed(db);
         const stripe = fakeStripe({ sub_1: sub('sub_1') });
-        assert.equal((await processPlanEvent(stripe, db, ev('evt_4', 'customer.subscription.updated', { id: 'sub_1' }))).status, 'saved');
+        assert.equal((await run(stripe, db, ev('evt_4', 'customer.subscription.updated', { id: 'sub_1' }))).status, 'saved');
         const before = stripe.calls.length;
-        assert.equal((await processPlanEvent(stripe, db, ev('evt_4', 'customer.subscription.updated', { id: 'sub_1' }))).status, 'duplicate');
+        assert.equal((await run(stripe, db, ev('evt_4', 'customer.subscription.updated', { id: 'sub_1' }))).status, 'duplicate');
         assert.equal(stripe.calls.length, before);
     }
 
@@ -141,11 +146,11 @@ const ev = (id: string, type: string, object: any): any => ({ id, type, data: { 
     {
         const db = fakeDb(); seed(db, { customerId: 'cus_1', subscriptionId: 'sub_new', status: 'active', tier: 'top', priceId: 'price_lt' });
         const stripe = fakeStripe({ sub_new: sub('sub_new', { price: 'price_lt' }), sub_old: sub('sub_old', { status: 'canceled' }), sub_dup: sub('sub_dup') });
-        const r = await processPlanEvent(stripe, db, ev('evt_5', 'customer.subscription.deleted', { id: 'sub_old' }));
+        const r = await run(stripe, db, ev('evt_5', 'customer.subscription.deleted', { id: 'sub_old' }));
         assert.deepEqual(r, { status: 'skipped', reason: 'stale_subscription' });
         assert.equal(db.store.get(profilePath).plan.subscriptionId, 'sub_new');
         assert.ok(db.store.has('providerPlanStripeEvents/evt_5'), 'skipped events are still claimed');
-        const r2 = await processPlanEvent(stripe, db, ev('evt_5b', 'customer.subscription.created', { id: 'sub_dup' }));
+        const r2 = await run(stripe, db, ev('evt_5b', 'customer.subscription.created', { id: 'sub_dup' }));
         assert.deepEqual(r2, { status: 'skipped', reason: 'duplicate_subscription' });
         assert.ok(db.store.get('billingAlerts/evt_5b_duplicate_subscription'));
         assert.equal(db.store.get(profilePath).plan.tier, 'top');
@@ -155,7 +160,7 @@ const ev = (id: string, type: string, object: any): any => ({ id, type, data: { 
     {
         const db = fakeDb(); seed(db, { customerId: 'cus_1', subscriptionId: 'sub_gone', status: 'active', tier: 'pro' });
         const stripe = fakeStripe({ sub_2: sub('sub_2', { price: 'price_lt' }) });
-        const r = await processPlanEvent(stripe, db, ev('evt_6', 'checkout.session.completed', { mode: 'subscription', metadata: { product: 'lawyer_plan', profileId: 'L1' }, subscription: 'sub_2' }));
+        const r = await run(stripe, db, ev('evt_6', 'checkout.session.completed', { mode: 'subscription', metadata: { product: 'lawyer_plan', profileId: 'L1' }, subscription: 'sub_2' }));
         assert.equal(r.status, 'saved');
         assert.equal(db.store.get(profilePath).plan.subscriptionId, 'sub_2');
     }
@@ -164,7 +169,7 @@ const ev = (id: string, type: string, object: any): any => ({ id, type, data: { 
     {
         const db = fakeDb(); seed(db, { customerId: 'cus_1', subscriptionId: 'sub_1', status: 'active', tier: 'pro' });
         const stripe = fakeStripe({ sub_1: sub('sub_1') }, { invoicePayments: [{ invoice: { id: 'in_1', parent: { subscription_details: { subscription: 'sub_1' } } } }] });
-        const r = await processPlanEvent(stripe, db, ev('evt_7', 'charge.refunded', { id: 'ch_1', payment_intent: 'pi_1', customer: 'cus_1', amount_refunded: 49900, currency: 'thb', billing_details: { email: 'a@b.c' } }));
+        const r = await run(stripe, db, ev('evt_7', 'charge.refunded', { id: 'ch_1', payment_intent: 'pi_1', customer: 'cus_1', amount_refunded: 49900, currency: 'thb', billing_details: { email: 'a@b.c' } }));
         assert.equal(r.status, 'saved');
         const alert = db.store.get('billingAlerts/evt_7_charge_refunded');
         assert.equal(alert.amount, 49900);
@@ -177,7 +182,7 @@ const ev = (id: string, type: string, object: any): any => ({ id, type, data: { 
     {
         const db = fakeDb(); seed(db);
         const stripe = fakeStripe({ sub_c: sub('sub_c', { product: '' }) });
-        const r = await processPlanEvent(stripe, db, ev('evt_8', 'charge.dispute.created', { id: 'dp_1', charge: 'ch_9', payment_intent: null, amount: 100, currency: 'thb', reason: 'fraudulent' }));
+        const r = await run(stripe, db, ev('evt_8', 'charge.dispute.created', { id: 'dp_1', charge: 'ch_9', payment_intent: null, amount: 100, currency: 'thb', reason: 'fraudulent' }));
         assert.equal(r.status, 'ignored');
         assert.equal([...db.store.keys()].some(k => k.startsWith('billingAlerts/')), false);
     }
@@ -187,7 +192,7 @@ const ev = (id: string, type: string, object: any): any => ({ id, type, data: { 
         const { effectiveTier } = await import('../../src/lib/provider-plans');
         const db = fakeDb(); seed(db, { customerId: 'cus_1', subscriptionId: 'sub_1', status: 'active', tier: 'pro' });
         const stripe = fakeStripe({ sub_1: sub('sub_1', { status: 'past_due' }) });
-        await processPlanEvent(stripe, db, ev('evt_9', 'invoice.payment_failed', { parent: { subscription_details: { subscription: 'sub_1' } } }));
+        await run(stripe, db, ev('evt_9', 'invoice.payment_failed', { parent: { subscription_details: { subscription: 'sub_1' } } }));
         const plan = db.store.get(profilePath).plan;
         assert.equal(plan.status, 'past_due');
         assert.ok(plan.pastDueSince);
@@ -200,8 +205,70 @@ const ev = (id: string, type: string, object: any): any => ({ id, type, data: { 
         const db = fakeDb(); seed(db);
         const stripe = fakeStripe({});
         stripe.subscriptions.retrieve = async () => { throw new Error('network'); };
-        await assert.rejects(processPlanEvent(stripe, db, ev('evt_10', 'customer.subscription.updated', { id: 'sub_1' })));
+        await assert.rejects(run(stripe, db, ev('evt_10', 'customer.subscription.updated', { id: 'sub_1' })));
         assert.equal(db.store.has('providerPlanStripeEvents/evt_10'), false);
+    }
+
+    // ---------- ราคากลาง planPricing (PLAN-08 เฟส 2) ----------
+    const pricingDoc = {
+        currency: 'thb',
+        plans: {
+            pro: { monthly: 590, yearly: null, stripe: { productId: 'prod_p', monthlyPriceId: 'price_fs_pro', yearlyPriceId: null, previousPriceIds: ['price_fs_pro_old'] } },
+            top: { monthly: 990, yearly: null, stripe: { productId: 'prod_t', monthlyPriceId: 'price_fs_top', yearlyPriceId: null, previousPriceIds: [] } },
+        },
+        portalConfigId: 'bpc_1',
+        updatedAt: '2026-10-12T00:00:00Z',
+        updatedBy: 'admin_uid',
+    };
+    const readerFor = (fetchDoc: (c: string, p: string) => Promise<unknown>) => {
+        const reader = createPlanPricingReader(fetchDoc);
+        return async (kind: string) => (kind === 'lawyer' ? reader.get('lawyer') : { doc: null, status: 'missing' as const });
+    };
+
+    // 11) Price ใหม่จากราคากลาง (env ไม่รู้จัก) → ให้แพลนได้ · Price เก่าใน previousPriceIds ยังรู้จัก · env เดิมก็ยังรู้จัก
+    {
+        const reads: string[] = [];
+        const load = readerFor(async (c, p) => { reads.push(`${c}/${p}`); return pricingDoc; });
+        for (const [i, [price, tier]] of ([['price_fs_top', 'top'], ['price_fs_pro_old', 'pro'], ['price_lp', 'pro']] as const).entries()) {
+            const db = fakeDb(); seed(db);
+            const stripe = fakeStripe({ sub_f: sub('sub_f', { price }) });
+            const r = await run(stripe, db, ev(`evt_11_${i}`, 'customer.subscription.created', { id: 'sub_f' }), load);
+            assert.deepEqual(r, { status: 'saved', tier }, `${price} → ${tier}`);
+            assert.equal([...db.store.keys()].some(k => k.startsWith('billingAlerts/')), false, 'known price → no alert');
+        }
+        assert.deepEqual(reads, ['planPricing/lawyer'], 'read once, then cached');
+    }
+
+    // 12) ไม่มีเอกสารราคากลาง → เหมือนเดิม: env รู้จัก · Price ที่มีแค่ใน Firestore = ไม่รู้จัก (free + แจ้งเตือน)
+    {
+        const load = readerFor(async () => undefined);
+        const db = fakeDb(); seed(db);
+        const stripe = fakeStripe({ sub_a: sub('sub_a', { price: 'price_lt' }), sub_b: sub('sub_b', { price: 'price_fs_top', customer: 'cus_2', profileId: 'L2' }) });
+        assert.deepEqual(await run(stripe, db, ev('evt_12', 'customer.subscription.created', { id: 'sub_a' }), load), { status: 'saved', tier: 'top' });
+        db.store.set('lawyerProfiles/L2', { name: 'y' });
+        assert.deepEqual(await run(stripe, db, ev('evt_12b', 'customer.subscription.created', { id: 'sub_b' }), load), { status: 'saved', tier: 'free' });
+        assert.ok(db.store.get('billingAlerts/evt_12b_unknown_price'));
+    }
+
+    // 13) อ่าน Firestore ไม่ได้ → ใช้ env · Price ที่ env รู้จักยังให้แพลน · Price ที่ env ไม่รู้จัก → throw (500 → retry) ไม่ลดเป็น free ไม่จอง event
+    {
+        const load = readerFor(async () => { throw new Error('unavailable'); });
+        const db = fakeDb(); seed(db, { customerId: 'cus_1', subscriptionId: 'sub_1', status: 'active', tier: 'top', priceId: 'price_fs_top' });
+        const stripe = fakeStripe({ sub_1: sub('sub_1', { price: 'price_fs_top' }) });
+        await assert.rejects(run(stripe, db, ev('evt_13', 'customer.subscription.updated', { id: 'sub_1' }), load));
+        assert.equal(db.store.get(profilePath).plan.tier, 'top', 'paying lawyer not downgraded');
+        assert.equal(db.store.has('providerPlanStripeEvents/evt_13'), false, 'not claimed → Stripe retries');
+        assert.equal(db.store.has('billingAlerts/evt_13_unknown_price'), false);
+        const stripe2 = fakeStripe({ sub_1: sub('sub_1', { price: 'price_lp' }) });
+        assert.deepEqual(await run(stripe2, db, ev('evt_13b', 'customer.subscription.updated', { id: 'sub_1' }), load), { status: 'saved', tier: 'pro' }, 'env price still works');
+    }
+
+    // 14) ล่ามไม่อ่านราคากลาง — Price ของทนายใน Firestore ไม่ทำให้ล่ามได้แพลน
+    {
+        const load = readerFor(async () => pricingDoc);
+        const db = fakeDb(); db.store.set('interpreterProfiles/I1', { name: 'z' });
+        const stripe = fakeStripe({ sub_i: sub('sub_i', { price: 'price_fs_pro', product: 'interpreter_plan', profileId: 'I1' }) });
+        assert.deepEqual(await run(stripe, db, ev('evt_14', 'customer.subscription.created', { id: 'sub_i' }), load), { status: 'saved', tier: 'free' });
     }
 
     console.log('provider-plan-webhook: all tests passed');

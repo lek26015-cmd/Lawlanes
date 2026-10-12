@@ -3,6 +3,7 @@ import { initAdmin } from '@/lib/firebase-admin';
 import { getStripe } from '@/lib/stripe-plans';
 import { verifyStripeEvent } from '@/lib/stripe-webhook';
 import { processPlanEvent } from '@/lib/provider-plan-webhook';
+import { pricingForKind } from '@/lib/plan-pricing';
 
 /**
  * Webhook แพลนทนาย/ล่าม — endpoint แยกจาก CapDeal (บัญชี Stripe เดียวกัน)
@@ -28,7 +29,7 @@ export async function POST(req: Request) {
     if (!adminApp) return NextResponse.json({ error: 'server not ready' }, { status: 500 });
 
     try {
-        const result = await processPlanEvent(stripe, adminApp.firestore(), event);
+        const result = await processPlanEvent(stripe, adminApp.firestore(), event, pricingForKind);
         return NextResponse.json({ received: true, status: result.status });
     } catch (error) {
         // transaction ไม่ commit = ไม่มีตัวจอง → Stripe retry แล้วประมวลผลใหม่ได้ · log แค่ชนิด/ข้อความ ไม่ log payload

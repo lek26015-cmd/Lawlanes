@@ -12,8 +12,9 @@ import { headers } from 'next/headers';
 import type Stripe from 'stripe';
 import { requireInterpreter, requireLawyer, authErrorResult } from '@/lib/auth-guard';
 import { effectiveTier, grantTier, lawyerTier, LIVE_STATUSES, PLAN_PRODUCT, type PaidTier, type PlanTier, type ProviderKind, type StoredPlan } from '@/lib/provider-plans';
-import { getStripe, priceIdFor } from '@/lib/stripe-plans';
-import { planFromSubscription, planTarget, PROFILE_COLLECTION, savePlan } from '@/lib/provider-plan-sync';
+import { getStripe, portalConfigFor, priceIdFor } from '@/lib/stripe-plans';
+import { planFromSubscription, planTarget, PROFILE_COLLECTION, savePlan, unknownPriceId } from '@/lib/provider-plan-sync';
+import { pricingForKind } from '@/lib/plan-pricing';
 import { checkRateLimit } from '@/lib/security/rate-limiter';
 
 type Result<T = {}> = ({ success: true } & T) | { success: false; error: string };
@@ -88,9 +89,17 @@ export async function getMyPlanAction(kind: ProviderKind): Promise<Result<{
         const stripe = getStripe();
         const prices: Record<PaidTier, PriceView> = { pro: null, top: null };
         if (stripe) {
+            const pricing = (await pricingForKind(kind)).doc;
             await Promise.all((['pro', 'top'] as PaidTier[]).map(async tier => {
-                const id = priceIdFor(kind, tier);
-                if (!id) return;
+                const id = priceIdFor(kind, tier, pricing);
+                if (!id) return; // ไม่ขาย / ยังไม่ตั้งราคา
+                // ราคากลางมียอดและ Price ของแพลนนี้ → แสดงยอดจาก Firestore (ไม่ต้องถาม Stripe)
+                // ถ้าราคากลางมีแค่ยอดแต่ยังไม่มี Price ID ให้ถาม Stripe จาก Price ที่จะเก็บเงินจริง — ยอดที่แสดงต้องตรงกับที่ตัดบัตร
+                const fromPricing = kind === 'lawyer' ? pricing?.plans[tier] : undefined;
+                if (fromPricing && !fromPricing.malformed && fromPricing.monthly !== null && fromPricing.stripe?.monthlyPriceId === id) {
+                    prices[tier] = { amount: fromPricing.monthly, currency: pricing!.currency, interval: 'month' };
+                    return;
+                }
                 try {
                     prices[tier] = await priceView(stripe, id);
                 } catch (e) {
@@ -129,7 +138,8 @@ export async function startPlanCheckoutAction(kind: ProviderKind, tier: PaidTier
         // แพลนต่ออายุอัตโนมัติ — ต้องยอมรับข้อกำหนด (หมวดแพลนรายเดือน) ก่อนไปหน้าชำระเงิน
         if (acceptedTerms !== true) return { success: false, error: 'กรุณายอมรับข้อกำหนดการใช้งานก่อนสมัครแพลน' };
         const stripe = getStripe();
-        const priceId = priceIdFor(kind, tier);
+        // ราคาคิดฝั่ง server เท่านั้น — client ส่งได้แค่ tier · ราคากลางตั้งไม่ขาย (monthly = null) → ปฏิเสธ
+        const priceId = priceIdFor(kind, tier, (await pricingForKind(kind)).doc);
         if (!stripe || !priceId) return { success: false, error: 'ยังไม่เปิดให้สมัครแพลนนี้' };
 
         const db = adminApp.firestore();
@@ -203,7 +213,8 @@ export async function startPlanCheckoutAction(kind: ProviderKind, tier: PaidTier
             allow_promotion_codes: true,
             success_url: `${origin}${back}${sep}checkout=success&session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: `${origin}${back}${sep}checkout=cancel`,
-        }, { idempotencyKey: `lawslane-plan-checkout:${kind}:${profileId}:${tier}:${termsAcceptedAt}:${origin}${back}` });
+            // ใส่ priceId ในคีย์ด้วย: ราคากลางเปลี่ยนภายใน 10 นาที = พารามิเตอร์ใหม่ ต้องใช้คีย์ใหม่ (Stripe ไม่ยอมคีย์เดิมกับพารามิเตอร์ต่าง)
+        }, { idempotencyKey: `lawslane-plan-checkout:${kind}:${profileId}:${tier}:${priceId}:${termsAcceptedAt}:${origin}${back}` });
         if (!session.url) return { success: false, error: 'สร้างหน้าชำระเงินไม่สำเร็จ' };
         return { success: true, url: session.url };
     } catch (e) {
@@ -221,10 +232,13 @@ export async function openPlanPortalAction(kind: ProviderKind, locale: string): 
         // กดซ้ำภายในนาทีเดียวกันได้ session เดิม (portal session อายุสั้น ไม่ต้องจองนานกว่านี้)
         const minute = Math.floor(Date.now() / 60000);
         const returnUrl = `${await siteOrigin()}${returnPath(kind, locale)}`;
+        // portal config จากราคากลาง (แพลนที่เปลี่ยนได้ใน portal ตรงกับราคาปัจจุบัน) · ไม่มี = ค่าเริ่มต้นของ Stripe แบบเดิม
+        const configuration = portalConfigFor(kind, (await pricingForKind(kind)).doc);
         const session = await stripe.billingPortal.sessions.create({
             customer: customerId,
             return_url: returnUrl,
-        }, { idempotencyKey: `lawslane-plan-portal:${customerId}:${minute}:${returnUrl}` });
+            ...(configuration ? { configuration } : {}),
+        }, { idempotencyKey: `lawslane-plan-portal:${customerId}:${minute}:${configuration ? `${configuration}:` : ''}${returnUrl}` });
         return { success: true, url: session.url };
     } catch (e) {
         console.error('openPlanPortalAction', e);
@@ -246,7 +260,12 @@ export async function syncPlanFromCheckoutAction(kind: ProviderKind, sessionId: 
         if (!target || target.kind !== kind || target.profileId !== profileId) return { success: false, error: 'ไม่พบรายการชำระเงินนี้' };
         const sub = session.subscription as Stripe.Subscription | null;
         if (!sub || typeof sub === 'string') return { success: false, error: 'การชำระเงินยังไม่เสร็จ' };
-        const plan = planFromSubscription(kind, sub);
+        const pricing = await pricingForKind(kind);
+        const plan = planFromSubscription(kind, sub, pricing.doc);
+        // อ่านราคากลางไม่ได้และ env ไม่รู้จัก Price นี้ → ไม่บันทึก (กันลดเป็น free ผิด ๆ) ให้ webhook ตัดสินภายหลัง
+        if (pricing.status === 'error' && unknownPriceId(kind, plan, pricing.doc)) {
+            return { success: false, error: 'กำลังยืนยันการชำระเงิน กรุณารีเฟรชอีกครั้งในอีกสักครู่' };
+        }
         await savePlan(adminApp.firestore(), kind, profileId, plan);
         return { success: true, tier: effectiveTier(plan) };
     } catch (e) {

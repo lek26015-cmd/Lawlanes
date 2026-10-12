@@ -2,6 +2,7 @@ import type Stripe from 'stripe';
 import { LIVE_STATUSES, PLAN_PRODUCT, type ProviderKind, type StoredPlan } from '@/lib/provider-plans';
 import { paidTierForPrice, tierForPrice } from '@/lib/stripe-plans';
 import { claimEventTx, isEventClaimedTx } from '@/lib/stripe-webhook';
+import type { PlanPricingDoc } from '@/lib/plan-pricing-core';
 
 /** collection ของโปรไฟล์แต่ละแบบ */
 export const PROFILE_COLLECTION: Record<ProviderKind, string> = {
@@ -35,11 +36,14 @@ function periodEnd(sub: Stripe.Subscription): string | null {
     return typeof ts === 'number' ? new Date(ts * 1000).toISOString() : null;
 }
 
-/** แปลง subscription จาก Stripe เป็นค่าที่เก็บบนโปรไฟล์ — แพลนตัดสินจาก Price ID จริง ไม่เชื่อ metadata · ราคาไม่รู้จัก = free */
-export function planFromSubscription(kind: ProviderKind, sub: Stripe.Subscription): StoredPlan {
+/**
+ * แปลง subscription จาก Stripe เป็นค่าที่เก็บบนโปรไฟล์ — แพลนตัดสินจาก Price ID จริง ไม่เชื่อ metadata · ราคาไม่รู้จัก = free
+ * `pricing` = ราคากลางที่อ่านมาแล้ว (null = env อย่างเดียว)
+ */
+export function planFromSubscription(kind: ProviderKind, sub: Stripe.Subscription, pricing: PlanPricingDoc | null): StoredPlan {
     const priceId = sub.items?.data?.[0]?.price?.id ?? null;
     return {
-        tier: tierForPrice(kind, priceId),
+        tier: tierForPrice(kind, priceId, pricing),
         status: sub.status,
         currentPeriodEnd: periodEnd(sub),
         cancelAtPeriodEnd: sub.cancel_at_period_end === true,
@@ -51,9 +55,9 @@ export function planFromSubscription(kind: ProviderKind, sub: Stripe.Subscriptio
 }
 
 /** Price ที่ไม่อยู่ในตาราง (ไม่ใช่ราคาปัจจุบันหรือราคาเก่าที่รู้จัก) — ต้องไม่ให้แพลนและแจ้งแอดมิน */
-export function unknownPriceId(kind: ProviderKind, plan: Pick<StoredPlan, 'priceId'>): string | null {
+export function unknownPriceId(kind: ProviderKind, plan: Pick<StoredPlan, 'priceId'>, pricing: PlanPricingDoc | null): string | null {
     if (!plan.priceId) return null;
-    return paidTierForPrice(kind, plan.priceId) ? null : plan.priceId;
+    return paidTierForPrice(kind, plan.priceId, pricing) ? null : plan.priceId;
 }
 
 export type MergeSkipReason = 'missing' | 'customer_mismatch' | 'stale_subscription' | 'duplicate_subscription';
