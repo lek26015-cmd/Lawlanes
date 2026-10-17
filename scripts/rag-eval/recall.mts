@@ -47,12 +47,10 @@ const arabic = (s: string) => s.replace(/[๐-๙]/g, d => String(THAI.indexOf(d
 const normLaw = (s: string) => arabic(s).replace(/\s+/g, '').replace(/พ\.ศ\.\d{4}/g, '').replace(/\(ฉบับ[^)]*\)/g, '');
 const normSec = (s: string) => arabic(s).replace(/\s+/g, '');
 const SECTION = /มาตรา\s*([๐-๙\d]+(?:\s*\/\s*[๐-๙\d]+)?)(\s*(?:ทวิ|ตรี|จัตวา|เบญจ))?/g;
-// ตรงกับ findLawSources: ค้นด้วยข้อความ 1,500 ตัวอักษรแรก · --query tail = 1,500 ตัวอักษรท้าย
-// (โจทย์ OpenThai ยาว 4-5 พันตัวอักษร และตัวคำถามอยู่ท้ายสุด — ตัดหัวจึงเหลือแต่ข้อเท็จจริงช่วงต้น)
-const tail = arg('query') === 'tail';
-const asQuery = (q: string) => (tail ? q.trim().slice(-1500) : q.trim().slice(0, 1500));
+// ตรงกับ findLawSources: ค้นด้วยข้อความ 1,500 ตัวอักษรแรก
+const asQuery = (q: string) => q.trim().slice(0, 1500);
 
-const expPath = path.join(dataDir, tail ? 'expansions-tail.json' : 'expansions.json');
+const expPath = path.join(dataDir, 'expansions.json');
 const expansions: Record<string, string[]> = fs.existsSync(expPath) ? JSON.parse(fs.readFileSync(expPath, 'utf8')) : {};
 for (const q of questions) {
     if (expansions[q.id]) continue;

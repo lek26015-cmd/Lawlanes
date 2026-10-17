@@ -181,6 +181,9 @@ def post_batch(batch: list[dict], key: str) -> None:
                                 headers={"Authorization": f"Bearer {key}"}, timeout=120)
             if res.ok:
                 return
+            if "4006" in res.text:
+                # โควตา Workers AI รายวันหมด — production ใช้โควตาเดียวกัน หยุดทันที ไม่ยิงซ้ำ
+                os._exit(3)
             print(f"  ⚠️ {res.status_code} {res.text[:200]}", file=sys.stderr)
         except requests.RequestException as e:
             print(f"  ⚠️ {e}", file=sys.stderr)
@@ -193,6 +196,10 @@ def main():
     ap.add_argument("--plan", action="store_true", help="สร้าง laws.json และสรุปจำนวนเท่านั้น")
     ap.add_argument("--start", type=int, default=0, help="เริ่มจาก item ที่ N (resume)")
     ap.add_argument("--workers", type=int, default=6, help="จำนวน batch ที่ส่งพร้อมกัน")
+    # แพลนฟรีของ Workers AI ได้ 10,000 neurons/วัน ใช้ร่วมกับ production (~1.5 neurons ต่อมาตรา)
+    # ใช้ --max-items แบ่งส่งทีละวัน ให้เหลือโควตาไว้ให้ /query ของ production
+    ap.add_argument("--max-items", type=int, default=0, help="ส่งไม่เกิน N item ในรอบนี้ (0 = ทั้งหมด)")
+    ap.add_argument("--progress", help="ไฟล์เก็บตำแหน่งที่ส่งครบแล้ว (ใช้เป็น --start รอบถัดไป)")
     args = ap.parse_args()
 
     niti = load_nitibench()
@@ -220,7 +227,8 @@ def main():
 
     t0 = time.time()
     batches, cur, longest = [], [], 0
-    for i in range(args.start, len(items)):
+    stop = min(len(items), args.start + args.max_items) if args.max_items else len(items)
+    for i in range(args.start, stop):
         n = len(items[i]["embedText"])
         if cur and (len(cur) >= BATCH or (len(cur) + 1) * max(longest, n) > BATCH_CHARS):
             batches.append(cur)
@@ -233,10 +241,12 @@ def main():
         # map คืนผลตามลำดับ — ถ้าล้มกลางทาง ตัวเลขที่พิมพ์ล่าสุดคือจุด --start ที่ปลอดภัย
         send = lambda b: (post_batch([items[i] for i in b], key), b[-1] + 1)[1]
         for n, end in enumerate(pool.map(send, batches)):
-            if n % 20 == 0 or end == len(items):
+            if args.progress:
+                Path(args.progress).write_text(str(end))
+            if n % 20 == 0 or end == stop:
                 rate = (end - args.start) / max(time.time() - t0, 1)
                 print(f"  {end}/{len(items)} · {rate:.0f}/s", flush=True)
-    print("🎉 done")
+    print("🎉 done" if stop == len(items) else f"⏸ paused at {stop} — rerun with --start {stop}")
 
 
 if __name__ == "__main__":

@@ -1,13 +1,11 @@
 /**
- * ชุดคำถามวัดผลการค้นตัวบท (recall@k ของมาตราเฉลย) — รวม 3 แหล่ง:
- *   1. ชุด OpenThai (โจทย์ร่างคำฟ้องอาญาจากข้อสอบสภาทนายความ, เฉลย = มาตราในคำขอท้ายฟ้อง)
- *      ไฟล์อยู่นอก repo (_ops/openthai-eval/data/questions.json) — ส่ง path ด้วย --openthai
- *   2. NitiBench-CCL (VISAI-AI/nitibench, MIT) — เลือกแบบคงที่ทุก ๆ N แถว เฉลย = relevant_laws
- *   3. คำถามที่ระบุเลขมาตราตรง ๆ (ทดสอบการดึงมาตราจาก metadata) — เฉลยคือมาตราที่ถามเอง
+ * ชุดคำถามวัดผลการค้นตัวบท (recall@k ของมาตราเฉลย) — 2 แหล่ง:
+ *   1. NitiBench-CCL (VISAI-AI/nitibench, MIT) — เลือกแบบคงที่ทุก ๆ N แถว เฉลย = relevant_laws
+ *   2. คำถามที่ระบุเลขมาตราตรง ๆ (ทดสอบการดึงมาตราจาก metadata) — เฉลยคือมาตราที่ถามเอง
  *
- *   node scripts/rag-eval/build-set.mjs --openthai ../_ops/openthai-eval/data/questions.json [--niti=15]
+ *   node scripts/rag-eval/build-set.mjs [--niti=43]
  *
- * ผลลัพธ์: scripts/rag-eval/data/questions.json (gitignored — มีโจทย์ข้อสอบ ไม่ใส่ใน repo สาธารณะ)
+ * ผลลัพธ์: scripts/rag-eval/data/questions.json (gitignored)
  */
 import fs from 'fs';
 import path from 'path';
@@ -37,15 +35,7 @@ const DIRECT = [
 
 const out = [];
 
-const openthai = arg('openthai');
-if (openthai) {
-    const qs = JSON.parse(fs.readFileSync(openthai, 'utf8')).filter(q => q.kind === 'complaint' && q.goldOffense?.length);
-    for (const q of qs) out.push({ id: q.id, set: 'openthai', question: q.question, gold: q.goldOffense.map(s => ({ law: CRIMINAL, section: s })) });
-} else {
-    console.warn('ไม่ได้ส่ง --openthai — ข้ามชุด OpenThai');
-}
-
-const nitiCount = Number(arg('niti') || 15);
+const nitiCount = Number(arg('niti') || 43);
 const API = 'https://datasets-server.huggingface.co';
 const info = await (await fetch(`${API}/size?dataset=VISAI-AI/nitibench`)).json();
 const total = info.size.splits.find(s => s.split === 'ccl').num_rows;
