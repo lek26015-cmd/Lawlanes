@@ -7,6 +7,11 @@ compatibility_date = "2024-04-05"
 binding = "VECTORIZE_INDEX"
 index_name = "lawslane-index"
 
+# ตัวบทรายมาตรา (scripts/ingest-sections.py) — ใช้คู่กับ lawslane-index ห้ามลบตัวเดิม
+[[vectorize]]
+binding = "SECTIONS_INDEX"
+index_name = "lawslane-sections"
+
 # Enable Workers AI
 [ai]
 binding = "AI"

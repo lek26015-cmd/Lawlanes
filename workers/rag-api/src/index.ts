@@ -1,6 +1,10 @@
 
+import { searchSections } from './sections';
+
 export interface Env {
     VECTORIZE_INDEX: VectorizeIndex;
+    // ตัวบทรายมาตรา (scripts/ingest-sections.py) — ใช้คู่กับ index เดิม ซึ่งยังเก็บฎีกา/ราชกิจจาฯ
+    SECTIONS_INDEX: VectorizeIndex;
     AI: any;
     // ตั้งด้วย `wrangler secret put` เท่านั้น ห้ามใส่ใน wrangler.toml (repo เป็น public)
     // RAG_INGEST_KEY: ต้องมีเสมอ — ถ้าไม่ได้ตั้ง /ingest กับ /exists จะปิด (fail closed)
@@ -11,6 +15,7 @@ export interface Env {
 }
 
 const MAX_TEXT_LENGTH = 20_000;
+const MAX_INGEST_BATCH = 50;
 const MAX_TOP_K = 20;
 
 const json = (body: unknown, status = 200) =>
@@ -94,6 +99,41 @@ export default {
                 const searchResult = await env.VECTORIZE_INDEX.query(values, queryOptions);
 
                 return json(searchResult);
+            } catch (e: any) {
+                return new Response(`Error: ${e.message}`, { status: 500 });
+            }
+        }
+
+        if (request.method === 'POST' && url.pathname === '/search') {
+            // ค้นตัวบทรายมาตรา: มาตราที่ระบุตรง ๆ + vector (คำถาม + คำค้นที่ขยาย) + ฎีกาจาก index เดิม → rerank
+            const denied = await requireKey(request, env.RAG_QUERY_KEY, false);
+            if (denied) return denied;
+            try {
+                const body = await request.json() as any;
+                if (!body?.question || typeof body.question !== 'string') return new Response("Missing question", { status: 400 });
+                if (body.question.length > MAX_TEXT_LENGTH) return new Response("Question too long", { status: 413 });
+                return json(await searchSections(env, body));
+            } catch (e: any) {
+                return new Response(`Error: ${e.message}`, { status: 500 });
+            }
+        }
+
+        if (request.method === 'POST' && url.pathname === '/ingest-sections') {
+            // ใช้โดย scripts/ingest-sections.py เท่านั้น — embed ทีละชุดแล้ว upsert เข้า SECTIONS_INDEX
+            const denied = await requireKey(request, env.RAG_INGEST_KEY, true);
+            if (denied) return denied;
+            try {
+                const { items } = await request.json() as any;
+                if (!Array.isArray(items) || items.length === 0) return new Response("Missing items", { status: 400 });
+                if (items.length > MAX_INGEST_BATCH) return new Response("Batch too large", { status: 413 });
+                for (const it of items) {
+                    if (typeof it?.id !== 'string' || typeof it?.embedText !== 'string' || !it?.metadata?.text) return new Response("Bad item", { status: 400 });
+                    if (it.embedText.length > MAX_TEXT_LENGTH) return new Response("Text too long", { status: 413 });
+                }
+                const { data } = await env.AI.run('@cf/baai/bge-m3', { text: items.map((it: any) => it.embedText) });
+                if (!Array.isArray(data) || data.length !== items.length) return new Response("Failed to generate embeddings", { status: 500 });
+                await env.SECTIONS_INDEX.upsert(items.map((it: any, i: number) => ({ id: it.id, values: data[i], metadata: it.metadata })));
+                return json({ status: "indexed", count: items.length });
             } catch (e: any) {
                 return new Response(`Error: ${e.message}`, { status: 500 });
             }

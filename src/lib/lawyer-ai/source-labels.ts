@@ -3,7 +3,7 @@ import type { SourceType } from '@/lib/lawyer-ai/types';
 // ใช้ได้ทั้ง client และ server
 
 export function sourceType(source: string): SourceType {
-    if (/^(พ\.ร\.บ\. กฤษฎีกา|ThaiLawCSV|กฎหมาย)\//.test(source)) return 'statute';
+    if (/^(พ\.ร\.บ\. กฤษฎีกา|ThaiLawCSV|กฎหมาย|ตัวบท)\//.test(source)) return 'statute';
     if (source.startsWith('คำพิพากษาฎีกา')) return 'judgment';
     if (source.startsWith('ราชกิจจานุเบกษา')) return 'gazette';
     return 'other';
@@ -11,6 +11,8 @@ export function sourceType(source: string): SourceType {
 
 // ชื่อไฟล์ในฐานข้อมูลเป็นเลข (เช่น "พ.ร.บ. กฤษฎีกา/3117.json") — ใช้เมื่อหาชื่อกฎหมายไม่ได้
 export function sourceLabel(source: string): string {
+    const section = source.match(/^ตัวบท\/(.+)\/(มาตรา [^/]+)$/);
+    if (section) return `${section[1]} ${section[2]}`;
     const csv = source.match(/^ThaiLawCSV\/([^/]+)\/(.+)$/);
     if (csv) return csv[2] === 'null' ? csv[1] : `${csv[1]} มาตรา ${csv[2]}`;
     const judgment = source.match(/^คำพิพากษาฎีกา\/(?:.*\/)?([^/]+?)(?:\.(?:pdf|json|txt))?$/i);

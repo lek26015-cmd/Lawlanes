@@ -37,6 +37,9 @@ export type RagDocument = {
     /** ลำดับ chunk ในไฟล์ (ชุดกฤษฎีกา/ราชกิจจาฯ) — ใช้ดึง chunk ข้างเคียงมาต่อให้ครบมาตรา */
     chunkIndex?: number;
     totalChunks?: number;
+    /** มีเฉพาะผลจาก index รายมาตรา (/search) */
+    lawName?: string;
+    section?: string;
 };
 
 export async function retrieveDocuments(query: string, topK: number = 5): Promise<RagDocument[]> {
@@ -202,6 +205,12 @@ export async function resolveLawTitles(sources: string[]): Promise<Map<string, s
             if (name) out.set(source, csv[2] === 'null' ? name : `${name} มาตรา ${csv[2]}`);
             continue;
         }
+        // index รายมาตรา: "ตัวบท/{ชื่อกฎหมาย}/มาตรา {n}" — รวมกลุ่มตามฉบับ (เลขมาตราอยู่ในเนื้อหาแล้ว)
+        const section = source.match(/^ตัวบท\/(.+)\/มาตรา [^/]+$/);
+        if (section) {
+            out.set(source, section[1]);
+            continue;
+        }
         // "กฎหมาย/ประมวลกฎหมายที่ดิน (ฉบับ Update ล่าสุด)/..." — ชื่อกฎหมายอยู่ในโฟลเดอร์ชั้นแรก
         const named = source.match(/^กฎหมาย\/([^/]+)\//);
         if (named) {
@@ -291,8 +300,53 @@ async function expandWith(genAI: GoogleGenerativeAI, modelName: string, question
 // ค้นหลายคำค้นพร้อมกัน แล้วรวมผลแบบสลับทีละคำค้น (round-robin) — ถ้าเรียงคะแนนรวมอย่างเดียว
 // คำค้นที่ได้คะแนนสูงแต่ตอบแค่มุมเดียว (เช่น อาญา) จะเบียดมุมอื่น (แพ่ง/ที่ดิน) ออกหมด
 // ตัดชิ้นซ้ำ (index มี chunk ซ้ำเยอะ) และชิ้นขยะสั้น ๆ ออกก่อน
-export async function retrieveExpanded(question: string, perQuery: number = 10, minScore: number = 0.45) {
-    const expanded = await expandLegalQueries(question);
+// ---- ค้นแบบรายมาตรา (worker /search, index lawslane-sections) ----
+// เปิดด้วย RAG_SECTION_SEARCH=1 หลัง deploy worker ที่มี /search แล้ว · worker ไม่มี /search หรือล่ม → กลับไปใช้วิธีเดิม
+const SECTION_SEARCH = process.env.RAG_SECTION_SEARCH === '1';
+
+/** มาตราที่ระบุตรง ๆ + vector (คำถาม + คำค้นที่ขยาย) + ฎีกาจาก index เดิม เรียงด้วย reranker แล้ว · null = ใช้ไม่ได้ */
+export async function searchSections(question: string, queries: string[], topK: number = 20, rerank: boolean = true): Promise<RagDocument[] | null> {
+    try {
+        const response = await fetch(`${WORKER_URL}/search`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', ...ragAuthHeaders() },
+            body: JSON.stringify({ question, queries, topK, rerank }),
+            signal: AbortSignal.timeout(8000),
+        });
+        if (!response.ok) {
+            console.warn(`[RAG] /search returned ${response.status} — falling back to /query`);
+            return null;
+        }
+        const data = await response.json() as { matches?: Array<{ score: number; rerankScore?: number; metadata?: Record<string, any> }> };
+        return (data.matches || []).map(m => {
+            const md = m.metadata || {};
+            return {
+                source: md.source || 'Unknown',
+                content: cleanRagText(md.text || ''),
+                // คะแนน reranker ใช้เรียงเท่านั้น (ไม่ได้อยู่สเกลเดียวกับ cosine) — ผู้เรียกไม่ควรตัดด้วย threshold ตายตัว
+                score: typeof m.rerankScore === 'number' ? m.rerankScore : m.score || 0,
+                ...(typeof md.year === 'number' ? { year: md.year } : {}),
+                ...(md.law_name ? { lawName: md.law_name, section: md.section } : {}),
+            };
+        }).filter(d => d.content.replace(/\s+/g, '').length >= 30);
+    } catch (e) {
+        console.warn('[RAG] /search failed — falling back to /query:', e instanceof Error ? e.message : e);
+        return null;
+    }
+}
+
+export async function retrieveExpanded(
+    question: string,
+    perQuery: number = 10,
+    minScore: number = 0.45,
+    opts: { expanded?: string[]; sectionSearch?: boolean; rerank?: boolean } = {},
+) {
+    const expanded = opts.expanded ?? await expandLegalQueries(question);
+    if (opts.sectionSearch ?? SECTION_SEARCH) {
+        // reranker จัดลำดับแทนการตัดด้วยคะแนน cosine ตายตัว (minScore ไม่ใช้ในเส้นทางนี้)
+        const docs = await searchSections(question, expanded, 20, opts.rerank ?? true);
+        if (docs) return docs;
+    }
     const batches = await Promise.all([question, ...expanded].map(q => retrieveDocuments(q, perQuery)));
     const seen = new Set<string>();
     const usable = (d: { content: string; score: number }) => {
@@ -308,7 +362,7 @@ export async function retrieveExpanded(question: string, perQuery: number = 10, 
     // ประกาศราชกิจจาฯ ส่วนใหญ่เป็นคำสั่ง/ประกาศรายกรณี (เช่น คำสั่งยึดทรัพย์ที่มีชื่อบุคคล)
     // คะแนนความหมายใกล้กับคำถามแต่ไม่ใช่ข้อกฎหมายที่ผู้ใช้ต้องการ
     const weighted = (d: { source: string; score: number }) => {
-        if (/^(ThaiLawCSV|พ\.ร\.บ\. กฤษฎีกา|กฎหมาย)\//.test(d.source)) return d.score;
+        if (/^(ThaiLawCSV|พ\.ร\.บ\. กฤษฎีกา|กฎหมาย|ตัวบท)\//.test(d.source)) return d.score;
         if (d.source.startsWith('คำพิพากษาฎีกา')) return d.score * 0.95;
         if (d.source.startsWith('ราชกิจจานุเบกษา')) return d.score * 0.85;
         return d.score * 0.9;
@@ -325,7 +379,7 @@ export async function retrieveExpanded(question: string, perQuery: number = 10, 
     }
     // เรียงตามประเภทแหล่งข้อมูลโดยคงลำดับ round-robin ในกลุ่มเดียวกัน: ตัวบท → ฎีกา → อื่น ๆ → ราชกิจจาฯ
     const tier = (src: string) =>
-        /^(ThaiLawCSV|พ\.ร\.บ\. กฤษฎีกา|กฎหมาย)\//.test(src) ? 0
+        /^(ThaiLawCSV|พ\.ร\.บ\. กฤษฎีกา|กฎหมาย|ตัวบท)\//.test(src) ? 0
         : src.startsWith('คำพิพากษาฎีกา') ? 1
         : src.startsWith('ราชกิจจานุเบกษา') ? 3 : 2;
     return merged

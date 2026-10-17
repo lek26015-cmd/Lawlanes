@@ -47,8 +47,8 @@ export async function buildContent(docs: RagDocument[]): Promise<string> {
     for (const d of docs) {
         if (d.source.startsWith('พ.ร.บ. กฤษฎีกา/') && typeof d.chunkIndex === 'number') {
             bySource.set(d.source, [...(bySource.get(d.source) || []), d]);
-        } else if (d.source.startsWith('ThaiLawCSV/')) {
-            csv.push(d.content); // หนึ่งแถว = หนึ่งมาตราเต็ม
+        } else if (d.source.startsWith('ThaiLawCSV/') || d.source.startsWith('ตัวบท/')) {
+            csv.push(d.content); // หนึ่งแถว/หนึ่ง vector = หนึ่งมาตราเต็ม
         } else {
             others.push(d.content);
         }
