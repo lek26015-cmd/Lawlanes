@@ -96,7 +96,7 @@ export async function createInterpreterRequestAction(input: InterpreterRequestIn
         createdAt: now,
         read: false,
         recipient: 'admin',
-        link: `/admin/tickets/${ticketRef.id}`,
+        link: `/tickets/${ticketRef.id}`,
         relatedId: ticketRef.id,
     });
     await batch.commit();
