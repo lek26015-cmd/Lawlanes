@@ -8,6 +8,24 @@ import { initAdmin } from '@/lib/firebase-admin';
  * verifies it with LINE, finds or creates a Firebase user,
  * and returns a Firebase Custom Token for signInWithCustomToken().
  */
+/**
+ * ฟิลด์โปรไฟล์ลูกค้าตอนสมัครใหม่ผ่าน LINE — ให้เหมือนบัญชีที่สมัครด้วยอีเมล
+ * หน้า "ลูกค้า" ในหลังบ้านเรียงตาม registeredAt และค้นด้วย nameLower — ขาดฟิลด์ไหน
+ * บัญชีจะไม่ขึ้นในรายการเลย (Firestore orderBy ข้ามเอกสารที่ไม่มีฟิลด์นั้น)
+ */
+function newCustomerProfile(displayName: string) {
+    const now = new Date();
+    const name = (displayName || '').trim();
+    return {
+        name,
+        nameLower: name.toLowerCase(),
+        role: 'customer',
+        status: 'active',
+        createdAt: now,
+        registeredAt: now,
+    };
+}
+
 export async function POST(req: NextRequest) {
     try {
         const { accessToken, idToken } = await req.json();
@@ -149,7 +167,7 @@ export async function POST(req: NextRequest) {
                     lineDisplayName: displayName,
                     linePictureUrl: pictureUrl,
                     email,
-                    createdAt: new Date(),
+                    ...newCustomerProfile(displayName),
                     provider: 'line',
                     // สมัครผ่านปุ่ม LINE ในหน้าเข้าสู่ระบบ — ใต้ปุ่มมีข้อความยอมรับข้อกำหนด/นโยบาย
                     termsAccepted: true,
@@ -176,7 +194,7 @@ export async function POST(req: NextRequest) {
                     lineUserId,
                     lineDisplayName: displayName,
                     linePictureUrl: pictureUrl,
-                    createdAt: new Date(),
+                    ...newCustomerProfile(displayName),
                     provider: 'line',
                     termsAccepted: true,
                     termsAcceptedAt: new Date(),
