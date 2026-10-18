@@ -54,9 +54,13 @@ export function SlipUpload({ expectedBaht, value, onChange }: {
     const t = useTranslations('Interpreters.book');
     const [preview, setPreview] = useState<string | null>(null);
     const [slipAmount, setSlipAmount] = useState<number | null>(null);
+    const [rejected, setRejected] = useState(false);
 
     const handleFile = async (file: File | undefined) => {
         if (!file) return;
+        // รับเฉพาะรูป — ฝั่งส่งบีบอัดสลิปเป็นรูปก่อนบันทึก และแอดมินดูสลิปเป็นรูป (PDF เปิดไม่ได้)
+        if (!file.type.startsWith('image/')) return setRejected(true);
+        setRejected(false);
         if (file.size > MAX_MB * 1024 * 1024) return;
         setPreview(file.type.startsWith('image/') ? URL.createObjectURL(file) : null);
         setSlipAmount(null);
@@ -96,11 +100,12 @@ export function SlipUpload({ expectedBaht, value, onChange }: {
                 <span className="text-sm font-medium">{value.file ? value.file.name : t('uploadSlip')}</span>
                 <input
                     type="file"
-                    accept="image/jpeg,image/png,image/webp,application/pdf"
+                    accept="image/jpeg,image/png,image/webp"
                     className="sr-only"
                     onChange={e => handleFile(e.target.files?.[0])}
                 />
             </label>
+            <p className={`text-xs ${rejected ? 'text-red-600' : 'text-muted-foreground'}`}>{t('slipImagesOnly')}</p>
             {value.status === 'checking' && (
                 <p className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="w-4 h-4 animate-spin" /></p>
             )}
