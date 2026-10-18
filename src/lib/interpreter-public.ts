@@ -106,6 +106,12 @@ export async function latestPaidBooking(
 export async function interpreterContact(db: FirebaseFirestore.Firestore, interpreterId: string): Promise<InterpreterContactInfo> {
     const ref = db.collection('interpreterProfiles').doc(interpreterId);
     const [p, priv] = await Promise.all([ref.get(), ref.collection('private').doc('details').get()]);
+    if (!p.exists) {
+        // ล่ามนอกระบบที่แอดมินจ้างเอง (lawslane-admin: external-interpreter-actions.ts)
+        // ลูกค้าเห็นชื่อ/เบอร์/LINE เหมือนล่ามในระบบ — ไม่บอกว่าเป็นล่ามนอก
+        const ext = (await db.collection('externalInterpreters').doc(interpreterId).get()).data();
+        if (ext) return { name: ext.name || '', phone: ext.phone || '', lineId: ext.lineId || undefined };
+    }
     return {
         name: p.data()?.name || '',
         phone: priv.data()?.phone || '',

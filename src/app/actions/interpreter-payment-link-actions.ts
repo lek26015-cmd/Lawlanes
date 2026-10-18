@@ -196,7 +196,8 @@ export async function payInterpreterPaymentLinkAction(
                 link: `/interpreter-bookings/${bookingRef.id}`,
                 relatedId: bookingRef.id,
             });
-            if (paid) {
+            // ล่ามนอกระบบ (link.external จาก lawslane-admin) ไม่มีบัญชีในเว็บ — แอดมินรับงานแทน
+            if (paid && !outcome.link.external) {
                 await db.collection('notifications').add({
                     type: 'interpreter_booking',
                     title: 'งานล่ามใหม่',
