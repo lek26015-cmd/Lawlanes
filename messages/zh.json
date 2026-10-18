@@ -1692,6 +1692,7 @@
       "slipVerified": "凭证已核验，金额正确",
       "slipAmountMismatch": "凭证金额（฿{slip}）与应付金额不符",
       "slipManual": "无法自动核验，团队将人工核验",
+      "slipImagesOnly": "仅支持图片（JPG、PNG、WEBP），不支持 PDF——如果凭证是 PDF，请截图后上传图片。",
       "confirm": "确认预约",
       "submitting": "预约中...",
       "paymentNotReady": "译员服务的付款功能尚未开放，请联系我们。",

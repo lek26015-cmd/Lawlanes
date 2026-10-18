@@ -1692,6 +1692,7 @@
       "slipVerified": "Slip verified, amount correct",
       "slipAmountMismatch": "Slip amount (฿{slip}) does not match the total",
       "slipManual": "Could not verify automatically — our team will check it",
+      "slipImagesOnly": "Images only (JPG, PNG, WEBP). PDF files are not accepted — if your slip is a PDF, take a screenshot and attach that instead.",
       "confirm": "Confirm booking",
       "submitting": "Booking...",
       "paymentNotReady": "Payments for interpreter services are not open yet. Please contact our team.",
