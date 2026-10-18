@@ -369,7 +369,7 @@ export default function ForLawyersPage() {
           createdAt: serverTimestamp(),
           read: false,
           recipient: 'admin',
-          link: `/admin/lawyers/${user.uid}`,
+          link: `/lawyers/${user.uid}`,
           relatedId: user.uid
         });
 
