@@ -6,7 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { PlanAvatar } from '@/components/plan-avatar';
+import { useMyPlan } from '@/hooks/use-my-plan';
+import { userPlanDisplay } from '@/lib/plan-display';
 import { Badge } from '@/components/ui/badge';
 import {
   Briefcase,
@@ -36,7 +38,6 @@ import type { LawyerCase, LawyerAppointmentRequest, LawyerProfile } from '@/lib/
 import { format } from 'date-fns';
 import { th } from 'date-fns/locale';
 import profileLawyerImg from '@/pic/profile-lawyer.jpg';
-import { doc, getDoc } from 'firebase/firestore';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -59,6 +60,7 @@ export default function LawyerDashboardPage() {
   const router = useRouter();
   const { auth, firestore } = useFirebase();
   const { user, isUserLoading } = useUser();
+  const myPlan = useMyPlan();
 
   const [requests, setRequests] = useState<LawyerAppointmentRequest[]>([]);
   const [activeCases, setActiveCases] = useState<LawyerCase[]>([]);
@@ -68,24 +70,7 @@ export default function LawyerDashboardPage() {
   const [isLoading, setIsLoading] = useState(true);
   const { toast } = useToast();
 
-  // Pricing state
-  const [platformGPRate, setPlatformGPRate] = useState<number>(0.15); // Default 15%
-
-  // Fetch platform GP rate
-  useEffect(() => {
-    if (!firestore) return;
-    const fetchGPRate = async () => {
-      try {
-        const settingsDoc = await getDoc(doc(firestore, 'settings', 'platform'));
-        if (settingsDoc.exists()) {
-          setPlatformGPRate(settingsDoc.data().platformFeeRate || 0.15);
-        }
-      } catch (error) {
-        console.error('Error fetching GP rate:', error);
-      }
-    };
-    fetchGPRate();
-  }, [firestore]);
+  // เลิกอ่าน settings/platform.platformFeeRate (GP 15%) — ยกเลิก GP แล้ว ไม่หักเปอร์เซ็นต์จากทนาย
 
   useEffect(() => {
     if (isUserLoading) return;
@@ -195,7 +180,7 @@ export default function LawyerDashboardPage() {
               ฿{stats.incomeThisMonth.toLocaleString()}
             </p>
             <Link href="/lawyer-dashboard/financials" className="text-[11px] text-blue-600 hover:underline flex items-center gap-1 mt-1">
-              ดูรายละเอียดภาษี/ใบแจ้งหนี้ <ChevronRight className="w-3 h-3" />
+              ยอดที่คุณยืนยันรับแล้ว / บัญชีรับเงิน <ChevronRight className="w-3 h-3" />
             </Link>
           </Card>
 
@@ -359,10 +344,13 @@ export default function LawyerDashboardPage() {
             {/* Profile Card */}
             <Card className="rounded-2xl border shadow-sm">
               <CardContent className="p-5 flex flex-col items-center text-center">
-                <Avatar className="w-20 h-20 mb-3 border-2 border-primary/20">
-                  <AvatarImage src={lawyerProfile?.imageUrl || user.photoURL || profileLawyerImg.src} />
-                  <AvatarFallback>{user.displayName?.charAt(0) || 'L'}</AvatarFallback>
-                </Avatar>
+                <PlanAvatar
+                  src={lawyerProfile?.imageUrl || user.photoURL || profileLawyerImg.src}
+                  fallback={user.displayName?.charAt(0) || 'L'}
+                  size="lg"
+                  className="mb-4"
+                  {...userPlanDisplay(myPlan)}
+                />
                 <p className="font-bold text-base text-foreground">{lawyerProfile?.name || user.displayName}</p>
                 <p className="text-xs text-muted-foreground">{lawyerProfile?.specialty || 'ทนายความผู้เชี่ยวชาญ'}</p>
                 <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px] mt-2">

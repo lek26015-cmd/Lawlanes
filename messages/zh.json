@@ -16,13 +16,6 @@
       "cta": "下载所有表格"
     },
     "lawyerSearch": {
-      "title": "为您找到合适的律师",
-      "description": "咨询专业律师。易于查找，可靠，并可通过视频通话或聊天立即咨询。",
-      "features": {
-        "verified": "经过验证的执业律师",
-        "expert": "各领域的专业知识",
-        "review": "透明的评论和费用"
-      },
       "cta": "查找律师"
     },
     "aiAnalysis": {
@@ -41,11 +34,11 @@
       },
       "quality": {
         "title": "优质律师",
-        "description": "所有律师均通过历史和执照验证。"
+        "description": "Lawslane 上的每位律师在资料上线前均已核对执业执照号码。"
       },
       "privacy": {
         "title": "安全私密",
-        "description": "您的案件数据将以最高保密和安全标准保存。"
+        "description": "案件数据仅限您、您的律师及获授权的工作人员访问，遵循我们的隐私政策。"
       }
     },
     "usageSteps": {
@@ -74,12 +67,9 @@
       "viewAll": "查看所有律师"
     },
     "recommendedInterpreters": {
-      "title": "推荐翻译员",
-      "subtitle": "为法院、警察局、律师会谈及法律文件提供口译与笔译服务，预订前价格清晰透明。",
-      "viewAll": "查看全部翻译员",
-      "emptyTitle": "暂无翻译员",
-      "emptyDescription": "我们正在招募翻译员。如现在需要，请联系我们的团队协助寻找。",
-      "becomeInterpreter": "成为 Lawslane 翻译员 →"
+      "title": "法律口译与笔译服务",
+      "subtitle": "法院、警察局、律师会谈、商务会议及法律文件翻译——告诉我们您的需求，团队为您安排译员并报价。",
+      "viewAll": "申请译员"
     },
     "services": {
       "title": "我们的服务",
@@ -123,11 +113,6 @@
       "description": "加入我们，扩大您的客户群并建立在线信誉。",
       "button": "申请成为律师"
     },
-    "forInterpretersFooter": {
-      "title": "翻译员与笔译员",
-      "description": "承接法院、警察局、律师会谈口译及法律文件翻译，自定价格，可现场或线上工作。",
-      "button": "申请成为翻译员"
-    },
     "stats": {
       "247": "24/7 服务",
       "faster": "更快",
@@ -143,6 +128,18 @@
         "legal": "法律有效且可执行的合同"
       },
       "cta": "立即开始截图并交易"
+    },
+    "wittaya": {
+      "badge": "Lawslane Wittaya",
+      "title": "通过 Lawslane Wittaya 备考泰国律师执照",
+      "description": "历年法律考题、备考书籍和法律课程，面向法律学生和律师执照考生。",
+      "features": {
+        "exams": "各年级历年法律考题库",
+        "books": "律师执照备考书籍与课程",
+        "ai": "AI 辅助批改主观题"
+      },
+      "cta": "前往 Lawslane Wittaya",
+      "imageAlt": "身穿学位袍、手持证书的法律毕业生"
     }
   },
   "NotFound": {
@@ -267,9 +264,9 @@
   },
   "VerifyLawyer": {
     "backToHome": "返回首页",
-    "title": "验证",
-    "titleLine2": "律师状态",
-    "description": "通过验证律师执照信息来建立信心，确保服务的准确性和安全性。",
+    "title": "核实",
+    "titleLine2": "泰国律师",
+    "description": "聘请律师前，免费查询律师姓名或执照号码。",
     "dataSource": "此数据仅来自 Lawslane 数据库",
     "lastUpdated": "最后更新于",
     "lastUpdatedToday": "最后更新：今天",
@@ -296,15 +293,17 @@
       "viewProfile": "查看资料"
     },
     "resultNotFound": {
-      "title": "未找到",
-      "description": "未找到符合所提供信息的律师。请检查详细信息或联系支持。",
-      "closeButton": "关闭"
+      "title": "未在 Lawslane 数据库中找到",
+      "description": "我们的数据库尚未涵盖所有律师。未找到并不代表是假律师，请向泰国律师协会核实。",
+      "closeButton": "关闭",
+      "officialButton": "向律师协会核实"
     },
     "status": {
       "active": "执照有效",
       "suspended": "执照暂停",
       "struckOff": "已除名",
-      "pending": "待验证"
+      "pending": "待验证",
+      "announced": "名字见于律师执照公告"
     },
     "card": {
       "onLawslane": "已注册 Lawslane",
@@ -313,12 +312,53 @@
       "notRegisteredCta": "如果您是该律师，可以注册以添加联系方式并通过 Lawslane 接收客户。",
       "registerButton": "注册成为律师",
       "share": "分享",
-      "shareLawyer": "邀请注册"
+      "shareLawyer": "邀请注册",
+      "announcedIn": "律师注册办公室公告 {date}",
+      "viewSource": "查看原始公告",
+      "noLicenseNumber": "原始公告未列出执照号码"
     },
     "filter": {
       "verifyLink": "验证律师状态"
     },
-    "searchByNameTip": "建议使用姓名搜索，部分律师的执业证号尚未录入系统。"
+    "searchByNameTip": "建议使用姓名搜索，部分律师的执业证号尚未录入系统。",
+    "guide": {
+      "heading": "聘请前如何核实律师",
+      "step1Title": "索取姓名和执照号码",
+      "step1Body": "向律师索取全名和执照号码。真正的律师持有泰国律师协会会员卡，执照号码格式为\"号码/佛历年\"，例如 12345/2550。",
+      "step2Title": "在本页查询",
+      "step2Body": "在上方输入执照号码或全名。我们会查询在 Lawslane 注册的律师以及从律师注册办公室公告中收集的名单。",
+      "step3Title": "向律师协会确认",
+      "step3Body": "如果未找到或仍不确定，请直接向颁发律师执照的泰国律师协会核实。",
+      "warningHeading": "律师可能是假的警示信号",
+      "warning1": "拒绝提供执照号码或出示律师协会会员卡",
+      "warning2": "保证一定胜诉，或声称\"认识法院的人\"",
+      "warning3": "催促立即转大笔款项，却没有委托合同或收据",
+      "warning4": "要求把钱转入他人账户",
+      "warning5": "只能通过聊天联系，没有可核实的办公室或地址",
+      "faqHeading": "常见问题",
+      "faq1Q": "在哪里可以查询律师名单？",
+      "faq1A": "可在本页通过姓名或执照号码免费查询，并向颁发律师执照的泰国律师协会正式确认。",
+      "faq2Q": "查不到是否代表是假律师？",
+      "faq2A": "不一定。Lawslane 数据库尚未涵盖所有律师，尤其是很早取得执照的律师。下结论前请先向律师协会核实。",
+      "faq3Q": "律师执照号码在哪里查看？",
+      "faq3A": "在律师的执照或律师协会会员卡上，格式为\"号码/佛历年\"。真正的律师应在被要求时出示。",
+      "faq4Q": "终身执照和两年执照有什么区别？",
+      "faq4A": "两年执照须按期续期，终身执照无需续期。未被暂停或除名时，两者均可执业。",
+      "faq5Q": "本页数据来自哪里？",
+      "faq5A": "来自在 Lawslane 注册的律师，以及从泰国律师协会律师注册办公室公告中收集的名单。来自公告的结果都会显示日期和原始链接。",
+      "faq6Q": "如何更正或删除本人数据？",
+      "faq6A": "请通过 Lawslane 帮助中心联系我们，我们会审核处理。"
+    },
+    "notice": {
+      "title": "核实律师前须知",
+      "item1": "本页数据来自在 Lawslane 注册的律师以及律师协会注册公告中的名单，尚未涵盖所有律师。",
+      "item2": "查不到并不代表是假律师，请再向律师协会核实。",
+      "item3": "来自公告的结果会显示日期和原始链接，但不能确认执照今天仍然有效。",
+      "item4": "在核实律师身份并签订明确的委托合同之前，请勿转账。",
+      "dontShowAgain": "不再显示",
+      "accept": "明白了，开始查询",
+      "imageAlt": "律师正在审阅文件"
+    }
   },
   "LegalForms": {
     "heroTitle": "法律表格中心",
@@ -410,6 +450,31 @@
       "labor": "劳动法",
       "intellectualProperty": "知识产权",
       "business": "商业法"
+    },
+    "heroTitle": "专业律师中心",
+    "heroSubtitle": "经验丰富、各有专长的律师，随时为您提供咨询并细心处理您的案件。",
+    "heroImageAlt": "身穿律师袍的男女律师手持法律书籍和平板电脑",
+    "guide": {
+      "heading": "如何在泰国找到合适的律师",
+      "step1Title": "向 Lalin 描述您的问题",
+      "step1Body": "AI 助手 Lalin 帮您梳理问题，并建议应咨询哪类律师。免费使用（一般信息，并非律师意见）。",
+      "step2Title": "按专业领域选择",
+      "step2Body": "按案件类型和府筛选，查看每位律师的背景、经验和评价。",
+      "step3Title": "发消息或预约咨询",
+      "step3Body": "在达成协议前询问服务范围和费用，并可在律师核实页面查询执照。",
+      "faqHeading": "关于寻找律师的常见问题",
+      "faq1Q": "可以在线咨询律师吗？",
+      "faq1A": "可以。在本页选择律师后，通过 Lawslane 发送消息或预约咨询，无需前往事务所。",
+      "faq2Q": "有免费法律咨询吗？",
+      "faq2A": "您可以免费向 AI 助手 Lalin 提问以了解问题。律师咨询费用由各律师决定。政府机构和泰国律师协会也为符合条件的人提供法律援助。",
+      "faq3Q": "在泰国请律师大约多少钱？",
+      "faq3A": "取决于案件类型、复杂程度和律师本人。请事先询问费用和工作范围，并在开始前书面确认。",
+      "faq4Q": "如何确认律师是真的？",
+      "faq4A": "Lawslane 上的每位律师在资料上线前均已核对执照号码，您也可以在律师核实页面自行查询。",
+      "faq5Q": "外国人或不会说泰语的人可以使用吗？",
+      "faq5A": "可以。请在律师资料中查看其提供的语言，或向 Lawslane 团队申请法律口译/笔译服务。",
+      "verifyLink": "核实律师",
+      "interpreterLink": "法律译员服务"
     }
   },
   "LawyerProfile": {
@@ -466,7 +531,51 @@
     "description": "项目 / 案件",
     "amount": "金额",
     "status": "状态",
-    "nextAction": "下一步"
+    "nextAction": "下一步",
+    "appointmentStatus": {
+      "pending_payment": "正在核实付款",
+      "paid": "等待律师确认",
+      "confirmed": "已确认",
+      "completed": "已完成",
+      "other": "处理中"
+    },
+    "capdeal": {
+      "title": "CapDeal — 最近的合同",
+      "defaultTitle": "承揽合同",
+      "status": {
+        "signed": "已签署",
+        "draft": "草稿",
+        "pending": "待签署"
+      },
+      "task": "工作：{task}",
+      "noDetails": "无详细信息",
+      "price": "价格：{price} 泰铢",
+      "view": "查看合同",
+      "create": "新建合同",
+      "empty": "还没有通过 CapDeal 创建的合同",
+      "start": "截图即可签约！"
+    },
+    "invoiceCard": {
+      "defaultDescription": "诉讼费用",
+      "paid": "已付款",
+      "pending": "待付款",
+      "dueDate": "到期日：{date}",
+      "empty": "暂无账单",
+      "help": "付款遇到问题？联系我们"
+    },
+    "chatItem": {
+      "yesterday": "昨天",
+      "pendingPayment": "待付款",
+      "pendingVerification": "正在核对付款凭证",
+      "completed": "已完成",
+      "cancelled": "已取消",
+      "active": "进行中",
+      "typeCase": "案件聊天",
+      "typePreliminary": "初步咨询",
+      "noMessages": "暂无消息"
+    },
+    "realtimeError": "此页面无法自动更新新消息，请刷新以查看最新消息。",
+    "refresh": "刷新"
   },
   "CaseRoom": {
     "proTools": "专业工具 (PRO)",
@@ -517,7 +626,7 @@
     "loginRequiredDescription": "您必须登录后才能报告问题",
     "problemTypes": {
       "communication": "与律师的沟通问题",
-      "payment": "付款/托管问题",
+      "payment": "付款问题",
       "technical": "系统技术问题",
       "quality": "对服务质量不满意",
       "other": "其他"
@@ -533,15 +642,15 @@
       },
       {
         "question": "通过 Lawslane 聘请律师的流程是怎样的？",
-        "answer": "您可以从使用 AI 分析问题、从列表中搜索律师或预约直接交谈开始。一旦您选择了想要的律师，您就可以开启案件并通过我们的托管系统付款，立即开始工作。"
+        "answer": "您可以从使用 AI 分析问题、从列表中搜索律师或预约直接交谈开始。选定律师后，律师会在聊天中提出服务费用，您直接将费用转入律师的银行账户 — Lawslane 不收取也不代管服务费。"
       },
       {
         "question": "我的信息会保密吗？",
         "answer": "当然，我们高度重视客户的隐私和保密。您与我们平台上律师的所有信息和对话都将根据最高标准进行加密和保密。您可以在我们的隐私政策中阅读更多详情。"
       },
       {
-        "question": "托管付款系统是什么，它是如何工作的？",
-        "answer": "托管是一个系统，Lawslane 在其中充当中间人来持有服务费。您的资金在我们这里将保持安全，只有在您确认工作已完成且对服务满意时，才会转账给律师。这种方法有助于建立双方的信心。"
+        "question": "如果与律师之间出现问题该怎么办？",
+        "answer": "如果您遇到问题或对服务不满意，可以在该案件的聊天页面使用“报告问题”按钮，立即联系我们的客户支持团队。我们会尽快核查并提供帮助。"
       },
       {
         "question": "如果律师出现问题，我该怎么办？",
@@ -592,10 +701,10 @@
     "dangerZone": "危险区域",
     "dangerZoneSubtitle": "这些操作无法撤销",
     "deleteAccount": "注销账户",
-    "deleteAccountSubtitle": "您的所有数据将被永久删除",
+    "deleteAccountSubtitle": "删除您的登录账户和个人数据，无法撤销。",
     "deleteMyAccount": "注销我的账户",
     "deleteConfirmTitle": "您确定吗？",
-    "deleteConfirmSubtitle": "此操作无法撤销。您的账户和所有数据将被永久删除。",
+    "deleteConfirmSubtitle": "删除账户后无法撤销，您将无法再使用此账户登录。",
     "confirmDelete": "确认删除",
     "loginRequired": "请登录以管理账户",
     "login": "登录",
@@ -620,7 +729,16 @@
       "profileUpdatedDetail": "您的个人资料信息已成功更新",
       "passwordChanged": "修改密码成功",
       "passwordChangedDetail": "您的密码已成功修改"
-    }
+    },
+    "deleteWhatRemoved": "立即删除：登录账户、个人资料、律师/译员资料、通知、个人文件，以及评价和评论中的姓名/头像。",
+    "deleteWhatKept": "依法保留：付款、发票和转账记录 · 案件聊天中的消息仍保留给对方。",
+    "deleteBlockedTitle": "暂时无法删除账户，原因：",
+    "deleteReauth": "为了安全，请先退出并重新登录后再删除账户（须在 15 分钟内登录）。",
+    "deleteReauthButton": "退出并重新登录",
+    "deleteTypeToConfirm": "输入\"{phrase}\"以确认",
+    "deleteDone": "账户已删除",
+    "deleteFailed": "删除账户失败，请重试或联系我们。",
+    "deleteCheckFailed": "检查账户失败，请重试。"
   },
   "Banks": {
     "Bangkok Bank": "盘谷银行",
@@ -669,7 +787,9 @@
       "inheritance": "想咨询一下关于遗产的问题。",
       "company": "注册公司需要准备什么？",
       "land": "遇到了土地纠纷，该怎么办？"
-    }
+    },
+    "disclaimer": "Lalin 是提供一般法律信息的 AI，并非律师的法律意见，也可能出错。重要信息请自行核实。",
+    "disclaimerLink": "阅读 AI 使用限制"
   },
   "SupportTicket": {
     "detailsTitle": "工单详情",
@@ -706,10 +826,19 @@
       "articles": "文章",
       "findLawyer": "查找律师",
       "verifyLawyer": "验证律师状态",
-      "customerDashboard": "客户仪表板"
+      "customerDashboard": "客户仪表板",
+      "findInterpreter": "译员服务",
+      "lawSearch": "法律检索",
+      "forms": "法律表格"
+    },
+    "ecosystem": {
+      "title": "Lawslane 旗下平台",
+      "wittaya": "Lawslane Wittaya — 法律考试备考",
+      "capdeal": "Cap & Deal — 合同与交易",
+      "business": "Lawslane 企业版"
     },
     "forLawyers": {
-      "title": "律师专用",
+      "title": "律师与译员专区",
       "join": "加入 Lawslane",
       "login": "律师登录",
       "dashboard": "律师仪表板",
@@ -725,6 +854,7 @@
       "help": "帮助中心",
       "guide": "用户指南"
     },
+    "dbdCertifiedBy": "认证机构",
     "copyright": "© {year} Lawslane. 版权所有。 · v{version}",
     "totalVisitors": "总访问量 {count} 次"
   },
@@ -790,7 +920,7 @@
     },
     "submit": "提交评估",
     "submitting": "正在发送...",
-    "privacy": "根据我们的隐私政策，您的信息将被严格保密。",
+    "privacy": "您的信息将按照我们的隐私政策保密。",
     "toast": {
       "successTitle": "请求已发送",
       "successDesc": "工作人员将在 24 小时内联系您并提供价格评估。",
@@ -1037,11 +1167,11 @@
       "subtitle": "Contact Us",
       "email": {
         "title": "电子邮件",
-        "value": "contact@lawslane.com"
+        "value": "lawslanelawyer@gmail.com"
       },
       "phone": {
         "title": "电话",
-        "value": "02-123-4567"
+        "value": "061-645-7327"
       },
       "office": {
         "title": "办公室",
@@ -1267,7 +1397,7 @@
       },
       "support": {
         "text": "对于过去的发票或财务咨询，请联系",
-        "email": "contact@lawslane.com"
+        "email": "lawslanelawyer@gmail.com"
       },
       "planLabels": {
         "starter": "Starter — 2,500 泰铢/月",
@@ -1391,8 +1521,8 @@
         "desc": "发送您的需求。我们将免费协助评估范围和价格。无前期费用。"
       },
       "f2": {
-        "title": "最高机密性",
-        "desc": "您发送的所有信息和文档将严格遵循保密和 PDPA 标准进行保管。"
+        "title": "您的信息将被保密",
+        "desc": "您发送的信息和文件将被保密，并仅按照我们的隐私政策使用。"
       }
     }
   },
@@ -1487,13 +1617,14 @@
       "submit": "登录",
       "noAccount": "还没有账号？",
       "signupHere": "立即注册"
-    }
+    },
+    "socialConsent": "首次使用 Google 或 LINE 登录将为您创建账户，即表示您接受<terms>服务条款</terms>和<privacy>隐私政策</privacy>。"
   },
   "Interpreters": {
     "metaTitle": "法律口译与翻译 - Lawslane",
-    "metaDescription": "查找法庭、警局、律师咨询、商务会议口译及法律文件翻译，在线预约和付款。",
+    "metaDescription": "法律口译与笔译服务，适用于法院、警察局、律师会谈、商务会议及文件翻译——联系 Lawslane 团队为您安排合适的译员。",
     "heroTitle": "法律口译与翻译",
-    "heroSubtitle": "为在泰国处理法律事务的外国人及外国企业和投资者服务。自选译员，预约前即可看到价格。",
+    "heroSubtitle": "面向在泰国有法律事务的外国人及外国企业/投资者——告诉我们您的需求，团队将为您安排译员并报价。",
     "forLawyerBanner": "正在为您的律师案件寻找译员 — 请在下方选择",
     "filterLanguage": "语言",
     "filterService": "服务",
@@ -1520,7 +1651,6 @@
     "reviews": "{count} 条评价",
     "noReviews": "暂无评价",
     "verifiedNote": "\"文件已核验\"表示 Lawslane 团队已检查该译员提交的文件，并非政府认证。",
-    "becomeInterpreter": "成为 Lawslane 译员",
     "book": {
       "title": "预约译员",
       "step1": "工作详情",
@@ -1563,6 +1693,7 @@
       "slipVerified": "凭证已核验，金额正确",
       "slipAmountMismatch": "凭证金额（฿{slip}）与应付金额不符",
       "slipManual": "无法自动核验，团队将人工核验",
+      "slipImagesOnly": "仅支持图片（JPG、PNG、WEBP），不支持 PDF——如果凭证是 PDF，请截图后上传图片。",
       "confirm": "确认预约",
       "submitting": "预约中...",
       "paymentNotReady": "译员服务的付款功能尚未开放，请联系我们。",
@@ -1664,7 +1795,39 @@
     "sessionLength": "每次 {hours} 小时",
     "bookThis": "预约此项",
     "customQuoteHint": "没有合适的套餐？可与译员聊天获取专属报价。",
-    "chatWithInterpreter": "咨询译员"
+    "chatWithInterpreter": "咨询译员",
+    "request": {
+      "howTitle": "如何申请译员",
+      "step1Title": "告诉我们您的需求",
+      "step1Body": "在下方表格中选择服务、语言、日期和地点。",
+      "step2Title": "与团队聊天",
+      "step2Body": "Lawslane 团队会在聊天中回复，确认细节并报价。",
+      "step3Title": "获得合适的译员",
+      "step3Body": "我们为您安排语言和工作类型相符的译员。",
+      "servicesTitle": "我们的服务",
+      "formTitle": "联系团队申请译员",
+      "formSubtitle": "填写您已知的信息，其余细节团队会在聊天中询问。",
+      "service": "所需服务",
+      "languageFrom": "源语言",
+      "languageTo": "目标语言",
+      "date": "日期（如已知）",
+      "mode": "形式",
+      "onsite": "现场",
+      "remote": "线上（视频通话）",
+      "location": "地点 / 府",
+      "locationPlaceholder": "例如：曼谷南区法院",
+      "phone": "联系电话（选填）",
+      "details": "补充说明",
+      "detailsPlaceholder": "例如：预计时长、文件页数或其他需要告知的事项",
+      "select": "请选择",
+      "submit": "提交申请并与团队聊天",
+      "submitting": "提交中...",
+      "loginRequired": "请先登录，以便团队在聊天中回复您。",
+      "loginButton": "登录",
+      "required": "请选择服务和语言",
+      "error": "提交失败，请重试。",
+      "forLawyerNote": "此申请将关联到推荐您的律师的案件。"
+    }
   },
   "ForInterpreters": {
     "metaTitle": "成为法律译员 - Lawslane",
@@ -1774,9 +1937,10 @@
       "saturday": "周六",
       "sunday": "周日"
     },
-    "notInterpreter": "此账户尚未注册为译员",
+    "notInterpreter": "此页面仅供已在 Lawslane 系统中的译员使用。",
     "tabMessages": "消息",
-    "contactAfterPayment": "付款确认后显示客户联系方式"
+    "contactAfterPayment": "付款确认后显示客户联系方式",
+    "goToService": "前往译员服务"
   },
   "InterpreterChat": {
     "offer": "报价",
@@ -1810,7 +1974,87 @@
     "send": "发送",
     "platformNote": "请仅通过 Lawslane 付款，以获得保障并在出现问题时退款。",
     "noConversations": "暂无消息",
-    "myConversations": "与译员的聊天"
+    "myConversations": "与译员的聊天",
+    "contactAdmin": "联系团队"
+  },
+  "Seo": {
+    "home": {
+      "title": "Lawslane - 在泰国寻找并咨询认证律师",
+      "description": "在泰国寻找并咨询经过核实的律师，免费查询律师姓名，预约法律翻译，下载法律表格，使用AI法律助手。"
+    },
+    "lawyers": {
+      "title": "寻找泰国律师 - Lawslane",
+      "description": "按专业领域和府查找泰国律师，查看评价并预约经过核实的律师咨询。"
+    },
+    "forLawyers": {
+      "title": "加入 Lawslane 成为律师 - 在线获取新客户",
+      "description": "律师专区：创建个人资料，通过 Lawslane 获取新客户和案件。"
+    },
+    "lawSearch": {
+      "title": "泰国法律检索 - Lawslane",
+      "description": "快速检索与您问题相关的泰国法律条文。"
+    },
+    "articles": {
+      "title": "法律文章 - Lawslane",
+      "description": "通俗易懂的泰国家庭、继承、合同、民事、刑事和商业法律文章。"
+    },
+    "forms": {
+      "title": "免费法律表格与合同模板 - Lawslane",
+      "description": "免费下载常用法律表格和合同模板。"
+    },
+    "about": {
+      "title": "关于 Lawslane - 数字法律平台",
+      "description": "Lawslane 连接客户与经过核实的泰国律师和法律翻译。"
+    },
+    "help": {
+      "title": "帮助中心 - Lawslane",
+      "description": "联系 Lawslane 团队，报告问题或申请更正/删除数据。"
+    },
+    "guide": {
+      "title": "Lawslane 使用指南",
+      "description": "分步介绍如何寻找律师、预约、付款及使用 Lawslane 各项功能。"
+    },
+    "verifyLawyer": {
+      "title": "核实泰国律师 - 免费查询姓名或执照号码 - Lawslane",
+      "description": "免费查询泰国律师姓名或执照号码，了解如何辨别真假律师以及聘请前的警示信号。"
+    }
+  },
+  "InterpreterPayment": {
+    "title": "支付译员服务费",
+    "subtitle": "来自 Lawslane 团队的付款通知",
+    "item": "项目",
+    "interpreter": "译员",
+    "service": "服务",
+    "languages": "语言",
+    "date": "日期",
+    "notes": "备注",
+    "amount": "应付金额",
+    "transferTo": "转账至 Lawslane 账户",
+    "payNote": "平台先代收款项，工作完成后支付给译员。",
+    "submit": "确认付款",
+    "submitting": "提交中...",
+    "paidTitle": "付款成功",
+    "paidBody": "团队已收到款项，将在聊天中确认安排。",
+    "reviewTitle": "已收到转账凭证",
+    "reviewBody": "团队正在核对凭证，将在聊天中通知您。",
+    "notFound": "未找到此付款链接，或该链接属于其他账户。",
+    "closed": "此链接已付款或已取消。",
+    "expired": "此链接已过期，请在聊天中联系团队。",
+    "notReady": "支付功能暂不可用，请联系团队。",
+    "backToChat": "返回与团队的聊天",
+    "loginRequired": "请使用提交申请的账户登录。",
+    "login": "登录",
+    "error": "付款失败，请重试。"
+  },
+  "Receipts": {
+    "title": "收据",
+    "empty": "暂无收据",
+    "void": "已作废",
+    "download": "下载收据 {no}",
+    "viewAll": "查看全部收据（{count}）",
+    "unknownPayer": "客户",
+    "clientNote": "收据以收款律师的名义开具，在律师确认收款后生成。",
+    "lawyerNote": "当您确认收款时，系统会自动以您的名义开具收据。"
   },
   "CookieBanner": {
     "title": "我们只使用必要的 Cookie",

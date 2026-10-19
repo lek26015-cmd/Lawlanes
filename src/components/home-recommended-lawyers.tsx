@@ -12,17 +12,15 @@ import { EmptyState } from '@/components/ui/empty-state';
 import { FadeIn } from '@/components/fade-in';
 import { useTranslations } from 'next-intl';
 import LawyerFilterSidebar from '@/components/lawyer-filter';
-import { Languages } from 'lucide-react';
-import { InterpreterCard } from '@/components/interpreter/interpreter-card';
-import type { PublicInterpreter } from '@/lib/interpreter-types';
+import Image from 'next/image';
+import interpreterHero from '@/pic/lawslane-interpreter.webp';
 import { lawyerDisplayTier, TIER_RANK } from '@/lib/provider-plans';
 
 interface HomeRecommendedLawyersProps {
     initialLawyers?: LawyerProfile[];
-    initialInterpreters?: PublicInterpreter[];
 }
 
-export function HomeRecommendedLawyers({ initialLawyers, initialInterpreters = [] }: HomeRecommendedLawyersProps) {
+export function HomeRecommendedLawyers({ initialLawyers }: HomeRecommendedLawyersProps) {
     const [lawyers, setLawyers] = useState<LawyerProfile[]>(initialLawyers || []);
     const [loading, setLoading] = useState(!initialLawyers);
     const t = useTranslations('HomePage.recommendedLawyers');
@@ -74,7 +72,7 @@ export function HomeRecommendedLawyers({ initialLawyers, initialInterpreters = [
             {/* Decorative Elements - Blue Theme (Subtle) */}
             <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
                 <div className="absolute top-[0%] right-[0%] w-[50%] h-[50%] rounded-full bg-blue-100/30 blur-3xl animate-pulse" />
-                <div className="absolute bottom-[0%] left-[0%] w-[40%] h-[40%] rounded-full bg-indigo-50/50 blur-3xl" />
+                <div className="absolute bottom-[0%] left-[0%] w-[40%] h-[40%] rounded-full bg-blue-50/50 blur-3xl" />
             </div>
 
             <div className="container mx-auto px-4 md:px-6 relative z-10">
@@ -130,46 +128,29 @@ export function HomeRecommendedLawyers({ initialLawyers, initialInterpreters = [
                             </FadeIn>
                         </div>
 
-                        {/* ล่ามแนะนำ — ต่อจากทนาย ใช้ตัวกรองด้านซ้ายร่วมกัน (สลับเป็นโหมดล่ามได้) */}
-                        <div className="mt-16 pt-12 border-t border-slate-200">
-                                <FadeIn direction="up">
-                                    <div className="mb-8 text-center lg:text-left">
-                                        <h3 className="text-2xl font-bold tracking-tight text-[#0B3979] font-headline sm:text-3xl">{tInterp('title')}</h3>
-                                        <p className="mt-2 text-slate-600 leading-relaxed">{tInterp('subtitle')}</p>
-                                    </div>
-                                </FadeIn>
-                                {initialInterpreters.length > 0 ? (
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                        {initialInterpreters.map((interpreter, index) => (
-                                            <FadeIn key={interpreter.id} delay={index * 150} direction="up" className="h-full">
-                                                <InterpreterCard interpreter={interpreter} />
-                                            </FadeIn>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <FadeIn>
-                                        <EmptyState
-                                            icon={Languages}
-                                            title={tInterp('emptyTitle')}
-                                            description={tInterp('emptyDescription')}
-                                        />
-                                        <div className="text-center -mt-4">
-                                            <Link href={`/for-interpreters`} className="text-sm font-medium text-[#0B3979] hover:underline">
-                                                {tInterp('becomeInterpreter')}
-                                            </Link>
-                                        </div>
-                                    </FadeIn>
-                                )}
-                                <div className="mt-12 text-center lg:text-left">
-                                    <FadeIn delay={400} direction="up">
-                                        <Button asChild size="lg" variant="outline" className="bg-white hover:bg-slate-50 border-slate-200 text-slate-700 shadow-md hover:shadow-lg transition-all px-10 py-6 rounded-full text-lg font-medium">
-                                            <Link href={`/interpreters`}>{tInterp('viewAll')}</Link>
-                                        </Button>
-                                    </FadeIn>
-                                </div>
-                        </div>
                     </div>
                 </div>
+
+                {/* บริการล่าม — แบนเนอร์เต็มความกว้าง (ไม่แสดงรายชื่อล่ามบนเว็บ ลูกค้าส่งคำขอแล้วคุยกับแอดมินที่หน้า /interpreters) */}
+                <FadeIn direction="up">
+                    <div className="relative mt-16 md:mt-24 overflow-hidden rounded-[2.5rem] bg-slate-900 text-white shadow-xl sm:grid sm:grid-cols-[1fr_auto] sm:items-end sm:gap-6">
+                        <div className="absolute top-0 right-0 -mr-16 -mt-16 w-72 h-72 bg-white/5 rounded-full blur-3xl pointer-events-none" />
+                        <div className="sm:hidden relative h-[220px]">
+                            <Image src={interpreterHero} alt="" fill sizes="100vw" className="object-contain object-top" />
+                            <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-slate-900 to-transparent" />
+                        </div>
+                        <div className="relative px-6 pb-8 -mt-6 text-center sm:mt-0 sm:py-12 sm:pl-12 md:py-14 md:pl-16 sm:text-left sm:self-center">
+                            <h3 className="text-2xl font-bold tracking-tight font-headline sm:text-3xl md:text-4xl">{tInterp('title')}</h3>
+                            <p className="mt-3 max-w-3xl text-gray-400 text-lg leading-relaxed">{tInterp('subtitle')}</p>
+                            <div className="mt-8">
+                                <Button asChild size="lg" variant="secondary" className="w-full sm:w-auto rounded-full px-10 text-lg font-bold text-slate-900 bg-white hover:bg-gray-100 shadow-xl">
+                                    <Link href={`/interpreters`}>{tInterp('viewAll')}</Link>
+                                </Button>
+                            </div>
+                        </div>
+                        <Image src={interpreterHero} alt="" sizes="260px" className="relative hidden sm:block w-[200px] lg:w-[260px] h-auto mr-8 lg:mr-16 mt-8" />
+                    </div>
+                </FadeIn>
             </div>
         </section>
     );

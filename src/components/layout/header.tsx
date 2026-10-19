@@ -7,7 +7,7 @@ import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { Button } from '@/components/ui/button';
 import Logo from '@/components/logo';
 import { Input } from '@/components/ui/input';
-import { Search, Menu, User, ChevronDown, LogOut, LayoutDashboard, Camera, FileText, GraduationCap } from 'lucide-react';
+import { Search, Menu, User, ChevronDown, LogOut, LayoutDashboard, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState, useEffect } from 'react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
@@ -22,7 +22,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { PlanAvatar, PlanBadge } from '@/components/plan-avatar';
+import { lawyerTier } from '@/lib/provider-plans';
+import { customerGrantPlan } from '@/lib/customer-ai-plan';
+import { userPlanDisplay, type UserPlan } from '@/lib/plan-display';
 import { doc, getDoc } from 'firebase/firestore';
 import profileLawyerImg from '@/pic/profile-lawyer.jpg';
 import { getCloudflareVariantUrl } from '@/lib/cloudflare-images';
@@ -55,10 +58,13 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
   const isSuperUser = customClaims.admin === true;
 
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  // วงสี/ป้ายรอบรูปโปรไฟล์ — มีโปรไฟล์ทนายใช้แพลนทนาย ไม่งั้นใช้แพ็กเกจลูกค้า (users.planGrants.lawslane)
+  const [plan, setPlan] = useState<UserPlan>('free');
 
   useEffect(() => {
     async function fetchRole() {
       if (!user || !firestore) return;
+      setPlan('free');
 
       try {
         // 1. Read custom claims from Firebase Auth token
@@ -91,6 +97,7 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
             setUserRole('lawyer');
           }
           setAvatarUrl(lawyerSnap.exists() ? lawyerSnap.data().imageUrl : user.photoURL);
+          if (lawyerSnap.exists()) setPlan(lawyerTier(lawyerSnap.data()));
           if (!claims.admin) return; // Exit early if lawyer (non-admin)
         }
 
@@ -104,6 +111,7 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
             setRole(data.role || 'user');
             setUserRole(data.role || 'user');
             setAvatarUrl(data.avatar || user.photoURL);
+            setPlan(customerGrantPlan(data.planGrants?.lawslane));
           } else {
             setRole('user');
             setUserRole('user');
@@ -233,10 +241,10 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
             </Link>
 
             <a href="https://capdeal.lawslane.com" target="_blank" rel="noopener noreferrer" className={pathname.startsWith(`/services/contracts/screenshot`) ? activeNavLinkClasses : navLinkClasses}>
-              <span className="flex items-center gap-1"><Camera className="h-4 w-4" />{t('capAndDeal')}</span>
+              {t('capAndDeal')}
             </a>
             <a href={getEducationLink()} target="_blank" rel="noopener noreferrer" className={navLinkClasses}>
-              <span className="flex items-center gap-1"><GraduationCap className="h-4 w-4" />{t('education')}</span>
+              {t('education')}
             </a>
             <Link href={getMainLink('/articles', domainType, !isMounted)} className={pathname.startsWith(`/articles`) ? activeNavLinkClasses : navLinkClasses}>
               {t('articles')}
@@ -286,16 +294,20 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
               <DropdownMenu modal={false}>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className={cn("flex items-center gap-2", loginButtonClasses)}>
-                    <Avatar className="w-8 h-8">
-                      <AvatarImage src={getCloudflareVariantUrl(avatarUrl, 'avatar') || profileLawyerImg.src} />
-                      <AvatarFallback>{user.displayName?.charAt(0) || user.email?.charAt(0)}</AvatarFallback>
-                    </Avatar>
+                    <PlanAvatar
+                      src={getCloudflareVariantUrl(avatarUrl, 'avatar') || profileLawyerImg.src}
+                      fallback={user.displayName?.charAt(0) || user.email?.charAt(0) || ''}
+                      {...userPlanDisplay(plan)}
+                    />
                     <span className="hidden lg:inline max-w-[150px] truncate">{user.displayName || user.email}</span>
                     <ChevronDown className="w-4 h-4" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>{t('myAccount')}</DropdownMenuLabel>
+                  <DropdownMenuLabel className="flex items-center justify-between gap-3">
+                    {t('myAccount')}
+                    <PlanBadge {...userPlanDisplay(plan)} />
+                  </DropdownMenuLabel>
                   <DropdownMenuSeparator />
 
                     {isAdmin && (
@@ -397,11 +409,12 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
             </div>
           )}
           {user ? (
-            <Link href="/dashboard">
-              <Avatar className="w-8 h-8 border border-border/50">
-                <AvatarImage src={getCloudflareVariantUrl(avatarUrl, 'avatar') || profileLawyerImg.src} />
-                <AvatarFallback>{user.displayName?.charAt(0) || user.email?.charAt(0)}</AvatarFallback>
-              </Avatar>
+            <Link href="/dashboard" aria-label={plan !== 'free' ? `แพลน ${userPlanDisplay(plan).label}` : undefined}>
+              <PlanAvatar
+                src={getCloudflareVariantUrl(avatarUrl, 'avatar') || profileLawyerImg.src}
+                fallback={user.displayName?.charAt(0) || user.email?.charAt(0) || ''}
+                {...userPlanDisplay(plan)}
+              />
             </Link>
           ) : (
             <Link href="/login">
@@ -435,8 +448,8 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
                   <Link href={getMainLink('/verify-lawyer', domainType, !isMounted)} className="hover:text-primary" onClick={() => setIsMobileMenuOpen(false)}>{t('verifyLawyer')}</Link>
                   <Link href={getMainLink('/interpreters', domainType, !isMounted)} className="hover:text-primary" onClick={() => setIsMobileMenuOpen(false)}>{t('findInterpreter')}</Link>
 
-                  <a href="https://capdeal.lawslane.com" target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:text-primary"><Camera className="h-5 w-5" />{t('capAndDeal')}</a>
-                  <a href={getEducationLink()} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 hover:text-primary"><GraduationCap className="h-5 w-5" />{t('education')}</a>
+                  <a href="https://capdeal.lawslane.com" target="_blank" rel="noopener noreferrer" className="hover:text-primary">{t('capAndDeal')}</a>
+                  <a href={getEducationLink()} target="_blank" rel="noopener noreferrer" className="hover:text-primary">{t('education')}</a>
                   <Link href={getMainLink('/articles', domainType, !isMounted)} className="hover:text-primary">{t('articles')}</Link>
                   <Link href={getMainLink('/for-lawyers', domainType, !isMounted)} className="hover:text-primary">{t('forLawyers')}</Link>
 
@@ -458,13 +471,17 @@ export default function Header({ setUserRole, domainType = 'main' }: { setUserRo
                   {user ? (
                     <div className="space-y-4">
                       <div className="flex items-center gap-3 px-2">
-                        <Avatar className="w-10 h-10">
-                          <AvatarImage src={getCloudflareVariantUrl(avatarUrl, 'avatar') || profileLawyerImg.src} />
-                          <AvatarFallback>{user.displayName?.charAt(0) || user.email?.charAt(0)}</AvatarFallback>
-                        </Avatar>
-                        <div className="flex flex-col">
-                          <span className="font-semibold">{user.displayName || user.email}</span>
+                        <PlanAvatar
+                          src={getCloudflareVariantUrl(avatarUrl, 'avatar') || profileLawyerImg.src}
+                          fallback={user.displayName?.charAt(0) || user.email?.charAt(0) || ''}
+                          {...userPlanDisplay(plan)}
+                          size="md"
+                          showBadge={false}
+                        />
+                        <div className="flex flex-col items-start min-w-0">
+                          <span className="font-semibold truncate max-w-full">{user.displayName || user.email}</span>
                           <span className="text-xs text-muted-foreground capitalize">{role === 'lawyer' ? 'ทนายความ' : role === 'admin' ? 'ผู้ดูแลระบบ' : 'ลูกความ'}</span>
+                          <PlanBadge {...userPlanDisplay(plan)} className="mt-1" />
                         </div>
                       </div>
                       <div className="flex flex-col gap-2">

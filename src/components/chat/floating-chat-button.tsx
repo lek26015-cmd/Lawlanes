@@ -6,11 +6,14 @@ import { Button } from '@/components/ui/button';
 import { MessageSquare } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useChat } from '@/context/chat-context';
+import { useRouter } from '@/navigation';
 
 import { useTranslations } from 'next-intl';
 
 export default function FloatingChatButton() {
-  const { setAiChatOpen, isAiChatOpen } = useChat();
+  // ลลินเดิมเปิดเป็น modal — ตอนนี้พาไปหน้า Lawslane AI (/ai) เต็มจอแทน
+  const { isAiChatOpen } = useChat();
+  const router = useRouter();
   const [isFooterVisible, setIsFooterVisible] = useState(false);
   const t = useTranslations('AiAdvisor');
 
@@ -51,7 +54,7 @@ export default function FloatingChatButton() {
             isFooterVisible ? "bg-gradient-to-r from-gray-400 via-gray-500 to-gray-600" : "bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600"
           )}></div>
           <Button
-            onClick={() => setAiChatOpen(true)}
+            onClick={() => router.push('/ai')}
             className={buttonClasses}
             aria-label="Open AI Chat"
           >

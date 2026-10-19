@@ -75,7 +75,7 @@ export function SmartContractGenerator() {
         <div className="relative flex justify-between">
           <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full h-1 bg-slate-200 rounded-full" />
           <div 
-            className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-indigo-600 rounded-full transition-all duration-300"
+            className="absolute left-0 top-1/2 -translate-y-1/2 h-1 bg-[#0B3979] rounded-full transition-all duration-300"
             style={{ width: `${((currentStep - 1) / (STEPS.length - 1)) * 100}%` }}
           />
           
@@ -86,12 +86,12 @@ export function SmartContractGenerator() {
               <div key={step.id} className="relative flex flex-col items-center group">
                 <div 
                   className={`w-8 h-8 rounded-full flex items-center justify-center font-medium text-sm transition-colors shadow-sm z-10
-                    ${isCompleted ? 'bg-indigo-600 text-white' : 
-                      isCurrent ? 'bg-indigo-600 text-white ring-4 ring-indigo-100' : 'bg-white border-2 border-slate-200 text-slate-400'}`}
+                    ${isCompleted ? 'bg-[#0B3979] text-white' : 
+                      isCurrent ? 'bg-[#0B3979] text-white ring-4 ring-blue-100' : 'bg-white border-2 border-slate-200 text-slate-400'}`}
                 >
                   {isCompleted ? <CheckCircle2 className="w-5 h-5" /> : step.id}
                 </div>
-                <span className={`absolute top-10 w-max text-xs font-medium ${isCurrent ? 'text-indigo-600' : 'text-slate-500'}`}>
+                <span className={`absolute top-10 w-max text-xs font-medium ${isCurrent ? 'text-[#0B3979]' : 'text-slate-500'}`}>
                   {step.title}
                 </span>
               </div>
@@ -183,7 +183,7 @@ export function SmartContractGenerator() {
               </div>
 
               <div className="space-y-4">
-                <Button className="w-full h-12 text-base bg-white border-2 border-indigo-600 text-indigo-600 hover:bg-indigo-50 shadow-sm">
+                <Button className="w-full h-12 text-base bg-white border-2 border-[#0B3979] text-[#0B3979] hover:bg-blue-50 shadow-sm">
                   <Download className="w-5 h-5 mr-2" />
                   Download Draft (PDF)
                 </Button>
@@ -197,7 +197,7 @@ export function SmartContractGenerator() {
                   </div>
                 </div>
 
-                <Button asChild className="w-full h-14 text-base bg-indigo-600 hover:bg-indigo-700 text-white shadow-md">
+                <Button asChild className="w-full h-14 text-base bg-[#0B3979] hover:bg-[#082a5a] text-white shadow-md">
                   <Link href="/lawyers">
                     <Scale className="w-5 h-5 mr-2" />
                     Have a Lawyer Review This

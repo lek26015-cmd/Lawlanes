@@ -3,10 +3,8 @@ import * as admin from 'firebase-admin';
 /**
  * Creates a Capdeal contract document and posts a system message to the chat.
  * 
- * Extracted from 3 duplicate blocks in chat-actions.ts:
- * - markInstallmentPaidAction (line ~776)
- * - markCasePaidAction (line ~1019)
- * - approveInstallmentAction (line ~1132)
+ * เรียกเมื่อทนาย/แอดมินยืนยันรับเงินก้อนแรกของเคส
+ * (confirmDirectPaymentReceivedAction ใน direct-payment-actions.ts)
  */
 export async function createContractFromChat(
     db: admin.firestore.Firestore,

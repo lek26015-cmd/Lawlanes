@@ -59,12 +59,12 @@ export default function CookieBanner() {
       </button>
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:gap-6">
         <div className="flex items-start gap-3 pr-6 md:pr-0">
-          <Cookie className="mt-0.5 h-6 w-6 flex-shrink-0 text-[#002f4b]" />
+          <Cookie className="mt-0.5 h-6 w-6 flex-shrink-0 text-[#0B3979]" />
           <div>
             <p className="font-semibold text-slate-900">{t('title')}</p>
             <p className="mt-1 text-sm leading-relaxed text-slate-600">
               {t('body')}{' '}
-              <Link href="/cookies" className="font-medium text-[#002f4b] underline underline-offset-2">
+              <Link href="/cookies" className="font-medium text-[#0B3979] underline underline-offset-2">
                 {t('link')}
               </Link>
             </p>
@@ -72,7 +72,7 @@ export default function CookieBanner() {
         </div>
         <Button
           onClick={acknowledge}
-          className="h-11 flex-shrink-0 rounded-xl bg-[#002f4b] px-8 font-semibold text-white hover:bg-[#002f4b]/90 md:ml-auto"
+          className="h-11 flex-shrink-0 rounded-xl bg-[#0B3979] px-8 font-semibold text-white hover:bg-[#0B3979]/90 md:ml-auto"
         >
           {t('accept')}
         </Button>

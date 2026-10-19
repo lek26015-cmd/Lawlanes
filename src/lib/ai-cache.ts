@@ -11,6 +11,8 @@ import { createHash } from 'crypto';
  * → ใครก็อ่านได้ และเอกสารเก็บ `input` 500 ตัวอักษรแรกไว้ด้วย (เช่น เนื้อหาสัญญาที่ผู้ใช้ส่งมาวิเคราะห์)
  * ตอนนี้ rule ปิดสนิท และฟังก์ชันพวกนี้ถูกเรียกจาก server action / AI flow เท่านั้น
  */
+const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
 async function getAdminDb() {
   const adminApp = await initAdmin();
   return adminApp ? adminApp.firestore() : null;
@@ -77,6 +79,9 @@ export async function setCachedAIResponse<T>(
     await db.collection('ai_cache').doc(cacheKey).set({
       result,
       createdAt: Timestamp.now(),
+      // Firestore TTL policy บนฟิลด์นี้ลบเอกสารอัตโนมัติ (input อาจมีข้อมูลส่วนตัว เช่น เนื้อหาสัญญา)
+      // เท่ากับ TTL ค่าเริ่มต้นของ getCachedAIResponse — หมดอายุแล้วก็ไม่ถูกอ่านอยู่ดี
+      expiresAt: Timestamp.fromMillis(Date.now() + CACHE_TTL_MS),
       input: input.substring(0, 500) // Store a snippet for debugging/reference
     });
     console.log(`[AI Cache] Saved for ${namespace} (${cacheKey})`);

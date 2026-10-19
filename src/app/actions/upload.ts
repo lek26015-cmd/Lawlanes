@@ -17,7 +17,8 @@ const ALLOWED_FOLDERS: RegExp[] = [
     /^uploads$/,
     /^public$/,
     /^profile-images$/,
-    /^payment-slips$/,
+    // payment-slips ถอดแล้ว — ไม่มีหน้าไหนในเว็บนี้อัปสลิปขึ้น R2 (ล่ามเก็บใน Firestore slipImages)
+    // และโฟลเดอร์นี้เปิดสาธารณะผ่าน R2_PUBLIC_URL สลิปมีชื่อ/เลขบัญชี (ดู LAWSLANE-PLAN-06)
     /^lawyer_documents\/[A-Za-z0-9_-]+$/,
     /^support\/[A-Za-z0-9_-]+$/,
     /^chats\/[A-Za-z0-9_-]+$/,

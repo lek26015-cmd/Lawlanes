@@ -5,6 +5,7 @@ import * as admin from 'firebase-admin';
 import { Invoice, InvoiceStatus } from '@/lib/types/billing-types';
 import { requireUser, requireLawyer, requireChatRole, authErrorResult } from '@/lib/auth-guard';
 import { logCaseEvent } from '@/lib/telemetry/case-events';
+import { requireLawyerFeature } from '@/lib/lawyer-plan-access';
 
 /**
  * Fetches invoices for a specific user (client view).
@@ -21,16 +22,26 @@ export async function getUserInvoicesAction() {
     try {
         const db = adminApp.firestore();
 
+        // ใบแจ้งหนี้ถูกเขียนด้วยชื่อช่อง 2 ชุด: createInvoiceAction ใช้ client_id/case_id/due_date
+        // ส่วนใบที่สร้างจากแชท (lawyer-actions) รุ่นเก่ามีแค่ userId/chatId → ค้นทั้งสองแบบแล้วรวม
         const invoicesRef = db.collection('invoices');
-        const snapshot = await invoicesRef.where('client_id', '==', userId).get();
+        const [byClientId, byUserId] = await Promise.all([
+            invoicesRef.where('client_id', '==', userId).get(),
+            invoicesRef.where('userId', '==', userId).get(),
+        ]);
+        const docs = new Map<string, FirebaseFirestore.QueryDocumentSnapshot>();
+        [...byClientId.docs, ...byUserId.docs].forEach(d => docs.set(d.id, d));
 
-        const invoices: Invoice[] = snapshot.docs.map(doc => {
+        const invoices: Invoice[] = Array.from(docs.values()).map(doc => {
             const data = doc.data();
+            const due = data.due_date ?? data.dueDate;
             return {
                 id: doc.id,
                 ...data,
+                case_id: data.case_id || data.chatId || data.caseId || data.chat_id || '',
+                client_id: data.client_id || data.userId || userId,
                 createdAt: data.createdAt?.toDate ? data.createdAt.toDate().getTime() : (data.createdAt || Date.now()),
-                due_date: data.due_date?.toDate ? data.due_date.toDate().getTime() : (data.due_date || Date.now()),
+                due_date: due?.toDate ? due.toDate().getTime() : (typeof due === 'string' ? new Date(due).getTime() : (due || Date.now())),
                 paidAt: data.paidAt?.toDate ? data.paidAt.toDate().getTime() : data.paidAt,
             } as Invoice;
         });
@@ -50,9 +61,10 @@ export async function getUserInvoicesAction() {
  */
 export async function getLawyerInvoicesAction() {
     // uid มาจาก session — เดิมรับ lawyerId เป็น argument
+    // ใบแจ้งหนี้เป็นสิทธิ์ Pro/บริษัท — แพลนหมดอายุแล้วซ่อนของเดิมด้วย (ไม่ลบ)
     let lawyerId: string, adminApp;
     try {
-        ({ uid: lawyerId, adminApp } = await requireUser());
+        ({ uid: lawyerId, adminApp } = await requireLawyerFeature('invoices'));
     } catch (e) {
         return authErrorResult(e);
     }
@@ -96,6 +108,7 @@ export async function createInvoiceAction(data: Partial<Invoice>) {
     let callerUid: string, callerLawyerProfileId: string, adminApp;
     try {
         ({ uid: callerUid, lawyerProfileId: callerLawyerProfileId, adminApp } = await requireLawyer());
+        await requireLawyerFeature('invoices'); // ออกใบแจ้งหนี้เป็นสิทธิ์ Pro/บริษัท
     } catch (e) {
         return authErrorResult(e);
     }

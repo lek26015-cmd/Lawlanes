@@ -6,6 +6,9 @@ import { revalidatePath } from 'next/cache';
 import { callTyphoonAI } from '@/lib/typhoon';
 import { NotificationService } from '@/services/notification-service';
 import { requireUser, requireChatRole, AuthError } from '@/lib/auth-guard';
+import { requireLawyerFeature } from '@/lib/lawyer-plan-access';
+
+const requireCasePlan = () => requireLawyerFeature('caseManagement');
 import { checkRateLimit } from '@/lib/security/rate-limiter';
 import { addCaseEventToBatch, isTelemetryEnabled, logCaseEvent, resolveLawyerProfileId } from '@/lib/telemetry/case-events';
 import { uploadToR2 } from '@/app/actions/upload';
@@ -17,7 +20,8 @@ import { v4 as uuidv4 } from 'uuid';
  * legalCases เก็บเจ้าของไว้ที่ฟิลด์ lawyer_id ซึ่งเป็น auth uid
  */
 async function requireCaseOwner(caseId: string) {
-    const { uid, token, adminApp } = await requireUser();
+    // จัดการคดีต้องอยู่ในสิทธิ์ของแพลน (แอดมินผ่านได้) — แพลนหมดอายุแล้วข้อมูลเดิมถูกซ่อน ไม่ลบ
+    const { uid, token, adminApp } = await requireCasePlan();
     const db = adminApp.firestore();
     const isAdmin = token.admin === true || token.role === 'admin';
 
@@ -251,7 +255,12 @@ export async function createLegalCaseAction(data: {
     court?: string;
     fee?: number;
 }) {
-    const { uid: lawyerId, adminApp } = await requireUser();
+    let lawyerId: string, adminApp: Awaited<ReturnType<typeof requireCasePlan>>['adminApp'];
+    try {
+        ({ uid: lawyerId, adminApp } = await requireCasePlan());
+    } catch (e) {
+        return { success: false, error: e instanceof AuthError && e.status === 402 ? 'แพลนปัจจุบันของคุณยังไม่รวมระบบจัดการคดี' : 'ไม่มีสิทธิ์ทำรายการนี้' };
+    }
     const db = adminApp.firestore();
 
     if (!data.title?.trim() || !data.clientName?.trim()) {
@@ -291,7 +300,14 @@ export async function createLegalCaseAction(data: {
  */
 export async function getLawyerLegalCases(): Promise<Case[]> {
     // uid มาจาก session — เดิมรับ lawyerId เป็น argument จึงดูเคสของทนายคนอื่นได้
-    const { uid: lawyerId, adminApp } = await requireUser();
+    // แพลนฟรี/หมดอายุ → ไม่คืนข้อมูล (หน้าถูกล็อกอยู่แล้ว กันยิง action ตรง)
+    let lawyerId: string, adminApp: Awaited<ReturnType<typeof requireCasePlan>>['adminApp'];
+    try {
+        ({ uid: lawyerId, adminApp } = await requireCasePlan());
+    } catch (e) {
+        if (e instanceof AuthError) return [];
+        throw e;
+    }
     const db = adminApp.firestore();
 
     try {
@@ -348,7 +364,7 @@ export async function getCaseMilestones(caseId?: string): Promise<Milestone[]> {
     // โหมด "ทุกเคสของฉัน" — หา legalCases ของตัวเองก่อน แล้วค่อยดึง milestone
     // ด้วย `in` ทีละ 30 id (เพดานของ Firestore) เพื่อไม่ให้หลุดไปอ่านของคนอื่น
     try {
-        const { uid, adminApp } = await requireUser();
+        const { uid, adminApp } = await requireCasePlan();
         const db = adminApp.firestore();
 
         const casesSnap = await db.collection('legalCases')
@@ -656,7 +672,7 @@ export async function closeCaseAction(caseId: string, data: {
 }
 
 /**
- * Cancel a case: update chat status and mark refund as pending.
+ * Cancel a case: update chat status. การคืนเงิน (ถ้ามี) เป็นเรื่องระหว่างลูกความกับทนายโดยตรง
  */
 export async function cancelCaseAction(caseId: string) {
     // caseId ตรงนี้คือ chatId — ต้องเป็นทนายของเคสนี้จริง
@@ -676,14 +692,20 @@ export async function cancelCaseAction(caseId: string) {
         }
 
         const chatData = chatDoc.data();
-        const paidAmount = chatData?.paidAmount || chatData?.amount || 0;
+        // ยอดที่ทนายยืนยันว่าได้รับแล้วจริง (งวดที่ 'paid' หรือ paidAmount) — ไม่ใช่ chat.amount
+        // ซึ่งเป็นแค่ยอดที่เสนอ ลูกความอาจยังไม่ได้โอนเลย
+        const insts: any[] = Array.isArray(chatData?.installments) ? chatData!.installments : [];
+        const paidAmount = insts.length > 0
+            ? insts.filter(i => i?.status === 'paid').reduce((sum, i) => sum + (parseFloat(String(i?.amount ?? 0).replace(/,/g, '')) || 0), 0)
+            : (Number(chatData?.paidAmount) || 0);
 
         const batch = db.batch();
         batch.update(chatRef, {
             status: 'cancelled',
             cancelledAt: new Date(),
             cancelledBy: actorUid,
-            refundStatus: paidAmount > 0 ? 'pending_refund' : 'no_refund_needed',
+            // Lawslane ไม่ได้ถือเงิน → ไม่มีคิวคืนเงินของแพลตฟอร์ม การคืน (ถ้ามี) ตกลงกันเองระหว่างลูกความกับทนาย
+            refundStatus: paidAmount > 0 ? 'direct_with_lawyer' : 'no_refund_needed',
             refundAmount: paidAmount,
             lastMessage: '❌ เคสถูกยกเลิกโดยทนายความ',
             lastMessageAt: new Date(),
@@ -693,7 +715,7 @@ export async function cancelCaseAction(caseId: string) {
         // Add system message
         const systemMsgRef = chatRef.collection('messages').doc();
         batch.set(systemMsgRef, {
-            text: `❌ เคสถูกยกเลิกโดยทนายความ${paidAmount > 0 ? ` — ระบบจะดำเนินการคืนเงิน ฿${paidAmount.toLocaleString()} ให้ลูกความ` : ''}`,
+            text: `❌ เคสถูกยกเลิกโดยทนายความ${paidAmount > 0 ? ` — ลูกความชำระให้ทนายไปแล้ว ฿${paidAmount.toLocaleString()} การคืนเงินให้ตกลงกับทนายโดยตรง (Lawslane ไม่ได้ถือเงินก้อนนี้)` : ''}`,
             senderId: 'system',
             timestamp: new Date(),
             type: 'case_cancelled'

@@ -8,29 +8,21 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { PlanAvatar } from '@/components/plan-avatar';
+import { useMyPlan } from '@/hooks/use-my-plan';
+import { userPlanDisplay } from '@/lib/plan-display';
 import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
 import { ArrowLeft, User, Lock, Bell, ShieldAlert, Loader2, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { THAI_PROVINCES } from '@/lib/thai-provinces';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
 import { useFirebase, useUser } from '@/firebase';
 import { doc, getDoc, setDoc, updateDoc } from 'firebase/firestore';
 import { updatePassword, updateProfile, EmailAuthProvider, reauthenticateWithCredential } from 'firebase/auth';
 // Using Firebase Storage for public profile images instead of Cloudflare Images
 import { uploadToFirebasePublic } from '@/app/actions/upload';
 import { useToast } from '@/hooks/use-toast';
+import { DeleteAccountDialog } from '@/components/account/delete-account-dialog';
 import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '@/lib/constants';
 import { formatPhoneNumber, formatBankAccount } from '@/lib/utils';
 import Image from 'next/image';
@@ -78,6 +70,7 @@ const banks = [
 export default function AccountPage() {
   const { firestore, storage, auth } = useFirebase();
   const { user } = useUser();
+  const myPlan = useMyPlan();
   const { toast } = useToast();
   const t = useTranslations('Account');
   const tBanks = useTranslations('Banks');
@@ -428,10 +421,12 @@ export default function AccountPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center gap-6">
-                <Avatar className="w-20 h-20">
-                  <AvatarImage src={profileData.photoURL} />
-                  <AvatarFallback>{profileData.name ? profileData.name.charAt(0) : 'U'}</AvatarFallback>
-                </Avatar>
+                <PlanAvatar
+                  src={profileData.photoURL}
+                  fallback={profileData.name ? profileData.name.charAt(0) : 'U'}
+                  size="lg"
+                  {...userPlanDisplay(myPlan)}
+                />
                 {isEditingProfile && (
                   <>
                     <input
@@ -735,23 +730,7 @@ export default function AccountPage() {
                   <p className="font-semibold">{t('deleteAccount')}</p>
                   <p className="text-sm text-muted-foreground">{t('deleteAccountSubtitle')}</p>
                 </div>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="destructive" className="rounded-full">{t('deleteMyAccount')}</Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>{t('deleteConfirmTitle')}</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        {t('deleteConfirmSubtitle')}
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>{t('cancel')}</AlertDialogCancel>
-                      <AlertDialogAction className="bg-destructive hover:bg-destructive/90 text-destructive-foreground">{t('confirmDelete')}</AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
+                <DeleteAccountDialog />
               </div>
             </CardContent>
           </Card>

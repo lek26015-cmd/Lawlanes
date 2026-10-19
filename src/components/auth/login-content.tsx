@@ -516,6 +516,13 @@ function LoginPageContent() {
                                 )}
                             </Button>
                         </div>
+                        {/* เข้าสู่ระบบด้วย Google/LINE ครั้งแรก = สร้างบัญชีใหม่ — ต้องแจ้งข้อกำหนด/นโยบายก่อนกด */}
+                        <p className="text-xs text-center text-slate-500 leading-relaxed -mt-1">
+                            {t.rich('socialConsent', {
+                                terms: (chunks) => <Link href="/terms" target="_blank" className="underline hover:text-[#0B3979]">{chunks}</Link>,
+                                privacy: (chunks) => <Link href="/privacy" target="_blank" className="underline hover:text-[#0B3979]">{chunks}</Link>,
+                            })}
+                        </p>
 
                         <div className="relative">
                             <div className="absolute inset-0 flex items-center">

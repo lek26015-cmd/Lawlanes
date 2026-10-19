@@ -29,16 +29,28 @@ export type StoredPlan = {
     customerId: string;
     subscriptionId: string | null;
     priceId?: string | null;
+    /** ISO — เวลาที่เห็น past_due ครั้งแรกของ subscription นี้ (ใช้นับ 3 วันที่ยังใช้สิทธิ์ได้) · ไม่ past_due = null */
+    pastDueSince?: string | null;
     updatedAt?: string;
 };
 
 const ACTIVE_STATUSES = ['active', 'trialing'];
 
-/** แพลนที่ใช้สิทธิ์ได้จริงตอนนี้ — ไม่ active หรือเลยรอบบิลแล้ว = free */
+/** subscription ที่ยังเก็บเงิน/ยังมีผล — ใช้กันตัวเก่าที่จบแล้วเขียนทับตัวปัจจุบัน */
+export const LIVE_STATUSES = ['active', 'trialing', 'past_due'];
+
+/** past_due (ตัดบัตรไม่ผ่าน) ยังใช้สิทธิ์ต่อได้ 3 วันนับจากที่เริ่ม past_due ระหว่างรอ Stripe ลองตัดใหม่ */
+export const PAST_DUE_GRACE_MS = 3 * 24 * 60 * 60 * 1000;
+
+/** แพลนที่ใช้สิทธิ์ได้จริงตอนนี้ — ไม่ active (หรือ past_due เกิน 3 วัน) หรือเลยรอบบิลแล้ว = free */
 export function effectiveTier(plan: unknown, now: Date = new Date()): PlanTier {
     const p = plan as Partial<StoredPlan> | null | undefined;
     if (!p || (p.tier !== 'pro' && p.tier !== 'top')) return 'free';
-    if (!ACTIVE_STATUSES.includes(String(p.status))) return 'free';
+    if (p.status === 'past_due') {
+        // ไม่รู้ว่าเริ่มเมื่อไหร่ = ไม่ให้สิทธิ์ (ปลอดภัยไว้ก่อน)
+        const since = p.pastDueSince ? new Date(p.pastDueSince).getTime() : NaN;
+        if (!Number.isFinite(since) || now.getTime() - since > PAST_DUE_GRACE_MS) return 'free';
+    } else if (!ACTIVE_STATUSES.includes(String(p.status))) return 'free';
     if (p.currentPeriodEnd) {
         const end = new Date(p.currentPeriodEnd).getTime();
         // เผื่อ 2 วันให้ Stripe ต่ออายุ/ส่ง webhook ทัน
@@ -48,6 +60,33 @@ export function effectiveTier(plan: unknown, now: Date = new Date()): PlanTier {
 }
 
 export const TIER_RANK: Record<PlanTier, number> = { free: 0, pro: 1, top: 2 };
+
+/**
+ * แพลนที่แอดมินมอบให้ทนาย (หลังบ้าน /lawyer-plans) — `lawyerProfiles.planGrant`
+ * { tier, expiresAt: Timestamp|null, grantedAt } · เขียนได้จาก Admin SDK เท่านั้น (ไม่อยู่ใน ownerEditableLawyerFields)
+ * หมายเหตุ/ผู้มอบอยู่ที่ `planGrantRecords/lawyer_{profileId}` · โครงนี้ต้องตรงกับ lawslane-admin/src/lib/plan-entitlements.ts
+ */
+export function grantTier(grant: unknown, now: Date = new Date()): PlanTier {
+    const g = grant as { tier?: unknown; expiresAt?: unknown } | null | undefined;
+    if (!g || (g.tier !== 'pro' && g.tier !== 'top')) return 'free';
+    const exp = g.expiresAt as { toMillis?: () => number; _seconds?: number; seconds?: number } | string | null | undefined;
+    if (exp) {
+        const ms = typeof exp === 'string' ? new Date(exp).getTime()
+            : typeof exp.toMillis === 'function' ? exp.toMillis()
+            : typeof exp._seconds === 'number' ? exp._seconds * 1000
+            : typeof exp.seconds === 'number' ? exp.seconds * 1000
+            : NaN;
+        if (!Number.isFinite(ms) || ms <= now.getTime()) return 'free';
+    }
+    return g.tier;
+}
+
+/** แพลนที่ใช้จริงของทนาย = ที่สูงกว่าระหว่าง Stripe (`plan`) กับที่แอดมินมอบ (`planGrant`) */
+export function lawyerTier(profile: { plan?: unknown; planGrant?: unknown } | null | undefined, now: Date = new Date()): PlanTier {
+    const paid = effectiveTier(profile?.plan, now);
+    const granted = grantTier(profile?.planGrant, now);
+    return TIER_RANK[granted] > TIER_RANK[paid] ? granted : paid;
+}
 
 /** เรียงให้แพลนสูงขึ้นก่อน แล้วคงลำดับเดิมภายในกลุ่ม */
 export function sortByTier<T extends { planTier?: PlanTier }>(list: T[]): T[] {
@@ -69,6 +108,9 @@ export const PLAN_INFO: Record<ProviderKind, Record<PlanTier, { name: [string, s
             perks: [
                 ['ป้าย "ทนายแนะนำ" และกรอบรูปสีทอง', '"Recommended" badge and gold photo ring'],
                 ['ขึ้นก่อนทนายแพลนฟรีในรายชื่อ', 'Listed above Free-plan lawyers'],
+                ['หน้าเว็บส่วนตัว lawslane.com/p/ชื่อของคุณ', 'Personal page at lawslane.com/p/your-name'],
+                ['ระบบจัดการคดีและใบแจ้งหนี้', 'Case management and invoicing'],
+                ['ผู้ช่วย AI งานคดี: ค้นมาตรา/ฎีกา ร่างเอกสาร ตรวจสัญญา', 'AI case assistant: statutes, judgments, drafting and contract review'],
             ],
         },
         top: {
@@ -76,6 +118,9 @@ export const PLAN_INFO: Record<ProviderKind, Record<PlanTier, { name: [string, s
             perks: [
                 ['การ์ดกรอบทองขนาดใหญ่ อยู่บนสุดของหน้าแรกและรายชื่อทนาย', 'Large gold-framed card at the top of the home page and directory'],
                 ['ป้าย "ทนายแนะนำ"', '"Recommended" badge'],
+                ['หน้าเว็บส่วนตัว lawslane.com/p/ชื่อของคุณ', 'Personal page at lawslane.com/p/your-name'],
+                ['ระบบจัดการคดีและใบแจ้งหนี้', 'Case management and invoicing'],
+                ['ผู้ช่วย AI งานคดี: ค้นมาตรา/ฎีกา ร่างเอกสาร ตรวจสัญญา', 'AI case assistant: statutes, judgments, drafting and contract review'],
             ],
         },
     },

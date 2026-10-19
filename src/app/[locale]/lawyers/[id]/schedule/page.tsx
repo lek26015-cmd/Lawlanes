@@ -16,18 +16,20 @@ import { useToast } from '@/hooks/use-toast';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { addDays, format } from 'date-fns';
 import { useFirebase } from '@/firebase';
+import { requestAppointmentAction } from '@/app/actions/appointment-actions';
 
 export default function SchedulePage() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
   const { toast } = useToast();
-  const { firestore } = useFirebase();
+  const { firestore, user } = useFirebase();
 
   const [lawyer, setLawyer] = useState<PublicLawyer | null>(null);
   const [date, setDate] = useState<Date | undefined>();
   const [description, setDescription] = useState('');
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     async function fetchLawyer() {
@@ -44,7 +46,10 @@ export default function SchedulePage() {
     fetchLawyer();
   }, [id, firestore]);
 
-  const handleSubmit = () => {
+  // เดิมส่งต่อไปหน้า /payment เพื่อจ่ายค่านัด ฿3,500 เข้าบัญชีแพลตฟอร์มก่อนถึงจะเกิดคำขอ
+  // ตอนนี้ขอนัดฟรี: สร้างคำขอ status 'pending' ผ่าน server action แล้วรอทนายตอบรับ
+  // ค่าบริการ (ถ้ามี) ทนายเสนอในแชทหลังรับเคส และลูกความจ่ายทนายโดยตรง
+  const handleSubmit = async () => {
     if (!date || !description.trim()) {
       toast({
         variant: "destructive",
@@ -53,20 +58,27 @@ export default function SchedulePage() {
       });
       return;
     }
-    
-    // In a real app, you would save this to the database.
-    console.log({
-      lawyerId: lawyer?.id,
-      date,
-      description,
-    });
-    
-    const params = new URLSearchParams();
-    params.set('lawyerId', id);
-    params.set('date', date.toISOString());
-    params.set('description', description);
+    if (!user) {
+      router.push('/login');
+      return;
+    }
 
-    router.push(`/payment?${params.toString()}`);
+    setIsSubmitting(true);
+    try {
+      const res = await requestAppointmentAction({
+        lawyerId: id,
+        appointmentDate: date.toISOString(),
+        description,
+      });
+      if (!res.ok) {
+        toast({ variant: "destructive", title: "ส่งคำขอไม่สำเร็จ", description: res.error });
+        return;
+      }
+      toast({ title: "ส่งคำขอนัดหมายแล้ว", description: "ทนายจะตอบรับคำขอของคุณเร็วๆ นี้" });
+      router.push('/dashboard');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
   
   if (isLoading) {
@@ -146,9 +158,12 @@ export default function SchedulePage() {
                         />
                     </div>
 
-                    <Button onClick={handleSubmit} className="w-full" size="lg" disabled={!date || !description.trim()}>
-                        ส่งคำขอนัดหมายและชำระเงิน
+                    <Button onClick={handleSubmit} className="w-full" size="lg" disabled={!date || !description.trim() || isSubmitting}>
+                        {isSubmitting ? 'กำลังส่งคำขอ...' : 'ส่งคำขอนัดหมาย (ไม่มีค่าใช้จ่ายผ่านระบบ)'}
                     </Button>
+                    <p className="text-xs text-center text-muted-foreground">
+                        หากมีค่าบริการ ทนายจะแจ้งในแชทและคุณโอนให้ทนายโดยตรง — Lawslane ไม่ได้รับหรือถือเงิน
+                    </p>
                 </CardContent>
             </Card>
         </div>

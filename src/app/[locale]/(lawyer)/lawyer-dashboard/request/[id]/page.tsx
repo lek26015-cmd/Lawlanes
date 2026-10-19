@@ -191,12 +191,12 @@ function RequestDetailPageContent() {
               </div>
             </div>
 
-            <div className="space-y-2 rounded-lg border border-green-200 bg-green-50 p-4">
-              <h3 className="font-semibold flex items-center gap-2 text-green-800"><DollarSign className="w-5 h-5" /> ค่าบริการ (Escrow)</h3>
-              <div className="flex items-center justify-between text-green-700 pl-7">
-                <p>ลูกความได้ชำระค่าบริการเบื้องต้นไว้ในระบบแล้ว</p>
-                <p className="font-bold text-lg">฿3,500</p>
-              </div>
+            <div className="space-y-2 rounded-lg border border-blue-200 bg-blue-50 p-4">
+              <h3 className="font-semibold flex items-center gap-2 text-blue-800"><DollarSign className="w-5 h-5" /> ค่าบริการ</h3>
+              <p className="text-blue-700 pl-7 text-sm">
+                คำขอนัดหมายนี้ไม่มีค่าใช้จ่ายผ่านระบบ หากมีค่าบริการ ให้เสนอราคาในห้องแชทหลังรับเคส
+                แล้วลูกความจะโอนให้คุณโดยตรง (Lawslane ไม่ได้รับหรือถือเงิน)
+              </p>
             </div>
 
 

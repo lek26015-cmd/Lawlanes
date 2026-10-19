@@ -423,8 +423,7 @@ function CaseDetailPageContent() {
                          </h5>
                          <div className="p-8 rounded-3xl bg-slate-50 border border-slate-100 space-y-4">
                             {[
-                              "ข้อมูลถูกเข้ารหัสแบบ End-to-End Encryption",
-                              "จัดเก็บเป็นพยานหลักฐานดิจิทัลตามมาตรฐานธรรมาภิบาล",
+                              "ไฟล์เข้ารหัสขณะจัดเก็บ (Cloudflare R2)",
                               "เข้าถึงได้เฉพาะผู้มีส่วนเกี่ยวข้องในคดีนี้เท่านั้น"
                             ].map((log, i) => (
                               <div key={i} className="flex items-center gap-4 text-lg text-slate-600">
@@ -1095,9 +1094,14 @@ function CaseDetailPageContent() {
         description={<>เลขคดีในระบบ {caseData.id.slice(0, 8)} &bull; อัปเดต {format(caseData.updatedAt, 'd MMM yyyy', { locale: th })}</>}
         back={{ href: '/lawyer-dashboard/cases', label: 'จัดการคดี' }}
         actions={
-          <Button variant="outline" className="rounded-xl gap-2" onClick={() => router.push(`/chat/${caseData.id}`)}>
-            <MessageSquare className="w-4 h-4" /> แชทกับลูกความ
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button className="rounded-xl gap-2 bg-[#002f4b] hover:bg-[#00243a]" onClick={() => router.push(`/lawyer-dashboard/ai?case=${caseData.id}`)}>
+              <Sparkles className="w-4 h-4" /> ถาม AI เรื่องคดีนี้
+            </Button>
+            <Button variant="outline" className="rounded-xl gap-2" onClick={() => router.push(`/chat/${caseData.id}`)}>
+              <MessageSquare className="w-4 h-4" /> แชทกับลูกความ
+            </Button>
+          </div>
         }
       />
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

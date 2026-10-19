@@ -10,7 +10,6 @@ import { useUser as useAuthUser, useFirebase } from '@/firebase';
 
 // Both only ever render after client mount (see isMounted below), so there's
 // no SSR benefit to bundling them into every page's initial JS.
-const ChatModal = dynamic(() => import('@/components/chat/chat-modal'), { ssr: false });
 const CookieBanner = dynamic(() => import('@/components/cookie-banner'), { ssr: false });
 import { doc, getDoc } from 'firebase/firestore';
 
@@ -53,8 +52,12 @@ export default function ClientLayout({
 
   const isLawyerPage = activeDomainType === 'lawyer' || pathname.includes('/lawyer-dashboard') || pathname.includes('/lawyer-schedule');
 
+  // Lawslane AI (/th/ai) เป็นหน้าทำงานเต็มจอของตัวเอง — ไม่มี header/footer/ปุ่มลอย
+  const isAiWorkspace = /^\/[a-z]{2}\/ai\/?$/.test(pathname);
+
   const isDashboardPage =
     isLawyerPage ||
+    isAiWorkspace ||
     activeDomainType === 'admin' ||
     activeDomainType === 'business' ||
     pathname.includes('/admin') ||
@@ -76,7 +79,6 @@ export default function ClientLayout({
         {!isDashboardPage && !isChatPage && <Footer userRole={userRole} domainType={activeDomainType} />}
       </div>
       {isMounted && !isDashboardPage && !isChatPage && <FloatingChatButton />}
-      {isMounted && !isDashboardPage && !isChatPage && <ChatModal />}
 
       {isMounted && <CookieBanner />}
     </>

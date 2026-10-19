@@ -5,7 +5,7 @@ import Logo from '@/components/logo';
 import { usePathname } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
 import { useState, useEffect } from 'react';
-import { getMainLink, getBusinessLink, getAdminLink } from '@/lib/domain-utils';
+import { getMainLink, getAdminLink, getEducationLink, getRootDomain } from '@/lib/domain-utils';
 import { MonthlyVisitorBadge } from '@/components/monthly-visitor-badge';
 
 // Helper component to handle absolute vs relative links
@@ -39,20 +39,28 @@ export default function Footer({ userRole, domainType = 'main' }: { userRole: st
 
   const isAuthPage = pathname.endsWith('/login') || pathname.endsWith('/signup') || pathname.endsWith('/lawyer-login');
 
+  // บริการบนเว็บหลัก — ผ่าน getMainLink เพื่อให้ footer บนโดเมนย่อย (lawyer./admin./business.) ชี้กลับเว็บหลัก
   let quickLinks = [
     { href: `/${locale}`, label: t('quickLinks.home') },
-    { href: `/${locale}/about`, label: t('quickLinks.about') },
-    { href: `/${locale}/articles`, label: t('quickLinks.articles') },
     { href: `/${locale}/lawyers`, label: t('quickLinks.findLawyer') },
-    { href: `/verify-lawyer`, label: t('quickLinks.verifyLawyer') },
-  ];
+    { href: `/${locale}/interpreters`, label: t('quickLinks.findInterpreter') },
+    { href: `/${locale}/forms`, label: t('quickLinks.forms') },
+    { href: `/${locale}/articles`, label: t('quickLinks.articles') },
+    { href: `/${locale}/verify-lawyer`, label: t('quickLinks.verifyLawyer') },
+    { href: `/${locale}/about`, label: t('quickLinks.about') },
+  ].map((link) => ({ ...link, href: getMainLink(link.href, domainType, !isMounted) }));
 
   if (userRole === 'customer') {
-    quickLinks.push({ href: getMainLink('/dashboard', domainType, !isMounted), label: t('quickLinks.customerDashboard') });
+    quickLinks.push({ href: getMainLink(`/${locale}/dashboard`, domainType, !isMounted), label: t('quickLinks.customerDashboard') });
   }
 
-  // Add Business link
-  quickLinks.push({ href: getMainLink('/coming-soon', domainType, !isMounted), label: 'Lawslane for Business' });
+  // ระบบอื่นในเครือ — แยกโดเมนทั้งหมด (เดิมลิงก์ Business ชี้ /coming-soon)
+  const ecosystemLinks = [
+    { href: getEducationLink('/'), label: t('ecosystem.wittaya') },
+    { href: `https://capdeal.${getRootDomain()}`, label: t('ecosystem.capdeal') },
+    // Business ซ่อนไว้ก่อน — ยังเป็นร่างแยก ไม่รวมกับระบบในเครือจนกว่าจะพร้อม
+    // { href: getBusinessLink('/', domainType, !isMounted), label: t('ecosystem.business') },
+  ];
 
   let forLawyersLinks = [
     { href: `/${locale}/for-lawyers`, label: t('forLawyers.join') },
@@ -74,7 +82,7 @@ export default function Footer({ userRole, domainType = 'main' }: { userRole: st
     { href: `/${locale}/cookies`, label: t('legal.cookies') },
     { href: `/${locale}/ai-disclaimer`, label: t('legal.aiDisclaimer') },
     { href: `/${locale}/help`, label: t('legal.help') },
-    { href: `/${locale}/guide`, label: t('legal.guide') },
+    { href: `https://docs.lawslane.com/${locale}`, label: t('legal.guide') },
   ];
 
   if (isAuthPage) {
@@ -85,8 +93,8 @@ export default function Footer({ userRole, domainType = 'main' }: { userRole: st
   return (
     <footer id="page-footer" className="bg-gray-900 text-gray-300">
       <div className="container mx-auto px-4 md:px-6 py-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-          <div className="flex flex-col">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8">
+          <div className="flex flex-col sm:col-span-2 lg:col-span-1">
             <Logo href={`/${locale}`} variant="white" className="text-white mb-4" />
             <p className="text-sm text-gray-400 max-w-xs mb-4">
               {t('description')}
@@ -103,12 +111,38 @@ export default function Footer({ userRole, domainType = 'main' }: { userRole: st
                 <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z" /></svg>
               </a>
             </div>
+            {/* เครื่องหมาย DBD Registered — ต้องวางเฉพาะบนโดเมนที่จดทะเบียนพาณิชย์อิเล็กทรอนิกส์ (lawslane.com) และห้ามแก้ URL/param ที่กรมฯ ส่งมา */}
+            {domainType === 'main' && (
+              <div className="mt-4 flex flex-col items-start gap-1.5">
+                <span className="text-xs text-gray-400">{t('dbdCertifiedBy')}</span>
+                <a
+                  href="https://dbdregistered.dbd.go.th/api/public/shopinfo?param=828390F773FD2FAC120D0E78B4E074266E39ADCEE2BC4A00E2703BF0044FEAAE"
+                  target="_blank"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="https://dbdregistered.dbd.go.th/api/public/banner?param=828390F773FD2FAC120D0E78B4E074266E39ADCEE2BC4A00E2703BF0044FEAAE" alt="DBD Registered" className="h-16 w-auto" />
+                </a>
+              </div>
+            )}
           </div>
 
           <div>
             <h3 className="font-semibold text-white mb-4">{t('quickLinks.title')}</h3>
             <ul className="space-y-2">
               {quickLinks.map((link) => (
+                <li key={link.label}>
+                  <SafeLink href={link.href} className="text-sm hover:text-white transition-colors">
+                    {link.label}
+                  </SafeLink>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div>
+            <h3 className="font-semibold text-white mb-4">{t('ecosystem.title')}</h3>
+            <ul className="space-y-2">
+              {ecosystemLinks.map((link) => (
                 <li key={link.label}>
                   <SafeLink href={link.href} className="text-sm hover:text-white transition-colors">
                     {link.label}

@@ -1,15 +1,15 @@
+import type { Metadata } from 'next';
+import { pageMetadata } from '@/lib/seo';
 import { locales } from '@/navigation';
 import { useTranslations } from 'next-intl';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { MessageSquare, Users, ShieldCheck, ArrowRight, Briefcase, UserCheck, FileText, Download, Check, Camera, Languages } from 'lucide-react';
+import { MessageSquare, Users, ShieldCheck, ArrowRight, Briefcase, UserCheck, FileText, Download, Check, Camera } from 'lucide-react';
 import Image from 'next/image';
 import { Link } from '@/navigation';
 import { getAllArticles, getAdsByPlacement, getImageUrl, getImageHint } from '@/lib/data';
 import { getApprovedLawyersAction } from '@/app/actions/lawyer-directory-actions';
-import { getApprovedInterpretersAction } from '@/app/actions/interpreter-directory-actions';
-import { TIER_RANK } from '@/lib/provider-plans';
 import type { LawyerProfile } from '@/lib/types';
 import LawyerCard from '@/components/lawyer-card';
 import AiConsultButton from '@/components/ai-consult-button';
@@ -24,14 +24,22 @@ import { initializeFirebase } from '@/firebase';
 import { HomeRecommendedLawyers } from '@/components/home-recommended-lawyers';
 import { HomeServicesSection } from '@/components/home-services-section';
 import { FadeIn } from '@/components/fade-in';
+import { SilkBackground } from '@/components/silk-background';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import lawslaneCoverPhoto from '@/pic/lawslane-cover-photo.webp';
 import lawslaneHeroCover from '@/pic/Lawlanes-Hero-cover.jpg';
+import wittayaHeroImg from '@/pic/wittaya-hero-cartoon.webp';
+import { getEducationLink } from '@/lib/domain-utils';
 
 export const dynamic = 'error';
 // หน้าแรกเป็น static — ไม่มี revalidate = render ครั้งเดียวตอน build ทนาย/ล่ามที่อนุมัติใหม่ไม่ขึ้นจนกว่าจะ deploy ใหม่
 // 300 วินาทีเท่ากับหน้า /lawyers และ /interpreters
 export const revalidate = 300;
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await params;
+  return pageMetadata(locale, 'home', '');
+}
 
 export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
@@ -41,17 +49,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
 
   // Fetch lawyers on the server for faster loading
   // อ่านผ่าน Admin SDK + projection สาธารณะ แทน client SDK ที่ดึงทุกฟิลด์มาถึง browser
-  const [initialLawyers, allInterpreters] = await Promise.all([
-    getApprovedLawyersAction(6) as unknown as Promise<LawyerProfile[]>,
-    getApprovedInterpretersAction(),
-  ]);
-  // ล่ามแนะนำ: ลำดับเดียวกับหน้า /interpreters (แพลน → ตรวจเอกสารแล้ว → คะแนน) ส่งไป client แค่ 4 คน
-  const initialInterpreters = [...allInterpreters]
-    .sort((a, b) =>
-      TIER_RANK[b.planTier || 'free'] - TIER_RANK[a.planTier || 'free']
-      || (b.verifiedCredentials.length > 0 ? 1 : 0) - (a.verifiedCredentials.length > 0 ? 1 : 0)
-      || (b.averageRating ?? 0) - (a.averageRating ?? 0))
-    .slice(0, 4);
+  const initialLawyers = (await getApprovedLawyersAction(6)) as unknown as LawyerProfile[];
 
   // ข้อมูล Feature แบบภาษาไทย
   const features = [
@@ -85,6 +83,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
     <>
       <div className="flex flex-col">
         <section className="relative w-full -mt-20 pt-20 lg:pt-32 pb-0 bg-slate-900 text-white rounded-b-[60px] md:rounded-b-[80px] overflow-hidden">
+          <SilkBackground />
           {/* Container for Desktop Image - only visible and positioned relative to the center on large screens */}
           <div className="hidden lg:block absolute inset-0 pointer-events-none">
             <div className="relative w-full h-full max-w-screen-2xl mx-auto">
@@ -169,43 +168,53 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
         </section>
 
         {/* Recommended Lawyers - Server Side Prefetched */}
-        <HomeRecommendedLawyers initialLawyers={initialLawyers} initialInterpreters={initialInterpreters} />
+        <HomeRecommendedLawyers initialLawyers={initialLawyers} />
 
-        {/* Lawyer Search CTA */}
-        <section className="w-full py-16 md:py-24 bg-blue-50">
+        {/* Lawslane Wittaya CTA — เตรียมสอบตั๋วทนาย (แอปแยก ลิงก์ข้ามโดเมน) */}
+        <section className="w-full py-16 md:py-24 bg-white overflow-hidden">
           <div className="container mx-auto px-4 md:px-6">
-            <div className="max-w-4xl mx-auto">
-              <FadeIn direction="up" className="text-center">
-                <div className="space-y-8">
-                  <div className="space-y-4">
-                    <h2 className="text-3xl md:text-4xl font-bold font-headline text-[#0B3979]">
-                      {t('lawyerSearch.title')}
-                    </h2>
-                    <p className="text-slate-600 text-lg leading-relaxed max-w-2xl mx-auto">
-                      {t('lawyerSearch.description')}
-                    </p>
-                  </div>
+            <div className="grid lg:grid-cols-2 gap-12 items-center">
+              <FadeIn direction="right">
+                {/* ภาพการ์ตูนเดียวกับ hero ของ Wittaya (PNG พื้นใส) บนการ์ดพื้น slate-900 เดียวกับ hero หน้าแรก */}
+                <div className="relative overflow-hidden rounded-[2.5rem] bg-slate-900 shadow-xl aspect-[5/4] flex items-end justify-center">
+                  <div className="absolute top-0 right-0 -mr-16 -mt-16 w-72 h-72 bg-white/5 rounded-full blur-3xl pointer-events-none" />
+                  <Image
+                    src={wittayaHeroImg}
+                    alt={t('wittaya.imageAlt')}
+                    sizes="(max-width: 1024px) 80vw, 480px"
+                    className="relative w-[80%] max-w-[480px] h-auto"
+                  />
+                </div>
+              </FadeIn>
 
-                  <div className="flex flex-col md:flex-row justify-center gap-4 text-left">
+              <FadeIn direction="left" delay={200}>
+                <div className="space-y-6">
+                  <Badge variant="outline" className="text-[#0B3979] border-[#0B3979] font-bold px-4 py-1">{t('wittaya.badge')}</Badge>
+                  <h2 className="text-3xl md:text-4xl font-bold font-headline text-[#0B3979]">
+                    {t('wittaya.title')}
+                  </h2>
+                  <p className="text-slate-600 text-lg leading-relaxed">
+                    {t('wittaya.description')}
+                  </p>
+                  <div className="grid gap-4">
                     {[
-                      t('lawyerSearch.features.verified'),
-                      t('lawyerSearch.features.expert'),
-                      t('lawyerSearch.features.review')
+                      t('wittaya.features.exams'),
+                      t('wittaya.features.books'),
+                      t('wittaya.features.ai')
                     ].map((item, index) => (
-                      <div key={index} className="flex items-center gap-3 bg-white px-5 py-4 rounded-xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
-                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-                          <Check className="w-4 h-4 text-blue-600" />
+                      <div key={index} className="flex items-center gap-4 bg-white px-6 py-4 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center shrink-0">
+                          <Check className="w-4 h-4 text-[#0B3979]" />
                         </div>
                         <span className="text-slate-700 font-medium">{item}</span>
                       </div>
                     ))}
                   </div>
-
-                  <div className="pt-4">
-                    <Link href="/lawyers" className="inline-flex items-center justify-center px-8 py-3 text-base font-medium text-white bg-[#0B3979] rounded-full hover:bg-[#082a5a] shadow-lg hover:shadow-xl transition-all duration-300 group">
-                      {t('lawyerSearch.cta')}
-                      <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                    </Link>
+                  <div className="pt-2">
+                    <a href={getEducationLink('/')} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center px-10 py-4 text-lg font-bold text-white bg-[#0B3979] rounded-full hover:bg-[#082a5a] shadow-lg shadow-blue-900/20 hover:shadow-xl transition-all duration-300 group">
+                      {t('wittaya.cta')}
+                      <ArrowRight className="ml-3 w-6 h-6 group-hover:translate-x-1 transition-transform" />
+                    </a>
                   </div>
                 </div>
               </FadeIn>
@@ -256,7 +265,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
 
               {/* Right Card: Verify Status */}
               <FadeIn direction="up" delay={200}>
-                <div className="h-full bg-gradient-to-br from-[#0B3979] to-[#082a5a] text-white rounded-[2.5rem] p-8 md:p-12 shadow-xl hover:shadow-2xl transition-all duration-300 flex flex-col justify-between relative overflow-hidden group">
+                <div className="h-full bg-slate-900 text-white rounded-[2.5rem] p-8 md:p-12 shadow-xl hover:shadow-2xl transition-all duration-300 flex flex-col justify-between relative overflow-hidden group">
                   {/* Subtle Background Pattern */}
                   <div className="absolute top-0 right-0 -mr-16 -mt-16 w-64 h-64 bg-white/5 rounded-full blur-3xl group-hover:bg-white/10 transition-colors duration-500"></div>
                   
@@ -268,13 +277,13 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                       <h2 className="text-2xl md:text-3xl font-bold font-headline text-white">
                         {t('verifyStatus.title')}
                       </h2>
-                      <p className="text-blue-100 text-lg leading-relaxed">
+                      <p className="text-gray-400 text-lg leading-relaxed">
                         {t('verifyStatus.description')}
                       </p>
                     </div>
                     
                     <div className="bg-white/5 rounded-2xl p-6 border border-white/10 backdrop-blur-sm">
-                      <p className="text-sm text-blue-200 uppercase font-semibold tracking-wider mb-2">{t('stats.experts')}</p>
+                      <p className="text-sm text-gray-400 uppercase font-semibold tracking-wider mb-2">{t('stats.experts')}</p>
                       <div className="text-3xl font-bold text-white">50+ {t('stats.experts')}</div>
                     </div>
                   </div>
@@ -414,10 +423,10 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                 </p>
               </div>
             </FadeIn>
-            <div className="grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
+            {/* เลิกรับสมัครล่ามบนเว็บแล้ว — เหลือการ์ดรับสมัครทนาย (บริการล่ามมี CTA ของตัวเองด้านบน) */}
+            <div className="grid gap-6 max-w-2xl mx-auto">
               {[
                 { icon: Briefcase, title: t('forLawyersFooter.title'), description: t('forLawyersFooter.description'), button: t('forLawyersFooter.button'), href: '/for-lawyers', ButtonIcon: UserCheck },
-                { icon: Languages, title: t('forInterpretersFooter.title'), description: t('forInterpretersFooter.description'), button: t('forInterpretersFooter.button'), href: '/for-interpreters', ButtonIcon: ArrowRight },
               ].map(({ icon: Icon, title, description, button, href, ButtonIcon }, index) => (
                 <FadeIn key={href} direction="up" delay={index * 150} className="h-full">
                   <div className="h-full rounded-3xl border border-background/15 bg-background/5 p-8 md:p-10 flex flex-col items-center text-center">

@@ -56,7 +56,7 @@ export default function ArticlesPage() {
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden pointer-events-none">
           <div className="absolute inset-0 z-0 bg-gradient-to-r from-slate-900/90 to-slate-900/50" />
           <div className="absolute top-[-10%] right-[-5%] w-[40%] h-[40%] rounded-full bg-blue-500/10 blur-3xl animate-pulse" />
-          <div className="absolute bottom-[-10%] left-[-5%] w-[30%] h-[30%] rounded-full bg-indigo-500/10 blur-3xl" />
+          <div className="absolute bottom-[-10%] left-[-5%] w-[30%] h-[30%] rounded-full bg-[#0B3979]/10 blur-3xl" />
 
           {/* Decorative Lines SVG */}
           <svg className="absolute inset-0 w-full h-full opacity-[0.03]" xmlns="http://www.w3.org/2000/svg">

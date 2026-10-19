@@ -1,8 +1,8 @@
 import 'server-only';
 
 /**
- * คำขอค่าบริการเพิ่มเติมที่ยังค้างชำระของห้องแชท — ใช้ร่วมกันระหว่าง
- * resolvePaymentAmount('additional') กับ markCasePaidAction
+ * คำขอค่าบริการเพิ่มเติมที่ทนายยังไม่ได้ยืนยันรับเงิน — ใช้ใน direct-payment-actions.ts
+ * (หน้าโอนให้ทนายโดยตรง / ลูกความแจ้งโอน / ทนายยืนยันรับเงิน)
  *
  * ในฐานข้อมูลมีสองที่มา:
  *   - `pendingFeeRequest` จาก requestFeeAction() (lawslane-capdeal ก็ใช้ตัวนี้)

@@ -15,10 +15,11 @@ import {
   writeBatch,
   setDoc
 } from 'firebase/firestore';
-import type { LawyerProfile, RegistryLawyer, ImagePlaceholder, Ad, Article, Case, UpcomingAppointment, ReportedTicket, LawyerAppointmentRequest, LawyerCase, UserProfile, LegalForm } from '@/lib/types';
+import type { LawyerProfile, ImagePlaceholder, Ad, Article, Case, UpcomingAppointment, ReportedTicket, LawyerAppointmentRequest, LawyerCase, UserProfile, LegalForm } from '@/lib/types';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { format } from 'date-fns';
 import { th } from 'date-fns/locale';
+import { summarizeLawyerReceipts } from './lawyer-receipts';
 
 export const getImageUrl = (id: string) => PlaceHolderImages.find(img => img.id === id)?.imageUrl ?? '';
 export const getImageHint = (id: string) => PlaceHolderImages.find(img => img.id === id)?.imageHint ?? '';
@@ -28,57 +29,8 @@ export const getImageHint = (id: string) => PlaceHolderImages.find(img => img.id
 // ใน src/app/actions/lawyer-directory-actions.ts แล้ว (Admin SDK + projection สาธารณะ)
 // เพราะ firestore.rules ปิด `list` ของ lawyerProfiles ไม่ให้ยิงจาก client SDK อีก
 
-/**
- * Fetch registry lawyers (from verifiedLawyers collection) that have a license number
- * but are NOT already registered on Lawslane. Used to show them in the search page.
- */
-export async function getRegistryLawyers(
-  db: Firestore,
-  approvedLawyerLicenseNumbers: Set<string>,
-  limitCount: number = 50
-): Promise<RegistryLawyer[]> {
-  if (!db) return [];
-  try {
-    const verifiedRef = collection(db, 'verifiedLawyers');
-    const q = query(
-      verifiedRef,
-      where('status', '==', 'active'),
-      limit(limitCount + approvedLawyerLicenseNumbers.size) // fetch extra to account for duplicates
-    );
-    const querySnapshot = await getDocs(q);
-
-    const results: RegistryLawyer[] = [];
-    for (const docSnap of querySnapshot.docs) {
-      const data = docSnap.data();
-      const licenseNumber = data.licenseNumber?.trim() || '';
-
-      // Skip if no license number
-      if (!licenseNumber) continue;
-
-      // Skip if already registered on Lawslane
-      if (approvedLawyerLicenseNumbers.has(licenseNumber)) continue;
-
-      results.push({
-        id: docSnap.id,
-        prefix: data.prefix || '',
-        firstName: data.firstName || '',
-        lastName: data.lastName || '',
-        licenseNumber,
-        licenseType: data.licenseType || '',
-        province: data.province || '',
-        status: data.status || 'active',
-        source: data.source || 'document_import',
-      });
-
-      if (results.length >= limitCount) break;
-    }
-
-    return results;
-  } catch (error) {
-    console.error('Error fetching registry lawyers:', error);
-    return [];
-  }
-}
+// getRegistryLawyers() ย้ายไปเป็น getRegistryLawyersForDirectory()
+// ใน src/lib/verified-lawyers-server.ts แล้ว (Admin SDK) — rules ปิด list ของ verifiedLawyers
 
 // getLawyerById() ถูกลบแล้ว — เดิมยิง client SDK ได้เอกสารทนายทั้งก้อนถึง browser
 // (strip ฟิลด์ทีหลังเป็นแค่เครื่องสำอาง) ใช้ตัวใดตัวหนึ่งใน
@@ -167,7 +119,7 @@ export async function getLawyerDashboardData(db: Firestore, lawyerId: string): P
   try {
     // 1. Fetch appointments and chats in parallel
     const appointmentsRef = collection(db, 'appointments');
-    const requestsQuery = query(appointmentsRef, where('lawyerId', '==', lawyerId), where('status', '==', 'paid'), limit(50)); // รับได้เฉพาะนัดที่จ่ายแล้ว — ดู dashboard-actions.ts
+    const requestsQuery = query(appointmentsRef, where('lawyerId', '==', lawyerId), where('status', 'in', ['pending', 'paid']), limit(50)); // คำขอนัดหมายที่รอตอบรับ — ดู dashboard-actions.ts
 
     const chatsRef = collection(db, 'chats');
     const casesQuery = query(chatsRef, where('participants', 'array-contains', lawyerId), limit(100));
@@ -301,26 +253,21 @@ export async function getLawyerStats(db: Firestore, lawyerId: string) {
     const appointmentsQuery = query(collection(db, 'appointments'), where('lawyerId', '==', lawyerId), where('status', '==', 'completed'));
     const closedChatsQuery = query(collection(db, 'chats'), where('participants', 'array-contains', lawyerId), where('status', '==', 'closed'));
 
-    const [transactionsSnapshot, appointmentsCountSnap, closedChatsCountSnap, reviewsSnapshot, allChatsSnapshot] = await Promise.all([
-      getDocs(query(collection(db, 'transactions'), where('lawyerId', '==', lawyerId), where('status', '==', 'completed'), limit(1000))),
+    // `transactions` (รายได้หลังหัก GP ที่ webhook เขียน) เลิกใช้แล้ว — และ client อ่านไม่ได้อยู่แล้ว
+    // (ไม่มีกฎ → default deny ทำให้ Promise.all ทั้งก้อนล้ม ตัวเลขบนแดชบอร์ดเป็น 0 หมด)
+    const [appointmentsCountSnap, closedChatsCountSnap, reviewsSnapshot, allChatsSnapshot] = await Promise.all([
       getCountFromServer(appointmentsQuery),
       getCountFromServer(closedChatsQuery),
       getDocs(query(collection(db, 'reviews'), where('lawyerId', '==', lawyerId), limit(200))),
       getDocs(query(collection(db, 'chats'), where('participants', 'array-contains', lawyerId), limit(500)))
     ]);
 
-    // Calculate revenue from transactions
-    transactionsSnapshot.docs.forEach(doc => {
-      const data = doc.data();
-      const netAmount = data.netAmount || 0;
-      totalIncome += netAmount;
-
-      const date = data.createdAt?.toDate ? data.createdAt.toDate() : new Date();
-      const now = new Date();
-      if (date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear()) {
-        incomeThisMonth += netAmount;
-      }
-    });
+    // รายได้ = ยอดที่ทนายกดยืนยันว่าได้รับเข้าบัญชีตัวเองแล้ว (ลูกความจ่ายทนายโดยตรง ไม่หัก GP)
+    {
+      const summary = summarizeLawyerReceipts(allChatsSnapshot.docs.map(d => ({ id: d.id, data: d.data() })));
+      totalIncome = summary.totalReceived;
+      incomeThisMonth = summary.receivedThisMonth;
+    }
 
     // Count completions
     completedCases = appointmentsCountSnap.data().count + closedChatsCountSnap.data().count;

@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { format, isToday, isYesterday } from 'date-fns';
-import { th } from 'date-fns/locale';
+import { useTranslations } from 'next-intl';
 import { MessageSquare, Briefcase, FileText, Clock, AlertCircle, CheckCircle2, ChevronRight } from 'lucide-react';
 import { getCloudflareVariantUrl } from '@/lib/cloudflare-images';
 
@@ -38,6 +38,7 @@ export function ChatListItem({
   className,
   isOnline = false,
 }: ChatListItemProps & { isOnline?: boolean }) {
+  const t = useTranslations('Dashboard.chatItem');
   const date = typeof updatedAt === 'string' ? new Date(updatedAt) : updatedAt;
   
   const formatChatTime = (date: Date) => {
@@ -45,7 +46,7 @@ export function ChatListItem({
       return format(date, 'HH:mm');
     }
     if (isYesterday(date)) {
-      return 'เมื่อวาน';
+      return t('yesterday');
     }
     return format(date, 'dd/MM/yy');
   };
@@ -55,27 +56,35 @@ export function ChatListItem({
       case 'pending_payment':
         return (
           <Badge variant="outline" className="bg-amber-50 text-amber-600 border-amber-200 text-[10px] py-0 px-1.5 font-bold rounded-md">
-            รอชำระเงิน
+            {t('pendingPayment')}
           </Badge>
         );
       case 'pending_verification': // Custom status for "รอตรวจสอบสลิป"
       case 'pending_payment_verification':
         return (
           <Badge variant="outline" className="bg-blue-50 text-blue-600 border-blue-200 text-[10px] py-0 px-1.5 font-bold rounded-md animate-pulse">
-            รอตรวจสอบสลิป
+            {t('pendingVerification')}
           </Badge>
         );
       case 'closed':
+      case 'completed':
         return (
           <Badge variant="outline" className="bg-slate-50 text-slate-500 border-slate-200 text-[10px] py-0 px-1.5 font-bold rounded-md">
-            เสร็จสิ้น
+            {t('completed')}
+          </Badge>
+        );
+      case 'cancelled':
+        // เดิมตกไป default → เคสที่ยกเลิกแล้วขึ้นป้าย "ดำเนินการอยู่"
+        return (
+          <Badge variant="outline" className="bg-red-50 text-red-600 border-red-200 text-[10px] py-0 px-1.5 font-bold rounded-md">
+            {t('cancelled')}
           </Badge>
         );
       case 'active':
       default:
         return (
           <Badge variant="outline" className="bg-green-50 text-green-600 border-green-200 text-[10px] py-0 px-1.5 font-bold rounded-md">
-            ดำเนินการอยู่
+            {t('active')}
           </Badge>
         );
     }
@@ -85,13 +94,13 @@ export function ChatListItem({
     if (type === 'case') {
       return (
         <span className="flex items-center gap-1 text-[10px] font-black uppercase tracking-tighter text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded">
-          <Briefcase className="w-3 h-3" /> แชทคดี
+          <Briefcase className="w-3 h-3" /> {t('typeCase')}
         </span>
       );
     }
     return (
       <span className="flex items-center gap-1 text-[10px] font-black uppercase tracking-tighter text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">
-        <MessageSquare className="w-3 h-3" /> ปรึกษาเบื้องต้น
+        <MessageSquare className="w-3 h-3" /> {t('typePreliminary')}
       </span>
     );
   };
@@ -119,7 +128,7 @@ export function ChatListItem({
           {/* Status indicator dot */}
           <div className={cn(
             "absolute bottom-0 right-0 h-5 w-5 rounded-full border-[3px] border-white shadow-sm transition-transform duration-500 group-hover:scale-110",
-            isOnline ? "bg-green-500 animate-pulse" : (status === 'closed' ? "bg-slate-300" : "bg-slate-200")
+            isOnline ? "bg-green-500 animate-pulse" : (['closed', 'completed', 'cancelled'].includes(status) ? "bg-slate-300" : "bg-slate-200")
           )} />
         </div>
 
@@ -144,7 +153,7 @@ export function ChatListItem({
 
           <div className="flex justify-between items-end gap-3">
             <p className="text-sm text-slate-500 truncate leading-relaxed font-medium">
-              {lastMessage || 'ยังไม่มีข้อความ'}
+              {lastMessage || t('noMessages')}
             </p>
             
             <div className="flex items-center gap-2 flex-shrink-0 mb-0.5">

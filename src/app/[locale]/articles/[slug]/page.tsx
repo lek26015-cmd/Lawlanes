@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { initializeFirebase } from '@/firebase';
 import ArticleClient from './ArticleClient';
 import { Metadata } from 'next';
+import { SITE_URL } from '@/lib/seo';
 
 type Props = {
   params: Promise<{ slug: string; locale: string }>
@@ -12,11 +13,13 @@ export async function generateMetadata(
   props: Props
 ): Promise<Metadata> {
   const params = await props.params;
-  const { slug } = params;
+  const { slug, locale } = params;
+  // ต้องใส่ canonical ของบทความเอง ไม่งั้นจะรับ canonical /articles มาจาก articles/layout.tsx
+  const alternates = { canonical: `${SITE_URL}/${locale}/articles/${slug}` };
   const { firestore } = initializeFirebase();
   
   if (!firestore) {
-    return { title: 'Legal Case Room - Lawslane' };
+    return { title: 'Legal Case Room - Lawslane', alternates };
   }
   
   const article = await getArticleBySlug(firestore, slug);
@@ -34,6 +37,7 @@ export async function generateMetadata(
   return {
     title,
     description,
+    alternates,
     openGraph: {
       title,
       description,

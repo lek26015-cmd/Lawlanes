@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import LawyerCard from '@/components/lawyer-card';
 import FeaturedLawyerCard from '@/components/featured-lawyer-card';
@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { LawyerPageSidebarAds } from '@/components/lawyer-page-sidebar-ads';
 import { RecommendedArticles } from '@/components/recommended-articles';
 import { useTranslations } from 'next-intl';
+import { LawyersHero } from './lawyers-hero';
 
 const LAST_PLACE_NAMES = ['ชนาพัทธ์ ผมเพชร'];
 
@@ -40,8 +41,22 @@ interface LawyersPageClientProps {
   initialRegistryLawyers: RegistryLawyer[];
 }
 
+/**
+ * อ่าน query string แล้วส่งขึ้นไปให้หน้า — แยกเป็นคอมโพเนนต์เล็กใน Suspense ของตัวเอง
+ * เพราะ useSearchParams ทำให้ทุกอย่างใต้ Suspense ที่ใกล้ที่สุดเรนเดอร์ฝั่ง browser
+ * (เดิมทั้งหน้าหลุด HTML ที่ Google เห็นไม่มีรายชื่อทนายเลย) — ตอนนี้หลุดแค่ตัวนี้ที่ไม่มี UI
+ */
+function SearchParamsBridge({ onChange }: { onChange: (query: string) => void }) {
+  const params = useSearchParams();
+  const query = params.toString();
+  useEffect(() => { onChange(query); }, [query, onChange]);
+  return null;
+}
+
 export function LawyersPageClient({ initialLawyers, initialRegistryLawyers }: LawyersPageClientProps) {
-  const searchParams = useSearchParams();
+  // ฝั่ง server / ก่อน mount = ไม่มีตัวกรอง (รายชื่อทั้งหมด) → หลัง mount อ่านจาก URL จริง
+  const [query, setQuery] = useState('');
+  const searchParams = useMemo(() => new URLSearchParams(query), [query]);
   const specialties = searchParams.get('specialties');
   const matchIds = searchParams.get('matchIds');
   // ตัวกรองจาก LawyerFilterSidebar — เดิมหน้านี้อ่านแค่ specialties/matchIds
@@ -185,6 +200,9 @@ export function LawyersPageClient({ initialLawyers, initialRegistryLawyers }: La
 
   return (
     <div className="max-w-6xl mx-auto px-4 md:px-6 py-12">
+      <Suspense fallback={null}>
+        <SearchParamsBridge onChange={setQuery} />
+      </Suspense>
       <div className="text-center mb-8">
         {isAiSearch ? (
           <div>
@@ -198,23 +216,7 @@ export function LawyersPageClient({ initialLawyers, initialRegistryLawyers }: La
             </h1>
           </div>
         ) : (
-          <div className="flex justify-center mb-4 flex-col">
-            {/* Desktop Image */}
-            <img
-              src="/images/lawyers-center-lawslane.jpg"
-              alt="Professional Lawyers Center"
-              className="hidden md:block w-full h-auto object-cover"
-            />
-
-            {/* Mobile View: Image Only - Full Width */}
-            <div className="block md:hidden w-screen -ml-4 mr-0">
-              <img
-                src="/images/lawyers-center-lawslane-mobile.jpg"
-                alt="Professional Lawyers Center"
-                className="w-full h-auto object-cover"
-              />
-            </div>
-          </div>
+          <LawyersHero />
         )}
         {isAiSearch && (
           <p className="max-w-2xl mx-auto mt-4 text-muted-foreground md:text-xl">

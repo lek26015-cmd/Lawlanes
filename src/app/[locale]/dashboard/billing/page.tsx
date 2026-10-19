@@ -2,22 +2,31 @@
 
 import React, { useState, useEffect } from 'react';
 import { InvoiceList } from '@/components/billing/invoice-list';
+import { ReceiptList } from '@/components/billing/receipt-list';
 import { Invoice } from '@/lib/types/billing-types';
 import { CreditCard, ShieldCheck, Clock, Loader2 } from 'lucide-react';
 import { useUser } from '@/firebase';
 import { getUserInvoicesAction } from '@/app/actions/billing-actions';
 import { useToast } from '@/hooks/use-toast';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { useLocale } from 'next-intl';
 
 export default function ClientBillingPage() {
   const { user, isUserLoading } = useUser();
   const { toast } = useToast();
   const router = useRouter();
+  const locale = useLocale();
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (isUserLoading || !user) return;
+    if (isUserLoading) return;
+    // เดิม return เฉยๆ ตอนไม่มี user → isLoading ค้าง true หมุนโหลดไม่จบ
+    if (!user) {
+      router.push('/login');
+      return;
+    }
 
     async function fetchData() {
       setIsLoading(true);
@@ -34,9 +43,9 @@ export default function ClientBillingPage() {
     }
 
     fetchData();
-  }, [user, isUserLoading]);
+  }, [user, isUserLoading, router]);
 
-  if (isUserLoading || isLoading) {
+  if (isUserLoading || isLoading || !user) {
     return (
       <div className="flex justify-center items-center h-screen">
         <Loader2 className="h-12 w-12 animate-spin text-primary" />
@@ -72,8 +81,8 @@ export default function ClientBillingPage() {
             <ShieldCheck className="w-6 h-6" />
           </div>
           <div>
-            <div className="text-sm text-slate-400 font-medium">การชำระเงินที่ปลอดภัย</div>
-            <div className="text-slate-600 text-sm">ข้อมูลการชำระเงินของคุณถูกเข้ารหัสและปกป้องโดยมาตรฐานความปลอดภัยระดับสูง</div>
+            <div className="text-sm text-slate-400 font-medium">ชำระให้ทนายโดยตรง</div>
+            <div className="text-slate-600 text-sm">Lawslane ไม่ได้รับหรือถือเงินค่าบริการ — โอนเข้าบัญชีของทนายตามใบแจ้งหนี้ แล้วทนายเป็นผู้ยืนยันรับเงิน</div>
           </div>
         </div>
       </div>
@@ -86,7 +95,7 @@ export default function ClientBillingPage() {
           <InvoiceList 
             invoices={invoices} 
             role="client" 
-            onAction={(id) => router.push(`/payment?chatId=${invoices.find(i => i.id === id)?.case_id}&type=case`)} 
+            onAction={(id) => router.push(`/payment?chatId=${invoices.find(i => i.id === id)?.case_id}`)} 
             onViewEvidence={(inv) => {
               if (inv.evidence_url) {
                 window.open(inv.evidence_url, '_blank');
@@ -98,8 +107,18 @@ export default function ClientBillingPage() {
         </div>
       </div>
 
+      <div className="mt-6 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div className="p-6 border-b border-slate-100">
+          <div className="font-bold text-slate-800">ใบเสร็จรับเงิน</div>
+          <p className="text-xs text-slate-500 mt-1">ใบเสร็จออกในนามทนายผู้รับเงิน หลังทนายยืนยันว่าได้รับเงินแล้ว</p>
+        </div>
+        <div className="p-4">
+          <ReceiptList role="client" />
+        </div>
+      </div>
+
       <div className="mt-6 text-center text-slate-400 text-xs">
-        มีปัญหาในการชำระเงิน? <a href="#" className="text-blue-600 underline">ติดต่อฝ่ายสนับสนุน</a>
+        มีปัญหาในการชำระเงิน? <Link href={`/${locale}/help`} className="text-blue-600 underline">ติดต่อฝ่ายสนับสนุน</Link>
       </div>
     </div>
   );

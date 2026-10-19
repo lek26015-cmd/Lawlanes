@@ -520,8 +520,9 @@ function ChatBoxContent({
                                            className="w-full h-11 bg-blue-600 hover:bg-blue-700 font-bold rounded-2xl shadow-md text-sm" 
                                            asChild
                                         >
-                                            <a href={`/payment?chatId=${chatId}&type=${msg.text.includes('ค่าบริการ') ? 'consultation' : 'case'}${msg.metadata?.amount ? `&amount=${msg.metadata.amount}` : ''}`} target="_blank" rel="noopener noreferrer">
-                                              💳 ดำเนินการชำระเงิน
+                                            {/* ยอดและบัญชีปลายทางอ่านจาก server ที่หน้า /payment — ไม่ส่ง amount ใน URL */}
+                                            <a href={`/payment?chatId=${chatId}`}>
+                                              💳 ดูบัญชีทนายเพื่อโอนโดยตรง
                                             </a>
                                         </Button>
                                     </div>

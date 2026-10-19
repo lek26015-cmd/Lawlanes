@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocale } from 'next-intl';
 import { useSearchParams } from 'next/navigation';
 import { Check, Crown, Loader2 } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Link } from '@/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
@@ -27,6 +29,7 @@ export function ProviderPlanPanel({ kind }: { kind: ProviderKind }) {
     const searchParams = useSearchParams();
     const [data, setData] = useState<PlanData | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [acceptedTerms, setAcceptedTerms] = useState(false);
     const [busy, setBusy] = useState<string | null>(null);
     const handledReturn = useRef(false);
 
@@ -58,7 +61,7 @@ export function ProviderPlanPanel({ kind }: { kind: ProviderKind }) {
 
     const subscribe = async (tier: PaidTier) => {
         setBusy(tier);
-        const res = await startPlanCheckoutAction(kind, tier, locale);
+        const res = await startPlanCheckoutAction(kind, tier, locale, acceptedTerms);
         if (res.success) { window.location.href = res.url; return; }
         setBusy(null);
         toast({ variant: 'destructive', title: res.error });
@@ -72,7 +75,39 @@ export function ProviderPlanPanel({ kind }: { kind: ProviderKind }) {
         toast({ variant: 'destructive', title: res.error });
     };
 
-    if (error) return <p className="text-sm text-destructive">{error}</p>;
+    if (error) {
+        // บัญชีที่ไม่มีโปรไฟล์ทนาย/ล่าม (หรือโหลดไม่สำเร็จ) — เดิมโชว์แค่ข้อความ error ดิบ ไม่เห็นแพลนเลย
+        // ตอนนี้แสดงสิทธิ์ของแต่ละแพลนให้ดูได้ แต่ไม่มีราคา/ปุ่มสมัคร (สมัครได้เฉพาะเจ้าของโปรไฟล์)
+        const forbidden = error.startsWith('Forbidden');
+        return (
+            <div className="space-y-6">
+                <p className={`text-sm rounded-xl border p-4 ${forbidden ? 'bg-slate-50 text-slate-700' : 'bg-red-50 border-red-200 text-destructive'}`}>
+                    {forbidden
+                        ? (kind === 'lawyer'
+                            ? L('บัญชีนี้ยังไม่มีโปรไฟล์ทนาย — สมัครแพลนได้หลังลงทะเบียนเป็นทนาย', 'This account has no lawyer profile — register as a lawyer to subscribe')
+                            : L('บัญชีนี้ยังไม่ใช่ล่ามที่ได้รับการอนุมัติ — สมัครแพลนได้หลังได้รับอนุมัติ', 'This account is not an approved interpreter yet'))
+                        : L('โหลดข้อมูลแพลนไม่สำเร็จ กรุณาลองใหม่อีกครั้ง', 'Could not load your plan. Please try again.')}
+                </p>
+                <div className="grid md:grid-cols-3 gap-4">
+                    {TIERS.map(tier => (
+                        <Card key={tier} className={`rounded-2xl shadow-sm ${tier === 'top' ? 'border-2 border-amber-300 bg-gradient-to-b from-amber-50/60 to-white' : 'border-none'}`}>
+                            <CardContent className="p-5 space-y-4">
+                                <p className="font-bold text-lg flex items-center gap-2">
+                                    {tier !== 'free' && <Crown className="w-4 h-4 text-amber-500" />}
+                                    {L(...PLAN_INFO[kind][tier].name)}
+                                </p>
+                                <ul className="space-y-2 text-sm">
+                                    {PLAN_INFO[kind][tier].perks.map(p => (
+                                        <li key={p[0]} className="flex gap-2"><Check className="w-4 h-4 text-emerald-600 mt-0.5 flex-shrink-0" />{L(...p)}</li>
+                                    ))}
+                                </ul>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+            </div>
+        );
+    }
     if (!data) return <div className="flex justify-center py-16"><Loader2 className="animate-spin text-muted-foreground" /></div>;
 
     const info = PLAN_INFO[kind];
@@ -89,7 +124,15 @@ export function ProviderPlanPanel({ kind }: { kind: ProviderKind }) {
                             {data.tier !== 'free' && <Crown className="w-5 h-5 text-amber-500" />}
                             {L(...info[data.tier].name)}
                         </p>
-                        {data.tier !== 'free' && data.currentPeriodEnd && (
+                        {data.grant && (
+                            <p className="text-sm text-muted-foreground mt-1">
+                                {data.grant.expiresAt
+                                    ? L(`ได้รับแพลน ${info[data.grant.tier].name[0]} จากทีม Lawslane ถึง ${dateFmt(data.grant.expiresAt)}`, `${info[data.grant.tier].name[1]} plan granted by Lawslane until ${dateFmt(data.grant.expiresAt)}`)
+                                    : L(`ได้รับแพลน ${info[data.grant.tier].name[0]} จากทีม Lawslane`, `${info[data.grant.tier].name[1]} plan granted by Lawslane`)}
+                            </p>
+                        )}
+                        {/* แสดงรอบบิลเฉพาะตอน subscription ยังใช้งานอยู่ — ถ้าได้แพลนจากแอดมิน รอบบิลเก่าที่ยกเลิกแล้วไม่ควรโผล่ */}
+                        {data.tier !== 'free' && data.currentPeriodEnd && (data.status === 'active' || data.status === 'trialing') && (
                             <p className="text-sm text-muted-foreground mt-1">
                                 {data.cancelAtPeriodEnd
                                     ? L(`ใช้ได้ถึง ${dateFmt(data.currentPeriodEnd)} แล้วจะกลับเป็นแพลนฟรี`, `Active until ${dateFmt(data.currentPeriodEnd)}, then returns to Free`)
@@ -108,6 +151,18 @@ export function ProviderPlanPanel({ kind }: { kind: ProviderKind }) {
                     )}
                 </CardContent>
             </Card>
+
+            {/* ยอมรับข้อกำหนดก่อนสมัคร — แพลนต่ออายุอัตโนมัติ (รายการตรวจเอกสารกฎหมาย ข้อ 8) */}
+            {data.tier === 'free' && (
+                <label className="flex items-start gap-3 rounded-xl border bg-white p-4 text-sm cursor-pointer">
+                    <Checkbox checked={acceptedTerms} onCheckedChange={v => setAcceptedTerms(v === true)} className="mt-0.5" />
+                    <span>
+                        {L('ฉันได้อ่านและยอมรับ', 'I have read and accept the ')}
+                        <Link href="/terms#plans" target="_blank" className="underline text-[#0B3979]">{L('ข้อกำหนดการใช้งาน (หมวดแพลนรายเดือน)', 'Terms of Service (monthly plans)')}</Link>
+                        {L(' — แพลนต่ออายุและตัดเงินอัตโนมัติทุกรอบจนกว่าจะยกเลิก', ' — plans renew and are charged automatically each period until cancelled.')}
+                    </span>
+                </label>
+            )}
 
             <div className="grid md:grid-cols-3 gap-4">
                 {TIERS.map(tier => {
@@ -139,7 +194,7 @@ export function ProviderPlanPanel({ kind }: { kind: ProviderKind }) {
                                 ) : tier === 'free' ? null : data.tier !== 'free' ? (
                                     <Button variant="outline" onClick={manage} disabled={!!busy}>{L('เปลี่ยนแพลน', 'Change plan')}</Button>
                                 ) : (
-                                    <Button onClick={() => subscribe(tier)} disabled={!price || !!busy} className="bg-[#0B3979] hover:bg-[#0B3979]/90">
+                                    <Button onClick={() => subscribe(tier)} disabled={!price || !!busy || !acceptedTerms} className="bg-[#0B3979] hover:bg-[#0B3979]/90">
                                         {busy === tier && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
                                         {L('สมัครแพลนนี้', 'Subscribe')}
                                     </Button>

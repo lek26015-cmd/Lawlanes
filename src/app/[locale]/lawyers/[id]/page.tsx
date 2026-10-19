@@ -16,9 +16,11 @@ export async function generateMetadata(
     // ซึ่งดึงเอกสารเต็ม (เบอร์/ที่อยู่/เลขบัญชี) และจะพังทันทีที่ rules ปิด get
     const lawyer = await getPublicLawyerAction(id);
 
-    if (!lawyer) {
+    // โปรไฟล์ที่ยังไม่อนุมัติ/ถูกระงับ ไม่เปิดเป็นหน้าสาธารณะ (และไม่ให้ search engine เก็บ)
+    if (!lawyer || lawyer.status !== 'approved') {
         return {
             title: 'Lawyer Not Found - Lawslane',
+            robots: { index: false, follow: false },
         };
     }
 
@@ -29,6 +31,8 @@ export async function generateMetadata(
     return {
         title,
         description,
+        // โปรไฟล์ที่ซ่อนจากรายชื่อ เปิดด้วยลิงก์ตรงได้ แต่ไม่ให้ search engine เก็บ
+        ...(lawyer.hidden ? { robots: { index: false, follow: false } } : {}),
         openGraph: {
             title,
             description,
@@ -57,7 +61,8 @@ export default async function LawyerProfilePage(props: Props) {
     // หน้านี้ต้องเปิดดูได้โดยไม่ล็อกอิน (PRD.md) — จึงคืนแค่ PublicLawyer
     const lawyer = await getPublicLawyerAction(id);
 
-    if (!lawyer) {
+    // ทนายที่ยังรออนุมัติ / ถูกปฏิเสธ / ถูกระงับ → 404 เหมือนไม่มีหน้า
+    if (!lawyer || lawyer.status !== 'approved') {
         notFound();
     }
 

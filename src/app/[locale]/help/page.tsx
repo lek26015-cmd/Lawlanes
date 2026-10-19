@@ -133,7 +133,7 @@ function HelpPageContent() {
                     createdAt: serverTimestamp(),
                     read: false,
                     recipient: 'admin',
-                    link: `/admin/tickets/${docRef.id}`,
+                    link: `/tickets/${docRef.id}`,
                     relatedId: docRef.id
                   });
 

@@ -3,7 +3,7 @@ import type { LegalLocale } from './types';
 /** วันที่ปรับปรุงเอกสารกฎหมายทั้งชุดครั้งล่าสุด (YYYY-MM-DD) — แก้เนื้อหาเมื่อไรให้เลื่อนวันนี้ด้วย */
 export const LEGAL_LAST_UPDATED = '2026-09-26';
 
-export const CONTACT_EMAIL = 'contact@lawslane.com';
+export const CONTACT_EMAIL = 'lawslanelawyer@gmail.com';
 
 /**
  * ผู้ให้บริการ — ตอนนี้ Lawslane เป็นสตาร์ทอัพที่ยังไม่ได้จดทะเบียนนิติบุคคล ผู้ควบคุมข้อมูลตาม PDPA

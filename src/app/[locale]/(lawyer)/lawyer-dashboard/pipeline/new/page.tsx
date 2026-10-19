@@ -261,7 +261,8 @@ ${showInstallments ? `โดยแบ่งชำระเป็นดังน�
     }
   };
 
-  const paymentLink = typeof window !== 'undefined' ? `${window.location.origin}/payment?chatId=${createdChatId}&lawyerId=${user?.uid}&type=case` : '';
+  // ลิงก์หน้า "โอนให้ทนายโดยตรง" — ลูกความเห็นบัญชีของคุณ (จากหน้าการเงิน) และแจ้งโอนได้ ยอดอ่านจาก server
+  const paymentLink = typeof window !== 'undefined' ? `${window.location.origin}/payment?chatId=${createdChatId}` : '';
 
   const copyToClipboard = () => {
     navigator.clipboard.writeText(paymentLink);
@@ -282,13 +283,13 @@ ${showInstallments ? `โดยแบ่งชำระเป็นดังน�
               <CardTitle className="text-2xl font-bold text-slate-900">สร้างคดีสำเร็จ</CardTitle>
               <CardDescription className="text-lg">
                 ข้อเสนอเปิดคดีของคุณถูกส่งไปยังลูกความทางแชทเรียบร้อยแล้ว <br/>
-                คุณสามารถกลับไปยังห้องแชทเพื่อตรวจสอบสถานะการชำระเงินของลูกความได้ทันที
+                ลูกความโอนค่าบริการเข้าบัญชีของคุณโดยตรง แล้วคุณกด "ยืนยันได้รับเงิน" ในห้องแชท
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6 px-10 pb-10">
               <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100 space-y-4">
                 <p className="font-bold text-slate-700 flex items-center gap-2">
-                   <DollarSign className="w-5 h-5 text-blue-600" /> ลิงก์สำหรับส่งให้ลูกความเพื่อชำระเงิน (สำรอง):
+                   <DollarSign className="w-5 h-5 text-blue-600" /> ลิงก์ให้ลูกความดูบัญชีของคุณเพื่อโอนโดยตรง (สำรอง):
                 </p>
                 <div className="flex gap-2">
                   <div className="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm font-mono text-slate-500 break-all h-auto min-h-[48px] flex items-center">
@@ -302,7 +303,7 @@ ${showInstallments ? `โดยแบ่งชำระเป็นดังน�
                   </Button>
                 </div>
                 <p className="text-xs text-slate-400 italic">
-                  * ลูกความเห็นข้อเสนอและปุ่มชำระเงินในแชทแล้ว แต่คุณสามารถส่งลิงก์นี้ซ้ำได้หากจำเป็น
+                  * ลูกความเห็นข้อเสนอในแชทแล้ว ส่งลิงก์นี้ซ้ำได้หากจำเป็น — ตรวจสอบว่ากรอกบัญชีรับเงินในหน้าการเงินแล้ว
                 </p>
               </div>
 
