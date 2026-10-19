@@ -12,6 +12,7 @@ const requireCasePlan = () => requireLawyerFeature('caseManagement');
 import { checkRateLimit } from '@/lib/security/rate-limiter';
 import { addCaseEventToBatch, isTelemetryEnabled, logCaseEvent, resolveLawyerProfileId } from '@/lib/telemetry/case-events';
 import { uploadToR2 } from '@/app/actions/upload';
+import { releaseHeldPayouts, moveHeldToRefund } from '@/lib/lawyer-payment-core';
 import { generateWitnessListPdf } from '@/lib/witness-list-pdf';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -639,6 +640,13 @@ export async function closeCaseAction(caseId: string, data: {
 
             await batch.commit();
 
+            // ค่าทนายที่ถือไว้ในบัญชีระบบ → รอแอดมินโอนให้ทนาย (PLAN-10)
+            try {
+                await releaseHeldPayouts(db, caseId);
+            } catch (payoutError) {
+                console.error('releaseHeldPayouts failed:', payoutError);
+            }
+
             // Send email notification to client
             try {
                 const chatData = chatDoc.data();
@@ -692,21 +700,24 @@ export async function cancelCaseAction(caseId: string) {
         }
 
         const chatData = chatDoc.data();
-        // ยอดที่ทนายยืนยันว่าได้รับแล้วจริง (งวดที่ 'paid' หรือ paidAmount) — ไม่ใช่ chat.amount
-        // ซึ่งเป็นแค่ยอดที่เสนอ ลูกความอาจยังไม่ได้โอนเลย
+        // ยอดที่จ่ายแล้วจริง (งวดที่ 'paid' หรือ paidAmount) — ไม่ใช่ chat.amount ซึ่งเป็นแค่ยอดที่เสนอ
         const insts: any[] = Array.isArray(chatData?.installments) ? chatData!.installments : [];
         const paidAmount = insts.length > 0
             ? insts.filter(i => i?.status === 'paid').reduce((sum, i) => sum + (parseFloat(String(i?.amount ?? 0).replace(/,/g, '')) || 0), 0)
             : (Number(chatData?.paidAmount) || 0);
+        // เงินที่จ่ายเข้าบัญชีระบบและยังไม่ได้โอนให้ทนาย → Lawslane คืนลูกความ (PLAN-10)
+        // ส่วนที่เหลือคือเงินที่โอนตรงให้ทนายก่อนเปลี่ยนระบบ — ตกลงคืนกับทนายเอง
+        const platformRefund = await moveHeldToRefund(db, caseId);
+        const directPaid = Math.max(0, paidAmount - platformRefund);
 
         const batch = db.batch();
         batch.update(chatRef, {
             status: 'cancelled',
             cancelledAt: new Date(),
             cancelledBy: actorUid,
-            // Lawslane ไม่ได้ถือเงิน → ไม่มีคิวคืนเงินของแพลตฟอร์ม การคืน (ถ้ามี) ตกลงกันเองระหว่างลูกความกับทนาย
-            refundStatus: paidAmount > 0 ? 'direct_with_lawyer' : 'no_refund_needed',
+            refundStatus: platformRefund > 0 ? 'platform_refund_pending' : directPaid > 0 ? 'direct_with_lawyer' : 'no_refund_needed',
             refundAmount: paidAmount,
+            platformRefundAmount: platformRefund,
             lastMessage: '❌ เคสถูกยกเลิกโดยทนายความ',
             lastMessageAt: new Date(),
             updatedAt: new Date(),
@@ -715,7 +726,7 @@ export async function cancelCaseAction(caseId: string) {
         // Add system message
         const systemMsgRef = chatRef.collection('messages').doc();
         batch.set(systemMsgRef, {
-            text: `❌ เคสถูกยกเลิกโดยทนายความ${paidAmount > 0 ? ` — ลูกความชำระให้ทนายไปแล้ว ฿${paidAmount.toLocaleString()} การคืนเงินให้ตกลงกับทนายโดยตรง (Lawslane ไม่ได้ถือเงินก้อนนี้)` : ''}`,
+            text: `❌ เคสถูกยกเลิกโดยทนายความ${platformRefund > 0 ? ` — Lawslane จะคืนเงินที่ชำระเข้าระบบ ฿${platformRefund.toLocaleString()} ให้ลูกความ` : ''}${directPaid > 0 ? ` — ส่วนที่โอนตรงให้ทนาย ฿${directPaid.toLocaleString()} ให้ตกลงคืนกับทนายโดยตรง` : ''}`,
             senderId: 'system',
             timestamp: new Date(),
             type: 'case_cancelled'
@@ -741,6 +752,7 @@ export async function cancelCaseAction(caseId: string) {
                         lawyerName: lawyerDoc?.exists ? lawyerDoc.data()?.name : 'ทนายความ',
                         caseTitle: chatData?.caseTitle || 'เคส',
                         refundAmount: paidAmount,
+                        platformRefundAmount: platformRefund,
                     });
                 }
             }

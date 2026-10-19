@@ -283,7 +283,7 @@ ${showInstallments ? `โดยแบ่งชำระเป็นดังน�
               <CardTitle className="text-2xl font-bold text-slate-900">สร้างคดีสำเร็จ</CardTitle>
               <CardDescription className="text-lg">
                 ข้อเสนอเปิดคดีของคุณถูกส่งไปยังลูกความทางแชทเรียบร้อยแล้ว <br/>
-                ลูกความโอนค่าบริการเข้าบัญชีของคุณโดยตรง แล้วคุณกด "ยืนยันได้รับเงิน" ในห้องแชท
+                ลูกความชำระค่าบริการเข้าบัญชี Lawslane และ Lawslane โอนยอดสุทธิให้คุณหลังปิดเคส
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6 px-10 pb-10">

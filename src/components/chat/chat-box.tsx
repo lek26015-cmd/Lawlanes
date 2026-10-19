@@ -520,9 +520,9 @@ function ChatBoxContent({
                                            className="w-full h-11 bg-blue-600 hover:bg-blue-700 font-bold rounded-2xl shadow-md text-sm" 
                                            asChild
                                         >
-                                            {/* ยอดและบัญชีปลายทางอ่านจาก server ที่หน้า /payment — ไม่ส่ง amount ใน URL */}
+                                            {/* ยอดอ่านจาก server ที่หน้า /payment — ไม่ส่ง amount ใน URL */}
                                             <a href={`/payment?chatId=${chatId}`}>
-                                              💳 ดูบัญชีทนายเพื่อโอนโดยตรง
+                                              💳 ชำระค่าบริการผ่าน Lawslane
                                             </a>
                                         </Button>
                                     </div>
