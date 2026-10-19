@@ -1,7 +1,7 @@
 import type { LegalLocale } from './types';
 
 /** วันที่ปรับปรุงเอกสารกฎหมายทั้งชุดครั้งล่าสุด (YYYY-MM-DD) — แก้เนื้อหาเมื่อไรให้เลื่อนวันนี้ด้วย */
-export const LEGAL_LAST_UPDATED = '2026-09-26';
+export const LEGAL_LAST_UPDATED = '2026-10-19';
 
 export const CONTACT_EMAIL = 'lawslanelawyer@gmail.com';
 

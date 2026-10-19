@@ -22,7 +22,7 @@ export const TERMS: Record<LegalLocale, LegalDoc> = {
                         ul: [
                             'Lawslane **ไม่ใช่สำนักงานกฎหมาย** และไม่ได้ให้คำปรึกษาทางกฎหมายเอง',
                             'ทนายความและล่าม/นักแปลบนแพลตฟอร์มเป็น**ผู้ให้บริการอิสระ** ไม่ใช่ลูกจ้างหรือตัวแทนของ Lawslane',
-                            'ความสัมพันธ์ระหว่างทนายความกับลูกความ ขอบเขตงาน ค่าวิชาชีพ และผลของคดี เป็นเรื่องที่ทนายความกับลูกความตกลงและรับผิดชอบต่อกันโดยตรง',
+                            'ความสัมพันธ์ระหว่างทนายความกับลูกความ ขอบเขตงาน จำนวนค่าวิชาชีพ และผลของคดี เป็นเรื่องที่ทนายความกับลูกความตกลงและรับผิดชอบต่อกันโดยตรง ส่วนการรับชำระและส่งต่อค่าวิชาชีพเป็นไปตามหัวข้อ "ค่าบริการทนายความและการชำระเงิน"',
                             'Lawslane ไม่รับประกันผลของคดี หรือคุณภาพของงานที่ทนายความหรือล่าม/นักแปลให้บริการ',
                         ],
                     },
@@ -53,9 +53,10 @@ export const TERMS: Record<LegalLocale, LegalDoc> = {
                             'ข้อมูลและเอกสารที่ส่งตอนสมัคร เช่น เลขใบอนุญาต สำเนาบัตรประชาชน สำเนาใบอนุญาต ประวัติการศึกษา และประสบการณ์ ต้องเป็นความจริง',
                             '**การตรวจสอบของเรา:** เราเทียบเลขใบอนุญาตกับทะเบียนทนายความที่ทีมงานรวบรวมไว้ และ/หรือให้ทีมงานตรวจเอกสาร ก่อนเปิดโปรไฟล์ให้ลูกความเห็น การตรวจนี้เป็นการตรวจเบื้องต้นของ Lawslane เอง **ไม่ใช่การรับรองจากสภาทนายความ** และไม่ใช่การรับรองความสามารถของทนายความ ลูกความตรวจสถานะใบอนุญาตได้ที่หน้า [ตรวจสอบทนายความ](/verify-lawyer)',
                             'เมื่อได้รับการอนุมัติ ข้อมูลโปรไฟล์บางส่วนจะเปิดเผยต่อสาธารณะ รวมถึงผู้ที่ไม่ได้เข้าสู่ระบบและเครื่องมือค้นหา ได้แก่ ชื่อ รูปโปรไฟล์ เลขใบอนุญาต ความเชี่ยวชาญ จังหวัดที่ให้บริการ คำอธิบาย การศึกษา ประสบการณ์ สำนักงาน ตารางเวลา คะแนนและรีวิว ส่วนเบอร์โทรศัพท์ อีเมล ที่อยู่ และเอกสารยืนยันตัวตนจะไม่เปิดเผย',
-                            'บัญชีธนาคารที่ทนายความกรอกไว้จะแสดงให้**เฉพาะลูกความในเคสของทนายความคนนั้น**เห็น เพื่อใช้โอนค่าวิชาชีพ ทนายความต้องใช้บัญชีที่เป็นชื่อของตนเองหรือสำนักงานของตน',
+                            'บัญชีธนาคารที่ทนายความกรอกไว้ใช้**รับเงินที่ Lawslane โอนให้** และไม่แสดงให้ลูกความเห็น ทนายความต้องใช้บัญชีที่เป็นชื่อของตนเองหรือสำนักงานของตน',
                             'ทนายความต้องปฏิบัติตามกฎหมาย ข้อบังคับสภาทนายความว่าด้วยมรรยาททนายความ และหน้าที่รักษาความลับของลูกความ',
-                            'ทนายความเป็นผู้ออกใบเสร็จ/ใบกำกับภาษี และรับผิดชอบภาษีจากรายได้ของตนเอง',
+                            'ทนายความรับผิดชอบภาษีจากรายได้ของตนเอง',
+                            'ทนายความต้องไม่ขอให้ลูกความชำระค่าวิชาชีพสำหรับเคสในระบบเข้าบัญชีอื่นนอกจากบัญชีของ Lawslane',
                         ],
                     },
                 ],
@@ -64,15 +65,18 @@ export const TERMS: Record<LegalLocale, LegalDoc> = {
                 id: 'payments',
                 title: 'ค่าบริการทนายความและการชำระเงิน',
                 blocks: [
-                    { p: '**ลูกความชำระค่าวิชาชีพให้ทนายความโดยตรง Lawslane ไม่ได้รับ ถือ หรือพักเงินแทนฝ่ายใด** และไม่ใช่ผู้ให้บริการรับชำระเงินหรือบัญชีคุ้มครองเงิน (escrow)' },
+                    { p: '**ลูกความชำระค่าวิชาชีพทนายความทุกรายการ (ค่าบริการของเคส งวดชำระ และค่าบริการเพิ่มเติม) เข้าบัญชีรับชำระของ Lawslane** ซึ่งเป็นบัญชีเดียวกับค่าบริการล่าม/นักแปล Lawslane ถือเงินไว้จนทนายความปิดเคส แล้วโอนยอดหลังหักค่าธรรมเนียมแพลตฟอร์มให้ทนายความ' },
                     {
                         ul: [
-                            'ค่าวิชาชีพ งวดชำระ และค่าบริการเพิ่มเติม เป็นไปตามที่ทนายความเสนอและลูกความตกลงในระบบ',
-                            'ลูกความโอนเงินเข้าบัญชีของทนายความที่แสดงในหน้าชำระเงินของเคส และแนบหลักฐานการโอนเพื่อแจ้งทนายความได้ ทนายความเป็นผู้กดยืนยันว่าได้รับเงินแล้ว สถานะ "ชำระแล้ว" ในระบบจึงเป็นบันทึกจากการยืนยันของทนายความ',
-                            '**ก่อนโอน โปรดตรวจว่าชื่อบัญชีตรงกับชื่อทนายความหรือสำนักงานของทนายความ** หากมีผู้ขอให้โอนเข้าบัญชีอื่นที่ไม่ตรงกัน โปรดอย่าโอนและแจ้งเรา',
+                            'ค่าวิชาชีพ งวดชำระ และค่าบริการเพิ่มเติม เป็นไปตามที่ทนายความเสนอและลูกความตกลงในระบบ ลูกความชำระตามยอดที่แสดง ไม่มีค่าธรรมเนียมเพิ่มจากยอดนั้น',
+                            'ลูกความโอนเงินเข้าบัญชีของ Lawslane ที่แสดงในหน้าชำระเงินของเคส แล้วแนบรูปสลิป ระบบตรวจสลิปอัตโนมัติ หากตรวจไม่ผ่าน ทีมงานจะตรวจเอง รายการในเคสจะเป็น "ชำระแล้ว" เมื่อระบบหรือทีมงานยืนยันการชำระ และทนายความกับลูกความจะได้รับแจ้ง',
+                            '**โปรดโอนเข้าบัญชี Lawslane ที่แสดงในหน้าชำระเงินเท่านั้น** หากทนายความหรือผู้ใดขอให้โอนเข้าบัญชีอื่น โปรดอย่าโอนและแจ้งเรา เงินที่ชำระนอกระบบไม่ได้รับการคืนเงินจาก Lawslane',
                             'การขอนัดหมายกับทนายความผ่านระบบไม่มีค่าใช้จ่ายให้ Lawslane',
-                            'การยกเลิกงานและการคืนเงิน เป็นเรื่องที่ลูกความตกลงกับทนายความโดยตรง Lawslane ไม่มีเงินที่จะคืนให้ แต่อาจช่วยประสานงานเมื่อได้รับแจ้ง',
-                            'Lawslane ไม่เก็บค่าธรรมเนียมหรือส่วนแบ่งจากค่าวิชาชีพทนายความ ทั้งจากลูกความและทนายความ (ค่าบริการล่าม/นักแปล และแพลนรายเดือนของผู้ให้บริการ ดูหัวข้อถัดไป) หากจะเริ่มเก็บค่าบริการใหม่ เราจะแจ้งอัตราและเงื่อนไขล่วงหน้าก่อนมีผล',
+                            '**ค่าธรรมเนียมแพลตฟอร์ม (GP):** Lawslane หักค่าธรรมเนียมจากค่าวิชาชีพที่ลูกความชำระ ปัจจุบันอัตรา 10% ของยอดที่ชำระ อัตราที่ใช้กับแต่ละรายการคืออัตรา ณ เวลาที่ลูกความชำระ การเปลี่ยนอัตราจะแจ้งล่วงหน้าและไม่ย้อนหลังกับรายการที่ชำระแล้ว ทนายความดูยอดเต็ม GP และยอดสุทธิของแต่ละรายการได้ในหน้าการเงินของทนายความ',
+                            '**การโอนเงินให้ทนายความ:** ระหว่างที่เคสยังไม่ปิด Lawslane ถือเงินไว้ เมื่อทนายความปิดเคสในระบบ Lawslane จะโอนยอดสุทธิของรายการที่ชำระแล้วในเคสนั้นเข้าบัญชีธนาคารที่ทนายความกรอกไว้ ตามรอบเวลาที่ Lawslane แจ้ง',
+                            '**การยกเลิกและการคืนเงิน:** หากทนายความยกเลิกเคสก่อนปิดเคส Lawslane จะคืนเงินเต็มจำนวนที่ลูกความชำระเข้าระบบสำหรับเคสนั้นและยังไม่ได้โอนให้ทนายความ โดยทีมงานเป็นผู้โอนคืนเข้าบัญชีของลูกความ กรณีอื่นให้ติดต่อทีมงาน การคืนเงินเป็นไปตามที่ Lawslane แจ้ง',
+                            'เงินที่ลูกความโอนเข้าบัญชีของทนายความโดยตรงก่อนวันที่ [[19 ตุลาคม 2569]] ซึ่ง Lawslane เริ่มรับชำระค่าวิชาชีพผ่านระบบ ไม่ได้ผ่าน Lawslane การคืนเงินส่วนนั้นเป็นเรื่องที่ลูกความตกลงกับทนายความโดยตรง Lawslane อาจช่วยประสานงานเมื่อได้รับแจ้ง',
+                            'ขณะนี้ระบบยังไม่ออกใบเสร็จรับเงินหรือใบกำกับภาษีสำหรับค่าวิชาชีพทนายความ',
                         ],
                     },
                 ],
@@ -81,7 +85,7 @@ export const TERMS: Record<LegalLocale, LegalDoc> = {
                 id: 'interpreters',
                 title: 'บริการล่ามและนักแปล',
                 blocks: [
-                    { p: 'Lawslane ให้บริการจัดหาล่ามและนักแปลด้านกฎหมาย (เช่น ล่ามในศาล สถานีตำรวจ การประชุม และการแปลเอกสาร) โดยท่านส่งคำขอผ่านหน้าบริการล่าม แล้วทีมงาน Lawslane จะพูดคุยรายละเอียด จัดหาล่าม/นักแปลที่เหมาะสม และเสนอราคาให้ในแชท เว็บไซต์ไม่แสดงรายชื่อหรืออัตราค่าบริการของล่าม/นักแปล และไม่เปิดรับสมัครล่าม/นักแปลผ่านเว็บไซต์ **บริการนี้ต่างจากบริการทนายความ ตรงที่ Lawslane เป็นผู้รับชำระเงินแทนล่าม/นักแปล**' },
+                    { p: 'Lawslane ให้บริการจัดหาล่ามและนักแปลด้านกฎหมาย (เช่น ล่ามในศาล สถานีตำรวจ การประชุม และการแปลเอกสาร) โดยท่านส่งคำขอผ่านหน้าบริการล่าม แล้วทีมงาน Lawslane จะพูดคุยรายละเอียด จัดหาล่าม/นักแปลที่เหมาะสม และเสนอราคาให้ในแชท เว็บไซต์ไม่แสดงรายชื่อหรืออัตราค่าบริการของล่าม/นักแปล และไม่เปิดรับสมัครล่าม/นักแปลผ่านเว็บไซต์ **Lawslane เป็นผู้รับชำระเงินแทนล่าม/นักแปล** เช่นเดียวกับค่าวิชาชีพทนายความ' },
                     {
                         ul: [
                             '**การขอใช้บริการ:** ต้องเข้าสู่ระบบ รายละเอียดคำขอ (บริการ ภาษา วันที่ สถานที่ เบอร์ติดต่อ และข้อความ) จะส่งถึงทีมงานในแชทซัพพอร์ต การส่งคำขอยังไม่ถือเป็นการจองและไม่มีค่าใช้จ่าย',
@@ -179,7 +183,7 @@ export const TERMS: Record<LegalLocale, LegalDoc> = {
                     {
                         ul: [
                             'เราให้บริการตามสภาพที่เป็นอยู่ และพยายามให้ระบบใช้งานได้ต่อเนื่อง แต่ไม่รับประกันว่าจะไม่มีการหยุดชะงักหรือข้อผิดพลาด',
-                            'เท่าที่กฎหมายอนุญาต Lawslane ไม่ต้องรับผิดต่อความเสียหายที่เกิดจากคำแนะนำหรือการกระทำของทนายความหรือล่าม/นักแปล การตกลงหรือการโอนเงินระหว่างผู้ใช้ หรือการที่ท่านนำข้อมูลจากเครื่องมือ AI ไปใช้โดยไม่ปรึกษาทนายความ',
+                            'เท่าที่กฎหมายอนุญาต Lawslane ไม่ต้องรับผิดต่อความเสียหายที่เกิดจากคำแนะนำหรือการกระทำของทนายความหรือล่าม/นักแปล การตกลงระหว่างผู้ใช้ การชำระเงินที่ไม่ได้ทำผ่านบัญชีรับชำระของ Lawslane หรือการที่ท่านนำข้อมูลจากเครื่องมือ AI ไปใช้โดยไม่ปรึกษาทนายความ',
                             'ข้อจำกัดนี้ไม่ใช้กับความเสียหายที่เกิดจากการกระทำโดยจงใจหรือประมาทเลินเล่ออย่างร้ายแรงของเรา และไม่ตัดสิทธิใดที่ท่านมีตามกฎหมายคุ้มครองผู้บริโภค',
                         ],
                     },
@@ -234,7 +238,7 @@ export const TERMS: Record<LegalLocale, LegalDoc> = {
                         ul: [
                             'Lawslane is **not a law firm** and does not give legal advice itself.',
                             'Lawyers and interpreters/translators on the platform are **independent providers**, not employees or agents of Lawslane.',
-                            'The lawyer–client relationship, scope of work, fees and case outcome are agreed and owed directly between the lawyer and the client.',
+                            'The lawyer–client relationship, scope of work, amount of fees and case outcome are agreed and owed directly between the lawyer and the client. How fees are collected and passed on is set out under "Lawyer fees and payments".',
                             'Lawslane does not guarantee case outcomes or the quality of work by any lawyer or interpreter/translator.',
                         ],
                     },
@@ -265,9 +269,10 @@ export const TERMS: Record<LegalLocale, LegalDoc> = {
                             'Information and documents you submit (licence number, ID card copy, licence copy, education, experience) must be true.',
                             '**Our checks:** before a profile is shown to clients, we match the licence number against a lawyer register compiled by our team and/or have our team review the documents. This is Lawslane\'s own preliminary check. It is **not a certification by the Lawyers Council of Thailand** and does not vouch for a lawyer\'s competence. Clients can check a licence on the [Verify a Lawyer](/verify-lawyer) page.',
                             'Once approved, part of your profile is public, including to logged-out visitors and search engines: name, photo, licence number, specialties, provinces served, description, education, experience, firm, schedule, ratings and reviews. Your phone number, email, address and identity documents are not published.',
-                            'Your bank account details are shown **only to clients in your own cases**, so they can pay your fees. The account must be in your name or your firm\'s name.',
+                            'Your bank account is used **to receive transfers from Lawslane** and is not shown to clients. The account must be in your name or your firm\'s name.',
                             'You must comply with the law, the Lawyers Council\'s regulations on professional conduct, and your duty of client confidentiality.',
-                            'You issue your own receipts or tax invoices and are responsible for tax on your income.',
+                            'You are responsible for tax on your income.',
+                            'You must not ask clients to pay fees for cases in the Service into any account other than Lawslane\'s.',
                         ],
                     },
                 ],
@@ -276,15 +281,18 @@ export const TERMS: Record<LegalLocale, LegalDoc> = {
                 id: 'payments',
                 title: 'Lawyer fees and payments',
                 blocks: [
-                    { p: '**Clients pay lawyers directly. Lawslane does not receive, hold or pass on money for anyone**, and is not a payment service or escrow.' },
+                    { p: '**Clients pay every lawyer fee (case fee, instalments and additional charges) into Lawslane\'s payment account**, the same account used for interpreter/translator fees. Lawslane holds the money until the lawyer closes the case, then transfers the amount after the platform fee to the lawyer.' },
                     {
                         ul: [
-                            'Fees, instalments and additional charges are as proposed by the lawyer and agreed by the client in the system.',
-                            'The client transfers to the lawyer\'s account shown on the case payment page and may attach proof of transfer to notify the lawyer. The lawyer confirms receipt, so a "paid" status is a record of the lawyer\'s confirmation.',
-                            '**Before transferring, check that the account name matches the lawyer or their firm.** If anyone asks you to pay a different account, do not pay and tell us.',
+                            'Fees, instalments and additional charges are as proposed by the lawyer and agreed by the client in the system. The client pays the amount shown; no fee is added to it.',
+                            'The client transfers to the Lawslane account shown on the case payment page and attaches an image of the slip. Slips are checked automatically; if the check fails, our team reviews it. An item shows as "paid" once the system or our team confirms the payment, and both lawyer and client are notified.',
+                            '**Pay only into the Lawslane account shown on the payment page.** If a lawyer or anyone else asks you to pay a different account, do not pay and tell us. Money paid outside the Service is not refunded by Lawslane.',
                             'Requesting an appointment through the system is free of charge from Lawslane.',
-                            'Cancellations and refunds are settled directly between client and lawyer. Lawslane holds no money to refund, but may help coordinate if told.',
-                            'Lawslane charges no fee or commission on lawyers\' fees, to either clients or lawyers. (Interpreter/translator bookings and provider plans are covered in the next sections.) If we introduce a new charge, we will announce the rate and terms before it takes effect.',
+                            '**Platform fee (GP):** Lawslane deducts a fee from the lawyer fees clients pay, currently 10% of the amount paid. Each payment uses the rate at the time the client pays. Rate changes are announced in advance and do not apply to payments already made. Lawyers can see the gross amount, GP and net amount of each payment on their financials page.',
+                            '**Payouts to lawyers:** while a case is open, Lawslane holds the money. When the lawyer closes the case in the system, Lawslane transfers the net amount of the paid items in that case to the bank account the lawyer provided, on the schedule Lawslane announces.',
+                            '**Cancellations and refunds:** if the lawyer cancels the case before closing it, Lawslane refunds in full the money the client paid through the Service for that case that has not been transferred to the lawyer; our team transfers it to the client\'s account. In other cases, contact our team; refunds are as Lawslane notifies.',
+                            'Money a client transferred directly to a lawyer before [[19 October 2026]], when Lawslane began collecting lawyer fees through the Service, did not pass through Lawslane. Any refund of that money is settled directly between client and lawyer; Lawslane may help coordinate if told.',
+                            'The system does not currently issue receipts or tax invoices for lawyer fees.',
                         ],
                     },
                 ],
@@ -293,7 +301,7 @@ export const TERMS: Record<LegalLocale, LegalDoc> = {
                 id: 'interpreters',
                 title: 'Interpreter and translator service',
                 blocks: [
-                    { p: "Lawslane arranges legal interpreters and translators (for courts, police stations, meetings and document translation). You send a request on the interpreter service page, and Lawslane's team discusses the details with you, arranges a suitable interpreter and sends you a quote in chat. The website does not list interpreters or their rates, and does not recruit interpreters through the website. **Unlike the lawyer service, Lawslane collects payment on the interpreter's behalf.**" },
+                    { p: "Lawslane arranges legal interpreters and translators (for courts, police stations, meetings and document translation). You send a request on the interpreter service page, and Lawslane's team discusses the details with you, arranges a suitable interpreter and sends you a quote in chat. The website does not list interpreters or their rates, and does not recruit interpreters through the website. **Lawslane collects payment on the interpreter's behalf**, as it does for lawyer fees." },
                     {
                         ul: [
                             '**Requests:** you must be logged in. Your request (service, languages, date, location, phone and message) goes to our team in support chat. Sending a request is not a booking and costs nothing.',
@@ -391,7 +399,7 @@ export const TERMS: Record<LegalLocale, LegalDoc> = {
                     {
                         ul: [
                             'The Service is provided as is. We try to keep it available but do not guarantee it will be uninterrupted or error-free.',
-                            'To the extent permitted by law, Lawslane is not liable for loss caused by the advice or conduct of a lawyer or interpreter/translator, by agreements or payments between users, or by your use of AI output without consulting a lawyer.',
+                            'To the extent permitted by law, Lawslane is not liable for loss caused by the advice or conduct of a lawyer or interpreter/translator, by agreements between users, by payments not made through Lawslane\'s payment account, or by your use of AI output without consulting a lawyer.',
                             'This does not limit liability for our wilful misconduct or gross negligence, or any rights you have under consumer protection law.',
                         ],
                     },
@@ -446,7 +454,7 @@ export const TERMS: Record<LegalLocale, LegalDoc> = {
                         ul: [
                             'Lawslane **不是律师事务所**，本身不提供法律意见。',
                             '平台上的律师和口译/笔译员是**独立服务提供者**，不是 Lawslane 的雇员或代理人。',
-                            '律师与委托人之间的委托关系、工作范围、律师费及案件结果，由双方直接约定并相互负责。',
+                            '律师与委托人之间的委托关系、工作范围、律师费金额及案件结果，由双方直接约定并相互负责。律师费的收取和转付按"律师费用与付款"一节办理。',
                             'Lawslane 不保证案件结果，也不保证律师或口译/笔译员的服务质量。',
                         ],
                     },
@@ -477,9 +485,10 @@ export const TERMS: Record<LegalLocale, LegalDoc> = {
                             '注册时提交的信息和文件（执照号、身份证复印件、执照复印件、学历、经验）必须真实。',
                             '**我们的审核：**在向委托人展示资料前，我们会将执照号与团队整理的律师名录比对，和/或由团队审核文件。这是 Lawslane 自己的初步审核，**并非泰国律师公会的认证**，也不代表对律师能力的担保。委托人可在[核实律师](/verify-lawyer)页面查询执照。',
                             '审核通过后，部分资料将公开，包括对未登录访客和搜索引擎公开：姓名、照片、执照号、专业领域、服务府、简介、学历、经验、事务所、日程、评分和评价。电话、电子邮件、地址和身份文件不会公开。',
-                            '您的银行账户**仅向您本人案件中的委托人**显示，以便支付律师费。账户须为您本人或您所在事务所的名义。',
+                            '您的银行账户用于**接收 Lawslane 的转账**，不会向委托人显示。账户须为您本人或您所在事务所的名义。',
                             '律师须遵守法律、律师公会关于律师职业道德的规定及为委托人保密的义务。',
-                            '律师自行开具收据或税务发票，并自行负责其收入的税款。',
+                            '律师自行负责其收入的税款。',
+                            '律师不得要求委托人将系统内案件的律师费转入 Lawslane 账户以外的任何账户。',
                         ],
                     },
                 ],
@@ -488,15 +497,18 @@ export const TERMS: Record<LegalLocale, LegalDoc> = {
                 id: 'payments',
                 title: '律师费用与付款',
                 blocks: [
-                    { p: '**委托人直接向律师付款。Lawslane 不代任何一方收取、持有或转付款项**，也不是支付服务商或第三方托管（escrow）。' },
+                    { p: '**委托人的所有律师费（案件费用、分期款和附加费用）均支付至 Lawslane 的收款账户**，与口译/笔译服务费使用同一账户。Lawslane 持有款项至律师结案，然后将扣除平台服务费后的金额转给律师。' },
                     {
                         ul: [
-                            '律师费、分期款和附加费用以律师在系统中提出、委托人同意的内容为准。',
-                            '委托人向案件付款页面显示的律师账户转账，并可上传转账凭证通知律师。由律师确认收款，因此系统中的"已付款"状态是律师确认的记录。',
-                            '**转账前请核对账户名称与律师本人或其事务所一致。**如有人要求您转入其他不一致的账户，请勿转账并通知我们。',
+                            '律师费、分期款和附加费用以律师在系统中提出、委托人同意的内容为准。委托人按显示的金额付款，不另加收费用。',
+                            '委托人向案件付款页面显示的 Lawslane 账户转账，并上传转账凭证图片。系统会自动核验凭证；未通过时由团队人工核查。系统或团队确认付款后，该项目显示为"已付款"，律师和委托人都会收到通知。',
+                            '**请仅转账至付款页面显示的 Lawslane 账户。**如律师或任何人要求您转入其他账户，请勿转账并通知我们。在系统外支付的款项，Lawslane 不予退还。',
                             '通过系统预约律师，Lawslane 不收取任何费用。',
-                            '取消和退款由委托人与律师直接协商。Lawslane 没有可退还的款项，但在收到通知后可协助沟通。',
-                            'Lawslane 不向委托人或律师收取任何律师费手续费或分成（口译/笔译服务及服务提供者月度方案见下文）。如开始收取新费用，我们会在生效前公布费率和条件。',
+                            '**平台服务费（GP）：**Lawslane 从委托人支付的律师费中扣除服务费，目前为付款金额的 10%。每笔付款适用委托人付款时的费率。费率变更会提前通知，且不追溯已完成的付款。律师可在财务页面查看每笔付款的总额、GP 和净额。',
+                            '**向律师转款：**案件未结案期间，款项由 Lawslane 持有。律师在系统中结案后，Lawslane 按其公布的时间安排，将该案件已付项目的净额转入律师登记的银行账户。',
+                            '**取消与退款：**律师在结案前取消案件的，Lawslane 将该案件中委托人通过系统支付且尚未转给律师的款项全额退还，由团队转入委托人的账户。其他情况请联系团队，退款按 Lawslane 的通知办理。',
+                            '委托人在 [[2026 年 10 月 19 日]]（Lawslane 开始通过系统收取律师费之日）之前直接转给律师的款项未经过 Lawslane，相关退款由委托人与律师直接协商；Lawslane 在收到通知后可协助沟通。',
+                            '系统目前不为律师费开具收据或税务发票。',
                         ],
                     },
                 ],
@@ -505,7 +517,7 @@ export const TERMS: Record<LegalLocale, LegalDoc> = {
                 id: 'interpreters',
                 title: '口译与笔译服务',
                 blocks: [
-                    { p: 'Lawslane 提供法律口译与笔译员安排服务（如法院、警察局、会议口译及文件翻译）。您在译员服务页面提交申请后，Lawslane 团队会在聊天中与您沟通细节、安排合适的译员并报价。网站不展示译员名单或费率，也不通过网站招募译员。**与律师服务不同，此项服务由 Lawslane 代译员收款。**' },
+                    { p: 'Lawslane 提供法律口译与笔译员安排服务（如法院、警察局、会议口译及文件翻译）。您在译员服务页面提交申请后，Lawslane 团队会在聊天中与您沟通细节、安排合适的译员并报价。网站不展示译员名单或费率，也不通过网站招募译员。**此项服务由 Lawslane 代译员收款**，与律师费相同。' },
                     {
                         ul: [
                             '**提交申请：**须先登录。您的申请（服务、语言、日期、地点、电话和留言）会发送到团队的支持聊天中。提交申请不等于预约，也不收费。',
@@ -603,7 +615,7 @@ export const TERMS: Record<LegalLocale, LegalDoc> = {
                     {
                         ul: [
                             '本服务按现状提供。我们会尽力保持服务可用，但不保证不中断或无错误。',
-                            '在法律允许的范围内，对于因律师或口译/笔译员的意见或行为、用户之间的约定或付款，或您未咨询律师而使用 AI 输出所造成的损失，Lawslane 不承担责任。',
+                            '在法律允许的范围内，对于因律师或口译/笔译员的意见或行为、用户之间的约定、未通过 Lawslane 收款账户进行的付款，或您未咨询律师而使用 AI 输出所造成的损失，Lawslane 不承担责任。',
                             '上述限制不适用于我们的故意或重大过失，也不影响您依消费者保护法享有的权利。',
                         ],
                     },
