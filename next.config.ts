@@ -187,6 +187,8 @@ const nextConfig: NextConfig = {
     return [
       ...publicPagesWithoutLocale,
       ...guideMoved,
+      // slug บทความเดิมพิมพ์ผิดเป็น "-2026" (ตัวอักษรไทยหาย) — เปลี่ยนเป็น slug ใหม่แล้ว
+      { source: '/:locale(th|en|zh)/articles/-2026', destination: '/:locale/articles/sued-credit-card-debt', permanent: true },
       // เลิกรับสมัครล่ามบนเว็บแล้ว — หน้ารับสมัครเดิมไปหน้าบริการล่ามแทน
       { source: '/for-interpreters/:path*', destination: '/th/interpreters', permanent: true },
       { source: '/:locale(th|en|zh)/for-interpreters/:path*', destination: '/:locale/interpreters', permanent: true },
