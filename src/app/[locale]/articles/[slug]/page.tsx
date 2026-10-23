@@ -9,6 +9,15 @@ type Props = {
   params: Promise<{ slug: string; locale: string }>
 }
 
+// params.slug มาแบบ percent-encoded (เช่น slug ภาษาไทย) แต่ใน Firestore เก็บเป็นข้อความจริง
+function decodeSlug(slug: string): string {
+  try {
+    return decodeURIComponent(slug);
+  } catch {
+    return slug;
+  }
+}
+
 export async function generateMetadata(
   props: Props
 ): Promise<Metadata> {
@@ -22,7 +31,7 @@ export async function generateMetadata(
     return { title: 'Legal Case Room - Lawslane', alternates };
   }
   
-  const article = await getArticleBySlug(firestore, slug);
+  const article = await getArticleBySlug(firestore, decodeSlug(slug));
 
   if (!article) {
     return {
@@ -62,7 +71,7 @@ export async function generateMetadata(
 
 export default async function ArticlePage(props: Props) {
   const params = await props.params;
-  const { slug } = params;
+  const slug = decodeSlug(params.slug);
   const { firestore } = initializeFirebase();
   
   if (!firestore) {
