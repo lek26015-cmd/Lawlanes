@@ -33,8 +33,8 @@ import { getEducationLink } from '@/lib/domain-utils';
 
 export const dynamic = 'error';
 // หน้าแรกเป็น static — ไม่มี revalidate = render ครั้งเดียวตอน build ทนาย/ล่ามที่อนุมัติใหม่ไม่ขึ้นจนกว่าจะ deploy ใหม่
-// 300 วินาทีเท่ากับหน้า /lawyers และ /interpreters
-export const revalidate = 300;
+// 1 ชั่วโมง · 5 นาทีกิน ISR Writes เกินโควตา Vercel Hobby
+export const revalidate = 3600;
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
   const { locale } = await params;
