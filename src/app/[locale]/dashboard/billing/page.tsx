@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { InvoiceList } from '@/components/billing/invoice-list';
-import { ReceiptList } from '@/components/billing/receipt-list';
 import { Invoice } from '@/lib/types/billing-types';
 import { CreditCard, ShieldCheck, Clock, Loader2 } from 'lucide-react';
 import { useUser } from '@/firebase';
@@ -81,8 +80,8 @@ export default function ClientBillingPage() {
             <ShieldCheck className="w-6 h-6" />
           </div>
           <div>
-            <div className="text-sm text-slate-400 font-medium">ชำระให้ทนายโดยตรง</div>
-            <div className="text-slate-600 text-sm">Lawslane ไม่ได้รับหรือถือเงินค่าบริการ — โอนเข้าบัญชีของทนายตามใบแจ้งหนี้ แล้วทนายเป็นผู้ยืนยันรับเงิน</div>
+            <div className="text-sm text-slate-400 font-medium">ชำระผ่านบัญชี Lawslane</div>
+            <div className="text-slate-600 text-sm">โอนค่าบริการเข้าบัญชี Lawslane แล้วแนบสลิป Lawslane โอนค่าบริการให้ทนายหลังทนายปิดเคส ห้ามโอนเข้าบัญชีส่วนตัวของทนาย</div>
           </div>
         </div>
       </div>
@@ -107,15 +106,8 @@ export default function ClientBillingPage() {
         </div>
       </div>
 
-      <div className="mt-6 bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-        <div className="p-6 border-b border-slate-100">
-          <div className="font-bold text-slate-800">ใบเสร็จรับเงิน</div>
-          <p className="text-xs text-slate-500 mt-1">ใบเสร็จออกในนามทนายผู้รับเงิน หลังทนายยืนยันว่าได้รับเงินแล้ว</p>
-        </div>
-        <div className="p-4">
-          <ReceiptList role="client" />
-        </div>
-      </div>
+      {/* ใบเสร็จ (ReceiptList) ซ่อนไว้ — เดิมออกในนามทนายผู้รับเงิน ซึ่งไม่ตรงกับการชำระผ่านบัญชีระบบ (PLAN-10)
+          ระบบออกใบเสร็จยังไม่ถูกเรียกใช้ เปิดกลับเมื่อตัดสินใจรูปแบบใบเสร็จใหม่ */}
 
       <div className="mt-6 text-center text-slate-400 text-xs">
         มีปัญหาในการชำระเงิน? <Link href={`/${locale}/help`} className="text-blue-600 underline">ติดต่อฝ่ายสนับสนุน</Link>

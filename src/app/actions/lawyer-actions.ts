@@ -392,7 +392,7 @@ export async function createManualCaseAction(data: {
         const newMessageRef = messagesRef.doc();
         const proposalMessage = {
             chatId: chatId,
-            text: `📄 **เอกสารใบเสนอราคาใหม่**\n\n**หัวข้อ:** ${data.title}\n**ยอดรวมทั้งสิ้น:** ฿${data.amount.toLocaleString()}\n\nคุณสามารถตรวจสอบรายละเอียดใบเสนอราคาอย่างเป็นทางการและดาวน์โหลดเอกสาร PDF ได้ที่ลิงก์ด้านล่างนี้:\n\n🔗 [ดูใบเสนอราคาที่นี่](${invoiceLink})\n\nค่าบริการโอนให้ทนายโดยตรงตามข้อมูลบัญชีในเมนู "จัดการ" ของห้องนี้ (Lawslane ไม่ได้รับหรือถือเงินก้อนนี้)`,
+            text: `📄 **เอกสารใบเสนอราคาใหม่**\n\n**หัวข้อ:** ${data.title}\n**ยอดรวมทั้งสิ้น:** ฿${data.amount.toLocaleString()}\n\nคุณสามารถตรวจสอบรายละเอียดใบเสนอราคาอย่างเป็นทางการและดาวน์โหลดเอกสาร PDF ได้ที่ลิงก์ด้านล่างนี้:\n\n🔗 [ดูใบเสนอราคาที่นี่](${invoiceLink})\n\nชำระค่าบริการเข้าบัญชี Lawslane ผ่านปุ่มชำระเงินในห้องนี้`,
             senderId: 'system',
             senderName: 'System',
             timestamp: admin.firestore.FieldValue.serverTimestamp(),
@@ -425,7 +425,7 @@ export async function createManualCaseAction(data: {
         const paymentLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://lawslane.com'}/payment?chatId=${chatId}`;
         await paymentMsgRef.set({
             chatId: chatId,
-            text: `💳 **ช่องทางการชำระเงิน**\n\nโอนค่าบริการเข้าบัญชีของทนายความโดยตรง ดูเลขบัญชีและแจ้งโอนได้ที่ลิงก์ด้านล่างนี้:\n\n🔗 [ดูบัญชีทนาย](${paymentLink})\n\n*Lawslane ไม่ได้รับและไม่ได้ถือเงินก้อนนี้ ทนายความเป็นผู้ยืนยันเมื่อได้รับเงินแล้ว*`,
+            text: `💳 **ช่องทางการชำระเงิน**\n\nโอนค่าบริการเข้าบัญชี Lawslane แล้วแนบสลิปได้ที่ลิงก์ด้านล่างนี้:\n\n🔗 [ชำระค่าบริการ](${paymentLink})\n\n*Lawslane รับเงินไว้และโอนให้ทนายหลังปิดเคส ห้ามโอนเข้าบัญชีส่วนตัวของทนาย*`,
             senderId: 'system',
             senderName: 'System',
             timestamp: admin.firestore.FieldValue.serverTimestamp(),
@@ -440,7 +440,7 @@ export async function createManualCaseAction(data: {
                 await notificationRef.set({
                     type: 'payment',
                     title: `ใบเสนอราคาเปิดคดีใหม่`,
-                    message: `คุณได้รับข้อเสนอคดี: ${data.title} จำนวน ฿${data.amount.toLocaleString()} — ค่าบริการโอนให้ทนายโดยตรง`,
+                    message: `คุณได้รับข้อเสนอคดี: ${data.title} จำนวน ฿${data.amount.toLocaleString()} — ชำระผ่านบัญชี Lawslane`,
                     createdAt: admin.firestore.FieldValue.serverTimestamp(),
                     read: false,
                     recipient: resolvedClientId,

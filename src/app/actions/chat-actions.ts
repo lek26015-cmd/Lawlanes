@@ -6,7 +6,7 @@ import * as admin from 'firebase-admin';
 import { checkRateLimit } from '@/lib/security/rate-limiter';
 import { requireUser, requireChatRole, AuthError } from '@/lib/auth-guard';
 import type { DecodedIdToken } from 'firebase-admin/auth';
-import { confirmDirectPaymentReceivedAction } from '@/app/actions/direct-payment-actions';
+import { confirmDirectPaymentReceivedAction } from '@/app/actions/lawyer-payment-actions';
 
 /**
  * ผู้เรียกเป็นใครในห้องนี้ — ตัดสินจากเอกสารห้อง (clientId/userId และ
@@ -621,7 +621,7 @@ export async function requestFeeAction(params: {
         const newMessageRef = messagesRef.doc();
         await newMessageRef.set({
             chatId: chatId,
-            text: `📋 **แจ้งชำระค่าบริการ:** ฿${amount.toLocaleString()}\nรายละเอียด: ${reason}\nกรุณาโอนให้ทนายโดยตรงตามข้อมูลบัญชีของทนาย (Lawslane ไม่ได้รับหรือถือเงินก้อนนี้)`,
+            text: `📋 **แจ้งชำระค่าบริการ:** ฿${amount.toLocaleString()}\nรายละเอียด: ${reason}\nกรุณาชำระเข้าบัญชี Lawslane ผ่านปุ่มชำระเงินในห้องนี้`,
             senderId: lawyerId,
             senderName: lawyerName,
             timestamp: admin.firestore.FieldValue.serverTimestamp(),
@@ -675,10 +675,7 @@ export async function requestFeeAction(params: {
     }
 }
 
-// การชำระเงินผ่านแพลตฟอร์ม (markInstallmentPaidAction / markCasePaidAction / ตรวจสลิป
-// SlipOK / คูปอง / อีเมลแจ้งแอดมินทุกครั้งที่มีเงินเข้า) ถูกถอดออกแล้ว — ลูกความจ่ายทนายโดยตรง
-// ดู direct-payment-actions.ts: notifyDirectPaymentAction (ลูกความแจ้งโอน ไม่เปลี่ยนสถานะเงิน)
-// และ confirmDirectPaymentReceivedAction (ทนาย/แอดมินยืนยันรับเงิน)
+// การชำระค่าทนายอยู่ที่ lawyer-payment-actions.ts (จ่ายเข้าบัญชีระบบ + สลิป, PLAN-10)
 
 /**
  * Removes a file from the chat's files array.
@@ -719,11 +716,8 @@ export async function deleteFileAction(chatId: string, fileUrl: string) {
 // = open relay ในนามโดเมนเรา) ถูกลบออกแล้ว — ไม่มีโค้ดส่วนไหนเรียกใช้
 
 /**
- * ทนายของเคสหรือแอดมินยืนยันว่าได้รับเงินงวดนี้แล้ว
- *
- * คงชื่อเดิมไว้ให้ผู้เรียกเดิม (หน้าแชท) — ตัวจริงอยู่ที่ confirmDirectPaymentReceivedAction
- * เดิมยืนยันได้เฉพาะงวดที่ 'pending_verification' (มีสลิปรอตรวจ) ตอนนี้ยืนยันงวดที่ยังไม่จ่ายได้ทุกงวด
- * เพราะทนายเป็นคนเดียวที่รู้ว่าเงินเข้าบัญชีตัวเองแล้ว ไม่ว่าลูกความจะกดแจ้งโอนหรือไม่
+ * ทนายยืนยันรับเงินงวดที่ลูกความแจ้งโอนตรงไว้ก่อนเปลี่ยนเป็นจ่ายผ่านระบบ (PLAN-10)
+ * คงชื่อเดิมไว้ให้หน้าแชท — ตัวจริงอยู่ที่ confirmDirectPaymentReceivedAction (lawyer-payment-actions.ts)
  */
 export async function approveInstallmentAction(chatId: string, installmentIndex: number) {
     const res = await confirmDirectPaymentReceivedAction({ chatId, type: 'installment', installmentIndex });
