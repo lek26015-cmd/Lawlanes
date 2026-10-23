@@ -13,8 +13,8 @@ import { SITE_URL } from '@/lib/seo';
 
 type Props = { params: Promise<{ slug: string; locale: string }> };
 
-// บันทึกจากหน้าแก้ไขสั่ง revalidatePath ทันที · 10 นาทีเผื่อแพลนหมดอายุ/แอดมินระงับ
-export const revalidate = 600;
+// บันทึกจากหน้าแก้ไขสั่ง revalidatePath ทันที · 1 ชั่วโมงเผื่อแพลนหมดอายุ/แอดมินระงับ (10 นาทีกิน ISR Writes เกินโควตา)
+export const revalidate = 3600;
 
 const load = cache((slug: string) => getPublishedLanding(decodeURIComponent(slug).toLowerCase()));
 

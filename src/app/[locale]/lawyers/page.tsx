@@ -10,7 +10,8 @@ import { LawyersGuide } from './lawyers-guide';
 // The approved/registry lawyer lists are identical for every visitor regardless of
 // query string (only the client-side matchmaking sort depends on that), so this is
 // safe to cache and periodically revalidate rather than refetch on every request.
-export const revalidate = 300;
+// 1 hour: 5 minutes blew through the Vercel Hobby ISR Writes quota.
+export const revalidate = 3600;
 
 // Fetched server-side now instead of client-side on mount (see LAWSLANE-PLAN-01 2.11) —
 // this was previously a fully client-rendered page: blank HTML → JS → Firebase SDK →
