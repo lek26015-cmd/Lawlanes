@@ -7,64 +7,62 @@ import { Redis } from '@upstash/redis';
  * Persists across server restarts and works correctly in serverless
  * environments (Vercel, Cloudflare Workers, etc.)
  * 
- * Required env vars:
+ * Required env vars (ไม่ตั้ง = ปิด rate limit เงียบ ๆ):
  *   UPSTASH_REDIS_REST_URL
  *   UPSTASH_REDIS_REST_TOKEN
  */
 
-// Lazy singleton — only created when first used
-let _redis: Redis | null = null;
+type LimitResult = { success: boolean; limit: number; remaining: number; reset: number };
 
-function getRedis(): Redis {
-  if (!_redis) {
+// ไม่มี env = ปล่อยผ่าน (fail open) เหมือนตอน Redis ล่ม
+const ALLOW: LimitResult = { success: true, limit: 0, remaining: 0, reset: 0 };
+
+// สร้าง Redis ครั้งแรกที่ถูกเรียกจริง — ถ้าสร้างตอนโหลดไฟล์ (Redis.fromEnv())
+// middleware จะพ่นคำเตือน env หายทุก request แม้หน้าที่ไม่ได้ rate limit
+// undefined = ยังไม่ได้ลอง · null = ไม่ได้ตั้ง env (เงียบ ไม่ log)
+let _redis: Redis | null | undefined;
+
+function getRedis(): Redis | null {
+  if (_redis === undefined) {
     const url = process.env.UPSTASH_REDIS_REST_URL;
     const token = process.env.UPSTASH_REDIS_REST_TOKEN;
-
-    if (!url || !token) {
-      throw new Error(
-        'Missing UPSTASH_REDIS_REST_URL or UPSTASH_REDIS_REST_TOKEN. ' +
-        'Set these in your .env.local file. ' +
-        'Get them from https://console.upstash.com'
-      );
-    }
-
-    _redis = new Redis({ url, token });
+    _redis = url && token ? new Redis({ url, token }) : null;
   }
   return _redis;
 }
+
+function lazyRatelimit(prefix: string, limiter: ReturnType<typeof Ratelimit.slidingWindow>) {
+  let instance: Ratelimit | null | undefined;
+  return {
+    async limit(identifier: string): Promise<LimitResult> {
+      if (instance === undefined) {
+        const redis = getRedis();
+        instance = redis ? new Ratelimit({ redis, limiter, prefix, analytics: true }) : null;
+      }
+      return instance ? instance.limit(identifier) : ALLOW;
+    },
+  };
+}
+
+export type LazyRatelimit = ReturnType<typeof lazyRatelimit>;
 
 /**
  * Rate limiter for API routes (used in middleware)
  * 20 requests per 60 seconds using sliding window
  */
-export const apiRateLimiter = new Ratelimit({
-  redis: Redis.fromEnv(),
-  limiter: Ratelimit.slidingWindow(20, '60 s'),
-  prefix: 'ratelimit:api',
-  analytics: true,
-});
+export const apiRateLimiter = lazyRatelimit('ratelimit:api', Ratelimit.slidingWindow(20, '60 s'));
 
 /**
  * Rate limiter for public form submissions
  * 5 requests per 60 seconds (stricter, anti-spam)
  */
-export const formRateLimiter = new Ratelimit({
-  redis: Redis.fromEnv(),
-  limiter: Ratelimit.slidingWindow(5, '60 s'),
-  prefix: 'ratelimit:form',
-  analytics: true,
-});
+export const formRateLimiter = lazyRatelimit('ratelimit:form', Ratelimit.slidingWindow(5, '60 s'));
 
 /**
  * Rate limiter for auth endpoints (login, signup, reset)
  * 10 requests per 60 seconds
  */
-export const authRateLimiter = new Ratelimit({
-  redis: Redis.fromEnv(),
-  limiter: Ratelimit.slidingWindow(10, '60 s'),
-  prefix: 'ratelimit:auth',
-  analytics: true,
-});
+export const authRateLimiter = lazyRatelimit('ratelimit:auth', Ratelimit.slidingWindow(10, '60 s'));
 
 /**
  * Extract the real client IP address from request headers.
@@ -91,13 +89,8 @@ export function getClientIp(request: Request): string {
  */
 export async function checkUpstashRateLimit(
   identifier: string,
-  limiter: Ratelimit = formRateLimiter
-): Promise<{
-  success: boolean;
-  limit: number;
-  remaining: number;
-  reset: number;
-}> {
+  limiter: LazyRatelimit = formRateLimiter
+): Promise<LimitResult> {
   try {
     const result = await limiter.limit(identifier);
     return result;
