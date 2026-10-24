@@ -80,11 +80,12 @@ function PowerOfAttorneyPage({ poa }: { poa: PoaView }) {
     const i = poa.input;
     return (
         <Page draft={poa.status !== 'ready'}>
-            <div className="absolute right-[18mm] top-[16mm] flex h-[22mm] w-[22mm] items-center justify-center border border-dashed border-black text-center text-[12pt] leading-tight print:right-0 print:top-0">
+            <div className="absolute right-[18mm] top-[16mm] flex h-[22mm] w-[22mm] items-center justify-center border border-dashed border-black text-center text-[12pt] leading-tight print:right-0 print:-top-[4mm]">
                 ติด<br />อากรแสตมป์
             </div>
             <h1 className="mb-6 text-center text-[20pt] font-bold">หนังสือมอบอำนาจ</h1>
-            <div className="ml-auto w-fit space-y-0.5">
+            {/* เว้นให้พ้นกรอบอากรแสตมป์ (สูงถึง ~38mm จากขอบกระดาษ) */}
+            <div className="ml-auto mt-[6mm] w-fit space-y-0.5">
                 <p>ทำที่ <Blank value={i.madeAt} min="14em" /></p>
                 <p>วันที่ <Blank min="14em" /></p>
             </div>
