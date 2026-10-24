@@ -19,6 +19,8 @@
   font-display: block;
 }
 .font-th-sarabun { font-family: 'TH Sarabun New', 'Sarabun', sans-serif; }
+/* หัวเรื่องในเอกสารต้องเป็นฟอนต์เดียวกับเนื้อความ — ทับ h1-h6 { font-headline } ใน @layer base */
+.font-th-sarabun :is(h1, h2, h3, h4, h5, h6) { font-family: inherit; }
 
 @layer base {
   :root {
