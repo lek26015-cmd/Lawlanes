@@ -1,7 +1,9 @@
 'use client';
 
 import { useLayoutEffect, useRef, useState } from 'react';
+import Image from 'next/image';
 import { cn } from '@/lib/utils';
+import emblem from '@/pic/National Emblem of Thailand.jpg';
 import {
     POA_CLIENT_SIDE_LABEL, POA_SIDE_LAYOUT, POA_SPECIAL_POWERS, formatThaiId,
     type PoaView,
@@ -128,15 +130,16 @@ function CourtAppointmentPage({ poa }: { poa: PoaView }) {
 
     return (
         <Page draft={poa.status !== 'ready'}>
-            <div className="flex items-start justify-between">
+            <div className="grid grid-cols-[1fr_auto_1fr] items-start">
                 <div className="leading-tight">
                     <p>(๔)</p>
                     <p>ใบแต่งทนายความ</p>
                 </div>
-                <p className="mt-16">คดีหมายเลขดำที่ <Blank value={k.blackCaseNo} min="10em" solid /></p>
+                <Image src={emblem} alt="ตราครุฑ" className="h-[30mm] w-auto" priority />
+                <p className="mt-[18mm] justify-self-end whitespace-nowrap">คดีหมายเลขดำที่ <Blank value={k.blackCaseNo} min="7em" solid /></p>
             </div>
 
-            <div className="mt-8 ml-auto w-[68%] space-y-1">
+            <div className="mt-2 ml-auto w-[68%] space-y-1">
                 <Line label="ศาล" value={k.courtName} />
                 <div className="flex items-end gap-2">
                     <span>วันที่</span><span className="w-16 border-b border-black">&nbsp;</span>
@@ -179,7 +182,7 @@ function CourtAppointmentPage({ poa }: { poa: PoaView }) {
                 <span className="inline-block w-56 border-b border-black">&nbsp;</span>ผู้แต่งทนายความ
             </p>
 
-            <div className="mt-12 border-t border-black pt-2 text-[13pt] leading-snug flex gap-3">
+            <div className="mt-8 border-t border-black pt-2 text-[13pt] leading-snug flex gap-3">
                 <span className="underline whitespace-nowrap">หมายเหตุ</span>
                 <p>
                     ตามประมวลกฎหมายวิธีพิจารณาความแพ่งมาตรา ๖๒ ทนายความไม่มีอำนาจดำเนินกระบวนพิจารณาใดไปในทางจำหน่ายสิทธิของคู่ความนั้น
