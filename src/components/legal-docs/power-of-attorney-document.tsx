@@ -181,16 +181,6 @@ function CourtAppointmentPage({ poa }: { poa: PoaView }) {
             <p className="mt-10 text-center">
                 <span className="inline-block w-56 border-b border-black">&nbsp;</span>ผู้แต่งทนายความ
             </p>
-
-            <div className="mt-8 border-t border-black pt-2 text-[13pt] leading-snug flex gap-3">
-                <span className="underline whitespace-nowrap">หมายเหตุ</span>
-                <p>
-                    ตามประมวลกฎหมายวิธีพิจารณาความแพ่งมาตรา ๖๒ ทนายความไม่มีอำนาจดำเนินกระบวนพิจารณาใดไปในทางจำหน่ายสิทธิของคู่ความนั้น
-                    เช่นการยอมรับตามที่คู่ความอีกฝ่ายหนึ่งเรียกร้อง การถอนฟ้อง การประนีประนอมยอมความ การสละสิทธิ์หรือการใช้สิทธิในการอุทธรณ์หรือฎีกา
-                    หรือในการขอให้พิจารณาคดีใหม่ ถ้าจะมอบให้มีอำนาจดังกล่าวประการใดบ้างให้กรอกลงในช่องที่ว่างไว้โดยระบุให้ชัดแจ้ง
-                    (คำที่ไม่ใช้และช่องว่างที่เหลือให้ขีดเสีย)
-                </p>
-            </div>
         </Page>
     );
 }
