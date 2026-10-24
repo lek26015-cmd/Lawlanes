@@ -1,0 +1,4 @@
+TH Sarabun New — Copyright (c) 2010-2011 Software Industry Promotion Agency (SIPA). Designed by Suppakit Chalermlarp.
+Licensed under the GNU General Public License v2 or later, with the font embedding exception:
+documents that use or embed this font are not themselves covered by the GPL.
+Used by src/components/legal-docs/power-of-attorney-document.tsx.
