@@ -286,6 +286,8 @@
     "searchAgain": "Search Again",
     "ctaBrowseLawyers": "Browse verified and trusted lawyers on Lawslane",
     "ctaBrowseSubtitle": "Verified lawyers ready for consultation",
+    "councilFormText": "To verify through the Lawyers Council of Thailand, you can download the form and submit the verification request yourself.",
+    "councilFormDownload": "Download Form T.8 (PDF)",
     "ctaBrowseCount": "{count} verified lawyers in the system",
     "resultFound": {
       "title": "Information Found",

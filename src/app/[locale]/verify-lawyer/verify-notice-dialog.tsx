@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
-import { Info, X } from 'lucide-react';
+import { Download, Info, X } from 'lucide-react';
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -12,10 +12,15 @@ import searchImg from '@/pic/lawslane-search.webp';
 const DISMISS_KEY = 'lawslane:verify-notice-dismissed';
 const NOTICE_ITEMS = 4;
 
+// แบบคำขอตรวจสอบประวัติทนายความ (ท.8) ของสภาทนายความ — ฟอร์มเปล่า ให้ผู้ใช้ดาวน์โหลดไปยื่นเอง
+export const COUNCIL_FORM_URL = '/downloads/lawyers-council-verification-t8.pdf';
+export const COUNCIL_FORM_FILENAME = 'lawyers-council-verification-t8.pdf';
+
 // ข้อควรทราบก่อนใช้หน้าตรวจสอบทนาย — เปิดหลัง mount เท่านั้น (HTML ที่ Google เห็นไม่มี popup ทับเนื้อหา)
 // ติ๊ก "ไม่ต้องแสดงอีก" แล้วจำไว้ในเครื่องผู้ใช้
 export function VerifyNoticeDialog() {
     const t = useTranslations('VerifyLawyer.notice');
+    const tPage = useTranslations('VerifyLawyer');
     const [open, setOpen] = useState(false);
     const [dontShowAgain, setDontShowAgain] = useState(false);
 
@@ -66,6 +71,17 @@ export function VerifyNoticeDialog() {
                             </ul>
                         </DialogDescription>
                     </DialogHeader>
+                    <p className="text-sm text-blue-100 leading-relaxed">
+                        {tPage('councilFormText')}{' '}
+                        <a
+                            href={COUNCIL_FORM_URL}
+                            download={COUNCIL_FORM_FILENAME}
+                            className="inline-flex items-center gap-1 font-semibold text-white underline underline-offset-2 hover:text-blue-200"
+                        >
+                            <Download className="w-4 h-4" />
+                            {tPage('councilFormDownload')}
+                        </a>
+                    </p>
                     <DialogFooter className="flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                         <label className="flex items-center gap-2 text-sm text-blue-100 cursor-pointer">
                             <Checkbox
