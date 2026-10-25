@@ -8,13 +8,13 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Search, ShieldCheck, Loader2, ArrowLeft, FileText, AlertCircle, ExternalLink } from 'lucide-react';
+import { Search, ShieldCheck, Loader2, ArrowLeft, FileText, AlertCircle, ExternalLink, Download } from 'lucide-react';
 import { Link } from '@/navigation';
 import { searchApprovedLawyersAction } from '@/app/actions/lawyer-directory-actions';
 import { searchRegistryAction } from '@/app/actions/verify-registry-actions';
 import { useTranslations, useLocale } from 'next-intl';
 import VerifyResultCard, { type VerifyResult } from '@/components/verify-result-card';
-import { VerifyNoticeDialog } from './verify-notice-dialog';
+import { VerifyNoticeDialog, COUNCIL_FORM_URL, COUNCIL_FORM_FILENAME } from './verify-notice-dialog';
 
 // ช่องทางตรวจสอบทางการ (สภาทนายความในพระบรมราชูปถัมภ์)
 const LAWYERS_COUNCIL_URL = 'https://www.lawyerscouncil.or.th/';
@@ -311,6 +311,17 @@ export function VerifyLawyerClient({ registryCount, lastUpdatedIso, heading }: {
                                     </div>
                                 </div>
                             </Link>
+
+                            {/* ตรวจสอบผ่านสภาทนายความเอง — ดาวน์โหลดแบบคำขอ ท.8 */}
+                            <div className="mt-4 rounded-2xl border border-white/15 p-5 text-center lg:text-left">
+                                <p className="text-sm text-gray-300 leading-relaxed">{t('councilFormText')}</p>
+                                <Button asChild variant="outline" className="mt-3 rounded-full border-white/40 bg-transparent text-white hover:bg-white/10 hover:text-white">
+                                    <a href={COUNCIL_FORM_URL} download={COUNCIL_FORM_FILENAME}>
+                                        <Download className="w-4 h-4 mr-2" />
+                                        {t('councilFormDownload')}
+                                    </a>
+                                </Button>
+                            </div>
                             </div>
                         </div>
                     </div>
@@ -380,6 +391,13 @@ export function VerifyLawyerClient({ registryCount, lastUpdatedIso, heading }: {
                                         {t('resultNotFound.closeButton')}
                                     </Button>
                                 </div>
+                                <p className="text-sm text-slate-500 mt-6 max-w-md mx-auto">
+                                    {t('councilFormText')}{' '}
+                                    <a href={COUNCIL_FORM_URL} download={COUNCIL_FORM_FILENAME} className="inline-flex items-center gap-1 font-semibold text-[#0B3979] underline underline-offset-2">
+                                        <Download className="w-4 h-4" />
+                                        {t('councilFormDownload')}
+                                    </a>
+                                </p>
                             </CardContent>
                         </Card>
                     )}

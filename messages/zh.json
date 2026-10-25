@@ -285,6 +285,8 @@
     "searchAgain": "重新搜索",
     "ctaBrowseLawyers": "浏览已注册且安全的 Lawslane 律师",
     "ctaBrowseSubtitle": "经过验证的律师，随时为您提供咨询",
+    "councilFormText": "如需通过泰国律师协会核实，可下载申请表自行提交核实申请。",
+    "councilFormDownload": "下载 T.8 申请表（PDF）",
     "ctaBrowseCount": "系统中共有 {count} 位律师",
     "resultFound": {
       "title": "找到信息",
