@@ -2,8 +2,10 @@ import type { Metadata } from 'next';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { ArrowLeft, ShieldCheck, Search, UserCheck } from 'lucide-react';
 import { Link } from '@/navigation';
-import { pageMetadata } from '@/lib/seo';
+import { pageMetadata, SITE_URL } from '@/lib/seo';
 import { NameRegistrationForm } from './name-registration-form';
+
+const FAQ_COUNT = 5;
 
 export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
     const { locale } = await params;
@@ -17,6 +19,41 @@ export default async function VerifyLawyerRegisterPage({ params }: { params: Pro
     setRequestLocale(locale);
     const t = await getTranslations({ locale, namespace: 'LawyerNameRegistration' });
 
+    const seo = await getTranslations({ locale, namespace: 'Seo' });
+    const tVerify = await getTranslations({ locale, namespace: 'VerifyLawyer' });
+    const faqs = Array.from({ length: FAQ_COUNT }, (_, i) => ({ q: t(`faq${i + 1}Q`), a: t(`faq${i + 1}A`) }));
+
+    // JSON-LD แบบเดียวกับหน้า /verify-lawyer: ข้อมูลของหน้า + breadcrumb + FAQ (ไม่มีชื่อทนายรายคน)
+    const pageUrl = `${SITE_URL}/${locale}/verify-lawyer/register`;
+    const jsonLd = [
+        {
+            '@context': 'https://schema.org',
+            '@type': 'WebPage',
+            name: seo('verifyLawyerRegister.title'),
+            description: seo('verifyLawyerRegister.description'),
+            url: pageUrl,
+            inLanguage: locale,
+        },
+        {
+            '@context': 'https://schema.org',
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+                { '@type': 'ListItem', position: 1, name: 'Lawslane', item: `${SITE_URL}/${locale}` },
+                { '@type': 'ListItem', position: 2, name: `${tVerify('title')}${locale === 'en' ? ' ' : ''}${tVerify('titleLine2')}`, item: `${SITE_URL}/${locale}/verify-lawyer` },
+                { '@type': 'ListItem', position: 3, name: t('title'), item: pageUrl },
+            ],
+        },
+        {
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: faqs.map((f) => ({
+                '@type': 'Question',
+                name: f.q,
+                acceptedAnswer: { '@type': 'Answer', text: f.a },
+            })),
+        },
+    ];
+
     const steps = [
         { icon: UserCheck, title: t('step1Title'), body: t('step1Body') },
         { icon: ShieldCheck, title: t('step2Title'), body: t('step2Body') },
@@ -25,6 +62,10 @@ export default async function VerifyLawyerRegisterPage({ params }: { params: Pro
 
     return (
         <div className="min-h-screen bg-[#F4F6F9]">
+            <script
+                type="application/ld+json"
+                dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, '\\u003c') }}
+            />
             <section className="w-full bg-slate-900 text-white rounded-b-[60px] md:rounded-b-[80px]">
                 <div className="max-w-3xl mx-auto px-4 md:px-8 pt-6 md:pt-8 pb-16 md:pb-20">
                     <Link href="/verify-lawyer" className="inline-flex items-center text-sm text-gray-400 hover:text-white transition-colors font-medium">
@@ -56,6 +97,21 @@ export default async function VerifyLawyerRegisterPage({ params }: { params: Pro
                             </li>
                         ))}
                     </ol>
+                </section>
+
+                <section>
+                    <h2 className="text-xl md:text-2xl font-bold text-[#0B3979] text-center mb-5">{t('faqHeading')}</h2>
+                    <div className="space-y-3">
+                        {faqs.map((f) => (
+                            <details key={f.q} className="group bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+                                <summary className="cursor-pointer font-semibold text-slate-800 list-none flex justify-between items-center gap-4">
+                                    <h3>{f.q}</h3>
+                                    <span className="text-[#0B3979] transition-transform group-open:rotate-45 text-xl leading-none">+</span>
+                                </summary>
+                                <p className="mt-3 text-slate-600 leading-relaxed">{f.a}</p>
+                            </details>
+                        ))}
+                    </div>
                 </section>
 
                 <section className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 text-center">

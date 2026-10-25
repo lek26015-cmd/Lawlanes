@@ -2116,6 +2116,17 @@
     "step3Body": "Clients search your name or license number on the verification page and see that you are listed.",
     "fullProfileTitle": "Want to take cases through Lawslane too?",
     "fullProfileBody": "Join Lawslane as a lawyer to get a profile page, take consultation bookings, chat with clients and receive fees through the platform.",
-    "fullProfileButton": "Join as a Lawslane lawyer"
+    "fullProfileButton": "Join as a Lawslane lawyer",
+    "faqHeading": "Frequently asked questions",
+    "faq1Q": "Does registering my lawyer name cost anything?",
+    "faq1A": "No. It is free, needs no account and no documents. You only enter your name, license number and a contact phone number.",
+    "faq2Q": "What will clients see about me?",
+    "faq2A": "Only your title, full name, license number and province, when they search your name or license number on the verification page. Your phone and email are never shown on the website.",
+    "faq3Q": "How does Lawslane check my details?",
+    "faq3A": "The team matches your name and license number against the Lawyers Council of Thailand before publishing. If they do not match, we contact you by the phone or email you provided.",
+    "faq4Q": "How is this different from joining Lawslane as a lawyer?",
+    "faq4A": "Name registration only lets clients confirm that you are a licensed lawyer. Joining Lawslane as a lawyer gives you a profile page, consultation bookings, client chat and fee collection through the platform.",
+    "faq5Q": "How do I correct or remove my name?",
+    "faq5A": "Contact the team through the Lawslane help page with your name and license number."
   }
 }
