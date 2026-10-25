@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Search, ShieldCheck, Loader2, ArrowLeft, FileText, AlertCircle, ExternalLink, Download } from 'lucide-react';
+import { Search, ShieldCheck, Loader2, ArrowLeft, FileText, AlertCircle, ExternalLink, Download, UserPlus } from 'lucide-react';
 import { Link } from '@/navigation';
 import { searchApprovedLawyersAction } from '@/app/actions/lawyer-directory-actions';
 import { searchRegistryAction } from '@/app/actions/verify-registry-actions';
@@ -309,6 +309,20 @@ export function VerifyLawyerClient({ registryCount, lastUpdatedIso, heading }: {
                                             <ArrowLeft className="w-4 h-4 text-white rotate-180 group-hover:translate-x-0.5 transition-transform" />
                                         </div>
                                     </div>
+                                </div>
+                            </Link>
+
+                            {/* CTA: ทนายลงทะเบียนชื่อให้ลูกความค้นเจอ (/verify-lawyer/register) */}
+                            <Link href="/verify-lawyer/register" className="block mt-4 group">
+                                <div className="flex items-center gap-4 rounded-2xl border border-emerald-400/30 bg-emerald-500/10 p-5 hover:bg-emerald-500/15 transition-colors">
+                                    <div className="flex-shrink-0 w-11 h-11 bg-emerald-400/15 rounded-xl flex items-center justify-center">
+                                        <UserPlus className="w-6 h-6 text-emerald-300" />
+                                    </div>
+                                    <div className="flex-grow min-w-0">
+                                        <p className="text-white font-semibold text-sm leading-snug">{t('ctaRegisterTitle')}</p>
+                                        <p className="text-emerald-200/80 text-xs mt-0.5">{t('ctaRegisterSubtitle')}</p>
+                                    </div>
+                                    <ArrowLeft className="w-4 h-4 text-white rotate-180 flex-shrink-0 group-hover:translate-x-0.5 transition-transform" />
                                 </div>
                             </Link>
 
