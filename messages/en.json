@@ -360,7 +360,9 @@
       "dontShowAgain": "Don't show again",
       "accept": "Got it, start checking",
       "imageAlt": "Lawyers reviewing documents"
-    }
+    },
+    "ctaRegisterTitle": "Are you a lawyer? Register your name for clients to verify",
+    "ctaRegisterSubtitle": "Free, just your name and license number"
   },
   "LegalForms": {
     "heroTitle": "Legal Forms & Business Contracts Center",
@@ -2018,6 +2020,10 @@
     "verifyLawyer": {
       "title": "Verify a Thai Lawyer - Check Name or License Number Free - Lawslane",
       "description": "Check a Thai lawyer's name or license number for free, learn how to tell a real lawyer from a fake one, and warning signs before hiring."
+    },
+    "verifyLawyerRegister": {
+      "title": "Register your lawyer name for client verification, free - Lawslane",
+      "description": "Lawyers can register their name and license number for free so clients can find and verify them on the Lawslane lawyer verification page."
     }
   },
   "InterpreterPayment": {
@@ -2056,5 +2062,71 @@
     "unknownPayer": "Client",
     "clientNote": "Receipts are issued in the name of the lawyer who received the payment, after they confirm it.",
     "lawyerNote": "A receipt is issued in your name automatically when you confirm a payment."
+  },
+  "LawyerNameRegistration": {
+    "back": "Back to lawyer verification",
+    "badge": "Free · no account needed",
+    "title": "Register your lawyer name",
+    "description": "Let clients find your name or license number on the Lawslane verification page to confirm you are a licensed lawyer. Only your title, full name, license number and province are shown.",
+    "prefix": "Title",
+    "prefixPlaceholder": "Select",
+    "prefixes": {
+      "mr": "Mr.",
+      "mrs": "Mrs.",
+      "ms": "Ms.",
+      "actingSubLt": "Acting Sub Lt.",
+      "actingSubLtFemale": "Acting Sub Lt. (female)",
+      "dr": "Dr."
+    },
+    "firstName": "First name",
+    "lastName": "Last name",
+    "nameHint": "Enter your name exactly as it appears on your lawyer license (in Thai).",
+    "licenseNumber": "Lawyer license number",
+    "licensePlaceholder": "e.g. 12345/2560",
+    "licenseHint": "Format: number/Buddhist year, as printed on your license",
+    "province": "Province of practice",
+    "provincePlaceholder": "Optional",
+    "contactNote": "Your phone and email are only used by our admins to contact you if your details do not match the registry. They are never shown on the website.",
+    "phone": "Phone number",
+    "email": "Email",
+    "consent": "I am the lawyer named here and I consent to Lawslane showing my title, full name, license number and province on the lawyer verification page and lawyer directory.",
+    "privacyLink": "Privacy policy",
+    "submit": "Submit registration",
+    "freeNote": "Our admins check your details against the Lawyers Council of Thailand before your name is shown.",
+    "viewListing": "View listing",
+    "errors": {
+      "invalid": "Please fill in your name, last name and phone number correctly and tick the consent box.",
+      "license_format": "The license number must be in the format number/Buddhist year, e.g. 12345/2560.",
+      "already_listed": "This license number is already on the verification page.",
+      "already_pending": "This license number has already been submitted and is waiting for admin review.",
+      "on_lawslane": "This license number belongs to a lawyer who already has a Lawslane profile.",
+      "rate_limited": "Too many submissions. Please wait a moment and try again.",
+      "error": "Submission failed. Please try again."
+    },
+    "successTitle": "Registration submitted",
+    "successBody": "Our admins will check your name and license number against the Lawyers Council of Thailand. Once approved, clients can find you on the verification page. If anything does not match, we will contact you by the phone or email you provided.",
+    "successBack": "Go to lawyer verification",
+    "successAnother": "Register another lawyer",
+    "stepsHeading": "How it works",
+    "step1Title": "Enter your name and license",
+    "step1Body": "Takes less than a minute. No account or documents needed.",
+    "step2Title": "Admin review",
+    "step2Body": "We match your name and license number against the Lawyers Council of Thailand before publishing.",
+    "step3Title": "Clients find you",
+    "step3Body": "Clients search your name or license number on the verification page and see that you are listed.",
+    "fullProfileTitle": "Want to take cases through Lawslane too?",
+    "fullProfileBody": "Join Lawslane as a lawyer to get a profile page, take consultation bookings, chat with clients and receive fees through the platform.",
+    "fullProfileButton": "Join as a Lawslane lawyer",
+    "faqHeading": "Frequently asked questions",
+    "faq1Q": "Does registering my lawyer name cost anything?",
+    "faq1A": "No. It is free, needs no account and no documents. You only enter your name, license number and a contact phone number.",
+    "faq2Q": "What will clients see about me?",
+    "faq2A": "Only your title, full name, license number and province, when they search your name or license number on the verification page. Your phone and email are never shown on the website.",
+    "faq3Q": "How does Lawslane check my details?",
+    "faq3A": "The team matches your name and license number against the Lawyers Council of Thailand before publishing. If they do not match, we contact you by the phone or email you provided.",
+    "faq4Q": "How is this different from joining Lawslane as a lawyer?",
+    "faq4A": "Name registration only lets clients confirm that you are a licensed lawyer. Joining Lawslane as a lawyer gives you a profile page, consultation bookings, client chat and fee collection through the platform.",
+    "faq5Q": "How do I correct or remove my name?",
+    "faq5A": "Contact the team through the Lawslane help page with your name and license number."
   }
 }

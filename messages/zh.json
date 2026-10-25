@@ -360,7 +360,9 @@
       "dontShowAgain": "不再显示",
       "accept": "明白了，开始查询",
       "imageAlt": "律师正在审阅文件"
-    }
+    },
+    "ctaRegisterTitle": "您是律师吗？登记姓名供委托人核验",
+    "ctaRegisterSubtitle": "免费，只需姓名和执照号码"
   },
   "LegalForms": {
     "heroTitle": "法律表格中心",
@@ -2018,6 +2020,10 @@
     "verifyLawyer": {
       "title": "核实泰国律师 - 免费查询姓名或执照号码 - Lawslane",
       "description": "免费查询泰国律师姓名或执照号码，了解如何辨别真假律师以及聘请前的警示信号。"
+    },
+    "verifyLawyerRegister": {
+      "title": "免费登记律师姓名供委托人核验 - Lawslane",
+      "description": "律师可免费登记姓名和执照号码，让委托人在 Lawslane 律师核验页面查到并确认。"
     }
   },
   "InterpreterPayment": {
@@ -2056,5 +2062,71 @@
     "unknownPayer": "客户",
     "clientNote": "收据以收款律师的名义开具，在律师确认收款后生成。",
     "lawyerNote": "当您确认收款时，系统会自动以您的名义开具收据。"
+  },
+  "LawyerNameRegistration": {
+    "back": "返回律师核验",
+    "badge": "免费 · 无需注册账号",
+    "title": "登记律师姓名",
+    "description": "让委托人在 Lawslane 律师核验页面搜索到您的姓名或执照号码，以确认您是持证律师。页面仅显示称谓、姓名、执照号码和府。",
+    "prefix": "称谓",
+    "prefixPlaceholder": "选择",
+    "prefixes": {
+      "mr": "先生",
+      "mrs": "女士（已婚）",
+      "ms": "女士",
+      "actingSubLt": "预备役少尉",
+      "actingSubLtFemale": "预备役少尉（女）",
+      "dr": "博士"
+    },
+    "firstName": "名",
+    "lastName": "姓",
+    "nameHint": "请按律师执照上的泰文姓名填写。",
+    "licenseNumber": "律师执照号码",
+    "licensePlaceholder": "例如 12345/2560",
+    "licenseHint": "格式：编号/佛历年份，与执照上一致",
+    "province": "执业府",
+    "provincePlaceholder": "可不填",
+    "contactNote": "电话和邮箱仅供管理员在资料与登记不符时联系您，不会显示在网站上。",
+    "phone": "电话号码",
+    "email": "邮箱",
+    "consent": "本人为此姓名的律师本人，同意 Lawslane 在律师核验页面和律师名录中显示本人的称谓、姓名、执照号码和府。",
+    "privacyLink": "隐私政策",
+    "submit": "提交登记",
+    "freeNote": "管理员会先与泰国律师协会资料核对，再显示您的姓名。",
+    "viewListing": "查看",
+    "errors": {
+      "invalid": "请正确填写名、姓和电话号码，并勾选同意。",
+      "license_format": "执照号码格式须为 编号/佛历年份，例如 12345/2560。",
+      "already_listed": "此执照号码已在核验页面中。",
+      "already_pending": "此执照号码已提交，正在等待管理员审核。",
+      "on_lawslane": "此执照号码的律师已在 Lawslane 有个人资料。",
+      "rate_limited": "提交过于频繁，请稍后再试。",
+      "error": "提交失败，请重试。"
+    },
+    "successTitle": "已提交登记",
+    "successBody": "管理员将与泰国律师协会资料核对您的姓名和执照号码。审核通过后，委托人即可在核验页面搜索到您。如资料不符，我们会通过您提供的电话或邮箱联系您。",
+    "successBack": "前往律师核验",
+    "successAnother": "再登记一位",
+    "stepsHeading": "流程",
+    "step1Title": "填写姓名和执照号码",
+    "step1Body": "不到一分钟，无需账号或文件。",
+    "step2Title": "管理员审核",
+    "step2Body": "公开前与泰国律师协会资料核对姓名和执照号码。",
+    "step3Title": "委托人可查到",
+    "step3Body": "委托人在核验页面输入您的姓名或执照号码，即可看到您在登记中。",
+    "fullProfileTitle": "也想通过 Lawslane 接案？",
+    "fullProfileBody": "注册成为 Lawslane 律师，拥有个人主页、接受咨询预约、与委托人聊天并通过平台收取律师费。",
+    "fullProfileButton": "注册成为 Lawslane 律师",
+    "faqHeading": "常见问题",
+    "faq1Q": "登记律师姓名需要付费吗？",
+    "faq1A": "不需要。免费、无需账号、无需提交文件，只需填写姓名、执照号码和联系电话。",
+    "faq2Q": "委托人能看到我的哪些信息？",
+    "faq2A": "委托人在核验页面按姓名或执照号码搜索时，只能看到您的称谓、姓名、执照号码和府。电话和邮箱不会显示在网站上。",
+    "faq3Q": "Lawslane 如何核对资料？",
+    "faq3A": "团队在公开前会与泰国律师协会资料核对姓名和执照号码。如资料不符，会通过您提供的电话或邮箱联系您。",
+    "faq4Q": "登记姓名与注册成为 Lawslane 律师有什么不同？",
+    "faq4A": "登记姓名仅供委托人确认您是持证律师。注册成为 Lawslane 律师则可拥有个人主页、接受咨询预约、与委托人聊天并通过平台收取律师费。",
+    "faq5Q": "如何修改或删除我的姓名？",
+    "faq5A": "请通过 Lawslane 帮助页面联系团队，并提供您的姓名和执照号码。"
   }
 }

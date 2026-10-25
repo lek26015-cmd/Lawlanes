@@ -464,6 +464,10 @@ export default function ForLawyersPage() {
                 <Link href="/lawyer-login">เข้าสู่ระบบสำหรับทนายที่มีบัญชีแล้ว</Link>
               </Button>
             </div>
+            <p className="text-sm text-muted-foreground">
+              ยังไม่รับงานผ่านระบบ แต่อยากให้ลูกความตรวจสอบชื่อได้?{' '}
+              <Link href="/verify-lawyer/register" className="text-primary font-semibold hover:underline">ลงทะเบียนชื่อทนายความฟรี</Link>
+            </p>
 
             <div className="p-6 bg-primary/5 rounded-[32px] border border-primary/10 space-y-4">
                 <h3 className="text-lg font-bold flex items-center gap-2 text-primary">
