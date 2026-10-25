@@ -181,7 +181,7 @@ export const NotificationService = {
 
     const emailHtml = generateStandardEmailHtml({
       title: "ท่านได้รับข้อเสนอราคาเพื่อเริ่มงาน (เปิดคดี)",
-      content: `เรียนคุณ <span class="highlight">${clientName}</span>,<br><br>ทนายความ <span class="highlight">${lawyerName}</span> ได้ส่งข้อเสนอราคาเพื่อเริ่มต้นดำเนินการทางกฎหมายให้ท่านอย่างเป็นทางการ:<br><br><span class="highlight">เหตุผล/ขอบเขต:</span> ${reason || "ตามที่ตกลงในแชท"}<br><span class="highlight">ยอดชำระ:</span> ฿${amount.toLocaleString()}<br><br>ท่านสามารถดูข้อมูลบัญชีของทนายและโอนให้ทนายโดยตรงได้ในห้องแชท (Lawslane ไม่ได้รับหรือถือเงินก้อนนี้)`,
+      content: `เรียนคุณ <span class="highlight">${clientName}</span>,<br><br>ทนายความ <span class="highlight">${lawyerName}</span> ได้ส่งข้อเสนอราคาเพื่อเริ่มต้นดำเนินการทางกฎหมายให้ท่านอย่างเป็นทางการ:<br><br><span class="highlight">เหตุผล/ขอบเขต:</span> ${reason || "ตามที่ตกลงในแชท"}<br><span class="highlight">ยอดชำระ:</span> ฿${amount.toLocaleString()}<br><br>ท่านชำระค่าบริการเข้าบัญชี Lawslane ได้ผ่านปุ่มชำระเงินในห้องแชท Lawslane จะโอนให้ทนายหลังปิดเคส`,
       buttonText: "ดูข้อเสนอในห้องแชท",
       buttonLink: `${SITE_URL}/chat/${chatId}`
     });
@@ -246,32 +246,6 @@ export const NotificationService = {
   // Case Lifecycle Notifications
   // ============================================================
 
-  /**
-   * Trigger 7: ลูกความแจ้งทนายว่าโอนเงินให้โดยตรงแล้ว (notifyDirectPaymentAction)
-   *
-   * แพลตฟอร์มไม่ได้รับ/ตรวจเงินก้อนนี้ — อีเมลนี้แค่บอกให้ทนายไปเช็คบัญชีตัวเอง
-   * แล้วกด "ยืนยันได้รับเงิน" ในห้องแชท (เดิม notifyPaymentReceived บอกว่า "ชำระเรียบร้อยแล้ว
-   * / SlipOK ยืนยันแล้ว" ซึ่งไม่จริงในโมเดลใหม่ และมีอีเมลแจ้งแอดมินทุกครั้งที่มีเงินเข้า)
-   */
-  async notifyLawyerClientPaymentNotice(params: {
-    lawyerName: string;
-    lawyerEmail: string;
-    amount: number;
-    caseTitle: string;
-    chatId: string;
-    hasProof: boolean;
-  }) {
-    const { lawyerName, lawyerEmail, amount, caseTitle, chatId, hasProof } = params;
-
-    const emailHtml = generateStandardEmailHtml({
-      title: "ลูกความแจ้งว่าโอนเงินให้คุณแล้ว",
-      content: `เรียนทนายความ <span class="highlight">${lawyerName}</span>,<br><br>ลูกความแจ้งว่าได้โอนเงินให้คุณโดยตรงสำหรับ "<span class="highlight">${caseTitle}</span>"<br><br><span class="highlight">จำนวนเงิน:</span> ฿${amount.toLocaleString()}<br><span class="highlight">หลักฐาน:</span> ${hasProof ? 'แนบไว้ในห้องแชท' : 'ไม่ได้แนบ'}<br><br>กรุณาตรวจสอบยอดในบัญชีของคุณ แล้วกด "ยืนยันได้รับเงิน" ในห้องแชท<br><small>Lawslane ไม่ได้รับหรือถือเงินก้อนนี้</small>`,
-      buttonText: "เข้าสู่ห้องแชท",
-      buttonLink: `${SITE_URL}/chat/${chatId}?view=lawyer`
-    });
-
-    return await sendEmailFlexible(lawyerEmail, `[Lawslane] ลูกความแจ้งโอนเงิน — ${caseTitle}`, emailHtml);
-  },
 
   /**
    * Trigger 8: Notify client when case is closed
@@ -307,14 +281,18 @@ export const NotificationService = {
     lawyerName: string;
     caseTitle: string;
     refundAmount: number;
+    /** ส่วนที่ชำระเข้าบัญชีระบบ — Lawslane คืนให้ (PLAN-10) */
+    platformRefundAmount?: number;
   }) {
     const { clientName, clientEmail, lawyerName, caseTitle, refundAmount } = params;
+    const platformRefund = params.platformRefundAmount ?? 0;
+    const directPaid = Math.max(0, refundAmount - platformRefund);
     console.log(`[NotificationService] Case cancelled notification for client`);
 
-    // Lawslane ไม่ได้ถือเงินค่าบริการ — การคืนเงินเป็นเรื่องระหว่างลูกความกับทนายโดยตรง
-    const refundText = refundAmount > 0
-      ? `<br><br><span class="highlight">ยอดที่ท่านชำระให้ทนายแล้ว:</span> ฿${refundAmount.toLocaleString()}<br>หากมีการคืนเงิน กรุณาตกลงกับทนายความโดยตรง (Lawslane ไม่ได้รับหรือถือเงินก้อนนี้)`
-      : '';
+    // เงินที่ชำระเข้าบัญชีระบบ Lawslane คืนให้ · ส่วนที่โอนตรงให้ทนายก่อนเปลี่ยนระบบ ตกลงคืนกับทนายเอง
+    const refundText =
+      (platformRefund > 0 ? `<br><br><span class="highlight">ยอดที่ Lawslane จะคืนให้ท่าน:</span> ฿${platformRefund.toLocaleString()}<br>ทีมงานจะติดต่อเพื่อโอนเงินคืน` : '') +
+      (directPaid > 0 ? `<br><br><span class="highlight">ยอดที่ท่านโอนตรงให้ทนายก่อนหน้านี้:</span> ฿${directPaid.toLocaleString()}<br>กรุณาตกลงเรื่องการคืนเงินส่วนนี้กับทนายความโดยตรง` : '');
 
     const emailHtml = generateStandardEmailHtml({
       title: "เคสของท่านถูกยกเลิก",
@@ -344,7 +322,7 @@ export const NotificationService = {
 
     const emailHtml = generateStandardEmailHtml({
       title: "ทนายความขอค่าบริการเพิ่มเติม",
-      content: `เรียนคุณ <span class="highlight">${clientName}</span>,<br><br>ทนายความ <span class="highlight">${lawyerName}</span> ขอค่าบริการเพิ่มเติมสำหรับเคส "<span class="highlight">${caseTitle}</span>"<br><br><span class="highlight">ค่าบริการเพิ่มเติม:</span> ฿${additionalAmount.toLocaleString()}<br><span class="highlight">ยอดรวมทั้งสิ้น:</span> ฿${totalAmount.toLocaleString()}<br><span class="highlight">เหตุผล:</span> ${reason?.substring(0, 150) || 'ตามที่ตกลงในแชท'}<br><br>กรุณาตรวจสอบและโอนให้ทนายโดยตรงตามข้อมูลบัญชีในห้องแชท`,
+      content: `เรียนคุณ <span class="highlight">${clientName}</span>,<br><br>ทนายความ <span class="highlight">${lawyerName}</span> ขอค่าบริการเพิ่มเติมสำหรับเคส "<span class="highlight">${caseTitle}</span>"<br><br><span class="highlight">ค่าบริการเพิ่มเติม:</span> ฿${additionalAmount.toLocaleString()}<br><span class="highlight">ยอดรวมทั้งสิ้น:</span> ฿${totalAmount.toLocaleString()}<br><span class="highlight">เหตุผล:</span> ${reason?.substring(0, 150) || 'ตามที่ตกลงในแชท'}<br><br>กรุณาตรวจสอบและชำระเข้าบัญชี Lawslane ผ่านปุ่มชำระเงินในห้องแชท`,
       buttonText: "ดูรายละเอียดในห้องแชท",
       buttonLink: `${SITE_URL}/chat/${chatId}`
     });

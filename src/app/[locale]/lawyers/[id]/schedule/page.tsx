@@ -162,7 +162,7 @@ export default function SchedulePage() {
                         {isSubmitting ? 'กำลังส่งคำขอ...' : 'ส่งคำขอนัดหมาย (ไม่มีค่าใช้จ่ายผ่านระบบ)'}
                     </Button>
                     <p className="text-xs text-center text-muted-foreground">
-                        หากมีค่าบริการ ทนายจะแจ้งในแชทและคุณโอนให้ทนายโดยตรง — Lawslane ไม่ได้รับหรือถือเงิน
+                        หากมีค่าบริการ ทนายจะแจ้งในแชท และคุณชำระเข้าบัญชี Lawslane ผ่านปุ่มชำระเงินในห้องแชท
                     </p>
                 </CardContent>
             </Card>

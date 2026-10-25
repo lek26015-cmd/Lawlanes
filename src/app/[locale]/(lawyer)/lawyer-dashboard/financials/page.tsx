@@ -52,15 +52,37 @@ const banks = [
     { name: "ธนาคารแห่งประเทศจีน (ไทย)", logo: bocLogo, color: "#b40026" },
 ];
 
-// เงินค่าจ้างโอนเข้าบัญชีทนายโดยตรงแล้ว (PRD: Lawslane ไม่ถือเงินลูกความ)
-// หน้านี้จึงเหลือแค่ข้อมูลบัญชีที่แสดงบนการ์ด "ข้อมูลการโอนเงิน" ในแชท + ข้อมูลออกใบกำกับภาษี
-// (เดิมเป็นหน้ายอดคงเหลือ/แจ้งถอนเงิน และฟอร์มแก้บัญชีซ่อนอยู่ในหน้าต่างถอนเงิน)
+type Platform = { gross: number; gp: number; held: number; due: number; paidOut: number; pendingReview: number };
+type PlatformPayment = {
+    id: string; chatId: string; caseTitle: string; description: string;
+    grossAmount: number; gpPercent: number; gpAmount: number; netToLawyer: number;
+    status: string; payoutStatus: string; createdAt: string | null;
+};
+
+const satang = (n: number) => `฿${(n / 100).toLocaleString('th-TH', { maximumFractionDigits: 2 })}`;
+
+function paymentStatusLabel(p: PlatformPayment): string {
+    if (p.status === 'pending_review') return 'รอทีมงานตรวจสลิป';
+    if (p.status === 'refund_pending') return 'เคสยกเลิก · รอคืนลูกความ';
+    if (p.status === 'refunded') return 'คืนลูกความแล้ว';
+    if (p.status === 'rejected') return 'สลิปไม่ผ่าน';
+    if (p.payoutStatus === 'held') return 'รอปิดเคส';
+    if (p.payoutStatus === 'due') return 'รอ Lawslane โอนให้คุณ';
+    if (p.payoutStatus === 'paid') return 'โอนให้คุณแล้ว';
+    return p.status;
+}
+
+// ค่าบริการที่ลูกความชำระเข้าบัญชี Lawslane (PLAN-10) — Lawslane หัก GP แล้วโอนยอดสุทธิให้ทนายหลังปิดเคส
+// เข้าบัญชีรับเงินในหน้านี้ + ข้อมูลออกใบกำกับภาษี
 export default function LawyerFinancialsPage() {
     const { firestore } = useFirebase();
     const { user, isUserLoading } = useUser();
     const { toast } = useToast();
     const [isLoading, setIsLoading] = useState(true);
     const [lawyerOfficialName, setLawyerOfficialName] = useState('');
+    const [profileId, setProfileId] = useState('');
+    const [platform, setPlatform] = useState<Platform | null>(null);
+    const [platformPayments, setPlatformPayments] = useState<PlatformPayment[]>([]);
 
     const [bankName, setBankName] = useState('');
     const [accountNumber, setAccountNumber] = useState('');
@@ -84,8 +106,11 @@ export default function LawyerFinancialsPage() {
         if (!user) return;
         setIsLoading(true);
         try {
-            const { profile } = await getLawyerFinancialsAction();
+            const { profile, platform, platformPayments } = await getLawyerFinancialsAction();
             setLawyerOfficialName(profile.name);
+            setProfileId(profile.profileId);
+            setPlatform(platform);
+            setPlatformPayments(platformPayments);
             setBankName(profile.bankName); setEditBankName(profile.bankName);
             setAccountNumber(profile.bankAccountNumber); setEditAccountNumber(profile.bankAccountNumber);
             setAccountName(profile.bankAccountName); setEditAccountName(profile.bankAccountName);
@@ -116,7 +141,8 @@ export default function LawyerFinancialsPage() {
         }
         setIsSavingBank(true);
         try {
-            await updateDoc(doc(firestore, 'lawyerProfiles', user.uid), {
+            // doc id ของโปรไฟล์ไม่จำเป็นต้องเท่ากับ uid — ใช้ id ที่ server ตรวจแล้ว
+            await updateDoc(doc(firestore, 'lawyerProfiles', profileId || user.uid), {
                 bankName: editBankName,
                 bankAccountNumber: editAccountNumber,
                 bankAccountName: editAccountName,
@@ -140,7 +166,7 @@ export default function LawyerFinancialsPage() {
         }
         setIsSavingCorporate(true);
         try {
-            await updateDoc(doc(firestore, 'lawyerProfiles', user.uid), {
+            await updateDoc(doc(firestore, 'lawyerProfiles', profileId || user.uid), {
                 corporateName: editCorporateName,
                 corporateTaxId: editCorporateTaxId,
                 corporateAddress: editCorporateAddress,
@@ -164,8 +190,8 @@ export default function LawyerFinancialsPage() {
         <>
             <LawyerPageHeader
                 icon={Wallet}
-                title="บัญชีรับเงินและใบกำกับภาษี"
-                description="ข้อมูลบัญชีที่ลูกความจะเห็นเมื่อคุณส่ง &quot;ข้อมูลการโอนเงิน&quot; ในแชท และข้อมูลสำหรับออกใบกำกับภาษี"
+                title="รายได้และบัญชีรับเงิน"
+                description="ค่าบริการที่ลูกความชำระผ่าน Lawslane และบัญชีที่ Lawslane โอนเงินให้คุณ"
                 actions={
                     <Link href="/lawyer-dashboard/billing">
                         <Button variant="outline" className="rounded-xl gap-2">
@@ -177,8 +203,50 @@ export default function LawyerFinancialsPage() {
 
             <div className="flex items-start gap-3 rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-900 dark:bg-blue-950/30 dark:border-blue-900 dark:text-blue-200">
                 <Info className="w-5 h-5 shrink-0 mt-0.5" />
-                <p>ลูกความโอนค่าบริการเข้าบัญชีของคุณโดยตรง Lawslane ไม่ได้รับหรือถือเงินส่วนนี้ จึงไม่มียอดคงเหลือหรือการถอนเงินในระบบ</p>
+                <p>ลูกความชำระค่าบริการเข้าบัญชี Lawslane · Lawslane หักค่าธรรมเนียมแพลตฟอร์ม (GP) แล้วโอนยอดสุทธิเข้าบัญชีรับเงินของคุณหลังคุณปิดเคส</p>
             </div>
+
+            {platform && (
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    {[
+                        { label: 'รอปิดเคส', value: platform.held, hint: 'ยอดสุทธิของเคสที่ยังไม่ปิด' },
+                        { label: 'รอ Lawslane โอน', value: platform.due, hint: 'ปิดเคสแล้ว กำลังดำเนินการโอน' },
+                        { label: 'โอนให้คุณแล้ว', value: platform.paidOut, hint: 'รวมทั้งหมด' },
+                        { label: 'GP ที่หักแล้ว', value: platform.gp, hint: `จากยอดรวม ${satang(platform.gross)}` },
+                    ].map(c => (
+                        <Card key={c.label} className="rounded-2xl border shadow-sm">
+                            <CardContent className="p-4">
+                                <p className="text-xs text-muted-foreground">{c.label}</p>
+                                <p className="text-xl font-bold mt-1">{satang(c.value)}</p>
+                                <p className="text-[11px] text-muted-foreground mt-1">{c.hint}</p>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+            )}
+
+            {platformPayments.length > 0 && (
+                <Card className="rounded-2xl border shadow-sm">
+                    <CardHeader className="border-b">
+                        <CardTitle className="text-base font-bold">ค่าบริการที่ชำระผ่าน Lawslane</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0 divide-y">
+                        {platformPayments.map(p => (
+                            <div key={p.id} className="flex flex-wrap items-center justify-between gap-3 px-6 py-3 text-sm">
+                                <div className="min-w-0">
+                                    <Link href={`/chat/${p.chatId}?view=lawyer`} className="font-medium hover:underline">{p.caseTitle || 'เคส'}</Link>
+                                    <p className="text-xs text-muted-foreground">{p.description}{p.createdAt ? ` · ${new Date(p.createdAt).toLocaleDateString('th-TH')}` : ''}</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="font-semibold">{satang(p.netToLawyer)} <span className="text-xs font-normal text-muted-foreground">สุทธิ</span></p>
+                                    <p className="text-[11px] text-muted-foreground">ยอดเต็ม {satang(p.grossAmount)} · GP {p.gpPercent}% {satang(p.gpAmount)}</p>
+                                    <p className="text-[11px] font-medium text-[#002f4b] dark:text-blue-300">{paymentStatusLabel(p)}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </CardContent>
+                </Card>
+            )}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* บัญชีรับเงิน */}
@@ -188,7 +256,7 @@ export default function LawyerFinancialsPage() {
                             <CardTitle className="text-base font-bold flex items-center gap-2">
                                 <Landmark className="w-4 h-4 text-[#002f4b] dark:text-blue-400" /> บัญชีรับเงิน
                             </CardTitle>
-                            <CardDescription className="mt-1">ชื่อบัญชีต้องตรงกับชื่อที่ลงทะเบียนทนาย</CardDescription>
+                            <CardDescription className="mt-1">Lawslane โอนค่าบริการเข้าบัญชีนี้ · ชื่อบัญชีต้องตรงกับชื่อที่ลงทะเบียนทนาย</CardDescription>
                         </div>
                         {!isEditingBank ? (
                             <Button variant="outline" size="sm" onClick={() => setIsEditingBank(true)} className="rounded-xl shrink-0">
@@ -259,7 +327,7 @@ export default function LawyerFinancialsPage() {
                         ) : (
                             <button type="button" onClick={() => setIsEditingBank(true)} className="w-full flex items-center gap-2 text-amber-700 text-sm bg-amber-50 p-3 rounded-xl hover:bg-amber-100 transition-colors text-left">
                                 <AlertCircle className="w-4 h-4 shrink-0" />
-                                ยังไม่มีข้อมูลบัญชี — เพิ่มบัญชีก่อนจึงจะส่งข้อมูลการโอนเงินให้ลูกความในแชทได้
+                                ยังไม่มีข้อมูลบัญชี — เพิ่มบัญชีเพื่อให้ Lawslane โอนค่าบริการให้คุณได้
                             </button>
                         )}
                     </CardContent>

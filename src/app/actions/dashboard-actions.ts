@@ -508,11 +508,10 @@ export async function getLawyerDashboardDataAction(): Promise<{ newRequests: Law
 
 
 /**
- * หน้าการเงินของทนาย — บัญชีรับเงิน + บันทึกยอดที่ทนายยืนยันรับเอง
+ * หน้าการเงินของทนาย — บัญชีรับเงินโอนจาก Lawslane + ค่าบริการที่ลูกความชำระเข้าระบบ (PLAN-10)
  *
- * เดิมคำนวณ "ยอดคงเหลือที่ถอนได้" จาก transactions (หลังหัก GP) − withdrawals เพราะแพลตฟอร์ม
- * ถือเงินไว้ให้ ตอนนี้ลูกความโอนเข้าบัญชีทนายโดยตรง ไม่มียอดคงเหลือ/การถอน/GP อีกแล้ว
- * (transactions / withdrawals ไม่ถูกอ่านหรือเขียนจากเว็บหลักแล้ว — ดู LAWSLANE-PLAN-05)
+ * ยอดอ่านจาก lawyerPayments (ยอดเต็ม / GP / สุทธิ / สถานะการโอนให้ทนาย) ไม่ใช้ transactions/withdrawals
+ * ของโมเดลก่อน PLAN-05 · receipts = รายการที่ทนายยืนยันรับเงินโอนตรงเองก่อนเปลี่ยนระบบ
  */
 export async function getLawyerFinancialsAction() {
     // uid จาก session · โปรไฟล์จาก requireLawyer (doc id ของโปรไฟล์ไม่จำเป็นต้องเท่ากับ uid)
@@ -545,7 +544,40 @@ export async function getLawyerFinancialsAction() {
 
         const lawyerProfile = lawyerDoc.data();
 
+        // ค่าบริการที่ชำระเข้าบัญชีระบบ (สตางค์) — single-field where ไม่ต้องมี index
+        const paySnap = await db.collection('lawyerPayments').where('lawyerProfileId', '==', lawyerProfileId).limit(500).get();
+        const platform = { gross: 0, gp: 0, held: 0, due: 0, paidOut: 0, pendingReview: 0 };
+        const platformPayments = paySnap.docs.map(d => {
+            const x = d.data();
+            if (x.status === 'pending_review') platform.pendingReview += x.grossAmount || 0;
+            if (x.status === 'paid') {
+                platform.gross += x.grossAmount || 0;
+                platform.gp += x.gpAmount || 0;
+                if (x.payoutStatus === 'held') platform.held += x.netToLawyer || 0;
+                if (x.payoutStatus === 'due') platform.due += x.netToLawyer || 0;
+                if (x.payoutStatus === 'paid') platform.paidOut += x.netToLawyer || 0;
+            }
+            return {
+                id: d.id,
+                chatId: x.chatId || '',
+                caseTitle: x.caseTitle || '',
+                // แบ่งจ่าย: บอกยอดเต็มของรายการ (สตางค์ → บาท)
+                description: x.partial && x.itemAmount
+                    ? `${x.description || ''} (แบ่งจ่าย จากยอด ฿${(x.itemAmount / 100).toLocaleString()})`
+                    : x.description || '',
+                grossAmount: x.grossAmount || 0,
+                gpPercent: x.gpPercent ?? 0,
+                gpAmount: x.gpAmount || 0,
+                netToLawyer: x.netToLawyer || 0,
+                status: x.status || '',
+                payoutStatus: x.payoutStatus || '',
+                createdAt: x.createdAt?.toDate?.()?.toISOString?.() || null,
+            };
+        }).sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''));
+
         return JSON.parse(JSON.stringify({
+            platform,
+            platformPayments,
             receipts: summary.receipts.map(r => ({
                 ...r,
                 clientName: clientNames[r.clientId] || 'ลูกความ',
@@ -556,6 +588,7 @@ export async function getLawyerFinancialsAction() {
                 outstanding: summary.outstanding,
             },
             profile: {
+                profileId: lawyerProfileId,
                 bankName: lawyerProfile?.bankName || '',
                 bankAccountNumber: lawyerProfile?.bankAccountNumber || '',
                 bankAccountName: lawyerProfile?.bankAccountName || lawyerProfile?.name || '',

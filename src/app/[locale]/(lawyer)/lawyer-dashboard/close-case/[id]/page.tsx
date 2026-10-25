@@ -259,7 +259,7 @@ function CloseCasePageContent() {
                     ยืนยันการยกเลิกเคส
                   </AlertDialogTitle>
                   <AlertDialogDescription>
-                    การยกเลิกเคสจะไม่สามารถย้อนกลับได้ {originalFee > 0 ? 'หากลูกความโอนค่าบริการให้คุณไปแล้ว การคืนเงินเป็นความรับผิดชอบของคุณโดยตรง (Lawslane ไม่ได้ถือเงิน)' : ''} คุณแน่ใจหรือไม่?
+                    การยกเลิกเคสจะไม่สามารถย้อนกลับได้ {originalFee > 0 ? 'ค่าบริการที่ลูกความชำระเข้าระบบแล้ว Lawslane จะคืนให้ลูกความ และคุณจะไม่ได้รับยอดของเคสนี้' : ''} คุณแน่ใจหรือไม่?
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
