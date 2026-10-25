@@ -91,19 +91,47 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { doc, getDoc, updateDoc, arrayUnion, onSnapshot, serverTimestamp, query, collection, where, orderBy } from 'firebase/firestore';
 import { MAX_FILE_SIZE_BYTES, MAX_FILE_SIZE_MB } from '@/lib/constants';
+import { partialKey, pendingTotal, readPartial, remainingOf, type PartialState } from '@/lib/lawyer-payment-partial';
 
 /**
  * แถวค่าบริการที่ยังไม่ได้ชำระ (มุมทนาย) — ลูกความจ่ายเข้าบัญชี Lawslane (PLAN-10)
  * ปุ่ม "ยืนยันได้รับเงิน" เหลือเฉพาะรายการที่ลูกความแจ้งโอนตรงให้ทนายไว้ก่อนเปลี่ยนระบบ (notice)
  */
-function PaymentConfirmRow({ label, amount, notice, review, onViewProof, onConfirm }: {
+/** ยอดแบ่งจ่ายของรายการ: ชำระแล้ว / รอตรวจ / คงเหลือ (บรรทัดเล็กใต้ชื่อรายการ) */
+function PartialLine({ amount, part }: { amount: number; part: PartialState }) {
+    const pending = pendingTotal(part);
+    if (part.paid <= 0 && pending <= 0) return null;
+    return (
+        <span className="text-[9px] text-slate-600 dark:text-slate-400">
+            ชำระแล้ว ฿{part.paid.toLocaleString()}
+            {pending > 0 && ` · รอตรวจ ฿${pending.toLocaleString()}`}
+            {` · คงเหลือ ฿${Math.max(0, amount - part.paid).toLocaleString()}`}
+        </span>
+    );
+}
+
+/** ปุ่มไปหน้า /payment — แสดงยอดที่ยังจ่ายได้ (หักยอดที่ชำระแล้วและสลิปที่รอตรวจ) */
+function PayButton({ href, amount, part, outline }: { href: string; amount: number; part: PartialState; outline?: boolean }) {
+    const remaining = remainingOf(amount, part);
+    if (remaining <= 0) {
+        return <span className="text-[9px] font-bold text-amber-600 shrink-0">รอตรวจสลิป</span>;
+    }
+    return (
+        <Button size="sm" variant={outline ? 'outline' : 'default'} className={cn("h-7 rounded-lg text-[10px] font-bold px-3 shrink-0", !outline && "bg-blue-600 hover:bg-blue-700 text-white")} asChild>
+            <Link href={href}>ชำระ ฿{remaining.toLocaleString()} <ArrowRight className="ml-1 w-3 h-3" /></Link>
+        </Button>
+    );
+}
+
+function PaymentConfirmRow({ label, amount, part, notice, onViewProof, onConfirm }: {
     label: string;
     amount: number;
+    part: PartialState;
     notice: { proofUrl?: string | null; note?: string | null } | null;
-    review: boolean;
     onViewProof: (path: string) => void;
     onConfirm: () => void;
 }) {
+    const review = pendingTotal(part) > 0;
     return (
         <div className={cn("p-3 rounded-xl border flex justify-between items-center gap-2", notice || review ? "bg-amber-50 border-amber-200" : "bg-slate-50 dark:bg-slate-900 border-slate-100 dark:border-slate-800")}>
             <div className="flex flex-col gap-0.5 min-w-0">
@@ -115,6 +143,7 @@ function PaymentConfirmRow({ label, amount, notice, review, onViewProof, onConfi
                 ) : (
                     <span className="text-[8px] text-slate-500">รอลูกความชำระเข้าบัญชี Lawslane</span>
                 )}
+                <PartialLine amount={amount} part={part} />
             </div>
             <div className="text-right flex flex-col items-end gap-1 shrink-0">
                 <span className="font-black text-blue-600 dark:text-blue-400 text-sm">฿{amount.toLocaleString()}</span>
@@ -158,6 +187,9 @@ function ChatPageContent() {
     const [description, setDescription] = useState<string>('');
     const [pendingFeeRequest, setPendingFeeRequest] = useState<{ amount: number, reason: string } | null>(null);
     // ฟิลด์การชำระเงินของห้อง (ลูกความจ่ายเข้าบัญชีระบบ — ดู lib/lawyer-payment-core.ts)
+    // แบ่งจ่าย — chats.partialPayments (ดู lib/lawyer-payment-partial.ts)
+    const [partialPayments, setPartialPayments] = useState<Record<string, any>>({});
+    const partOf = (type: string, idx?: number) => readPartial({ partialPayments }, partialKey(type, idx));
     const [paymentState, setPaymentState] = useState<{ paidAmount: number; caseBase: number; settled: boolean; caseNotice: any | null; additionalNotice: any | null; caseReview: boolean; additionalReview: boolean; additionalFee: { amount: number; reason: string } | null }>({ paidAmount: 0, caseBase: 0, settled: false, caseNotice: null, additionalNotice: null, caseReview: false, additionalReview: false, additionalFee: null });
     const [milestones, setMilestones] = useState<Milestone[]>([]);
     const [invoices, setInvoices] = useState<Invoice[]>([]);
@@ -232,13 +264,15 @@ function ChatPageContent() {
 
     const [clientInfo, setClientInfo] = useState<{ name: string, address: string, taxId: string } | null>(null);
     const isOfficial = chatAmount > 0 || (installments && installments.length > 0);
-    // ยอดที่ "ทนายยืนยันรับแล้ว" — เคสแบ่งงวดนับจากงวดที่ยืนยันแล้ว เคสก้อนเดียวใช้ paidAmount
+    // ยอดที่ได้รับแล้ว — เคสแบ่งงวดนับงวดที่จ่ายครบ + ยอดที่แบ่งจ่ายไปแล้วของงวดที่ยังไม่ครบ
+    // เคสก้อนเดียวใช้ paidAmount (+ ยอดแบ่งจ่ายของค่าบริการ)
     const totalPaid = installments.length > 0
-        ? installments.filter(inst => inst.status === 'paid').reduce((sum, inst) => {
+        ? installments.reduce((sum, inst, idx) => {
+            if (inst.status !== 'paid') return sum + partOf('installment', idx).paid;
             const amt = inst.amount && !isNaN(parseFloat(String(inst.amount).replace(/,/g, ''))) ? parseFloat(String(inst.amount).replace(/,/g, '')) : 0;
             return sum + amt;
         }, 0)
-        : paymentState.paidAmount;
+        : paymentState.paidAmount + (paymentState.settled ? 0 : partOf('case').paid);
 
     // Compute milestoneSteps and currentStep from real milestones
     // Sort milestones by order to ensure consistency
@@ -308,6 +342,7 @@ function ChatPageContent() {
                 if (data.amount !== undefined) setChatAmount(data.amount);
                 setIsManualCase(data.isManualCase || false);
                 setInstallments(data.installments || []);
+                setPartialPayments(data.partialPayments && typeof data.partialPayments === 'object' ? data.partialPayments : {});
                 setCaseTitle(data.caseTitle || '');
                 setDescription(data.description || '');
                 setPendingFeeRequest(data.pendingFeeRequest || null);
@@ -328,8 +363,8 @@ function ChatPageContent() {
                         settled: !!data.paymentConfirmedAt || !!data.paidAt || (amt > 0 && paid >= amt),
                         caseNotice: data.clientPaymentNotice?.type === 'case' ? data.clientPaymentNotice : null,
                         additionalNotice: data.clientPaymentNotice?.type === 'additional' ? data.clientPaymentNotice : null,
-                        caseReview: data.platformPaymentPending?.type === 'case',
-                        additionalReview: data.platformPaymentPending?.type === 'additional',
+                        caseReview: pendingTotal(readPartial(data, 'case')) > 0,
+                        additionalReview: pendingTotal(readPartial(data, 'additional')) > 0,
                         additionalFee: extra,
                     });
                 }
@@ -836,8 +871,9 @@ function ChatPageContent() {
                                                 <div className="space-y-2">
                                                     {installments.map((inst: any, idx: number) => {
                                                         const isPaid = inst.status === 'paid';
-                                                        // แนบสลิปเข้าระบบแล้วรอทีมงานตรวจ (platformPaymentId)
-                                                        const isReview = !isPaid && !!inst.platformPaymentId;
+                                                        // แบ่งจ่าย: ยอดที่ชำระแล้ว / สลิปที่รอทีมงานตรวจ (partialPayments)
+                                                        const part = partOf('installment', idx);
+                                                        const isReview = !isPaid && pendingTotal(part) > 0;
                                                         // ลูกความแจ้งโอนตรงให้ทนายไว้ก่อนเปลี่ยนระบบ — ทนายยืนยันรับเงินเองได้
                                                         const isLegacyNotice = !isPaid && !isReview && (!!inst.clientNotice || inst.status === 'pending_verification');
                                                         const isPending = isReview || isLegacyNotice;
@@ -855,11 +891,14 @@ function ChatPageContent() {
                                                                             <span className="text-[8px] font-black uppercase text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded-md">{inst.confirmedByRole === 'platform' ? 'ชำระเข้าระบบแล้ว' : 'ได้รับเงินแล้ว'}</span>
                                                                         ) : isReview ? (
                                                                             <span className="text-[8px] font-black uppercase text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded-md animate-pulse">รอทีมงานตรวจสลิป</span>
+                                                                        ) : part.paid > 0 ? (
+                                                                            <span className="text-[8px] font-black uppercase text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded-md">ชำระบางส่วน</span>
                                                                         ) : isLegacyNotice ? (
                                                                             <span className="text-[8px] font-black uppercase text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded-md animate-pulse">ลูกความแจ้งโอนตรง</span>
                                                                         ) : null}
                                                                     </div>
                                                                     <span className="text-[10px] text-slate-500 dark:text-slate-400 line-clamp-1">{inst.description}</span>
+                                                                    {!isPaid && <PartialLine amount={instAmount} part={part} />}
                                                                 </div>
                                                                 <div className="text-right flex flex-col items-end gap-1">
                                                                     <span className="font-black text-blue-600 dark:text-blue-400 text-sm">฿{instAmount.toLocaleString()}</span>
@@ -901,8 +940,8 @@ function ChatPageContent() {
                                         <PaymentConfirmRow
                                             label="ค่าบริการ"
                                             amount={paymentState.caseBase}
+                                            part={partOf('case')}
                                             notice={paymentState.caseNotice}
-                                            review={paymentState.caseReview}
                                             onViewProof={(p) => handleViewFile(p, 'proof_case.jpg')}
                                             onConfirm={() => handleConfirmReceived('case', paymentState.caseBase, 'ค่าบริการ')}
                                         />
@@ -911,8 +950,8 @@ function ChatPageContent() {
                                         <PaymentConfirmRow
                                             label={paymentState.additionalFee.reason}
                                             amount={paymentState.additionalFee.amount}
+                                            part={partOf('additional')}
                                             notice={paymentState.additionalNotice}
-                                            review={paymentState.additionalReview}
                                             onViewProof={(p) => handleViewFile(p, 'proof_additional.jpg')}
                                             onConfirm={() => handleConfirmReceived('additional', paymentState.additionalFee!.amount, 'ค่าบริการเพิ่มเติม')}
                                         />
@@ -1196,15 +1235,15 @@ function ChatPageContent() {
                                             <p className="text-[10px] font-bold text-blue-700 truncate">{paymentState.additionalFee.reason}</p>
                                             {paymentState.additionalReview ? <p className="text-[9px] text-amber-600 font-bold">แนบสลิปแล้ว — รอทีมงานตรวจ</p>
                                                 : paymentState.additionalNotice && <p className="text-[9px] text-amber-600 font-bold">แจ้งโอนตรงแล้ว — รอทนายยืนยัน</p>}
+                                            <PartialLine amount={paymentState.additionalFee.amount} part={partOf('additional')} />
                                         </div>
-                                        <Button size="sm" className="h-7 rounded-lg bg-blue-600 hover:bg-blue-700 text-[10px] font-bold px-3 text-white shrink-0" asChild>
-                                            <Link href={`/payment?chatId=${chatId}&type=additional`}>ชำระ ฿{paymentState.additionalFee.amount.toLocaleString()}</Link>
-                                        </Button>
+                                        <PayButton href={`/payment?chatId=${chatId}&type=additional`} amount={paymentState.additionalFee.amount} part={partOf('additional')} />
                                     </div>
                                 )}
                                 {installments.map((inst: any, idx: number) => {
                                     const isPaid = inst.status === 'paid';
-                                    const inReview = !isPaid && !!inst.platformPaymentId;
+                                    const part = partOf('installment', idx);
+                                    const inReview = !isPaid && pendingTotal(part) > 0;
                                     const notified = !isPaid && !inReview && (!!inst.clientNotice || inst.status === 'pending_verification');
                                     const instAmount = inst.amount && !isNaN(parseFloat(inst.amount)) ? parseFloat(String(inst.amount).replace(/,/g, '')) : 0;
                                     return (
@@ -1214,17 +1253,19 @@ function ChatPageContent() {
                                                 <p className="text-[10px] text-slate-500 line-clamp-1">{inst.description}</p>
                                                 {inReview && <p className="text-[9px] text-amber-600 font-bold">แนบสลิปแล้ว — รอทีมงานตรวจ</p>}
                                                 {notified && <p className="text-[9px] text-amber-600 font-bold">แจ้งโอนตรงแล้ว — รอทนายยืนยัน</p>}
+                                                {!isPaid && <PartialLine amount={instAmount} part={part} />}
                                             </div>
                                             {isPaid ? (
                                                 <span className="text-[9px] font-black uppercase bg-green-100 text-green-700 px-2 py-0.5 rounded-full flex items-center gap-1 shrink-0">
                                                     <CheckCircle2 className="w-3 h-3" /> ชำระแล้ว
                                                 </span>
                                             ) : (
-                                                <Button size="sm" variant={notified || inReview ? 'outline' : 'default'} className="h-7 rounded-lg text-[10px] font-bold px-3 shrink-0" asChild>
-                                                    <Link href={`/payment?chatId=${chatId}&type=installment&installmentIndex=${idx}`}>
-                                                        ฿{instAmount.toLocaleString()} <ArrowRight className="ml-1 w-3 h-3" />
-                                                    </Link>
-                                                </Button>
+                                                <PayButton
+                                                    href={`/payment?chatId=${chatId}&type=installment&installmentIndex=${idx}`}
+                                                    amount={instAmount}
+                                                    part={part}
+                                                    outline={notified}
+                                                />
                                             )}
                                         </div>
                                     );
@@ -1235,10 +1276,9 @@ function ChatPageContent() {
                                             <p className="text-[10px] font-bold text-slate-700 truncate">{caseTitle || 'ค่าบริการ'}</p>
                                             {paymentState.caseReview ? <p className="text-[9px] text-amber-600 font-bold">แนบสลิปแล้ว — รอทีมงานตรวจ</p>
                                                 : paymentState.caseNotice && <p className="text-[9px] text-amber-600 font-bold">แจ้งโอนตรงแล้ว — รอทนายยืนยัน</p>}
+                                            <PartialLine amount={paymentState.caseBase} part={partOf('case')} />
                                         </div>
-                                        <Button size="sm" className="h-7 rounded-lg bg-blue-600 hover:bg-blue-700 text-[10px] font-bold px-3 text-white shrink-0" asChild>
-                                            <Link href={`/payment?chatId=${chatId}&type=case`}>ชำระ ฿{paymentState.caseBase.toLocaleString()}</Link>
-                                        </Button>
+                                        <PayButton href={`/payment?chatId=${chatId}&type=case`} amount={paymentState.caseBase} part={partOf('case')} />
                                     </div>
                                 )}
                             </CardContent>

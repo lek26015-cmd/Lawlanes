@@ -561,7 +561,10 @@ export async function getLawyerFinancialsAction() {
                 id: d.id,
                 chatId: x.chatId || '',
                 caseTitle: x.caseTitle || '',
-                description: x.description || '',
+                // แบ่งจ่าย: บอกยอดเต็มของรายการ (สตางค์ → บาท)
+                description: x.partial && x.itemAmount
+                    ? `${x.description || ''} (แบ่งจ่าย จากยอด ฿${(x.itemAmount / 100).toLocaleString()})`
+                    : x.description || '',
                 grossAmount: x.grossAmount || 0,
                 gpPercent: x.gpPercent ?? 0,
                 gpAmount: x.gpAmount || 0,

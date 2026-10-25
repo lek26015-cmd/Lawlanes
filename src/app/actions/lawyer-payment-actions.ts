@@ -15,18 +15,23 @@ import {
     pickDue,
     postPaidEffects,
     readLawyerGpPercent,
+    reservePendingInTx,
     splitGp,
     type LawyerPaymentDue,
     type LawyerPaymentType,
 } from '@/lib/lawyer-payment-core';
+import { partialAmountError, round2 } from '@/lib/lawyer-payment-partial';
 
 /**
  * ลูกความจ่ายค่าทนายเข้าบัญชีระบบ (LAWSLANE-PLAN-10) — ดูภาพรวมที่ lib/lawyer-payment-core.ts
  *
  *   1. หน้า /payment แสดงยอดค้าง (อ่านจากเอกสารห้อง ไม่รับจาก URL) + บัญชีระบบ
- *   2. ลูกความโอน → แนบสลิป → payLawyerFeeAction
+ *   2. ลูกความกรอกยอดครั้งนี้ (แบ่งจ่ายได้ ขั้นต่ำ MIN_PARTIAL_PAYMENT ไม่เกินยอดคงเหลือ) → โอน → แนบสลิป → payLawyerFeeAction
+ *      ยอดสลิปต้องตรงกับยอดที่กรอก · จ่ายแต่ละครั้ง = lawyerPayments 1 เอกสาร (GP คิดต่อเอกสาร)
  *      - SlipOK ผ่าน (ตั๋วผลตรวจ + ยอดตรง + สลิปไม่ซ้ำ) → รายการเป็นจ่ายแล้วทันที
  *      - ไม่ผ่าน → lawyerPayments.status = 'pending_review' รอแอดมินตรวจที่ lawslane-admin /lawyer-payments
+ *        ยอดนี้ถูกกันไว้ในห้อง (partialPayments) ลูกความจ่ายส่วนที่เหลือต่อได้ แต่ยอดรวมเกินยอดรายการไม่ได้
+ *      - ยอดสะสมครบยอดรายการ → รายการเป็น "จ่ายแล้ว"
  *   3. ทนายไม่ต้องยืนยันรับเงินอีก — confirmDirectPaymentReceivedAction เหลือไว้เฉพาะรายการที่
  *      ลูกความแจ้งโอนตรงให้ทนายไว้ก่อนเปลี่ยนระบบ (เงินอาจอยู่ในบัญชีทนายแล้ว)
  */
@@ -87,6 +92,8 @@ export async function payLawyerFeeAction(input: {
     chatId: string;
     type: LawyerPaymentType;
     installmentIndex?: number;
+    /** ยอดที่จ่ายครั้งนี้ (บาท) */
+    amount: number;
     slipUrl: string;
     slipVerificationId?: string | null;
 }): Promise<Result<{ status: 'paid' | 'pending_review' }>> {
@@ -98,6 +105,9 @@ export async function payLawyerFeeAction(input: {
         const limit = await checkRateLimit(`lawyer-payment:${uid}`, 10, 60 * 60 * 1000);
         if (!limit.success) return { ok: false, error: 'ทำรายการถี่เกินไป กรุณาลองใหม่ภายหลัง' };
         if (!(await getPlatformPaymentAccountAction())) return { ok: false, error: 'ระบบชำระเงินยังไม่พร้อม กรุณาติดต่อทีมงาน' };
+
+        const payAmount = typeof input.amount === 'number' ? input.amount : NaN;
+        if (!Number.isFinite(payAmount) || payAmount <= 0) return { ok: false, error: 'กรุณากรอกยอดที่จะชำระ' };
 
         const db = adminApp.firestore();
         const m = typeof input.slipUrl === 'string' ? input.slipUrl.match(/^base64_slip_([A-Za-z0-9]+)$/) : null;
@@ -116,17 +126,18 @@ export async function payLawyerFeeAction(input: {
             if (!due || due.type !== input.type || (input.type === 'installment' && due.installmentIndex !== input.installmentIndex)) {
                 throw new LawyerPaymentRejected('ไม่พบรายการที่ต้องชำระ หรือรายการนี้ชำระแล้ว');
             }
-            if (due.pendingReview) throw new LawyerPaymentRejected('แนบสลิปรายการนี้แล้ว กำลังรอทีมงานตรวจ');
             if (due.amount <= 0) throw new LawyerPaymentRejected('รายการนี้ยังไม่มียอดค่าบริการ');
+            const amountError = partialAmountError(payAmount, due.remaining);
+            if (amountError) throw new LawyerPaymentRejected(amountError);
 
             const gpPercent = await readLawyerGpPercent(db, tx);
-            const slip = await readSlipVerificationInTx(tx, db, uid, input.slipVerificationId, due.amount);
+            const slip = await readSlipVerificationInTx(tx, db, uid, input.slipVerificationId, payAmount);
             const lawyerProfileId: string = chat.lawyerId || chat.lawyer_id || '';
             const lp = lawyerProfileId ? (await tx.get(db.collection('lawyerProfiles').doc(lawyerProfileId))).data() || {} : {};
 
             // ---- เขียน (อ่านครบแล้ว) ----
             slip.commit();
-            const grossAmount = bahtToSatang(due.amount);
+            const grossAmount = bahtToSatang(payAmount);
             const { gpAmount, netToLawyer } = splitGp(grossAmount, gpPercent);
             const ts = admin.firestore.FieldValue.serverTimestamp();
             const paid = slip.verified;
@@ -140,6 +151,10 @@ export async function payLawyerFeeAction(input: {
                 type: due.type,
                 installmentIndex: due.type === 'installment' ? due.installmentIndex : null,
                 description: due.description,
+                // แบ่งจ่าย: ยอดเต็มของรายการ · ยอดสะสมก่อนครั้งนี้ (ยืนยันแล้ว) — สตางค์
+                itemAmount: bahtToSatang(due.amount),
+                paidBefore: bahtToSatang(due.paidAmount),
+                partial: payAmount < due.amount,
                 grossAmount,
                 gpPercent,
                 gpAmount,
@@ -157,26 +172,22 @@ export async function payLawyerFeeAction(input: {
             });
 
             if (paid) {
-                const applied = applyPaidInTx(chat, due, { confirmedBy: 'slipok', confirmedByRole: 'platform', paymentId: paymentRef.id });
+                const applied = applyPaidInTx(chat, due, { confirmedBy: 'slipok', confirmedByRole: 'platform', paymentId: paymentRef.id }, payAmount);
                 tx.update(chatRef, applied.update);
-                return { chat, paid, amount: applied.amount, label: applied.label, firstPaid: applied.firstPaid };
+                return {
+                    chat, paid, amount: applied.amount, label: applied.label, firstPaid: applied.firstPaid,
+                    itemAmount: applied.itemAmount, remaining: applied.remaining,
+                };
             }
-            // จองรายการไว้ระหว่างรอตรวจ กันลูกความจ่ายซ้ำ
+            // กันยอดนี้ไว้ระหว่างรอตรวจ — ยอดรวมจะเกินยอดรายการไม่ได้
             const label = dueLabel(due.type, due.installmentIndex);
-            const update: Record<string, any> = {
+            tx.update(chatRef, {
+                ...reservePendingInTx(chat, due, paymentRef.id, payAmount),
                 updatedAt: ts,
                 lastMessageAt: ts,
-                lastMessage: `🧾 ลูกความแนบสลิป${label} ฿${due.amount.toLocaleString()} แล้ว — รอทีมงาน Lawslane ตรวจ`,
-            };
-            if (due.type === 'installment') {
-                const installments = [...chat.installments];
-                installments[due.installmentIndex!] = { ...installments[due.installmentIndex!], platformPaymentId: paymentRef.id };
-                update.installments = installments;
-            } else {
-                update.platformPaymentPending = { type: due.type, paymentId: paymentRef.id };
-            }
-            tx.update(chatRef, update);
-            return { chat, paid, amount: due.amount, label, firstPaid: false };
+                lastMessage: `🧾 ลูกความแนบสลิป${label} ฿${payAmount.toLocaleString()} แล้ว — รอทีมงาน Lawslane ตรวจ`,
+            });
+            return { chat, paid, amount: payAmount, label, firstPaid: false, itemAmount: due.amount, remaining: round2(due.remaining - payAmount) };
         });
 
         if (outcome.paid) {
@@ -190,7 +201,7 @@ export async function payLawyerFeeAction(input: {
                 senderName: 'ระบบแจ้งเตือน',
                 timestamp: ts,
                 type: 'payment_notice',
-                metadata: { amount: outcome.amount, paymentType: input.type, installmentIndex: input.installmentIndex ?? null, paymentId: paymentRef.id },
+                metadata: { amount: outcome.amount, itemAmount: outcome.itemAmount, paymentType: input.type, installmentIndex: input.installmentIndex ?? null, paymentId: paymentRef.id },
             }).catch(err => console.error('payment message failed:', err));
             await db.collection('notifications').add({
                 type: 'lawyer_payment',
@@ -235,7 +246,7 @@ export async function confirmDirectPaymentReceivedAction(input: {
             }
             const applied = applyPaidInTx(chat, due, { confirmedBy: uid, confirmedByRole: role });
             tx.update(chatRef, applied.update);
-            return { chat, amount: applied.amount, label: applied.label, firstPaid: applied.firstPaid };
+            return { chat, amount: applied.amount, label: applied.label, firstPaid: applied.firstPaid, itemAmount: applied.itemAmount };
         });
         await postPaidEffects(db, input.chatId, outcome, role);
         return { ok: true };

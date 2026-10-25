@@ -12,7 +12,9 @@ import { useFirebase } from '@/firebase';
 import { saveBase64SlipAction } from '@/app/actions/upload';
 import { getLawyerPaymentInfoAction, payLawyerFeeAction, type LawyerPaymentInfo } from '@/app/actions/lawyer-payment-actions';
 import type { LawyerPaymentType } from '@/lib/lawyer-payment-core';
+import { MIN_PARTIAL_PAYMENT, minPaymentFor, partialAmountError } from '@/lib/lawyer-payment-partial';
 import { SlipUpload, type SlipState } from '@/components/interpreter/slip-upload';
+import { Input } from '@/components/ui/input';
 import { compressImageToBase64 } from '@/lib/image-utils';
 import { cn } from '@/lib/utils';
 
@@ -21,6 +23,7 @@ import { cn } from '@/lib/utils';
  *
  * Lawslane รับเงินไว้ หัก GP ทนาย แล้วโอนยอดสุทธิให้ทนายหลังปิดเคส (ลูกความเห็นแค่ยอดเต็มที่ต้องจ่าย)
  * SlipOK ตรวจผ่าน = จ่ายแล้วทันที · ตรวจไม่ได้ = รอทีมงานตรวจสลิป
+ * แบ่งจ่ายได้: ลูกความกรอกยอดครั้งนี้ (ขั้นต่ำ ฿1,000 ไม่เกินยอดคงเหลือ) ยอดสลิปต้องตรงกับยอดที่กรอก
  *
  * คง path /payment ไว้เพราะลิงก์ในอีเมล/แจ้งเตือน/ข้อความแชทที่ส่งไปแล้วชี้มาที่นี่
  * (`?chatId=...&type=case|installment|additional|consultation`) ยอดทั้งหมดอ่านจาก server
@@ -50,6 +53,8 @@ function PaymentPageContent() {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [done, setDone] = useState<'paid' | 'pending_review' | null>(null);
     const [slip, setSlip] = useState<SlipState>({ file: null, verificationId: null, status: 'none' });
+    const [amountStr, setAmountStr] = useState('');
+    const [paidNow, setPaidNow] = useState<{ amount: number; remaining: number } | null>(null);
 
     useEffect(() => {
         if (!chatId) { setIsLoading(false); return; }
@@ -60,7 +65,10 @@ function PaymentPageContent() {
             setIsLoading(true);
             const res = await getLawyerPaymentInfoAction(chatId, { type: wantType, installmentIndex: wantIndex });
             if (cancelled) return;
-            if (res.ok) setInfo(res.data); else setLoadError(res.error);
+            if (res.ok) {
+                setInfo(res.data);
+                if (res.data.due) setAmountStr(String(res.data.due.remaining));
+            } else setLoadError(res.error);
             setIsLoading(false);
         })();
         return () => { cancelled = true; };
@@ -73,6 +81,12 @@ function PaymentPageContent() {
 
     const handlePay = async () => {
         if (!info?.due || !chatId || !slip.file) return;
+        const amount = Number(amountStr);
+        const amountError = partialAmountError(amount, info.due.remaining);
+        if (amountError) {
+            toast({ variant: 'destructive', title: 'ยอดชำระไม่ถูกต้อง', description: amountError });
+            return;
+        }
         setIsSubmitting(true);
         try {
             let slipUrl: string;
@@ -86,6 +100,7 @@ function PaymentPageContent() {
                 chatId,
                 type: info.due.type,
                 installmentIndex: info.due.installmentIndex,
+                amount,
                 slipUrl,
                 slipVerificationId: slip.verificationId,
             });
@@ -93,6 +108,7 @@ function PaymentPageContent() {
                 toast({ variant: 'destructive', title: 'ชำระเงินไม่สำเร็จ', description: res.error });
                 return;
             }
+            setPaidNow({ amount, remaining: Math.max(0, info.due.remaining - amount) });
             setDone(res.status);
         } finally {
             setIsSubmitting(false);
@@ -151,6 +167,11 @@ function PaymentPageContent() {
                                 ? 'ระบบตรวจสลิปผ่านแล้ว ทนายได้รับแจ้งว่าคุณชำระเรียบร้อย'
                                 : 'ทีมงาน Lawslane กำลังตรวจสลิป และจะแจ้งผลในห้องแชท'}
                         </p>
+                        {paidNow && paidNow.remaining > 0 && (
+                            <p className="text-slate-600 font-medium mt-3">
+                                ชำระครั้งนี้ ฿{paidNow.amount.toLocaleString()} · รายการนี้ยังเหลือ ฿{paidNow.remaining.toLocaleString()} ชำระต่อได้จากห้องแชท
+                            </p>
+                        )}
                     </div>
                     <Button asChild className="rounded-xl px-8 h-12 bg-[#0B3979] hover:bg-[#082a5a]">
                         <Link href={chatLink}>กลับไปยังห้องแชท</Link>
@@ -163,6 +184,9 @@ function PaymentPageContent() {
     const due = info.due;
     const isClient = info.role === 'client';
     const account = info.account;
+    const amountNum = Number(amountStr);
+    const amountError = due && amountStr !== '' ? partialAmountError(amountNum, due.remaining) : null;
+    const isPartial = !!due && due.remaining > 0 && amountNum > 0 && amountNum < due.remaining;
 
     return (
         <div className="grid lg:grid-cols-12 gap-8 items-start">
@@ -198,10 +222,10 @@ function PaymentPageContent() {
                                 <p className="text-slate-600">ชำระครบทุกรายการแล้ว หรือทนายยังไม่ได้เสนอค่าบริการ</p>
                                 <Button asChild variant="outline" className="rounded-xl"><Link href={chatLink}>กลับไปยังห้องแชท</Link></Button>
                             </div>
-                        ) : due.pendingReview ? (
+                        ) : due.remaining <= 0 ? (
                             <div className="flex gap-3 bg-blue-50 rounded-2xl p-4 border border-blue-200 text-blue-900 text-sm">
                                 <Clock className="w-5 h-5 shrink-0 mt-0.5" />
-                                <p>แนบสลิปรายการนี้แล้ว ทีมงาน Lawslane กำลังตรวจ และจะแจ้งผลในห้องแชท</p>
+                                <p>แนบสลิปครบยอดรายการนี้แล้ว ทีมงาน Lawslane กำลังตรวจ และจะแจ้งผลในห้องแชท</p>
                             </div>
                         ) : !account ? (
                             <div className="flex gap-3 bg-amber-50 rounded-2xl p-4 border border-amber-200 text-amber-900 text-sm">
@@ -210,9 +234,44 @@ function PaymentPageContent() {
                             </div>
                         ) : (
                             <>
+                                {isClient && (
+                                    <div className="space-y-3">
+                                        <h3 className="font-bold text-lg flex items-center gap-3 text-slate-800">
+                                            <span className="w-8 h-8 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-sm font-black">1</span>
+                                            ยอดที่จะชำระครั้งนี้
+                                        </h3>
+                                        <div className="relative">
+                                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-bold text-slate-400">฿</span>
+                                            <Input
+                                                type="number"
+                                                inputMode="decimal"
+                                                min={minPaymentFor(due.remaining)}
+                                                max={due.remaining}
+                                                step="0.01"
+                                                value={amountStr}
+                                                onChange={e => {
+                                                    setAmountStr(e.target.value);
+                                                    // ยอดเปลี่ยน = ต้องแนบสลิปใหม่ให้ตรงยอด
+                                                    setSlip({ file: null, verificationId: null, status: 'none' });
+                                                }}
+                                                className="h-14 pl-10 text-2xl font-black rounded-2xl"
+                                                aria-label="ยอดที่จะชำระครั้งนี้"
+                                            />
+                                        </div>
+                                        {amountError ? (
+                                            <p className="text-sm text-red-600">{amountError}</p>
+                                        ) : (
+                                            <p className="text-xs text-slate-500">
+                                                แบ่งชำระได้หลายครั้ง ครั้งละอย่างน้อย ฿{MIN_PARTIAL_PAYMENT.toLocaleString()} ไม่เกินยอดคงเหลือ ฿{due.remaining.toLocaleString()}
+                                                {due.remaining < MIN_PARTIAL_PAYMENT && ' (ยอดคงเหลือต่ำกว่าขั้นต่ำ ต้องชำระทั้งหมด)'}
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
+
                                 <div className="space-y-4">
                                     <h3 className="font-bold text-lg flex items-center gap-3 text-slate-800">
-                                        <span className="w-8 h-8 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-sm font-black">1</span>
+                                        <span className="w-8 h-8 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-sm font-black">{isClient ? 2 : 1}</span>
                                         โอนเข้าบัญชี Lawslane
                                     </h3>
                                     <div className="bg-slate-50 rounded-3xl p-6 border border-slate-200/60 space-y-4">
@@ -236,22 +295,24 @@ function PaymentPageContent() {
                                 {isClient && (
                                     <div className="space-y-4">
                                         <h3 className="font-bold text-lg flex items-center gap-3 text-slate-800">
-                                            <span className="w-8 h-8 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-sm font-black">2</span>
+                                            <span className="w-8 h-8 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center text-sm font-black">3</span>
                                             แนบสลิปการโอน
                                         </h3>
-                                        <SlipUpload expectedBaht={due.amount} value={slip} onChange={setSlip} />
+                                        <p className="text-sm text-slate-500">ยอดในสลิปต้องตรงกับยอดที่กรอกไว้ ฿{(amountNum || 0).toLocaleString()}</p>
+                                        {/* key: เปลี่ยนยอดแล้วล้างสลิปเดิม (ผลตรวจเทียบกับยอดเก่า) */}
+                                        <SlipUpload key={amountStr} expectedBaht={amountNum} value={slip} onChange={setSlip} />
                                     </div>
                                 )}
                             </>
                         )}
                     </CardContent>
-                    {due && !due.pendingReview && account && (
+                    {due && due.remaining > 0 && account && (
                         <CardFooter className="p-8 bg-slate-50 border-t border-slate-100 flex flex-col gap-3">
                             {isClient ? (
                                 <Button
                                     onClick={handlePay}
                                     className="w-full h-14 rounded-[1.5rem] text-lg font-black bg-[#0B3979] hover:bg-[#082a5a]"
-                                    disabled={isSubmitting || !slip.file || slip.status === 'checking' || slip.status === 'mismatch'}
+                                    disabled={isSubmitting || !!amountError || !(amountNum > 0) || !slip.file || slip.status === 'checking' || slip.status === 'mismatch'}
                                 >
                                     {isSubmitting ? <><Loader2 className="mr-3 animate-spin w-5 h-5" />กำลังส่ง...</> : 'ยืนยันการชำระเงิน'}
                                 </Button>
@@ -284,9 +345,25 @@ function PaymentPageContent() {
                             </div>
                         </div>
                         {due && (
-                            <div className="flex justify-between items-baseline pt-4 border-t border-slate-100">
-                                <span className="font-bold text-slate-400">ยอดที่ต้องโอน</span>
-                                <span className="text-3xl font-black tracking-tight text-slate-900">฿{due.amount.toLocaleString()}</span>
+                            <div className="pt-4 border-t border-slate-100 space-y-2 text-sm">
+                                {(due.paidAmount > 0 || due.pendingAmount > 0) && (
+                                    <>
+                                        <div className="flex justify-between"><span className="text-slate-500">ยอดรายการนี้</span><span className="font-bold">฿{due.amount.toLocaleString()}</span></div>
+                                        {due.paidAmount > 0 && (
+                                            <div className="flex justify-between text-emerald-700"><span>ชำระแล้ว</span><span className="font-bold">฿{due.paidAmount.toLocaleString()}</span></div>
+                                        )}
+                                        {due.pendingAmount > 0 && (
+                                            <div className="flex justify-between text-blue-700"><span>สลิปรอทีมงานตรวจ</span><span className="font-bold">฿{due.pendingAmount.toLocaleString()}</span></div>
+                                        )}
+                                        <div className="flex justify-between"><span className="text-slate-500">คงเหลือ</span><span className="font-bold">฿{due.remaining.toLocaleString()}</span></div>
+                                    </>
+                                )}
+                                <div className="flex justify-between items-baseline pt-2">
+                                    <span className="font-bold text-slate-400">{isPartial ? 'ยอดที่โอนครั้งนี้ (บางส่วน)' : 'ยอดที่ต้องโอน'}</span>
+                                    <span className="text-3xl font-black tracking-tight text-slate-900">
+                                        ฿{(isClient && amountNum > 0 ? amountNum : due.remaining).toLocaleString()}
+                                    </span>
+                                </div>
                             </div>
                         )}
                         {info.outstanding.length > 1 && (
@@ -301,8 +378,12 @@ function PaymentPageContent() {
                                             due && d.type === due.type && d.installmentIndex === due.installmentIndex && "bg-blue-50"
                                         )}
                                     >
-                                        <span className="truncate mr-2">{d.description}{d.pendingReview ? ' (รอตรวจสลิป)' : ''}</span>
-                                        <span className="font-bold whitespace-nowrap">฿{d.amount.toLocaleString()}</span>
+                                        <span className="truncate mr-2">
+                                            {d.description}
+                                            {d.paidAmount > 0 ? ` (ชำระแล้ว ฿${d.paidAmount.toLocaleString()})` : ''}
+                                            {d.pendingReview ? ' (รอตรวจสลิป)' : ''}
+                                        </span>
+                                        <span className="font-bold whitespace-nowrap">฿{d.remaining.toLocaleString()}</span>
                                     </Link>
                                 ))}
                             </div>
