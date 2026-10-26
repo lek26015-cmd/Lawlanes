@@ -271,7 +271,8 @@ export default function AiWorkspace({ audience = 'lawyer' }: { audience?: AiAudi
                     } else if (e.type === 'delta') {
                         patch(x => ({ ...x, content: x.content + e.text }));
                     } else if (e.type === 'done') {
-                        patch(x => ({ ...x, streaming: false }));
+                        // citation guard แก้คำตอบแล้ว — ใช้ฉบับที่ตรวจแล้วแทนข้อความที่สตรีมมา
+                        patch(x => ({ ...x, streaming: false, ...(e.content ? { content: e.content, unverified: e.unverified } : {}) }));
                         if (e.credits) setCredits(e.credits);
                         finished = true;
                     } else if (e.type === 'error') {
@@ -501,6 +502,12 @@ function ModelMessage({ m, open, onToggle, onCite }: { m: UiMessage; open: Set<n
                 ) : null}
                 {m.error && (
                     <p className="mt-2 flex items-center gap-2 text-sm text-red-600"><AlertTriangle className="w-4 h-4" />{m.error}</p>
+                )}
+                {!m.streaming && !!m.unverified && (
+                    <p className="mt-2 flex items-start gap-2 rounded-lg bg-amber-50 dark:bg-amber-500/10 px-3 py-2 text-[13px] text-amber-800 dark:text-amber-300">
+                        <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+                        มี {m.unverified} จุดที่เลขมาตรา เลขฎีกา หรือตัวเลขทางกฎหมายไม่ตรงกับตัวบทที่ค้นได้ ระบบจึงซ่อนตัวเลขนั้นไว้ ควรตรวจกับตัวบทฉบับปัจจุบันก่อนใช้
+                    </p>
                 )}
                 {!m.streaming && m.citations && (
                     <CitationList messageId={m.id} citations={m.citations} referenced={referenced} open={open} onToggle={onToggle} />

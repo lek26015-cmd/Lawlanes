@@ -45,6 +45,8 @@ export type AiMessage = {
     content: string;
     mode: AiMode;
     citations?: AiCitation[];
+    /** จำนวนตัวเลขที่ citation guard แทนด้วยป้าย เพราะไม่พบในแหล่งอ้างอิง */
+    unverified?: number;
     /** เก็บแค่ชื่อไฟล์ไว้แสดง — ข้อความเต็มอยู่ใน doc ของ message ฝั่ง server */
     attachments?: { name: string; mimeType: string }[];
     createdAt: number;
@@ -74,5 +76,6 @@ export type AiStreamEvent =
     | { type: 'thread'; threadId: string; title: string }
     | { type: 'citations'; citations: AiCitation[] }
     | { type: 'delta'; text: string }
-    | { type: 'done'; messageId: string; credits?: AiCreditStatus }
+    /** content มีเมื่อ citation guard แก้คำตอบ — ใช้แทนข้อความที่สตรีมมา */
+    | { type: 'done'; messageId: string; credits?: AiCreditStatus; content?: string; unverified?: number }
     | { type: 'error'; code: 'unauthenticated' | 'not-lawyer' | 'upgrade-required' | 'rate-limited' | 'insufficient-credits' | 'bad-request' | 'error'; message?: string };

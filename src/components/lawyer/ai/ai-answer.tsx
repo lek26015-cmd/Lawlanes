@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Check, Copy, Download, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { UNVERIFIED_PATTERN } from '@/lib/lawyer-ai/citation-guard';
 
 const DOC_START = '---เอกสาร---';
 const DOC_END = '---จบเอกสาร---';
@@ -25,8 +26,10 @@ export function referencedNumbers(content: string): Set<number> {
 }
 
 function Markdown({ text, onCite }: { text: string; onCite: (n: number) => void }) {
-    // [n] → ลิงก์ #cite-n แล้วให้ตัว render `a` เปลี่ยนเป็นปุ่มเลขอ้างอิง
-    const linked = useMemo(() => text.replace(/\[(\d{1,2})\](?!\()/g, '[$1](#cite-$1)'), [text]);
+    // [n] → ลิงก์ #cite-n แล้วให้ตัว render `a` เปลี่ยนเป็นปุ่มเลขอ้างอิง · ป้ายของ citation guard → #unverified
+    const linked = useMemo(() => text
+        .replace(/\[(\d{1,2})\](?!\()/g, '[$1](#cite-$1)')
+        .replace(UNVERIFIED_PATTERN, '[$1](#unverified)'), [text]);
     return (
         <ReactMarkdown
             components={{
@@ -41,6 +44,16 @@ function Markdown({ text, onCite }: { text: string; onCite: (n: number) => void 
                             >
                                 {m[1]}
                             </button>
+                        );
+                    }
+                    if (href === '#unverified') {
+                        return (
+                            <span
+                                title="ไม่พบตัวเลขนี้ในตัวบทที่ค้นได้ ระบบจึงซ่อนไว้"
+                                className="mx-0.5 inline-flex items-center h-5 px-1.5 align-text-top rounded bg-amber-100 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300 text-[11px] font-semibold"
+                            >
+                                {children}
+                            </span>
                         );
                     }
                     return <a href={href} target="_blank" rel="noopener noreferrer" className="text-blue-600 underline">{children}</a>;

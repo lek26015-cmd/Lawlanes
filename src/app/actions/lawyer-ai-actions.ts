@@ -74,6 +74,7 @@ export async function getAiThreadAction(rawAudience: AiAudience, threadId: strin
             content: String(m.content || ''),
             mode: m.mode || 'ask',
             citations: Array.isArray(m.citations) ? m.citations : undefined,
+            ...(Number(m.unverified) > 0 ? { unverified: Number(m.unverified) } : {}),
             // ข้อความเต็มของไฟล์ไม่ต้องส่งกลับไปที่ browser
             attachments: Array.isArray(m.attachments)
                 ? m.attachments.map((a: AiAttachment) => ({ name: a.name, mimeType: a.mimeType }))
