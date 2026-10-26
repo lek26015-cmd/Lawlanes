@@ -7,6 +7,7 @@ import { retrievalQuery, systemPrompt } from '@/lib/lawyer-ai/prompts';
 import { consumeCredits, refundCredits } from '@/lib/lawyer-ai/credits';
 import { AI_CREDIT_COST } from '@/lib/lawyer-entitlements';
 import { AI_MODEL_ATTEMPTS, isRetryableAiError } from '@/lib/lawyer-ai/models';
+import { guardAnswer, UNVERIFIED_LABEL, UNVERIFIED_LABEL_LAWYER } from '@/lib/lawyer-ai/citation-guard';
 import {
     ATTACHMENT_MAX_CHARS,
     MESSAGE_MAX_CHARS,
@@ -115,10 +116,18 @@ export async function POST(req: Request) {
     ]);
 
     const history: Content[] = [];
+    // ให้ citation guard รู้ว่าเลขไหนเคยเห็นมาแล้ว: ตัวบทของรอบก่อน ๆ + ข้อความผู้ใช้ทั้งเธรด
+    // (ไม่นับคำตอบเก่าของ AI เอง — ถ้ารอบก่อนแต่งเลขมา จะกลายเป็นแหล่งอ้างอิงของรอบนี้)
+    const priorSources: string[] = [];
+    const priorUserTexts: string[] = [];
     let budget = HISTORY_ATTACHMENT_BUDGET;
     for (const d of [...(historySnap?.docs ?? [])].reverse()) {
         const m = d.data();
         let text = String(m.content || '');
+        if (m.role === 'model' && Array.isArray(m.citations)) {
+            for (const c of m.citations as AiCitation[]) priorSources.push(`${c.title}\n${c.content}`);
+        }
+        if (m.role === 'user') priorUserTexts.push(text, ...(Array.isArray(m.attachments) ? (m.attachments as AiAttachment[]).map(a => a.text) : []));
         if (m.role === 'user' && Array.isArray(m.attachments)) {
             // ไฟล์ที่แนบไว้ในข้อความก่อน ๆ ยังต้องอยู่ในบริบท (เช่น "ข้อ 5 ในสัญญานี้แก้ยังไง")
             const kept = (m.attachments as AiAttachment[]).filter(a => {
@@ -192,11 +201,24 @@ export async function POST(req: Request) {
                 }
                 if (!answer.trim()) throw lastError ?? new Error('empty answer');
 
+                // เลขมาตรา/ฎีกา/โทษ/ระยะเวลาที่ไม่มีในตัวบทที่ค้นได้หรือที่ผู้ใช้ให้มา → แทนด้วยป้าย (prompt ห้ามไว้แล้ว นี่คือด่านที่ไม่พึ่งโมเดล)
+                // ผู้ใช้เห็นข้อความดิบระหว่างสตรีม แล้ว 'done' ส่งฉบับที่ตรวจแล้วมาแทน
+                const guarded = guardAnswer(answer, {
+                    sources: [...priorSources, ...citations.map(c => `${c.title}\n${c.content}`)],
+                    userTexts: [...priorUserTexts, message, ...attachments.map(a => a.text), caseContext || ''],
+                }, audience === 'lawyer' ? UNVERIFIED_LABEL_LAWYER : UNVERIFIED_LABEL);
+                if (guarded.replaced > 0) console.warn(`[lawyer-ai] citation guard replaced ${guarded.replaced} unverified number(s)`, { mode, threadId: threadRef.id });
+
                 const saved = await threadRef.collection('messages').add({
-                    role: 'model', content: answer, mode, citations: JSON.parse(JSON.stringify(citations)), createdAt: Date.now(),
+                    role: 'model', content: guarded.text, mode, citations: JSON.parse(JSON.stringify(citations)),
+                    ...(guarded.replaced > 0 ? { unverified: guarded.replaced } : {}),
+                    createdAt: Date.now(),
                 });
                 await threadRef.update({ updatedAt: Date.now() });
-                send({ type: 'done', messageId: saved.id, credits: credit.status });
+                send({
+                    type: 'done', messageId: saved.id, credits: credit.status,
+                    ...(guarded.replaced > 0 ? { content: guarded.text, unverified: guarded.replaced } : {}),
+                });
             } catch (e) {
                 console.error('[lawyer-ai] chat failed:', e instanceof Error ? e.message : e);
                 await refundCredits(db, account, credit.charge, 'chat-failed', { mode, threadId: threadRef.id });
