@@ -251,6 +251,8 @@ export default function AccountPage() {
 
       const updateData: any = {
         name: profileData.name,
+        // หลังบ้านค้นชื่อด้วย nameLower — ต้องตามชื่อเสมอ
+        nameLower: (profileData.name || '').trim().toLowerCase(),
         updatedAt: new Date()
       };
       if (newPhotoURL) updateData.avatar = newPhotoURL;
@@ -258,11 +260,14 @@ export default function AccountPage() {
       if (userDoc.exists()) {
         await updateDoc(userDocRef, updateData);
       } else {
+        const now = new Date();
         await setDoc(userDocRef, {
           ...updateData,
           email: user.email,
           role: 'customer',
-          createdAt: new Date(),
+          createdAt: now,
+          // หลังบ้าน /customers เรียงตาม registeredAt — ไม่มีฟิลด์นี้บัญชีจะไม่ขึ้นในรายการ
+          registeredAt: now,
         });
       }
 

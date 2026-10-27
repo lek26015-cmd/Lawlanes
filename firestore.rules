@@ -37,8 +37,8 @@ service cloud.firestore {
       //   create — signup-content / login-content (Google) / lawyer-signup / for-lawyers /
       //            account (กรณีไม่มีเอกสาร) / chat/[id] (auto-repair) / education signup+login:
       //            uid name email phone role type status avatar termsAccepted termsAcceptedAt
-      //            registeredAt createdAt updatedAt
-      //   update — account: name avatar updatedAt | client-provider heartbeat: lastActive
+      //            registeredAt createdAt updatedAt nameLower
+      //   update — account: name nameLower avatar updatedAt | client-provider heartbeat: lastActive
       //            capdeal login: avatar updatedAt | chat auto-repair (merge): uid name email
       //            role status createdAt (ค่าเดิม → ไม่นับเป็นการเปลี่ยน ยกเว้น createdAt)
       //            business settings/profile: companyName taxId address phone website updatedAt
@@ -56,13 +56,15 @@ service cloud.firestore {
       function ownerCreatableUserFields() {
         return [
           'uid', 'name', 'email', 'phone', 'role', 'type', 'status', 'avatar',
-          'termsAccepted', 'termsAcceptedAt', 'registeredAt', 'createdAt', 'updatedAt'
+          'termsAccepted', 'termsAcceptedAt', 'registeredAt', 'createdAt', 'updatedAt',
+          // คีย์ค้นหาในหลังบ้าน /customers, /lawyers (= name ตัวพิมพ์เล็ก) ไม่ใช่สิทธิ์
+          'nameLower'
         ];
       }
 
       function ownerUpdatableUserFields() {
         return [
-          'name', 'avatar', 'phone', 'updatedAt', 'lastActive', 'createdAt',
+          'name', 'nameLower', 'avatar', 'phone', 'updatedAt', 'lastActive', 'createdAt',
           // B2B (lawslane-business settings/profile, business-landing subscribe)
           'companyName', 'companyBranch', 'companyAddress', 'taxId', 'address', 'website',
           'plan', 'billingCycle', 'subscriptionStatus', 'paymentMethod'

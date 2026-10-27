@@ -95,9 +95,13 @@ function SignupPageContent() {
             const userProfileData = {
                 uid: user.uid,
                 name: values.name,
+                // หลังบ้าน /customers ค้นด้วย nameLower และเรียงตาม registeredAt — ขาดฟิลด์ไหน
+                // บัญชีจะไม่ขึ้นในรายการ (ดู newCustomerProfile ใน api/auth/line/route.ts)
+                nameLower: (values.name || '').trim().toLowerCase(),
                 email: values.email,
                 role: 'customer',
                 status: 'active',
+                registeredAt: serverTimestamp(),
                 termsAccepted: true,
                 termsAcceptedAt: serverTimestamp(),
             };
@@ -166,9 +170,11 @@ function SignupPageContent() {
                 const userProfileData = {
                     uid: user.uid,
                     name: user.displayName,
+                    nameLower: (user.displayName || '').trim().toLowerCase(),
                     email: user.email,
                     role: 'customer',
                     status: 'active',
+                    registeredAt: serverTimestamp(),
                 };
                 setDoc(userRef, userProfileData)
                     .catch(error => {

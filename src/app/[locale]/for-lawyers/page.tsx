@@ -301,6 +301,7 @@ export default function ForLawyersPage() {
       const userProfileData = {
         uid: user.uid,
         name: values.name,
+        nameLower: (values.name || '').trim().toLowerCase(),
         email: values.email,
         phone: values.phone,
         role: 'lawyer',

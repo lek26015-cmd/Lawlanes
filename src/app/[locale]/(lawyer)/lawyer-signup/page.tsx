@@ -178,6 +178,7 @@ export default function LawyerExpressSignupPage() {
             const userProfileData = {
                 uid: user.uid,
                 name: values.name,
+                nameLower: (values.name || '').trim().toLowerCase(),
                 email: values.email,
                 role: 'lawyer',
                 type: 'บุคคลทั่วไป',
