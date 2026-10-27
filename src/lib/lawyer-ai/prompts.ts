@@ -55,19 +55,29 @@ const MODE: Record<AiMode, string> = {
 ถ้าไม่มีตัวสัญญาให้ตรวจ ให้ขอให้ทนายแนบไฟล์หรือวางข้อความสัญญา`,
 };
 
-export function systemPrompt(audience: AiAudience, mode: AiMode, caseContext: string | null, citations: AiCitation[]): string {
+/**
+ * system prompt ต้องเหมือนเดิมทุกรอบในเธรดเดียวกัน — Gemini คิดราคาถูกลงกับส่วนต้นที่ซ้ำกับครั้งก่อน (implicit caching)
+ * ของที่เปลี่ยนทุกรอบ (แหล่งอ้างอิง) จึงอยู่ใน citationsBlock() ที่แนบท้ายข้อความผู้ใช้รอบล่าสุดแทน
+ */
+export function systemPrompt(audience: AiAudience, mode: AiMode, caseContext: string | null): string {
     const parts = audience === 'lawyer' ? [BASE, '', MODE[mode]] : [CUSTOMER_BASE, '', CUSTOMER_MODE[mode]];
     if (caseContext) {
         parts.push('', '=== ข้อมูลคดี (จากระบบจัดการคดีของทนาย) ===', caseContext, '=== จบข้อมูลคดี ===');
     }
+    return parts.join('\n');
+}
+
+/** แหล่งอ้างอิงของคำถามรอบนี้ — วางไว้หน้าคำถามล่าสุด (เลข [n] ใช้ได้เฉพาะรอบนี้) */
+export function citationsBlock(citations: AiCitation[]): string {
+    const parts: string[] = [];
     if (citations.length > 0) {
-        parts.push('', '=== แหล่งอ้างอิง (ตัวบท/ฎีกาที่ค้นได้จากฐานข้อมูล) ===');
+        parts.push('=== แหล่งอ้างอิง (ตัวบท/ฎีกาที่ค้นได้จากฐานข้อมูล) ===');
         for (const c of citations) {
             parts.push(`[${c.n}] ${c.title}${c.year ? ` (พ.ศ. ${c.year + 543})` : ''}\n${c.content.slice(0, 2500)}`);
         }
         parts.push('=== จบแหล่งอ้างอิง ===');
     } else {
-        parts.push('', '(ไม่พบแหล่งอ้างอิงจากฐานข้อมูลสำหรับคำถามนี้ — อย่าใส่เลขกำกับ [n])');
+        parts.push('(ไม่พบแหล่งอ้างอิงจากฐานข้อมูลสำหรับคำถามนี้ — อย่าใส่เลขกำกับ [n])');
     }
     return parts.join('\n');
 }

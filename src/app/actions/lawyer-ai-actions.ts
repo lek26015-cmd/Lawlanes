@@ -7,6 +7,7 @@ import { getAiAccess, parseAudience } from '@/lib/lawyer-ai/access';
 import { consumeCredits, getCreditStatus, refundCredits, type CreditCharge } from '@/lib/lawyer-ai/credits';
 import { AI_CREDIT_COST, type AiCreditStatus } from '@/lib/lawyer-entitlements';
 import { AI_MODEL_ATTEMPTS, isRetryableAiError } from '@/lib/lawyer-ai/models';
+import { logAiUsage } from '@/lib/lawyer-ai/usage';
 import {
     ATTACHMENT_MAX_BYTES,
     ATTACHMENT_MAX_CHARS,
@@ -145,7 +146,9 @@ export async function readAttachmentAction(rawAudience: AiAudience, formData: Fo
             for (const [i, modelName] of AI_MODEL_ATTEMPTS.entries()) {
                 try {
                     if (i > 0) await new Promise(r => setTimeout(r, 1200));
-                    text = (await genAI.getGenerativeModel({ model: modelName }).generateContent(parts)).response.text();
+                    const { response } = await genAI.getGenerativeModel({ model: modelName }).generateContent(parts);
+                    text = response.text();
+                    await logAiUsage(db, { audience, uid, kind: 'attachment', model: modelName }, response.usageMetadata);
                     break;
                 } catch (e) {
                     if (i === AI_MODEL_ATTEMPTS.length - 1 || !isRetryableAiError(e)) throw e;
