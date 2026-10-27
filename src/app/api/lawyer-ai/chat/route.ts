@@ -3,10 +3,11 @@ import { getAiAccess, parseAudience } from '@/lib/lawyer-ai/access';
 import { limitUserAction } from '@/lib/security/action-rate-limit';
 import { buildCaseContext, getOwnedCase } from '@/lib/lawyer-ai/case-context';
 import { findLawSources } from '@/lib/lawyer-ai/sources';
-import { retrievalQuery, systemPrompt } from '@/lib/lawyer-ai/prompts';
+import { citationsBlock, retrievalQuery, systemPrompt } from '@/lib/lawyer-ai/prompts';
 import { consumeCredits, refundCredits } from '@/lib/lawyer-ai/credits';
 import { AI_CREDIT_COST } from '@/lib/lawyer-entitlements';
 import { AI_MODEL_ATTEMPTS, isRetryableAiError } from '@/lib/lawyer-ai/models';
+import { logAiUsage } from '@/lib/lawyer-ai/usage';
 import {
     ATTACHMENT_MAX_CHARS,
     MESSAGE_MAX_CHARS,
@@ -164,8 +165,10 @@ export async function POST(req: Request) {
                 });
 
                 const genAI = new GoogleGenerativeAI(apiKey);
-                const systemInstruction = systemPrompt(audience, mode, caseContext, citations);
-                const contents = [...history, { role: 'user', parts: [{ text: withAttachments(message || 'ช่วยดูเอกสารที่แนบ', attachments) }] }];
+                const systemInstruction = systemPrompt(audience, mode, caseContext);
+                // แหล่งอ้างอิงอยู่ท้ายสุด (ไม่ใช่ใน system prompt) ส่วนต้นที่ซ้ำกับรอบก่อนจึงได้ราคาแคชของ Gemini
+                const latest = `${citationsBlock(citations)}\n\n${withAttachments(message || 'ช่วยดูเอกสารที่แนบ', attachments)}`;
+                const contents = [...history, { role: 'user', parts: [{ text: latest }] }];
 
                 // Gemini ตอบ 503 "high demand" เป็นช่วง ๆ — ถ้ายังไม่ได้ส่งข้อความสักตัว ลองใหม่/สลับรุ่นสำรองได้
                 // ส่งไปบางส่วนแล้วห้ามลองใหม่ (ผู้ใช้จะเห็นคำตอบซ้ำซ้อน) ให้ถือว่าล้มแล้วคืนเครดิต
@@ -183,6 +186,9 @@ export async function POST(req: Request) {
                                 send({ type: 'delta', text });
                             }
                         }
+                        // ตอบครบแล้ว — ห้ามให้การบันทึกตัวเลขทำให้ถือว่าล้ม (จะคืนเครดิตทั้งที่ผู้ใช้ได้คำตอบไปแล้ว)
+                        const usage = await result.response.then(r => r.usageMetadata, () => undefined);
+                        await logAiUsage(db, { audience, uid, kind: 'chat', mode, model: modelName }, usage);
                         break;
                     } catch (e) {
                         lastError = e;
