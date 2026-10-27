@@ -69,6 +69,58 @@ function legitParticipants(party: ChatParty): string[] {
     return [...out];
 }
 
+/** ข้อความถี่ๆ ในห้องเดียวกันแจ้งครั้งเดียว — กันสแปมและโควตา push ของ LINE OA ลลิน */
+const OWNER_ALERT_COOLDOWN_MS = 5 * 60 * 1000;
+
+/**
+ * แจ้งเจ้าของระบบผ่าน LINE ลลินว่าลูกความส่งข้อความหาทนาย
+ * ส่งแค่ชื่อลูกความ/ทนาย + ลิงก์ห้องในหลังบ้าน — ไม่ส่งเนื้อข้อความหรือชื่อเคส
+ * (แชทเป็น E2EE และ caseTitle มีข้อความแรกของลูกความปนอยู่)
+ * ห้ามทำให้การส่งข้อความล้ม — error ทุกอย่างกลืนไว้ที่นี่
+ */
+async function alertOwnerOfClientMessage(
+    db: FirebaseFirestore.Firestore,
+    p: {
+        chatId: string;
+        chatData: FirebaseFirestore.DocumentData;
+        lawyerProfileId: string;
+        lawyerName?: string;
+        clientName: string;
+        kind: 'new_case' | 'message' | 'file';
+    }
+) {
+    try {
+        if (!process.env.LALIN_LINE_CHANNEL_ACCESS_TOKEN || !process.env.LALIN_OWNER_LINE_ID) return;
+
+        const lastAlertAt: number = p.chatData.ownerLalinAlertAt?.toMillis?.() ?? 0;
+        if (Date.now() - lastAlertAt < OWNER_ALERT_COOLDOWN_MS) return;
+
+        let lawyerName = p.lawyerName;
+        if (!lawyerName && p.lawyerProfileId) {
+            const lp = await db.collection('lawyerProfiles').doc(p.lawyerProfileId).get();
+            lawyerName = lp.data()?.name;
+        }
+
+        const heading = p.kind === 'new_case' ? '🆕 ลูกความเปิดห้องปรึกษาใหม่'
+            : p.kind === 'file' ? '📎 ลูกความส่งไฟล์หาทนาย'
+            : '💬 ลูกความส่งข้อความหาทนาย';
+        const text = [
+            heading,
+            `ลูกความ: ${p.clientName || 'ลูกความ'}`,
+            `ทนาย: ${lawyerName || 'ทนายความ'}`,
+            `https://admin.lawslane.com/chats/${p.chatId}`,
+        ].join('\n');
+
+        const { notifyOwnerViaLalin } = await import('@/lib/notify-owner-lalin');
+        await notifyOwnerViaLalin(text);
+        await db.collection('chats').doc(p.chatId).update({
+            ownerLalinAlertAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+    } catch (err) {
+        console.error('[alertOwnerOfClientMessage] skipped:', err);
+    }
+}
+
 /** เติม participants ที่ขาด — เฉพาะ uid ที่มาจาก legitParticipants() ไม่เคยรับจากผู้เรียก */
 async function repairParticipants(db: FirebaseFirestore.Firestore, chatId: string, party: ChatParty) {
     if (party.role === 'legacy') return false;
@@ -397,6 +449,17 @@ export async function sendChatMessageAction(params: {
         }
 
         await batch.commit();
+
+        // 4.6 แจ้งเจ้าของระบบผ่าน LINE ลลิน ทุกครั้งที่ลูกความส่งข้อความหาทนาย
+        if (party.role === 'client') {
+            await alertOwnerOfClientMessage(db, {
+                chatId,
+                chatData,
+                lawyerProfileId,
+                clientName: senderName,
+                kind: metadata?.type === 'file_upload' ? 'file' : 'message',
+            });
+        }
 
         // 5. Trigger Real-time Notification (Email/Push)
         // Background process: we want to start this but not let it block the core success if it's slow
@@ -824,6 +887,15 @@ export async function startConsultationAction(params: {
         }
 
         await batch.commit();
+
+        await alertOwnerOfClientMessage(db, {
+            chatId,
+            chatData: {},
+            lawyerProfileId: lawyerId,
+            lawyerName,
+            clientName,
+            kind: 'new_case',
+        });
 
         // Send Email Notification via Server
         if (lawyerEmail) {
