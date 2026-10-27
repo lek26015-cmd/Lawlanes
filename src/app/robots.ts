@@ -5,7 +5,7 @@ import { MetadataRoute } from 'next'
 // ไฟล์นี้ชนะ public/robots.txt จึงลบไฟล์นั้นทิ้ง ให้เหลือที่เดียว
 const PRIVATE_PATHS = [
   'admin', 'dashboard', 'account', 'chat', 'interpreter-chat', 'interpreter-dashboard',
-  'dev', 'payment', 'vault', 'appointment', 'review', 'contract', 'support',
+  'dev', 'payment', 'vault', 'appointment', 'review', 'contract', 'power-of-attorney', 'support',
   'lawyer-dashboard', 'lawyer-login', 'lawyer-signup', 'lawyer-schedule',
   'login', 'signup', 'reset-password', 'registration-success', 'interpreter-payment',
 ]

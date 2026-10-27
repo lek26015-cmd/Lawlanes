@@ -23,6 +23,7 @@ import { getSecureDownloadUrl } from '@/app/actions/secure-view';
 import { LegalResearchTool } from '@/components/case/legal-research-tool';
 import { getInvoicesByChatAction, getContractsByChatAction, signContractAction } from '@/app/actions/billing-actions';
 import { SignaturePad } from '@/components/ui/signature-pad';
+import { PowerOfAttorneyCard } from '@/components/chat/power-of-attorney-card';
 import { repairChatDocumentsAction } from '@/app/actions/lawyer-actions';
 import { Invoice } from '@/lib/types/billing-types';
 import { FileSignature, ReceiptText } from 'lucide-react';
@@ -985,6 +986,7 @@ function ChatPageContent() {
                                                     </button>
                                                 </div>
                                             )}
+                                            <PowerOfAttorneyCard chatId={chatId} />
                                         </div>
                                     </CardContent>
                             <CardFooter className="flex-col gap-2 pt-2">
@@ -1118,6 +1120,7 @@ function ChatPageContent() {
                                                 </button>
                                             </div>
                                         )}
+                                        <PowerOfAttorneyCard chatId={chatId} compact />
                                     </div>
                                     {isOfficial && (
                                         <CardFooter className="pt-2">
