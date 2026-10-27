@@ -134,15 +134,22 @@ export async function getChatDetailsAction(chatId: string) {
                         clientName = userRecord.displayName;
                         // Auto-repair the Firestore doc if it exists but has a generic name
                         if (userDoc.exists) {
-                            await db.collection('users').doc(clientId).update({ name: clientName });
+                            await db.collection('users').doc(clientId).update({
+                                name: clientName,
+                                nameLower: clientName.trim().toLowerCase(),
+                            });
                         } else {
+                            // หลังบ้าน /customers ค้นด้วย nameLower และเรียงตาม registeredAt
+                            const now = admin.firestore.FieldValue.serverTimestamp();
                             await db.collection('users').doc(clientId).set({
                                 uid: clientId,
                                 name: clientName,
+                                nameLower: clientName.trim().toLowerCase(),
                                 email: userRecord.email,
                                 role: 'customer',
                                 status: 'active',
-                                createdAt: admin.firestore.FieldValue.serverTimestamp()
+                                createdAt: now,
+                                registeredAt: now,
                             });
                         }
                     }

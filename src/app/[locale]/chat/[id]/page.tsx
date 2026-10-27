@@ -476,11 +476,14 @@ function ChatPageContent() {
                     let resolvedName = 'ลูกความ';
                     let resolvedAvatar = '';
                     let resolvedEmail = '';
+                    // true เฉพาะเมื่ออ่านได้และไม่มีเอกสารจริง — อ่านไม่ได้ (rules) ถือว่าไม่รู้
+                    let profileMissing = false;
 
                     try {
                         const clientRef = doc(firestore!, 'users', currentClientId);
                         const userDocSnap = await getDoc(clientRef);
-                        
+                        profileMissing = !userDocSnap.exists();
+
                         if (userDocSnap.exists()) {
                             const userData = userDocSnap.data();
                             resolvedName = userData.name || 'ลูกความ';
@@ -510,10 +513,14 @@ function ChatPageContent() {
                             setDoc(clientRef, {
                                 uid: user.uid,
                                 name: resolvedName,
+                                nameLower: resolvedName.trim().toLowerCase(),
                                 email: user.email,
                                 role: 'customer',
                                 status: 'active',
-                                createdAt: serverTimestamp()
+                                createdAt: serverTimestamp(),
+                                // registeredAt เขียนได้ตอนสร้างเท่านั้น (rules) — ใส่เฉพาะตอนไม่มีเอกสาร
+                                // ไม่งั้น merge ทับเอกสารเดิมจะโดนปฏิเสธทั้งก้อน
+                                ...(profileMissing ? { registeredAt: serverTimestamp() } : {}),
                             }, { merge: true }).catch(e => console.error("Auto-repair profile failed:", e));
                         });
                     }
