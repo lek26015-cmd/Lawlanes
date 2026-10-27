@@ -2128,5 +2128,17 @@
     "faq4A": "Name registration only lets clients confirm that you are a licensed lawyer. Joining Lawslane as a lawyer gives you a profile page, consultation bookings, client chat and fee collection through the platform.",
     "faq5Q": "How do I correct or remove my name?",
     "faq5A": "Contact the team through the Lawslane help page with your name and license number."
+  },
+  "PhonePrompt": {
+    "title": "Add your phone number",
+    "description": "Add a phone number so lawyers and the Lawslane team can reach you about your case and appointments.",
+    "label": "Mobile number",
+    "invalid": "Please enter a 10-digit mobile number starting with 0",
+    "later": "Later",
+    "save": "Save",
+    "savedTitle": "Phone number saved",
+    "savedDesc": "You can change it later on your account page.",
+    "failedTitle": "Could not save",
+    "failedDesc": "Please try again."
   }
 }
