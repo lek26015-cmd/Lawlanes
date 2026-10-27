@@ -86,6 +86,7 @@ export default function AccountPage() {
     name: '',
     email: '',
     photoURL: '',
+    phone: '',
   });
 
   const [passwords, setPasswords] = useState({
@@ -131,12 +132,14 @@ export default function AccountPage() {
             name: data.name || user.displayName || '',
             email: user.email || '',
             photoURL: data.avatar || user.photoURL || '',
+            phone: data.phone || '',
           });
         } else {
           setProfileData({
             name: user.displayName || '',
             email: user.email || '',
             photoURL: user.photoURL || '',
+            phone: '',
           });
         }
 
@@ -256,6 +259,8 @@ export default function AccountPage() {
         updatedAt: new Date()
       };
       if (newPhotoURL) updateData.avatar = newPhotoURL;
+      // ทนายแก้เบอร์ในส่วน "ข้อมูลทนาย" (lawyerProfiles) — ลูกค้าเก็บที่ users.phone
+      if (!isLawyer) updateData.phone = profileData.phone;
 
       if (userDoc.exists()) {
         await updateDoc(userDocRef, updateData);
@@ -460,6 +465,21 @@ export default function AccountPage() {
                   <Label htmlFor="email">{t('email')}</Label>
                   <Input id="email" type="email" value={profileData.email} disabled className="rounded-full px-4" />
                 </div>
+                {!isLawyer && (
+                  <div className="space-y-2">
+                    <Label htmlFor="customer-phone">{t('phone')}</Label>
+                    <Input
+                      id="customer-phone"
+                      type="tel"
+                      inputMode="numeric"
+                      value={profileData.phone}
+                      onChange={(e) => setProfileData({ ...profileData, phone: formatPhoneNumber(e.target.value) })}
+                      disabled={!isEditingProfile || isSaving}
+                      maxLength={12}
+                      className="rounded-full px-4"
+                    />
+                  </div>
+                )}
               </div>
 
               {isLawyer && (

@@ -11,6 +11,7 @@ import { useUser as useAuthUser, useFirebase } from '@/firebase';
 // Both only ever render after client mount (see isMounted below), so there's
 // no SSR benefit to bundling them into every page's initial JS.
 const CookieBanner = dynamic(() => import('@/components/cookie-banner'), { ssr: false });
+const PhonePromptDialog = dynamic(() => import('@/components/auth/phone-prompt-dialog').then((m) => m.PhonePromptDialog), { ssr: false });
 import { doc, getDoc } from 'firebase/firestore';
 
 export default function ClientLayout({
@@ -81,6 +82,7 @@ export default function ClientLayout({
       {isMounted && !isDashboardPage && !isChatPage && <FloatingChatButton />}
 
       {isMounted && <CookieBanner />}
+      {isMounted && <PhonePromptDialog />}
     </>
   );
 }
