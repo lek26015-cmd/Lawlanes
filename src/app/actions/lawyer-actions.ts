@@ -291,25 +291,37 @@ export async function createManualCaseAction(data: {
     contractText?: string;
 }) {
     // ต้องเป็นทนายจริง และเคสถูกผูกกับโปรไฟล์ของผู้เรียกเอง · สร้างเคสเองเป็นสิทธิ์ Pro/บริษัท (จัดการคดี)
-    const { lawyerProfileId: lawyerId, adminApp } = await requireLawyer();
+    const { uid: lawyerUid, lawyerProfileId: lawyerId, adminApp } = await requireLawyer();
     await requireLawyerFeature('caseManagement');
     if (!adminApp) throw new Error('Firebase Admin not initialized.');
     const db = adminApp.firestore();
 
     try {
-        const chatId = data.existingChatId || db.collection('chats').doc().id;
-        const chatRef = db.collection('chats').doc(chatId);
+        // ห้องเก่าบางห้องเก็บ lawyerId / participants เป็น auth uid · ห้องใหม่ lawyerId = id โปรไฟล์
+        const isOwnChat = (c: any) =>
+            c?.lawyerId === lawyerId || c?.lawyerId === lawyerUid ||
+            (Array.isArray(c?.participants) && c.participants.includes(lawyerUid));
 
-        // Resolve clientId from existing chat if not provided
+        let existingChatId = data.existingChatId;
         let resolvedClientId = data.clientId;
-        if (!resolvedClientId && data.existingChatId) {
-            const existingChat = await chatRef.get();
-            if (existingChat.exists) {
-                const chatData = existingChat.data();
-                resolvedClientId = chatData?.clientId || chatData?.userId || 
-                    chatData?.participants?.find((p: string) => p !== lawyerId);
+
+        if (existingChatId) {
+            const existingChat = await db.collection('chats').doc(existingChatId).get();
+            if (!existingChat.exists || !isOwnChat(existingChat.data())) {
+                return { success: false, error: 'ไม่พบห้องแชทนี้ หรือไม่ใช่ห้องของคุณ' };
             }
+            if (!resolvedClientId) {
+                const chatData = existingChat.data();
+                resolvedClientId = chatData?.clientId || chatData?.userId ||
+                    chatData?.participants?.find((p: string) => p !== lawyerId && p !== lawyerUid);
+            }
+        } else if (resolvedClientId) {
+            // สร้างจากเมนูคดี (ไม่มี chatId) — ถ้ามีห้องคุยกับลูกความคนนี้อยู่แล้ว ส่งใบเสนอราคาลงห้องเดิม
+            existingChatId = await findReusableChatId(db, lawyerUid, lawyerId, resolvedClientId);
         }
+
+        const chatId = existingChatId || db.collection('chats').doc().id;
+        const chatRef = db.collection('chats').doc(chatId);
 
         const chatPayload: any = {
             lawyerId: lawyerId,
@@ -342,15 +354,14 @@ export async function createManualCaseAction(data: {
             chatPayload.userId = resolvedClientId;
         }
 
-        if (!data.existingChatId) {
-            // New chat: include both lawyerId and clientId in participants
-            chatPayload.participants = resolvedClientId 
-                ? [lawyerId, resolvedClientId] 
-                : [lawyerId];
+        // participants ต้องเป็น auth uid — รายการแชทของทนาย/ลูกความค้นด้วย array-contains uid
+        if (!existingChatId) {
+            chatPayload.participants = resolvedClientId
+                ? [lawyerUid, resolvedClientId]
+                : [lawyerUid];
             chatPayload.createdAt = admin.firestore.FieldValue.serverTimestamp();
         } else if (resolvedClientId) {
-            // Existing chat: ensure clientId is in participants
-            chatPayload.participants = admin.firestore.FieldValue.arrayUnion(lawyerId, resolvedClientId);
+            chatPayload.participants = admin.firestore.FieldValue.arrayUnion(lawyerUid, resolvedClientId);
         }
 
         const chatRes = await chatRef.set(chatPayload, { merge: true });
@@ -392,7 +403,8 @@ export async function createManualCaseAction(data: {
         const newMessageRef = messagesRef.doc();
         const proposalMessage = {
             chatId: chatId,
-            text: `📄 **เอกสารใบเสนอราคาใหม่**\n\n**หัวข้อ:** ${data.title}\n**ยอดรวมทั้งสิ้น:** ฿${data.amount.toLocaleString()}\n\nคุณสามารถตรวจสอบรายละเอียดใบเสนอราคาอย่างเป็นทางการและดาวน์โหลดเอกสาร PDF ได้ที่ลิงก์ด้านล่างนี้:\n\n🔗 [ดูใบเสนอราคาที่นี่](${invoiceLink})\n\nชำระค่าบริการเข้าบัญชี Lawslane ผ่านปุ่มชำระเงินในห้องนี้`,
+            // ข้อความธรรมดา (ห้องแชทไม่แปลง markdown) — การ์ดในแชทมีปุ่มเปิดใบเสนอราคาให้แล้ว
+            text: `📄 เอกสารใบเสนอราคาใหม่\n\nหัวข้อ: ${data.title}\nยอดรวมทั้งสิ้น: ฿${data.amount.toLocaleString()}\n\nกดปุ่มด้านล่างเพื่อดูรายละเอียดและดาวน์โหลด PDF`,
             senderId: 'system',
             senderName: 'System',
             timestamp: admin.firestore.FieldValue.serverTimestamp(),
@@ -412,7 +424,7 @@ export async function createManualCaseAction(data: {
             const contractMsgRef = messagesRef.doc();
             await contractMsgRef.set({
                 chatId: chatId,
-                text: `📄 **ร่างสัญญาจ้างทนายความ**\n\n${data.contractText}\n\n*หมายเหตุ: สัญญาฉบับนี้จะมีผลสมบูรณ์เมื่อทนายยืนยันว่าได้รับเงินงวดแรกแล้ว*`,
+                text: `📄 ร่างสัญญาจ้างทนายความ\n\n${data.contractText}\n\nหมายเหตุ: สัญญาฉบับนี้จะมีผลสมบูรณ์เมื่อทนายยืนยันว่าได้รับเงินงวดแรกแล้ว`,
                 senderId: 'system',
                 senderName: 'System',
                 timestamp: admin.firestore.FieldValue.serverTimestamp(),
@@ -422,10 +434,9 @@ export async function createManualCaseAction(data: {
 
         // (C) The Payment Instruction Message (NEW)
         const paymentMsgRef = messagesRef.doc();
-        const paymentLink = `${process.env.NEXT_PUBLIC_APP_URL || 'https://lawslane.com'}/payment?chatId=${chatId}`;
         await paymentMsgRef.set({
             chatId: chatId,
-            text: `💳 **ช่องทางการชำระเงิน**\n\nโอนค่าบริการเข้าบัญชี Lawslane แล้วแนบสลิปได้ที่ลิงก์ด้านล่างนี้:\n\n🔗 [ชำระค่าบริการ](${paymentLink})\n\n*Lawslane รับเงินไว้และโอนให้ทนายหลังปิดเคส ห้ามโอนเข้าบัญชีส่วนตัวของทนาย*`,
+            text: `💳 ชำระค่าบริการ ฿${data.amount.toLocaleString()}\n\nกดปุ่มด้านล่าง โอนเข้าบัญชี Lawslane แล้วแนบสลิปในหน้าถัดไป\n\nLawslane รับเงินไว้และโอนให้ทนายหลังปิดเคส ห้ามโอนเข้าบัญชีส่วนตัวของทนาย`,
             senderId: 'system',
             senderName: 'System',
             timestamp: admin.firestore.FieldValue.serverTimestamp(),
@@ -504,6 +515,33 @@ export async function createManualCaseAction(data: {
         console.error("Error creating/updating manual case action:", error);
         return JSON.parse(JSON.stringify({ success: false, error: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง' }));
     }
+}
+
+/**
+ * ห้องล่าสุดที่ทนายคุยกับลูกความคนนี้และยังไม่มีเคสคิดเงิน — ใช้ส่งใบเสนอราคาลงห้องเดิม
+ * ห้องที่มียอด/งวด/การชำระแล้ว หรือปิดไปแล้ว ไม่นำมาใช้ซ้ำ เพราะ createManualCaseAction
+ * เขียนทับ amount/installments/totalPaid ของห้อง → สร้างห้องใหม่แทน
+ */
+async function findReusableChatId(
+    db: admin.firestore.Firestore,
+    lawyerUid: string,
+    lawyerProfileId: string,
+    clientId: string,
+): Promise<string | undefined> {
+    const snap = await db.collection('chats').where('participants', 'array-contains', clientId).get();
+    const candidates = snap.docs
+        .map((d) => ({ id: d.id, data: d.data() }))
+        .filter(({ data: c }) =>
+            (c.lawyerId === lawyerProfileId || c.lawyerId === lawyerUid || c.participants?.includes(lawyerUid)) &&
+            !['completed', 'closed', 'cancelled', 'rejected'].includes(c.status) &&
+            !(Number(c.amount) > 0) &&
+            !(Array.isArray(c.installments) && c.installments.length > 0) &&
+            !(Number(c.totalPaid) > 0) &&
+            !c.paidAt && !c.paymentConfirmedAt
+        );
+    const time = (c: any) => c.lastMessageAt?.toMillis?.() ?? c.updatedAt?.toMillis?.() ?? c.createdAt?.toMillis?.() ?? 0;
+    candidates.sort((a, b) => time(b.data) - time(a.data));
+    return candidates[0]?.id;
 }
 
 /**

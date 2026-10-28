@@ -463,7 +463,7 @@ function ChatBoxContent({
                                         </div>
                                     </div>
                                     <div className="p-5 bg-white dark:bg-slate-900 space-y-4 min-w-0">
-                                        <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400 whitespace-pre-wrap break-words leading-relaxed">{msg.text}</p>
+                                        <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400 whitespace-pre-wrap break-words leading-relaxed">{cardText(msg.text)}</p>
                                         <div className="flex flex-col gap-2">
                                             <Button 
                                                className="w-full h-11 bg-blue-600 hover:bg-blue-700 font-bold rounded-2xl shadow-md text-sm" 
@@ -490,7 +490,7 @@ function ChatBoxContent({
                                         <span className="text-xs font-black uppercase tracking-widest">Proposal Document</span>
                                     </div>
                                     <div className="p-5 bg-white dark:bg-slate-900 space-y-4 min-w-0">
-                                        <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400 whitespace-pre-wrap break-words leading-relaxed">{msg.text}</p>
+                                        <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400 whitespace-pre-wrap break-words leading-relaxed">{cardText(msg.text)}</p>
                                         <Button 
                                            className="w-full h-11 bg-blue-600 hover:bg-blue-700 font-bold rounded-2xl shadow-md text-sm" 
                                            onClick={() => {
@@ -515,7 +515,7 @@ function ChatBoxContent({
                                         <span className="text-xs font-black uppercase tracking-widest">Payment Request</span>
                                     </div>
                                     <div className="p-5 bg-white dark:bg-slate-900 space-y-4 min-w-0">
-                                        <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400 whitespace-pre-wrap break-words leading-relaxed">{msg.text}</p>
+                                        <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400 whitespace-pre-wrap break-words leading-relaxed">{cardText(msg.text)}</p>
                                         <Button 
                                            className="w-full h-11 bg-blue-600 hover:bg-blue-700 font-bold rounded-2xl shadow-md text-sm" 
                                            asChild
@@ -546,7 +546,7 @@ function ChatBoxContent({
                                    </div>
                                  </div>
                                ) : (
-                                 <p className="text-xs md:text-sm leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:break-word] overflow-hidden min-w-0">{msg.text}</p>
+                                 <p className="text-xs md:text-sm leading-relaxed whitespace-pre-wrap break-words [overflow-wrap:anywhere] [word-break:break-word] overflow-hidden min-w-0">{msg.senderId === 'system' ? cardText(msg.text) : msg.text}</p>
                                )
                             )}
                           </div>
@@ -756,6 +756,22 @@ function ChatBoxContent({
 
     </Card>
   );
+}
+
+/**
+ * ข้อความการ์ดระบบ (ใบเสนอราคา / สัญญา / ชำระเงิน) รุ่นเก่าเขียนเป็น markdown แต่ห้องแชทแสดงเป็นข้อความธรรมดา
+ * → ตัด ** / * ครอบ และบรรทัดที่เป็นลิงก์ล้วน (การ์ดมีปุ่มให้กดแทนแล้ว)
+ */
+function cardText(text: string): string {
+  return text
+    .split('\n')
+    .filter((line) => !/^\s*(🔗\s*)?\[[^\]]*\]\([^)]*\)\s*$/.test(line))
+    .filter((line) => !/ได้ที่ลิงก์ด้านล่างนี้:?\s*$/.test(line))
+    .join('\n')
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/(^|\n)\*([^*\n]+)\*(?=\n|$)/g, '$1$2')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
 
 export function ChatBox(props: ChatBoxProps) {
