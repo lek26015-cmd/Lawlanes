@@ -424,7 +424,7 @@ export async function createManualCaseAction(data: {
             const contractMsgRef = messagesRef.doc();
             await contractMsgRef.set({
                 chatId: chatId,
-                text: `📄 ร่างสัญญาจ้างทนายความ\n\n${data.contractText}\n\nหมายเหตุ: สัญญาฉบับนี้จะมีผลสมบูรณ์เมื่อทนายยืนยันว่าได้รับเงินงวดแรกแล้ว`,
+                text: `📄 ร่างสัญญาจ้างทนายความ\n\n${data.contractText}\n\nหมายเหตุ: สัญญาฉบับนี้จะมีผลสมบูรณ์เมื่อลูกความชำระเงินงวดแรกครบยอดเข้าบัญชี Lawslane แล้ว`,
                 senderId: 'system',
                 senderName: 'System',
                 timestamp: admin.firestore.FieldValue.serverTimestamp(),
