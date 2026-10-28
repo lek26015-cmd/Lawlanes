@@ -404,7 +404,7 @@ export async function createManualCaseAction(data: {
         const proposalMessage = {
             chatId: chatId,
             // ข้อความธรรมดา (ห้องแชทไม่แปลง markdown) — การ์ดในแชทมีปุ่มเปิดใบเสนอราคาให้แล้ว
-            text: `📄 ใบเสนอราคาใหม่\n\nหัวข้อ: ${data.title}\nยอดรวมทั้งสิ้น: ฿${data.amount.toLocaleString()}\n\nกดปุ่มด้านล่างเพื่อดูรายละเอียดและดาวน์โหลด PDF`,
+            text: `📄 เอกสารใบเสนอราคาใหม่\n\nหัวข้อ: ${data.title}\nยอดรวมทั้งสิ้น: ฿${data.amount.toLocaleString()}\n\nกดปุ่มด้านล่างเพื่อดูรายละเอียดและดาวน์โหลด PDF`,
             senderId: 'system',
             senderName: 'System',
             timestamp: admin.firestore.FieldValue.serverTimestamp(),
