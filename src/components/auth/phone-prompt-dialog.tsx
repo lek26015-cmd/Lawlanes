@@ -21,6 +21,24 @@ import { formatPhoneNumber } from '@/lib/utils';
 
 // กด "ไว้ทีหลัง" แล้วไม่ถามซ้ำจนกว่าจะปิดแท็บ — เปิดเว็บรอบหน้าถามใหม่จนกว่าจะกรอก
 const SKIP_KEY = 'lawslane_phone_prompt_skipped';
+// บันทึกเบอร์สำเร็จแล้วไม่ถามอีกในเบราว์เซอร์นี้ — กันเด้งซ้ำตอนเปลี่ยนหน้าแม้อ่านเอกสารได้ค่าไม่ตรง
+const SAVED_KEY_PREFIX = 'lawslane_phone_saved:';
+
+function hasSavedLocally(uid: string) {
+    try {
+        return localStorage.getItem(SAVED_KEY_PREFIX + uid) === '1';
+    } catch {
+        return false;
+    }
+}
+
+function markSavedLocally(uid: string) {
+    try {
+        localStorage.setItem(SAVED_KEY_PREFIX + uid, '1');
+    } catch {
+        // localStorage ใช้ไม่ได้ — พึ่งเอกสาร users อย่างเดียว
+    }
+}
 
 /**
  * ลูกค้าที่เข้าสู่ระบบด้วย Google / LINE ไม่ได้ผ่านฟอร์มที่มีช่องเบอร์โทร —
@@ -46,6 +64,7 @@ export function PhonePromptDialog() {
             setOpen(false);
             return;
         }
+        if (hasSavedLocally(user.uid)) return;
         try {
             if (sessionStorage.getItem(SKIP_KEY) === user.uid) return;
         } catch {
@@ -55,8 +74,16 @@ export function PhonePromptDialog() {
         let cancelled = false;
         (async () => {
             try {
-                const snap = await getDoc(doc(firestore, 'users', user.uid));
-                if (cancelled) return;
+                // แอดมิน / ทนาย ไม่ใช่ลูกค้า — เอกสาร users ของบัญชีพวกนี้อาจยังไม่มีหรือไม่มี role
+                // (เช่นบัญชีแอดมินที่มีโปรไฟล์ทนายซ่อน) จึงต้องเช็กจาก claims / lawyerProfiles ด้วย
+                const { claims } = await user.getIdTokenResult();
+                if (cancelled || claims.admin === true || claims.role === 'admin') return;
+
+                const [snap, lawyerSnap] = await Promise.all([
+                    getDoc(doc(firestore, 'users', user.uid)),
+                    getDoc(doc(firestore, 'lawyerProfiles', user.uid)).catch(() => null),
+                ]);
+                if (cancelled || lawyerSnap?.exists()) return;
                 const data = snap.exists() ? snap.data() : null;
 
                 const isGoogle = user.providerData.some((p) => p.providerId === 'google.com');
@@ -64,7 +91,11 @@ export function PhonePromptDialog() {
                 const isLine = user.uid.startsWith('line_') || !!data?.lineUserId || data?.provider === 'line';
                 const isCustomer = !data || !data.role || data.role === 'customer';
 
-                if ((isGoogle || isLine) && isCustomer && !String(data?.phone || '').trim()) {
+                if (String(data?.phone || '').trim()) {
+                    markSavedLocally(user.uid);
+                    return;
+                }
+                if ((isGoogle || isLine) && isCustomer) {
                     setHasProfile(!!data);
                     setOpen(true);
                 }
@@ -99,7 +130,10 @@ export function PhonePromptDialog() {
         try {
             const userRef = doc(firestore, 'users', user.uid);
             const formatted = formatPhoneNumber(digits);
-            if (hasProfile) {
+            // เอกสารอาจถูกสร้างระหว่างที่ป็อปอัปเปิดอยู่ (เช่นปุ่ม Google ในหน้าสมัคร) — เช็กใหม่ตอนบันทึก
+            // ไม่งั้นสร้างทับเอกสารที่มีอยู่แล้ว rules จะปฏิเสธทั้งก้อน
+            const exists = hasProfile || (await getDoc(userRef)).exists();
+            if (exists) {
                 await setDoc(userRef, { phone: formatted, updatedAt: serverTimestamp() }, { merge: true });
             } else {
                 const name = (user.displayName || '').trim();
@@ -126,6 +160,7 @@ export function PhonePromptDialog() {
                 throw new Error('phone not persisted');
             }
 
+            markSavedLocally(user.uid);
             toast({ title: t('savedTitle'), description: t('savedDesc') });
             setOpen(false);
         } catch (err) {
